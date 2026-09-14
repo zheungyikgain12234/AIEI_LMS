@@ -10,6 +10,7 @@ class FacultyScaffold extends StatelessWidget {
   final ValueChanged<FacultyNavDestination> onDestinationSelected;
   final Widget body;
   final int pendingCount;
+  final VoidCallback? onOpenAdminPortal;
 
   const FacultyScaffold({
     super.key,
@@ -17,6 +18,7 @@ class FacultyScaffold extends StatelessWidget {
     required this.onDestinationSelected,
     required this.body,
     this.pendingCount = 14,
+    this.onOpenAdminPortal,
   });
 
   @override
@@ -31,6 +33,7 @@ class FacultyScaffold extends StatelessWidget {
             selected: selected,
             pendingCount: pendingCount,
             onDestinationSelected: onDestinationSelected,
+            onOpenAdminPortal: onOpenAdminPortal,
           ),
           Expanded(
             child: SingleChildScrollView(

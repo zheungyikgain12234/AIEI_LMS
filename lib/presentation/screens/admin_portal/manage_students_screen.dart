@@ -404,7 +404,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           Text('Volume of verified skill badges issued across corporate cohorts.', style: AdminTypography.bodySm()),
           const SizedBox(height: 16),
           SizedBox(
-            height: 130,
+            height: 170,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: months.map((m) {

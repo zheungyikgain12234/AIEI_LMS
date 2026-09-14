@@ -51,10 +51,9 @@ class MockCoursesDataSource {
           'https://lh3.googleusercontent.com/aida-public/AB6AXuB2OyYsvS_sX1hJ5qFZkMotA7KvbsvzTYWCF8WfETZtN0WSlfNQVhkrHsE2TUvzXjLriYi6LpI1QlVqk-bwOrvw91ojbYoLwM_Zr1ruloQ8yjzkvpR7-HcehL4qrnDrVs_4iMRN5WxJy9eG3JC6tjt3dVRM0B2lNuBugzLz-hsSE78-Mtrn1GPEA4LaZQxrCS24MIdweDmd2qWKW32UpGdY9ti9Vl7Dt6P7vfqp7Sdl2_U4kIgeIc1PhQ',
       tags: [
         CourseTag(
-          label: 'Completed',
-          backgroundColor: AppColors.tertiaryContainer,
-          textColor: AppColors.onTertiaryContainer,
-          hasCheckIcon: true,
+          label: 'Quiz Pending',
+          backgroundColor: AppColors.errorContainer,
+          textColor: AppColors.onErrorContainer,
         ),
         CourseTag(
           label: 'Annual Compliance',
@@ -62,17 +61,17 @@ class MockCoursesDataSource {
           textColor: AppColors.onSurfaceVariant,
         ),
       ],
-      scoreText: 'Score: 96% Quiz Avg',
-      progressPercentage: 100,
-      completedLessons: 8,
+      durationText: '3.2 hrs total',
+      progressPercentage: 38,
+      completedLessons: 3,
       totalLessons: 8,
-      nextLessonOrStatus: 'All module requirements and exams fulfilled',
-      isWarningNextLesson: false,
-      unlockBadgeTitle: 'Badge Earned: Certified Safety Officer',
+      nextLessonOrStatus: 'Next: Complete Lesson 4 Compliance Quiz',
+      isWarningNextLesson: true,
+      unlockBadgeTitle: 'Unlocks: Certified Safety Officer',
       unlockBadgeIcon: Icons.workspace_premium_outlined,
-      deadlineDays: 365,
-      ctaButtonText: 'Review Course / View Badge',
-      isCompleted: true,
+      deadlineDays: 14,
+      ctaButtonText: 'Continue Course',
+      isCompleted: false,
     ),
     EnrolledCourse(
       id: 'c3-genai',
@@ -201,11 +200,11 @@ class MockCoursesDataSource {
 
   static const CourseStats stats = CourseStats(
     enrolledCourses: 6,
-    inProgressCourses: 4,
-    completedCourses: 2,
-    completedLessons: 24,
+    inProgressCourses: 5,
+    completedCourses: 1,
+    completedLessons: 19,
     totalLessons: 52,
-    badgesEarned: 2,
+    badgesEarned: 1,
   );
 
   static const UrgentNotice urgentNotice = UrgentNotice(

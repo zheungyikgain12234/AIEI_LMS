@@ -4,6 +4,7 @@ import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
+import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
 
 // ---------------------------------------------------------------------------
 // CourseInfoScreen – Stitch "Course info 1" faithful Flutter conversion
@@ -711,7 +712,7 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
             ),
             // Submit Assignment button
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () => _openAssignmentSubmission(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondary,
                 foregroundColor: AppColors.onSecondary,
@@ -1292,9 +1293,15 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
     );
   }
 
+  void _openAssignmentSubmission() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AssignmentSubmissionScreen()),
+    );
+  }
+
   Widget _buildAssignmentRow() {
     return GestureDetector(
-      onTap: () {},
+      onTap: _openAssignmentSubmission,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: Container(

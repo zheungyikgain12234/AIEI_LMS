@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen_2.dart';
 import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
 import 'controllers/courses_controller.dart';
 import 'widgets/portal_header.dart';
@@ -97,8 +98,9 @@ class _EnrolledCoursesCatalogueScreenState
                               onCourseAction: (course) {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        CourseInfoScreen(course: course),
+                                    builder: (_) => course.id == 'c2-oshe'
+                                        ? CourseInfoScreen2(course: course)
+                                        : CourseInfoScreen(course: course),
                                   ),
                                 );
                               },

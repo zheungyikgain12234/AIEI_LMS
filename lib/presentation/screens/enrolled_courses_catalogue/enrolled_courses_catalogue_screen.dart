@@ -4,6 +4,7 @@ import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen_2.dart';
 import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/my_assigned_courses_screen.dart';
 import 'controllers/courses_controller.dart';
 import 'widgets/portal_header.dart';
 import 'widgets/portal_sidebar.dart';
@@ -50,6 +51,11 @@ class _EnrolledCoursesCatalogueScreenState
                 return;
               }
               setState(() => _sidebarIndex = index);
+            },
+            onOpenFacultyPortal: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()),
+              );
             },
           ),
 

@@ -5,11 +5,13 @@ import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 class PortalSidebar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int>? onDestinationSelected;
+  final VoidCallback? onOpenFacultyPortal;
 
   const PortalSidebar({
     super.key,
     this.selectedIndex = 0,
     this.onDestinationSelected,
+    this.onOpenFacultyPortal,
   });
 
   @override
@@ -44,6 +46,15 @@ class PortalSidebar extends StatelessWidget {
             icon: Icons.military_tech_outlined,
             onTap: () => onDestinationSelected?.call(1),
           ),
+          if (onOpenFacultyPortal != null) ...[
+            const Spacer(),
+            _SidebarNavItem(
+              title: 'Faculty Portal',
+              isSelected: false,
+              icon: Icons.switch_account_outlined,
+              onTap: onOpenFacultyPortal,
+            ),
+          ],
         ],
       ),
     );

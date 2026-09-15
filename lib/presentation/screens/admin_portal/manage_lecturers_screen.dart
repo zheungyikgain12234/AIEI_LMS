@@ -3,9 +3,12 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
+import 'widgets/admin_mobile_top_bar.dart';
+import 'widgets/admin_mobile_bottom_nav.dart';
 import 'lecturer_allocation_screen.dart';
 import 'manage_students_screen.dart';
 import 'course_enrollment_screen.dart';
+import 'enroll_students_screen.dart';
 
 // ---------------------------------------------------------------------------
 // ManageLecturersScreen – Stitch "Manage Lecturers" faithful Flutter
@@ -61,6 +64,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return AdminScaffold(
       selected: AdminNavDestination.manageLecturers,
       onDestinationSelected: _handleNav,
@@ -386,6 +392,636 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                 ),
                 child: Text(l.courseCount == 0 ? 'Assign Load' : 'Manage Courses'),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Mobile (<700px) layout
+  // ---------------------------------------------------------------------
+
+  Widget _buildMobileScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AdminColors.background,
+      appBar: const AdminMobileTopBar.root(title: 'Lecturers'),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _mobileEyebrowRow(),
+              const SizedBox(height: 8),
+              _mobileTitleRow(),
+              const SizedBox(height: 16),
+              _mobileKpiGrid(),
+              const SizedBox(height: 16),
+              _mobileSearchField(),
+              const SizedBox(height: 10),
+              _mobileFilterChips(),
+              const SizedBox(height: 16),
+              for (final l in _lecturers) ...[
+                _mobileLecturerCard(l),
+                const SizedBox(height: 12),
+              ],
+              const SizedBox(height: 4),
+              _mobilePaginationFooter(),
+              const SizedBox(height: 12),
+              _mobileFooterBanner(),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: AdminMobileBottomNav(
+        selected: AdminMobileTab.lecturers,
+        onTap: (tab) {
+          switch (tab) {
+            case AdminMobileTab.lecturers:
+              break; // already here
+            case AdminMobileTab.students:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
+              break;
+            case AdminMobileTab.cohorts:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()));
+              break;
+            case AdminMobileTab.enroll:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen()));
+              break;
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _mobileEyebrowRow() {
+    return Row(
+      children: [
+        Icon(Icons.account_balance, size: 16, color: AdminColors.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            'FACULTY GOVERNANCE • Q3 ACADEMIC TERM',
+            style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(color: AdminColors.tertiaryFixed, borderRadius: BorderRadius.circular(9999)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 6, height: 6, decoration: BoxDecoration(color: AdminColors.onTertiaryContainer, shape: BoxShape.circle)),
+            const SizedBox(width: 4),
+            Text('Term Active', style: AdminTypography.labelSm(color: AdminColors.onTertiaryContainer)),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  Widget _mobileTitleRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Faculty Directory', style: AdminTypography.headlineLg(color: AdminColors.primary)),
+              const SizedBox(height: 2),
+              Text('Capacity telemetry & curriculum allocation', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        ElevatedButton.icon(
+          onPressed: _notAvailable,
+          icon: const Icon(Icons.person_add, size: 18),
+          label: const Text('Add Lecturer'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AdminColors.secondary,
+            foregroundColor: AdminColors.onPrimary,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            textStyle: AdminTypography.labelMd(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _mobileKpiGrid() {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _mobileKpiCard(
+              label: 'Active Faculty',
+              icon: Icons.groups,
+              value: '38',
+              delta: '+3',
+              footer: 'Onboarded this term',
+              progress: 0.82,
+              progressColor: AdminColors.secondary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _mobileKpiCard(
+              label: 'Sections Open',
+              icon: Icons.domain_verification,
+              value: '112',
+              delta: '94%',
+              footer: 'Across 4 colleges',
+              progress: 0.94,
+              progressColor: AdminColors.onTertiaryContainer,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileKpiCard({
+    required String label,
+    required IconData icon,
+    required String value,
+    required String delta,
+    required String footer,
+    required double progress,
+    required Color progressColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(children: [
+            Expanded(
+              child: Text(
+                label.toUpperCase(),
+                style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, size: 18, color: AdminColors.secondary),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  style: AdminTypography.headlineLg(color: AdminColors.primary).copyWith(fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.trending_up, size: 14, color: AdminColors.onTertiaryContainer),
+                  Flexible(
+                    child: Text(
+                      delta,
+                      style: AdminTypography.labelSm(color: AdminColors.onTertiaryContainer).copyWith(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            footer,
+            style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(9999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 4,
+              backgroundColor: AdminColors.surfaceContainerHigh,
+              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileSearchField() {
+    return TextField(
+      style: AdminTypography.bodySm(color: AdminColors.onSurface),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: AdminColors.surfaceContainerLowest,
+        hintText: 'Search by name, ID, or dept...',
+        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+        prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
+        suffixIcon: const Icon(Icons.qr_code_scanner, size: 18, color: AdminColors.outlineVariant),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+    );
+  }
+
+  Widget _mobileFilterChips() {
+    Widget chip({required Widget child, required Color bg, required Color fg, VoidCallback? onTap}) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Material(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTap ?? _notAvailable,
+            child: Container(
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              alignment: Alignment.center,
+              child: DefaultTextStyle(
+                style: AdminTypography.labelMd(color: fg),
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 32,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          chip(
+            bg: AdminColors.secondary,
+            fg: AdminColors.onPrimary,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Text('All Departments'),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.25), borderRadius: BorderRadius.circular(4)),
+                child: Text('${_lecturers.length}', style: AdminTypography.labelSm(color: AdminColors.onPrimary)),
+              ),
+            ]),
+          ),
+          chip(
+            bg: AdminColors.surfaceContainerLowest,
+            fg: AdminColors.onSurfaceVariant,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Active'),
+              const SizedBox(width: 6),
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: AdminColors.onTertiaryContainer, shape: BoxShape.circle)),
+            ]),
+          ),
+          chip(bg: AdminColors.surfaceContainerLowest, fg: AdminColors.onSurfaceVariant, child: const Text('Contract')),
+          chip(bg: AdminColors.surfaceContainerLowest, fg: AdminColors.onSurfaceVariant, child: const Text('Sabbatical')),
+          chip(
+            bg: AdminColors.surfaceContainerLowest,
+            fg: AdminColors.onSurfaceVariant,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.tune, size: 16),
+              const SizedBox(width: 4),
+              const Text('Filters'),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileLecturerCard(_Lecturer l) {
+    final isSabbatical = l.courseCount == 0;
+    final isMaxLoad = !isSabbatical && l.capacityPercent >= 100;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
+                child: const Icon(Icons.person, color: AdminColors.primary, size: 24),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Flexible(
+                        child: Text(
+                          l.name,
+                          style: AdminTypography.headlineSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
+                        child: Text(l.employeeId, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+                      ),
+                    ]),
+                    Text(
+                      l.title,
+                      style: AdminTypography.labelMd(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      l.department,
+                      style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _notAvailable,
+                icon: const Icon(Icons.more_vert, size: 20, color: AdminColors.onSurfaceVariant),
+                tooltip: 'Faculty actions',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(children: [
+                  Expanded(
+                    child: Text(
+                      'WORKLOAD CAPACITY',
+                      style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      '${l.creditsUsed} / ${l.creditsMax} Credits',
+                      style: AdminTypography.labelMd(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 2),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '(${l.capacityPercent}% ${isMaxLoad ? 'Max' : 'Optimal'})',
+                    style: AdminTypography.labelSm(color: AdminColors.onTertiaryContainer).copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(9999),
+                  child: LinearProgressIndicator(
+                    value: l.capacityPercent / 100,
+                    minHeight: 8,
+                    backgroundColor: AdminColors.surfaceContainerHighest,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isMaxLoad ? AdminColors.error : AdminColors.secondaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (isSabbatical)
+            Text(
+              '0 Assigned • Approved Research Term',
+              style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ACTIVE COURSES (${l.courseCount})',
+                  style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: l.courses
+                      .map((c) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(6)),
+                            child: Text(c, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+                          ))
+                      .toList(),
+                ),
+              ],
+            ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(child: _mobileStatusPill(l, isSabbatical: isSabbatical, isMaxLoad: isMaxLoad)),
+              const SizedBox(width: 8),
+              _mobileCardActionButton(l, isSabbatical: isSabbatical),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileStatusPill(_Lecturer l, {required bool isSabbatical, required bool isMaxLoad}) {
+    if (isSabbatical) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: AdminColors.onSurfaceVariant, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              'Sabbatical',
+              style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ]),
+      );
+    }
+    if (isMaxLoad) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(9999)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.warning_amber_rounded, size: 12, color: AdminColors.onErrorContainer),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              'Max Load',
+              style: AdminTypography.labelSm(color: AdminColors.onErrorContainer).copyWith(fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ]),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: AdminColors.tertiaryFixed, borderRadius: BorderRadius.circular(9999)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 6, height: 6, decoration: BoxDecoration(color: AdminColors.onTertiaryContainer, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            'Active',
+            style: AdminTypography.labelSm(color: AdminColors.onTertiaryContainer).copyWith(fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _mobileCardActionButton(_Lecturer l, {required bool isSabbatical}) {
+    void onPressed() => l.manageable
+        ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LecturerAllocationScreen()))
+        : _notAvailable();
+
+    if (isSabbatical) {
+      return ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.assignment_ind, size: 16),
+        label: const Text('Assign Load'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AdminColors.primary,
+          foregroundColor: AdminColors.onPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          textStyle: AdminTypography.labelMd(),
+        ),
+      );
+    }
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.menu_book, size: 16),
+      label: const Text('Manage Courses'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AdminColors.surfaceContainerLow,
+        foregroundColor: AdminColors.secondary,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: AdminTypography.labelMd(),
+      ),
+    );
+  }
+
+  Widget _mobilePaginationFooter() {
+    Widget pageBtn(String label, {bool active = false}) {
+      return Container(
+        margin: const EdgeInsets.only(left: 4),
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? AdminColors.secondary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: AdminTypography.labelSm(color: active ? AdminColors.onPrimary : AdminColors.onSurfaceVariant)
+              .copyWith(fontWeight: FontWeight.w700),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: Text(
+            'Showing 1-${_lecturers.length} of 38 faculty',
+            style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          IconButton(
+            onPressed: _notAvailable,
+            icon: const Icon(Icons.chevron_left, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          ),
+          pageBtn('1', active: true),
+          pageBtn('2'),
+          pageBtn('3'),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: Text('…', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          pageBtn('8'),
+          IconButton(
+            onPressed: _notAvailable,
+            icon: const Icon(Icons.chevron_right, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  Widget _mobileFooterBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.verified_user, size: 16, color: AdminColors.secondary),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              'Academic Year 2024–2025 Admin Console Active',
+              style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ),
         ],

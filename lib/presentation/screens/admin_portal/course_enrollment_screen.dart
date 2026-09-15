@@ -3,6 +3,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
+import 'widgets/admin_mobile_top_bar.dart';
+import 'widgets/admin_mobile_bottom_nav.dart';
 import 'manage_lecturers_screen.dart';
 import 'lecturer_allocation_screen.dart';
 import 'manage_students_screen.dart';
@@ -54,6 +56,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return AdminScaffold(
       selected: AdminNavDestination.courseEnrollment,
       onDestinationSelected: _handleNav,
@@ -347,6 +352,589 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
         ]),
         const SizedBox(height: 3),
         ClipRRect(borderRadius: BorderRadius.circular(9999), child: LinearProgressIndicator(value: pct / 100, minHeight: 5, backgroundColor: AdminColors.surfaceContainerHigh, valueColor: AlwaysStoppedAnimation<Color>(good ? AdminColors.primaryContainer : AdminColors.error))),
+      ],
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Mobile (< 700px) layout — separate Scaffold, reuses the same _roster data.
+  // -------------------------------------------------------------------------
+
+  Widget _buildMobileScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AdminColors.background,
+      appBar: const AdminMobileTopBar.root(title: 'Course Cohorts'),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _mobileStatusStrip(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _mobileHeader(),
+                  const SizedBox(height: 16),
+                  _mobileQuickActions(context),
+                  const SizedBox(height: 16),
+                  _mobileCohortCard(),
+                  const SizedBox(height: 16),
+                  _mobileMetricsGrid(),
+                  const SizedBox(height: 16),
+                  _mobileSearchField(),
+                  const SizedBox(height: 10),
+                  _mobileFilterChips(),
+                  const SizedBox(height: 16),
+                  for (final s in _roster) ...[
+                    _mobileStudentCard(s),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: AdminMobileBottomNav(
+        selected: AdminMobileTab.cohorts,
+        onTap: (tab) {
+          switch (tab) {
+            case AdminMobileTab.lecturers:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageLecturersScreen()));
+              break;
+            case AdminMobileTab.students:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
+              break;
+            case AdminMobileTab.cohorts:
+              break;
+            case AdminMobileTab.enroll:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen()));
+              break;
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _mobileStatusStrip() {
+    return Container(
+      color: AdminColors.surfaceContainerLow,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: AdminColors.tertiaryContainer, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                Flexible(child: Text('Academic Registrations', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 6),
+                Text('•', style: AdminTypography.labelSm(color: AdminColors.outlineVariant)),
+                const SizedBox(width: 6),
+                Text('SEC-PY402-FA25', style: AdminTypography.labelSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+            child: Text('Live Sync', style: AdminTypography.labelSm(color: AdminColors.secondary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('ROSTER CONTROL', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.0)),
+            Text('Fall 2025', style: AdminTypography.labelSm()),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text('Manage Students', style: AdminTypography.headlineLg(color: AdminColors.primary)),
+        const SizedBox(height: 4),
+        Text('Manage course caps, register learners, and track academic telemetry.', style: AdminTypography.bodySm()),
+      ],
+    );
+  }
+
+  Widget _mobileQuickActions(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen())),
+            icon: const Icon(Icons.person_add, size: 18),
+            label: const Text('+ Enroll Students'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminColors.secondary,
+              foregroundColor: AdminColors.onSecondary,
+              elevation: 1,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: _notAvailable,
+            icon: const Icon(Icons.unfold_more, size: 18),
+            label: const Text('SEC-PY402 (Active)'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AdminColors.onSurfaceVariant,
+              backgroundColor: AdminColors.surfaceContainerLowest,
+              side: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: _notAvailable,
+            icon: const Icon(Icons.file_download, size: 18),
+            label: const Text('Export'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AdminColors.onSurfaceVariant,
+              backgroundColor: AdminColors.surfaceContainerLowest,
+              side: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: _notAvailable,
+            icon: const Icon(Icons.swap_horiz, size: 18),
+            label: const Text('Drop/Transfer'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AdminColors.onSurfaceVariant,
+              backgroundColor: AdminColors.surfaceContainerLowest,
+              side: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileCohortCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(spacing: 6, runSpacing: 4, children: [
+                      _tag('PY-402', AdminColors.primary, AdminColors.onPrimary),
+                      _tag('4 Credit Units', AdminColors.surfaceContainerHigh, AdminColors.onSurfaceVariant),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text('Python for Enterprise Data Analysis & Automation', style: AdminTypography.headlineSm(color: AdminColors.primary)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: AdminColors.secondaryFixed.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.terminal, color: AdminColors.secondary, size: 22),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(radius: 14, backgroundColor: AdminColors.surfaceContainerHigh, child: Icon(Icons.person, size: 16, color: AdminColors.primary)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Dr. Sarah Lin', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                          Text('Lead Data Architect & Research Fellow', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule, size: 16, color: AdminColors.outline),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text('Mon / Wed 18:00 – 20:30 UTC • Virtual Lab', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileMetricsGrid() {
+    return Column(
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _mobileMetricTile(
+                  label: 'Capacity',
+                  value: '42 / 50',
+                  icon: Icons.group_outlined,
+                  progress: 0.84,
+                  footerLeft: '84% filled',
+                  footerRight: '8 Seats Available',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _mobileMetricTile(
+                  label: 'Waitlist',
+                  value: '4 Learners',
+                  icon: Icons.hourglass_top_outlined,
+                  footerAction: 'Review Queue',
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _mobileMetricTile(
+                  label: 'Benchmark',
+                  value: '80%',
+                  icon: Icons.verified_outlined,
+                  footerLeft: 'Passing Threshold',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _mobileMetricTile(
+                  label: 'Avg Grade',
+                  value: '87.2%',
+                  icon: Icons.analytics_outlined,
+                  trend: '+3.4% vs Prev.',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _mobileMetricTile({
+    required String label,
+    required String value,
+    required IconData icon,
+    double? progress,
+    String? footerLeft,
+    String? footerRight,
+    String? footerAction,
+    String? trend,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(label, style: AdminTypography.labelMd(), overflow: TextOverflow.ellipsis)),
+              Icon(icon, size: 16, color: AdminColors.primary),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(value, style: AdminTypography.headlineSm(color: AdminColors.primary)),
+          const SizedBox(height: 8),
+          if (progress != null) ...[
+            ClipRRect(borderRadius: BorderRadius.circular(9999), child: LinearProgressIndicator(value: progress, minHeight: 5, backgroundColor: AdminColors.surfaceContainerHigh, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.primaryContainer))),
+            const SizedBox(height: 6),
+          ],
+          if (footerLeft != null) Text(footerLeft, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+          if (footerRight != null)
+            Text(footerRight, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+          if (footerAction != null)
+            GestureDetector(
+              onTap: _notAvailable,
+              child: Row(children: [
+                Flexible(
+                  child: Text(
+                    footerAction,
+                    overflow: TextOverflow.ellipsis,
+                    style: AdminTypography.labelSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(Icons.arrow_forward, size: 12, color: AdminColors.primary),
+              ]),
+            ),
+          if (trend != null)
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.trending_up, size: 12, color: AdminColors.secondary),
+              const SizedBox(width: 2),
+              Flexible(child: Text(trend, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+            ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileSearchField() {
+    return TextField(
+      style: AdminTypography.bodySm(color: AdminColors.onSurface),
+      decoration: InputDecoration(
+        isDense: true,
+        filled: true,
+        fillColor: AdminColors.surfaceContainerLowest,
+        hintText: 'Search by name, ID or email...',
+        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+        prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+    );
+  }
+
+  Widget _mobileFilterChips() {
+    return SizedBox(
+      height: 32,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _mobileFilterChip('All', '42', true),
+          const SizedBox(width: 8),
+          _mobileFilterChip('Passing (≥80%)', '38', false),
+          const SizedBox(width: 8),
+          _mobileFilterChip('At Risk (<80%)', '4', false, badgeColor: AdminColors.errorContainer, badgeTextColor: AdminColors.onErrorContainer),
+          const SizedBox(width: 8),
+          _mobileFilterChip('Incomplete', '1', false),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileFilterChip(String label, String count, bool active, {Color? badgeColor, Color? badgeTextColor}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(color: active ? AdminColors.secondary : AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)]),
+      alignment: Alignment.center,
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(label, style: AdminTypography.labelMd(color: active ? AdminColors.onSecondary : AdminColors.onSurfaceVariant)),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          decoration: BoxDecoration(color: active ? Colors.white.withValues(alpha: 0.2) : (badgeColor ?? AdminColors.surfaceContainer), borderRadius: BorderRadius.circular(8)),
+          child: Text(count, style: AdminTypography.labelSm(color: active ? AdminColors.onSecondary : (badgeTextColor ?? AdminColors.onSurfaceVariant)).copyWith(fontWeight: FontWeight.w700)),
+        ),
+      ]),
+    );
+  }
+
+  Widget _mobileStudentCard(_RosterStudent s) {
+    final selected = _selected.contains(s.employeeId);
+    final compact = !s.atRisk && s.standing.toLowerCase().contains('top');
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: s.atRisk ? AdminColors.errorContainer.withValues(alpha: 0.12) : AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: selected,
+                onChanged: (v) => setState(() => v == true ? _selected.add(s.employeeId) : _selected.remove(s.employeeId)),
+                activeColor: AdminColors.primaryContainer,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              const SizedBox(width: 4),
+              Container(
+                width: 40,
+                height: 40,
+                margin: const EdgeInsets.only(top: 4),
+                decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
+                child: const Icon(Icons.person, color: AdminColors.primary, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s.name, style: AdminTypography.headlineSm(), overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      Flexible(
+                        child: Text(s.employeeId, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                      ),
+                      const SizedBox(width: 6),
+                      Text('•', style: AdminTypography.bodySm()),
+                      const SizedBox(width: 6),
+                      Expanded(flex: 2, child: Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis)),
+                    ]),
+                    const SizedBox(height: 4),
+                    Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(6)),
+                        child: Text(s.sponsorship, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+                      ),
+                      Text(s.enrolledDate, style: AdminTypography.bodySm(color: AdminColors.outline)),
+                    ]),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('${s.grade}%', style: AdminTypography.headlineSm(color: s.atRisk ? AdminColors.error : AdminColors.primary)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: s.atRisk ? AdminColors.errorContainer : AdminColors.tertiaryFixed, borderRadius: BorderRadius.circular(8)),
+                  child: Text(
+                    s.standing,
+                    style: AdminTypography.labelSm(color: s.atRisk ? AdminColors.onErrorContainer : AdminColors.onTertiaryFixedVariant).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ]),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (s.atRisk)
+            _mobileAtRiskPanel(s)
+          else if (compact)
+            _mobileCompactPanel(s)
+          else
+            _mobileBreakdownPanel(s),
+          const SizedBox(height: 8),
+          if (s.atRisk)
+            Row(children: [
+              const Icon(Icons.notification_important, size: 16, color: AdminColors.error),
+              const SizedBox(width: 6),
+              Expanded(child: Text('Academic Warning — Intervention Suggested', style: AdminTypography.labelSm(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+            ])
+          else
+            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              TextButton.icon(
+                onPressed: _notAvailable,
+                icon: const Icon(Icons.visibility, size: 16),
+                label: const Text('Transcript'),
+                style: TextButton.styleFrom(foregroundColor: AdminColors.onSurfaceVariant, padding: const EdgeInsets.symmetric(horizontal: 8)),
+              ),
+              TextButton.icon(
+                onPressed: _notAvailable,
+                icon: const Icon(Icons.mail, size: 16),
+                label: const Text('Message'),
+                style: TextButton.styleFrom(foregroundColor: AdminColors.onSurfaceVariant, padding: const EdgeInsets.symmetric(horizontal: 8)),
+              ),
+            ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileBreakdownPanel(_RosterStudent s) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      child: Column(children: [
+        _mobileProgressRow('Assignments: ${s.assignDone} of ${s.assignTotal} (${s.assignPct}%)', s.assignPct),
+        const SizedBox(height: 8),
+        _mobileProgressRow('Quizzes: ${s.quizDone} of ${s.quizTotal} (${s.quizPct}%)', s.quizPct),
+      ]),
+    );
+  }
+
+  Widget _mobileAtRiskPanel(_RosterStudent s) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      child: Column(children: [
+        _mobileProgressRow('Assignments: ${s.assignDone} of ${s.assignTotal} (${s.assignPct}%)', s.assignPct),
+        const SizedBox(height: 8),
+        _mobileProgressRow('Quizzes: ${s.quizDone} of ${s.quizTotal} (${s.quizPct}%)', s.quizPct),
+        const SizedBox(height: 8),
+        Row(children: [
+          const Icon(Icons.warning, size: 14, color: AdminColors.error),
+          const SizedBox(width: 4),
+          Expanded(child: Text('Below passing threshold', style: AdminTypography.labelSm(color: AdminColors.error), overflow: TextOverflow.ellipsis)),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _mobileCompactPanel(_RosterStudent s) {
+    final done = s.assignDone + s.quizDone;
+    final total = s.assignTotal + s.quizTotal;
+    final pct = total == 0 ? 0 : ((done / total) * 100).round();
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      child: Row(children: [
+        const Icon(Icons.checklist, size: 16, color: AdminColors.secondary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Core Milestones: $done of $total Complete ($pct%)',
+            style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _mobileProgressRow(String label, int pct) {
+    final good = pct >= 80;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9999),
+          child: LinearProgressIndicator(value: pct / 100, minHeight: 5, backgroundColor: AdminColors.surfaceContainerHighest, valueColor: AlwaysStoppedAnimation<Color>(good ? AdminColors.secondary : AdminColors.error)),
+        ),
       ],
     );
   }

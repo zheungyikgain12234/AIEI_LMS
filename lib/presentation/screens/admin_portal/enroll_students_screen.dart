@@ -3,6 +3,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
+import 'widgets/admin_mobile_top_bar.dart';
+import 'widgets/admin_mobile_bottom_nav.dart';
 import 'manage_lecturers_screen.dart';
 import 'lecturer_allocation_screen.dart';
 import 'manage_students_screen.dart';
@@ -63,6 +65,9 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     final postCapacity = _baseEnrolled + _staged.length;
     return AdminScaffold(
       selected: AdminNavDestination.courseEnrollment,
@@ -354,6 +359,532 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     },
               icon: const Icon(Icons.person_add_alt_1, size: 18),
               label: Text('Confirm & Enroll ${_staged.length} Students'),
+              style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurfaceVariant, backgroundColor: AdminColors.surfaceContainerLowest, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              child: const Text('Cancel & Return'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Mobile (<700px) layout — separate Scaffold, shared AdminMobileTopBar /
+  // AdminMobileBottomNav shell. Reuses the existing `_candidates` data list
+  // and `_staged` toggle state so staging behavior stays identical.
+  // ---------------------------------------------------------------------
+
+  Widget _buildMobileScaffold(BuildContext context) {
+    final postCapacity = _baseEnrolled + _staged.length;
+    return Scaffold(
+      backgroundColor: AdminColors.background,
+      appBar: const AdminMobileTopBar.root(title: 'Enroll'),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.arrow_back, size: 18, color: AdminColors.secondary),
+                      const SizedBox(width: 6),
+                      Text('Course Roster', style: AdminTypography.labelMd(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.tag, size: 14, color: AdminColors.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Text('SEC-PY402-FA25', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(letterSpacing: 0.5)),
+                    ]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 6, height: 6, decoration: const BoxDecoration(color: AdminColors.secondary, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                Text('ACADEMIC REGISTRATIONS', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+              ]),
+              const SizedBox(height: 4),
+              Text('Enroll Students', style: AdminTypography.headlineLg()),
+              const SizedBox(height: 4),
+              Text('Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this cohort.', style: AdminTypography.bodySm()),
+              const SizedBox(height: 16),
+              _mobileCourseSummary(postCapacity),
+              const SizedBox(height: 16),
+              _mobileSearchField(),
+              const SizedBox(height: 10),
+              _mobileFilterBar(),
+              const SizedBox(height: 16),
+              for (final c in _candidates) ...[
+                _mobileCandidateCard(c),
+                const SizedBox(height: 12),
+              ],
+              _mobileBatchSummary(postCapacity),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: AdminMobileBottomNav(
+        selected: AdminMobileTab.enroll,
+        onTap: (tab) {
+          switch (tab) {
+            case AdminMobileTab.lecturers:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageLecturersScreen()));
+              break;
+            case AdminMobileTab.students:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
+              break;
+            case AdminMobileTab.cohorts:
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()));
+              break;
+            case AdminMobileTab.enroll:
+              break;
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _mobileCourseSummary(int postCapacity) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: AdminColors.primary, borderRadius: BorderRadius.circular(4)),
+                      child: Text('PY-402', style: AdminTypography.labelSm(color: AdminColors.onPrimary).copyWith(fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(child: Text('• Fall 2025', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+                  ]),
+                  const SizedBox(height: 4),
+                  Text('Python for Enterprise Data Analysis & Automation', style: AdminTypography.headlineSm()),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.school, size: 14, color: AdminColors.secondary),
+                  const SizedBox(width: 4),
+                  Text('4 Cr', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: Row(children: [
+              Container(width: 32, height: 32, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHighest, shape: BoxShape.circle), child: const Icon(Icons.co_present, size: 18, color: AdminColors.primary)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Dr. Sarah Lin', style: AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                  Text('Lead Data Architect • Mon/Wed 18:00-20:30 UTC', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
+                ]),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          _mobileCapacityBar(postCapacity),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileCapacityBar(int postCapacity) {
+    final remaining = _capacity - postCapacity;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Flexible(
+            child: Text('Cohort Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
+          Text('$postCapacity / $_capacity Enrolled', style: AdminTypography.titleSm()),
+        ]),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9999),
+          child: SizedBox(
+            height: 8,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(flex: _baseEnrolled, child: Container(color: AdminColors.primaryContainer)),
+                if (_staged.isNotEmpty) Expanded(flex: _staged.length, child: Container(color: AdminColors.secondary)),
+                if (remaining > 0) Expanded(flex: remaining, child: Container(color: AdminColors.surfaceContainerHigh)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(children: [
+          Flexible(
+            child: Text(
+              '$remaining seats remaining',
+              overflow: TextOverflow.ellipsis,
+              style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text('4 on Waitlist', style: AdminTypography.labelSm()),
+        ]),
+      ],
+    );
+  }
+
+  Widget _mobileSearchField() {
+    return TextField(
+      style: AdminTypography.bodySm(color: AdminColors.onSurface),
+      decoration: InputDecoration(
+        isDense: true,
+        filled: true,
+        fillColor: AdminColors.surfaceContainerLowest,
+        hintText: 'Search student by name, ID...',
+        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+        prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+      ),
+    );
+  }
+
+  Widget _mobileFilterBar() {
+    return SizedBox(
+      height: 34,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _mobileFilterPill('All Eligible', '18', true),
+          const SizedBox(width: 8),
+          _mobileFilterPill('From Waitlist', '4', false),
+          const SizedBox(width: 8),
+          _mobileFilterPill('Corporate Sponsored', '14', false),
+          const SizedBox(width: 8),
+          _mobileTrackPill(),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileFilterPill(String label, String count, bool active) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: active ? AdminColors.secondary : AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(label, style: AdminTypography.labelMd(color: active ? Colors.white : AdminColors.onSurfaceVariant)),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          decoration: BoxDecoration(color: active ? Colors.white.withValues(alpha: 0.2) : AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
+          child: Text(count, style: AdminTypography.labelSm(color: active ? Colors.white : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700, fontSize: 10)),
+        ),
+      ]),
+    );
+  }
+
+  Widget _mobileTrackPill() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)]),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text('All Tracks', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        const SizedBox(width: 4),
+        const Icon(Icons.expand_more, size: 16, color: AdminColors.onSurfaceVariant),
+      ]),
+    );
+  }
+
+  String _shortCohort(String cohort) {
+    final parts = cohort.split(' ');
+    if (parts.length >= 2 && parts[1].length == 4) {
+      return "${parts[0]} '${parts[1].substring(2)}";
+    }
+    return cohort;
+  }
+
+  Widget _mobileDetailRow(String label, String value, {IconData? icon, Color? iconColor, Color? valueColor}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(letterSpacing: 0.4)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (icon != null) ...[Icon(icon, size: 14, color: iconColor), const SizedBox(width: 4)],
+              Flexible(
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                  style: AdminTypography.labelMd(color: valueColor ?? AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _mobileCandidateCard(_Candidate c) {
+    final staged = _staged.contains(c.name);
+    final locked = c.warn;
+
+    String pillText;
+    Color pillBg;
+    Color pillFg;
+    if (staged) {
+      pillText = 'Staged';
+      pillBg = AdminColors.secondary.withValues(alpha: 0.15);
+      pillFg = AdminColors.secondary;
+    } else if (c.tag != null) {
+      pillText = c.tag!;
+      pillBg = c.warn ? AdminColors.errorContainer : AdminColors.surfaceContainer;
+      pillFg = c.warn ? AdminColors.onErrorContainer : AdminColors.onSurfaceVariant;
+    } else if (c.sponsorship == 'Self-Enrolled') {
+      pillText = 'Self-Enrolled';
+      pillBg = AdminColors.surfaceContainer;
+      pillFg = AdminColors.onSurfaceVariant;
+    } else {
+      pillText = 'Eligible';
+      pillBg = AdminColors.tertiaryFixed;
+      pillFg = AdminColors.onTertiaryFixedVariant;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+        border: staged ? Border.all(color: AdminColors.secondary.withValues(alpha: 0.3)) : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (locked)
+                Container(
+                  width: 20,
+                  height: 20,
+                  margin: const EdgeInsets.only(top: 2, right: 8),
+                  decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(5)),
+                  child: const Icon(Icons.lock, size: 13, color: AdminColors.onErrorContainer),
+                )
+              else
+                GestureDetector(
+                  onTap: () => setState(() => staged ? _staged.remove(c.name) : _staged.add(c.name)),
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    margin: const EdgeInsets.only(top: 2, right: 8),
+                    decoration: BoxDecoration(
+                      color: staged ? AdminColors.secondary : AdminColors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: staged ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                  ),
+                ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      Text(c.name, style: AdminTypography.headlineSm()),
+                      Text(c.employeeId, style: AdminTypography.labelSm()),
+                    ]),
+                    Text(c.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: pillBg, borderRadius: BorderRadius.circular(9999)),
+                child: Text(pillText, style: AdminTypography.labelSm(color: pillFg).copyWith(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: Column(children: [
+              _mobileDetailRow('Track', '${c.track} (${_shortCohort(c.cohort)})'),
+              const SizedBox(height: 6),
+              _mobileDetailRow(
+                'Prereqs',
+                c.prereq,
+                icon: c.warn ? Icons.warning_amber_rounded : Icons.verified,
+                iconColor: c.warn ? const Color(0xFFB45309) : AdminColors.secondary,
+                valueColor: c.warn ? const Color(0xFFB45309) : AdminColors.secondary,
+              ),
+              const SizedBox(height: 6),
+              _mobileDetailRow('Sponsor', c.sponsorship),
+            ]),
+          ),
+          const SizedBox(height: 10),
+          if (locked) ...[
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AdminColors.errorContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AdminColors.errorContainer),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.warning, size: 16, color: AdminColors.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Prereq Waiver Required', style: AdminTypography.labelMd(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text(c.standing, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Waiver review requested for ${c.name}.'), backgroundColor: AdminColors.primary),
+                  );
+                },
+                style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: BorderSide(color: AdminColors.error), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                child: const Text('Review Waiver'),
+              ),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Row(children: [
+                    const Icon(Icons.check_circle, size: 14, color: AdminColors.secondary),
+                    const SizedBox(width: 4),
+                    Flexible(child: Text(c.standing, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+                  ]),
+                ),
+                TextButton(
+                  onPressed: () => setState(() => staged ? _staged.remove(c.name) : _staged.add(c.name)),
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  child: Text(
+                    staged ? 'Remove' : '+ Stage',
+                    style: AdminTypography.labelMd(color: staged ? AdminColors.error : AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileBatchSummary(int postCapacity) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Color(0x1F000000), blurRadius: 12, offset: Offset(0, -2))]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(color: AdminColors.secondary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.fact_check, size: 18, color: AdminColors.secondary),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Enrollment Batch Summary (${_staged.length} Staged)', style: AdminTypography.headlineSm(), overflow: TextOverflow.ellipsis),
+                Text('Capacity Post-Enrollment: $postCapacity / $_capacity', style: AdminTypography.bodySm()),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: Row(children: [
+              const Icon(Icons.trending_down, size: 16, color: AdminColors.secondary),
+              const SizedBox(width: 6),
+              Expanded(child: Text('Seat Allocation Impact:', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'Remaining: ${_capacity - _baseEnrolled} → ${_capacity - postCapacity}',
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                  style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _staged.isEmpty
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${_staged.length} student(s) enrolled into PY-402.'), backgroundColor: AdminColors.primary),
+                      );
+                    },
+              icon: const Icon(Icons.how_to_reg, size: 18),
+              label: Text('Confirm & Enroll ${_staged.length} Students', overflow: TextOverflow.ellipsis),
               style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             ),
           ),

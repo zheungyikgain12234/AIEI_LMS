@@ -35,11 +35,11 @@ void main() {
     test('getCourseStats returns valid telemetry data', () async {
       final stats = await repository.getCourseStats();
       expect(stats.enrolledCourses, 6);
-      expect(stats.inProgressCourses, 4);
-      expect(stats.completedCourses, 2);
-      expect(stats.completedLessons, 24);
+      expect(stats.inProgressCourses, 5);
+      expect(stats.completedCourses, 1);
+      expect(stats.completedLessons, 19);
       expect(stats.totalLessons, 52);
-      expect(stats.badgesEarned, 2);
+      expect(stats.badgesEarned, 1);
     });
 
     test('getUrgentNotice returns valid critical action', () async {

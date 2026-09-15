@@ -31,6 +31,10 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
   // --- Tab state ---
   int _activeTab = 0; // 0=Materials, 1=Repos, 2=Q&A
 
+  // --- Mobile-only state ---
+  bool _mobileAccordionExpanded = true;
+  static const List<String> _mobileSpeeds = ['1.0x', '1.25x', '1.5x'];
+  int _mobileSpeedIndex = 1;
 
   // --- Q&A ---
   final TextEditingController _qaController = TextEditingController();
@@ -78,6 +82,9 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: PortalHeader(onSearch: (_) {}),
@@ -1438,6 +1445,665 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
       child: Text(text, style: AppTypography.labelSm(color: fg).copyWith(fontWeight: FontWeight.w700)),
+    );
+  }
+
+  // ── Mobile layout ─────────────────────────────────────────────────────────
+  Widget _buildMobileScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleSpacing: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
+        ),
+        title: Text('Course Details', style: AppTypography.headlineSm(color: AppColors.onSurface)),
+      ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildMobileBreadcrumb(context),
+              const SizedBox(height: 12),
+              _buildMobileVideoCard(),
+              const SizedBox(height: 12),
+              _buildMobileLessonCard(),
+              const SizedBox(height: 12),
+              _buildMobileMilestoneCard(),
+              const SizedBox(height: 12),
+              _buildMobileAccordion(),
+              const SizedBox(height: 12),
+              _buildMobileTabbedSection(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileBreadcrumb(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.arrow_back, size: 18, color: AppColors.secondary),
+              const SizedBox(width: 4),
+              Text('Back to Courses', style: AppTypography.labelMd(color: AppColors.secondary)),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(9999)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text('Module 2', style: AppTypography.labelSm()),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileVideoCard() {
+    final progressPct = (_currentSeconds / _totalSeconds * 100).toStringAsFixed(1);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            color: AppColors.primaryContainer.withValues(alpha: 0.95),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.tertiaryContainer, borderRadius: BorderRadius.circular(4)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _PulsingDot(color: const Color(0xFF6FFBBE)),
+                      const SizedBox(width: 4),
+                      Text('LIVE AUDIT', style: AppTypography.labelSm(color: const Color(0xFF6FFBBE))),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('ID: #EXP-88914-PD', style: AppTypography.bodySm(color: AppColors.onPrimary), overflow: TextOverflow.ellipsis),
+                ),
+                const Icon(Icons.lock, size: 13, color: Color(0xFFB4C5FF)),
+              ],
+            ),
+          ),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.network(
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuAvwREiFxL7-3Mir-Ik4eP-Bhp-ydI0er_2d_w6ADfFtZxG7TUheexNJhEYiitMUVIdtEB62Z7hv2RoWLKuzTEh2UtQZkMgVsLdw4g_cVLlciM4M2Bm-e-EWwiAO40N91KplXCNPwD3-2U1bkkvHqUn3DWtiKJUYeWKYuWqBvxhfK14uI3MGFOO6mK3teXzj7k2uLkn0fkz-3jsyWIlVh8ZSvc4gRgbE6Cjd00hiuEaQxRFrJeAxbOBLA',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(color: AppColors.primaryContainer),
+                  ),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [AppColors.primary.withValues(alpha: 0.95), AppColors.primary.withValues(alpha: 0.3), Colors.transparent],
+                        stops: const [0.0, 0.5, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _isPlaying = !_isPlaying),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(color: AppColors.secondary.withValues(alpha: 0.9), shape: BoxShape.circle),
+                          child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, color: AppColors.onSecondary, size: 26),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('MONITORED SESSION STREAM', style: AppTypography.labelSm(color: AppColors.onSecondary.withValues(alpha: 0.8))),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(4)),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.verified_user, size: 13, color: Color(0xFF6FFBBE)),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'MANDATORY POLICY: Scrubbing permanently disabled.',
+                            style: AppTypography.bodySm(color: const Color(0xFFDCE9FF)).copyWith(fontSize: 10),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 5,
+            child: Stack(
+              children: [
+                Container(color: AppColors.surfaceContainerHighest),
+                FractionallySizedBox(
+                  widthFactor: _currentSeconds / _totalSeconds,
+                  child: Container(color: AppColors.secondaryContainer),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            color: AppColors.primaryContainer,
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() => _isPlaying = !_isPlaying),
+                  child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, size: 20, color: AppColors.onPrimary),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$_formattedTime / 28:50',
+                  style: AppTypography.labelMd(color: AppColors.onPrimary).copyWith(fontFeatures: [const FontFeature.tabularFigures()]),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => setState(() => _mobileSpeedIndex = (_mobileSpeedIndex + 1) % _mobileSpeeds.length),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: AppColors.onPrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                    child: Text(_mobileSpeeds[_mobileSpeedIndex], style: AppTypography.labelSm(color: AppColors.onPrimary)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => setState(() => _volume = _volume > 0 ? 0 : 0.8),
+                  child: Icon(_volume > 0 ? Icons.volume_up : Icons.volume_off, size: 20, color: AppColors.onPrimary),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.fullscreen, size: 20, color: AppColors.onPrimary),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            color: AppColors.surfaceContainerLow,
+            child: Row(
+              children: [
+                const Icon(Icons.sync_alt, size: 16, color: AppColors.secondary),
+                const SizedBox(width: 6),
+                Expanded(child: Text('Live Attendance Telemetry Synchronized', style: AppTypography.bodySm())),
+                Text('$progressPct%', style: AppTypography.labelMd(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLessonCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('MODULE 02', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+              Text('•', style: AppTypography.labelSm()),
+              Text('Lecture & Lab', style: AppTypography.labelSm()),
+              Text('•', style: AppTypography.labelSm()),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.schedule, size: 13, color: AppColors.onSurfaceVariant),
+                const SizedBox(width: 3),
+                Text('45m', style: AppTypography.labelSm()),
+              ]),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('Lesson 07: Building Automated Data Pipelines with Pandas & Excel', style: AppTypography.headlineMd(color: AppColors.onSurface)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(color: AppColors.primaryContainer, shape: BoxShape.circle),
+                child: ClipOval(
+                  child: Image.network(
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCoO1JA0P0jqBwcc_Cb6sG87UZ0JzRwPdQhqPUP5dnKIW_ipFrTwJNiJb5VrDkprIdWjoF8KN306H9AsuTu8F1B8IX__lCew4mTEBchZZq_jusEyvZey8trDh4K9GInccDWgx-DEqM2DkSM1V1lRr-dHfBqJxXzrBmawlRB2d_RFXowEk0XNb1EesR9Ke2jV7rQKs_syPqG6MOv7fDhBgu2MyQWXOU12E_0RFWriIH0qFx6k6pwFeDLOQ',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, color: AppColors.onPrimary, size: 18),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text('Dr. Sarah Lin', style: AppTypography.labelMd()),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.verified, size: 14, color: AppColors.secondary),
+                    ]),
+                    Text('Lead Data Architect, Enterprise Core', style: AppTypography.bodySm()),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Master automated ingestion of multi-sheet workbooks, schema validation routines, exception quarantine tables, and export synchronization for operational reporting.',
+            style: AppTypography.bodyMd(),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.arrow_back, size: 16),
+                  label: const Text('Previous: L06', overflow: TextOverflow.ellipsis),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.secondary,
+                    backgroundColor: AppColors.surfaceContainerLow,
+                    side: BorderSide.none,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.arrow_forward, size: 16),
+                  label: const Text('Take Quiz 7'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: AppColors.onSecondary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: null,
+              icon: const Icon(Icons.lock, size: 16),
+              label: const Text('Mark as Complete (Unlocked at 100%)', overflow: TextOverflow.ellipsis),
+              style: ElevatedButton.styleFrom(
+                disabledBackgroundColor: AppColors.surfaceContainer,
+                disabledForegroundColor: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileMilestoneCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: 0.70,
+                  strokeWidth: 3.5,
+                  backgroundColor: AppColors.surfaceContainerHigh,
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.secondary),
+                  strokeCap: StrokeCap.round,
+                ),
+                const Icon(Icons.military_tech, color: AppColors.secondary, size: 22),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('MILESTONE TRACK', style: AppTypography.labelSm(color: AppColors.onTertiaryContainer)),
+                Text('Python Automation Specialist 2025', style: AppTypography.headlineSm(color: AppColors.onSurface).copyWith(fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text('7 of 10 Modules Passed • 70% Completed', style: AppTypography.bodySm()),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: AppColors.tertiaryFixed, borderRadius: BorderRadius.circular(4)),
+            child: Text('Tier II', style: AppTypography.labelSm(color: AppColors.tertiary).copyWith(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileAccordion() {
+    final completed = _lessons.where((l) => l.state == _LessonState.completed).length;
+    final inProgress = _lessons.where((l) => l.state == _LessonState.active).length;
+    return Container(
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _mobileAccordionExpanded = !_mobileAccordionExpanded),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  const Icon(Icons.dataset_outlined, color: AppColors.secondary, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Curriculum Syllabus: Module 02', style: AppTypography.headlineSm(color: AppColors.onSurface).copyWith(fontSize: 14)),
+                        Text('${_lessons.length} Lessons • $completed Completed • $inProgress In Progress', style: AppTypography.bodySm()),
+                      ],
+                    ),
+                  ),
+                  Icon(_mobileAccordionExpanded ? Icons.expand_less : Icons.expand_more, color: AppColors.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+          if (_mobileAccordionExpanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Column(children: [for (final lesson in _lessons) _mobileLessonRow(lesson)]),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileLessonRow(_LessonItem lesson) {
+    final isActive = lesson.state == _LessonState.active;
+    final isCompleted = lesson.state == _LessonState.completed;
+    final isLocked = lesson.state == _LessonState.locked || lesson.state == _LessonState.capstone;
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isActive ? AppColors.secondary.withValues(alpha: 0.1) : AppColors.surfaceContainerLow.withValues(alpha: isLocked ? 0.4 : 0.7),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isActive ? Icons.play_circle : (isCompleted ? Icons.check_circle : Icons.lock),
+            size: 18,
+            color: isActive ? AppColors.secondary : (isCompleted ? AppColors.onTertiaryContainer : AppColors.outline),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              lesson.title,
+              style: AppTypography.labelMd(color: isActive ? AppColors.secondary : AppColors.onSurface).copyWith(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 6),
+          if (isActive)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(4)),
+              child: Text('Playing', style: AppTypography.labelSm(color: AppColors.onSecondary)),
+            )
+          else
+            Text(lesson.badge, style: AppTypography.labelSm(color: isCompleted ? AppColors.onTertiaryContainer : AppColors.outline)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileTabbedSection() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 34,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _mobileTabPill('Materials & Downloads (3)', 0),
+                const SizedBox(width: 6),
+                _mobileTabPill('External Links & Repos', 1),
+                const SizedBox(width: 6),
+                _mobileTabPill('Ask a Question', 2),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_activeTab == 0) _mobileMaterialsTab() else if (_activeTab == 1) _mobileReposTab() else _mobileAskTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileTabPill(String label, int index) {
+    final active = _activeTab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _activeTab = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(color: active ? AppColors.secondary : AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+        child: Text(label, style: AppTypography.labelSm(color: active ? AppColors.onSecondary : AppColors.onSurfaceVariant)),
+      ),
+    );
+  }
+
+  Widget _mobileMaterialsTab() {
+    final files = const [
+      (Icons.code, 'lesson_07_pipeline.ipynb', '2.4 MB • Complete Jupyter Notebook'),
+      (Icons.table_chart, 'corp_sales_raw.xlsx', '4.1 MB • 54,000 Unsanitized Rows'),
+      (Icons.description, 'Pipeline_Reference_Guide.pdf', '820 KB • Architecture Handout'),
+    ];
+    return Column(
+      children: [
+        for (final f in files)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(color: AppColors.secondary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                  child: Icon(f.$1, size: 18, color: AppColors.secondary),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(f.$2, style: AppTypography.labelMd(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(f.$3, style: AppTypography.bodySm()),
+                    ],
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.download, size: 14),
+                  label: const Text('Get'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.secondary,
+                    backgroundColor: AppColors.surfaceContainerLowest,
+                    side: BorderSide.none,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    textStyle: AppTypography.labelSm(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _mobileReposTab() {
+    final links = const [
+      (Icons.terminal, 'github.com/enterprise-core/pandas-pipeline', 'Production repo branch: v2.4-stable'),
+      (Icons.menu_book, 'Pandas 2.2 Official Documentation', 'Performance indexing & pyarrow engine'),
+    ];
+    return Column(
+      children: [
+        for (final l in links)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              children: [
+                Icon(l.$1, size: 20, color: AppColors.secondary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l.$2, style: AppTypography.labelMd(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(l.$3, style: AppTypography.bodySm()),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.open_in_new, size: 16, color: AppColors.onSurfaceVariant),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _mobileAskTab() {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Post to Cohort Teaching Assistant', style: AppTypography.labelSm()),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _qaController,
+            maxLines: 2,
+            style: AppTypography.bodySm(color: AppColors.onSurface),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.surfaceContainerLowest,
+              hintText: 'Ask about quarantine rules, chunksize settings, or pandas syntax...',
+              hintStyle: AppTypography.bodySm(color: AppColors.outline),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.all(8),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Text('Avg response time: < 15 mins', style: AppTypography.labelSm()),
+              ElevatedButton(
+                onPressed: () {
+                  if (_qaController.text.trim().isNotEmpty) {
+                    _qaController.clear();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Question submitted.'), backgroundColor: AppColors.secondary),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.onSecondary,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: AppTypography.labelSm(),
+                ),
+                child: const Text('Submit Query'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

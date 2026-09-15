@@ -131,6 +131,9 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: PortalHeader(onSearch: (_) {}),
@@ -180,6 +183,180 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                   ),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Mobile layout ─────────────────────────────────────────────────────────
+  Widget _buildMobileScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleSpacing: 0,
+        leading: IconButton(
+          onPressed: _saveAndExit,
+          icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
+        ),
+        title: Text('Compliance Quiz', style: AppTypography.headlineSm(color: AppColors.onSurface)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: AppColors.secondaryContainer.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.timer, size: 15, color: AppColors.secondary),
+                    const SizedBox(width: 5),
+                    Text(_formattedTimer, style: AppTypography.labelMd(color: AppColors.primary).copyWith(fontFeatures: [const FontFeature.tabularFigures()], fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildMobileMetaCard(),
+              const SizedBox(height: 12),
+              _buildMobileQuestionStrip(),
+              const SizedBox(height: 12),
+              _buildQuestion6Card(),
+              const SizedBox(height: 12),
+              _buildQuestion7Card(),
+              const SizedBox(height: 12),
+              _buildFooterActionBar(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileMetaCard() {
+    final remaining = _totalQuestions - _answeredCount;
+    final percent = (_progress * 100).round();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(color: AppColors.secondaryContainer.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.verified_user, color: AppColors.secondary, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Chemical Handling Mandatory Compliance Exam',
+                  style: AppTypography.labelLg(color: AppColors.primary).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(builder: (context, constraints) {
+            final w = (constraints.maxWidth - 16) / 3;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                SizedBox(width: w, child: _mobileStat('Pass', '80%')),
+                SizedBox(width: w, child: _mobileStat('Retakes', '1 of 3')),
+                SizedBox(width: w, child: _mobileStat('Weight', '35%')),
+              ],
+            );
+          }),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Q$_currentQuestion of $_totalQuestions • $percent% Done',
+                  style: AppTypography.labelSm(color: AppColors.primary).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text('$remaining left', style: AppTypography.labelSm()),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(9999),
+            child: LinearProgressIndicator(
+              value: _progress,
+              minHeight: 6,
+              backgroundColor: AppColors.surfaceContainer,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.secondaryContainer),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileStat(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        children: [
+          Text(label, style: AppTypography.labelSm(), textAlign: TextAlign.center),
+          Text(value, style: AppTypography.labelMd(color: AppColors.primary).copyWith(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileQuestionStrip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Question Palette', style: AppTypography.labelMd(color: AppColors.primary).copyWith(fontWeight: FontWeight.w700)),
+              ),
+              Text('$_answeredCount answered', style: AppTypography.labelSm()),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _totalQuestions,
+              separatorBuilder: (context, i) => const SizedBox(width: 8),
+              itemBuilder: (context, i) => SizedBox(width: 40, child: _paletteTile(i + 1)),
             ),
           ),
         ],
@@ -528,9 +705,12 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                   children: [
                     const Icon(Icons.emergency, size: 16, color: AppColors.secondary),
                     const SizedBox(width: 6),
-                    Text(
-                      'Workplace Compliance Scenario',
-                      style: AppTypography.labelMd(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700),
+                    Flexible(
+                      child: Text(
+                        'Workplace Compliance Scenario',
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.labelMd(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ],
                 ),
@@ -663,9 +843,12 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
             children: [
               const Icon(Icons.warning, size: 16, color: AppColors.error),
               const SizedBox(width: 6),
-              Text(
-                'Critical Facility Incident Narrative',
-                style: AppTypography.labelMd(color: AppColors.error).copyWith(fontWeight: FontWeight.w700),
+              Flexible(
+                child: Text(
+                  'Critical Facility Incident Narrative',
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.labelMd(color: AppColors.error).copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
@@ -756,7 +939,13 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                       const Spacer(),
                       const Icon(Icons.check_circle, size: 14, color: AppColors.tertiaryContainer),
                       const SizedBox(width: 4),
-                      Text('Auto-saved 14s ago', style: AppTypography.labelSm()),
+                      Flexible(
+                        child: Text(
+                          'Auto-saved 14s ago',
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.labelSm(),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -779,10 +968,13 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
               Text('Recommended: 80 - 250 words', style: AppTypography.labelSm()),
-              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(

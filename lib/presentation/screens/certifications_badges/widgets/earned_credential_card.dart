@@ -131,13 +131,16 @@ class EarnedCredentialCard extends StatelessWidget {
                 color: c.isRevoked ? AppColors.error : AppColors.secondary,
               ),
               const SizedBox(width: 6),
-              Text(
-                c.statusPillText,
-                style: AppTypography.labelSm(
-                  color: c.isRevoked
-                      ? AppColors.onErrorContainer
-                      : AppColors.onSurface,
-                ).copyWith(fontWeight: c.isRevoked ? FontWeight.w700 : FontWeight.w600),
+              Flexible(
+                child: Text(
+                  c.statusPillText,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.labelSm(
+                    color: c.isRevoked
+                        ? AppColors.onErrorContainer
+                        : AppColors.onSurface,
+                  ).copyWith(fontWeight: c.isRevoked ? FontWeight.w700 : FontWeight.w600),
+                ),
               ),
             ],
           ),
@@ -355,10 +358,14 @@ class EarnedCredentialCard extends StatelessWidget {
             children: [
               const Icon(Icons.report, size: 20, color: AppColors.error),
               const SizedBox(width: 8),
-              Text(
-                c.incidentBannerText!,
-                style: AppTypography.bodySm(color: AppColors.onSurface)
-                    .copyWith(fontWeight: FontWeight.w500),
+              Flexible(
+                child: Text(
+                  c.incidentBannerText!,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  style: AppTypography.bodySm(color: AppColors.onSurface)
+                      .copyWith(fontWeight: FontWeight.w500),
+                ),
               ),
             ],
           ),
@@ -369,10 +376,13 @@ class EarnedCredentialCard extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    c.incidentLinkText ?? '',
-                    style: AppTypography.labelMd(color: AppColors.error)
-                        .copyWith(fontWeight: FontWeight.w700),
+                  Flexible(
+                    child: Text(
+                      c.incidentLinkText ?? '',
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.labelMd(color: AppColors.error)
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
                   ),
                   const SizedBox(width: 4),
                   const Icon(Icons.arrow_forward, size: 16, color: AppColors.error),
@@ -427,11 +437,12 @@ class EarnedCredentialCard extends StatelessWidget {
       spacing: 12,
       runSpacing: 12,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             _buildLinkedInButton(c),
-            const SizedBox(width: 8),
             _buildPdfButton(),
           ],
         ),
@@ -442,9 +453,12 @@ class EarnedCredentialCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  c.footerLinkText,
-                  style: AppTypography.labelMd(color: accent),
+                Flexible(
+                  child: Text(
+                    c.footerLinkText,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.labelMd(color: accent),
+                  ),
                 ),
                 const SizedBox(width: 4),
                 Icon(Icons.arrow_forward, size: 16, color: accent),
@@ -469,9 +483,12 @@ class EarnedCredentialCard extends StatelessWidget {
           children: [
             const Icon(Icons.block, size: 18, color: AppColors.outline),
             const SizedBox(width: 6),
-            Text(
-              c.linkedInButtonText,
-              style: AppTypography.labelMd(color: AppColors.outline),
+            Flexible(
+              child: Text(
+                c.linkedInButtonText,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.labelMd(color: AppColors.outline),
+              ),
             ),
           ],
         ),

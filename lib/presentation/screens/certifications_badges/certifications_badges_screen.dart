@@ -7,6 +7,8 @@ import 'package:stitch_aiei_lms/presentation/screens/credential_detail/revoked_c
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_sidebar.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/mobile_top_bar.dart';
 import 'controllers/badges_controller.dart';
 import 'controllers/badges_state.dart';
 import 'widgets/badge_stats_row.dart';
@@ -29,6 +31,53 @@ class CertificationsBadgesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(badgesControllerProvider);
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    if (isMobile) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: const MobileTopBar(),
+        bottomNavigationBar: MobileBottomNav(
+          selectedIndex: 1,
+          onTap: (index) {
+            if (index == 0) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const EnrolledCoursesCatalogueScreen()),
+              );
+            }
+          },
+        ),
+        body: state.isLoading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeaderSection(context, mobile: true),
+                    const SizedBox(height: 20),
+                    BadgeStatsRow(stats: state.stats),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader(
+                      eyebrow: 'Authenticated Proof of Mastery',
+                      title: 'Earned Enterprise Credentials',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildEarnedCredentialsGrid(context, state),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader(
+                      eyebrow: 'Active Learning Trajectory',
+                      title: 'In-Progress & Locked Badges',
+                      trailing: '${state.inProgressBadges.length} Badges in Curriculum Queue',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInProgressGrid(context, state),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -92,9 +141,42 @@ class CertificationsBadgesScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeaderSection(BuildContext context) {
+  Widget _buildHeaderSection(BuildContext context, {bool mobile = false}) {
+    final buttons = [
+      OutlinedButton.icon(
+        onPressed: () => _showToast(
+          context,
+          'Official transcript generated and ready for print archive.',
+        ),
+        icon: const Icon(Icons.download, size: 20),
+        label: const Text('Download Transcript'),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.surfaceContainerLow,
+          foregroundColor: AppColors.onSurface,
+          side: BorderSide.none,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      OutlinedButton.icon(
+        onPressed: () => _showToast(
+          context,
+          'Public shareable profile card generated for LinkedIn.',
+        ),
+        icon: const Icon(Icons.share, size: 20, color: AppColors.secondary),
+        label: const Text('Share All'),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.surfaceContainerLow,
+          foregroundColor: AppColors.onSurface,
+          side: BorderSide.none,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(mobile ? 16 : 32),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
@@ -104,7 +186,7 @@ class CertificationsBadgesScreen extends ConsumerWidget {
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.start,
         spacing: 24,
-        runSpacing: 24,
+        runSpacing: 16,
         children: [
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
@@ -114,7 +196,7 @@ class CertificationsBadgesScreen extends ConsumerWidget {
               children: [
                 Text(
                   'My Enterprise Credentials & Badges',
-                  style: AppTypography.headlineXl(),
+                  style: mobile ? AppTypography.headlineLg() : AppTypography.headlineXl(),
                 ),
                 const SizedBox(height: 8),
                 RichText(
@@ -137,42 +219,16 @@ class CertificationsBadgesScreen extends ConsumerWidget {
               ],
             ),
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () => _showToast(
-                  context,
-                  'Official transcript generated and ready for print archive.',
-                ),
-                icon: const Icon(Icons.download, size: 20),
-                label: const Text('Download Transcript'),
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: AppColors.surfaceContainerLow,
-                  foregroundColor: AppColors.onSurface,
-                  side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: () => _showToast(
-                  context,
-                  'Public shareable profile card generated for LinkedIn.',
-                ),
-                icon: const Icon(Icons.share, size: 20, color: AppColors.secondary),
-                label: const Text('Share All'),
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: AppColors.surfaceContainerLow,
-                  foregroundColor: AppColors.onSurface,
-                  side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
-          ),
+          if (mobile)
+            Row(
+              children: [
+                Expanded(child: buttons[0]),
+                const SizedBox(width: 8),
+                Expanded(child: buttons[1]),
+              ],
+            )
+          else
+            Row(mainAxisSize: MainAxisSize.min, children: [buttons[0], const SizedBox(width: 8), buttons[1]]),
         ],
       ),
     );

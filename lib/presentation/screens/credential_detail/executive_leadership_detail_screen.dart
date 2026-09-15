@@ -4,6 +4,8 @@ import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_sidebar.dart';
+import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
 
 const _linkedInBlue = Color(0xFF0A66C2);
 const _gold300 = Color(0xFFFCD34D);
@@ -25,6 +27,51 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    if (isMobile) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surfaceContainerLowest,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          titleSpacing: 0,
+          leading: IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
+          ),
+          title: Text('Credential Details', style: AppTypography.headlineSm(color: AppColors.onSurface)),
+        ),
+        bottomNavigationBar: MobileBottomNav(
+          selectedIndex: 1,
+          onTap: (index) {
+            if (index == 0) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const EnrolledCoursesCatalogueScreen()),
+              );
+            } else {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const CertificationsBadgesScreen()),
+              );
+            }
+          },
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildBreadcrumbBar(context),
+              const SizedBox(height: 16),
+              _buildHeroCard(context, mobile: true),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: PortalHeader(onSearch: (_) {}),
@@ -83,17 +130,21 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.arrow_back, size: 18, color: AppColors.onSurfaceVariant),
                 const SizedBox(width: 6),
-                Text(
-                  'Back to Certifications & Badges',
-                  style: AppTypography.labelMd(color: AppColors.onSurfaceVariant)
-                      .copyWith(fontWeight: FontWeight.w600),
+                Flexible(
+                  child: Text(
+                    'Back to Certifications & Badges',
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.labelMd(color: AppColors.onSurfaceVariant)
+                        .copyWith(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),
           ),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
           children: [
             OutlinedButton.icon(
               onPressed: () => _showToast(
@@ -111,7 +162,6 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
                 textStyle: AppTypography.labelMd(),
               ),
             ),
-            const SizedBox(width: 10),
             OutlinedButton.icon(
               onPressed: () => _showToast(
                 context,
@@ -134,9 +184,9 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroCard(BuildContext context) {
+  Widget _buildHeroCard(BuildContext context, {bool mobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(mobile ? 16 : 32),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
@@ -242,7 +292,7 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
   Widget _buildBadgeEmblem() {
     return Container(
       width: 192,
-      height: 224,
+      height: 230,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -258,8 +308,11 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -335,13 +388,13 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: AppColors.secondary.withValues(alpha: 0.2)),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 2,
             children: [
               Text('Executive Leadership Track', style: AppTypography.labelSm(color: AppColors.secondary)),
-              const SizedBox(width: 6),
               Container(width: 4, height: 4, decoration: const BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle)),
-              const SizedBox(width: 6),
               Text('Cohort Fall 2024', style: AppTypography.labelSm(color: AppColors.secondary)),
             ],
           ),

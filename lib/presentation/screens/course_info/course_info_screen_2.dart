@@ -78,6 +78,9 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: PortalHeader(onSearch: (_) {}),
@@ -1178,6 +1181,698 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
       child: Text(text, style: AppTypography.labelSm(color: fg).copyWith(fontWeight: FontWeight.w700)),
+    );
+  }
+
+  // ── Mobile layout ─────────────────────────────────────────────────────────
+  Widget _buildMobileScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleSpacing: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
+        ),
+        title: Text('Course Details', style: AppTypography.headlineSm(color: AppColors.onSurface)),
+      ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.arrow_back, size: 16, color: AppColors.secondary),
+                      const SizedBox(width: 4),
+                      Text('Back to Courses', style: AppTypography.labelMd(color: AppColors.secondary)),
+                    ]),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: AppColors.secondaryFixed, borderRadius: BorderRadius.circular(9999)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      Text('Module 4', style: AppTypography.labelSm(color: const Color(0xFF00174B)).copyWith(fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildMobileVideoCard(),
+              const SizedBox(height: 12),
+              _buildMobileLessonCard(),
+              const SizedBox(height: 12),
+              _buildMobileMilestoneCard(),
+              const SizedBox(height: 12),
+              _buildMobileCurriculumSection(),
+              const SizedBox(height: 12),
+              _buildMobileMaterialsSection(),
+              const SizedBox(height: 12),
+              _buildMobileDisclaimer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileVideoCard() {
+    final progressPct = (_currentSeconds / _totalSeconds * 100).toStringAsFixed(1);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            color: AppColors.tertiaryFixed.withValues(alpha: 0.15),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: 15, color: AppColors.tertiaryFixed),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text('MANDATORY COMPLIANCE: Scrubbing permanently disabled.',
+                      style: AppTypography.bodySm(color: AppColors.tertiaryFixed).copyWith(fontSize: 10), overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.tertiaryFixed.withValues(alpha: 0.25), borderRadius: BorderRadius.circular(4)),
+                  child: Text('OSHA 1910', style: AppTypography.labelSm(color: AppColors.tertiaryFixed).copyWith(fontSize: 9)),
+                ),
+              ],
+            ),
+          ),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.network(
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuBHFKDV4U_1rEaPG8Hskbr6fxbtztry0pzHI4mLNKWZVpyNva1RnCFk3JcZSMC-vOURznDFJx_WMN0HULQN5ns-JVRv-8bGFAJvyoHXvmEw-wXhMle6MhO7uUw03fPqr-_owgrRbHFYj2rrIi_CQk--q4G77_Ifbko23VsUY1JLtEgtZuYx8g-tAQeOxeFghRIIGi6bu2OEHgGmwja4jx1AMZJo275hGZXMrH9NLuQZwUVH5RinojoNLw',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(color: AppColors.primaryContainer),
+                  ),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [AppColors.primary.withValues(alpha: 0.85), AppColors.primary.withValues(alpha: 0.3), AppColors.primary.withValues(alpha: 0.9)],
+                        stops: const [0.0, 0.45, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  right: 8,
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(9999)),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          _PulsingDot(color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text('LIVE AUDIT', style: AppTypography.labelSm(color: Colors.white).copyWith(fontSize: 9)),
+                        ]),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: AppColors.tertiaryContainer.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(4)),
+                        child: Text('GHS Rev 8 Verified', style: AppTypography.labelSm(color: const Color(0xFF6FFBBE)).copyWith(fontSize: 9)),
+                      ),
+                    ],
+                  ),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _isPlaying = !_isPlaying),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(color: AppColors.secondary.withValues(alpha: 0.9), shape: BoxShape.circle),
+                          child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 26),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Lesson 04: Chemical Handling & Hazard Containment',
+                          textAlign: TextAlign.center,
+                          style: AppTypography.labelMd(color: Colors.white).copyWith(fontSize: 12)),
+                      Text('Streamed from OSHA Central Node • HD Monitored',
+                          style: AppTypography.bodySm(color: const Color(0xFFB4C5FF)).copyWith(fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 5,
+                  child: Stack(
+                    children: [
+                      Container(color: Colors.white.withValues(alpha: 0.15)),
+                      FractionallySizedBox(
+                        widthFactor: _currentSeconds / _totalSeconds,
+                        child: Container(color: AppColors.secondary),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text('$_formattedTime / 16:30',
+                        style: AppTypography.labelMd(color: Colors.white).copyWith(fontFeatures: [const FontFeature.tabularFigures()])),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                      child: Text('1.0x Locked', style: AppTypography.labelSm(color: const Color(0xFFD3E4FE)).copyWith(fontSize: 9)),
+                    ),
+                    const Spacer(),
+                    const Icon(Icons.volume_up, size: 18, color: Color(0xFFD3E4FE)),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.fullscreen, size: 18, color: Color(0xFFD3E4FE)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            color: AppColors.primaryContainer,
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, size: 13, color: Color(0xFF4EDEA3)),
+                const SizedBox(width: 6),
+                Expanded(child: Text('Attendance Telemetry Synchronized', style: AppTypography.bodySm(color: const Color(0xFFD3E4FE)).copyWith(fontSize: 10))),
+                Text('$progressPct%', style: AppTypography.labelSm(color: AppColors.secondaryFixed).copyWith(fontSize: 10, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLessonCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('MODULE 04', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+              Text('•', style: AppTypography.labelSm()),
+              Text('Lecture & Practical Lab', style: AppTypography.labelSm()),
+              Text('•', style: AppTypography.labelSm()),
+              Text('16m Streaming', style: AppTypography.labelSm()),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('Lesson 04: Chemical Handling, SDS Protocols & Hazard Containment', style: AppTypography.headlineMd(color: AppColors.onSurface)),
+          const SizedBox(height: 8),
+          Text(
+            'This module covers standardized chemical container labeling, primary vs. secondary vessel safety under GHS Revision 8, interpreting 16-section Safety Data Sheets (SDS), and immediate physical containment actions during an emergency spill protocol.',
+            style: AppTypography.bodyMd(),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Text('VM', style: AppTypography.labelMd(color: Colors.white)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Dr. V. Morales', style: AppTypography.labelMd()),
+                    Text('Lead EHS Compliance Officer', style: AppTypography.bodySm()),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: AppColors.tertiaryFixed.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(9999)),
+                child: Text('Audit Ready', style: AppTypography.labelSm(color: AppColors.onTertiaryContainer)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _openComplianceQuiz,
+              icon: const Icon(Icons.arrow_forward, size: 16),
+              label: const Text('Take Lesson 4 Compliance Quiz'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.arrow_back, size: 16),
+                  label: const Text('Previous: L03', overflow: TextOverflow.ellipsis),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.onSurface,
+                    backgroundColor: AppColors.surfaceContainerLow,
+                    side: BorderSide.none,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: null,
+                  icon: const Icon(Icons.lock, size: 16),
+                  label: const Text('Mark Complete', overflow: TextOverflow.ellipsis),
+                  style: ElevatedButton.styleFrom(
+                    disabledBackgroundColor: AppColors.surfaceContainer,
+                    disabledForegroundColor: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(builder: (context, constraints) {
+            final cols = constraints.maxWidth >= 340 ? 4 : 2;
+            final specs = const [
+              ('Standard', '29 CFR 1910'),
+              ('Pass Score', '80% Min.'),
+              ('Attempts', '3 Total'),
+              ('Quiz Length', '15 Qs'),
+            ];
+            final w = (constraints.maxWidth - (cols - 1) * 8) / cols;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: specs
+                  .map((s) => SizedBox(
+                        width: w,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+                          child: Column(
+                            children: [
+                              Text(s.$1.toUpperCase(), style: AppTypography.labelSm(), textAlign: TextAlign.center),
+                              Text(s.$2, style: AppTypography.labelMd(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileMilestoneCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.primary, AppColors.primaryContainer, AppColors.primary]),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 14, offset: Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.star, color: AppColors.tertiaryFixed, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('EARNABLE MILESTONE', style: AppTypography.labelSm(color: AppColors.secondaryFixed).copyWith(fontWeight: FontWeight.w700)),
+                    Text('Certified Safety Officer 2025', style: AppTypography.labelMd(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text('Curriculum Completion: 3 / 8 Completed (48%)', style: AppTypography.bodySm(color: const Color(0xFFD3E4FE))),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(9999),
+            child: LinearProgressIndicator(
+              value: 0.48,
+              minHeight: 8,
+              backgroundColor: Colors.black.withValues(alpha: 0.25),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.tertiaryFixed),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text('Unlocks after Final Audit Exam', style: AppTypography.labelSm(color: const Color(0xFFB4C5FF))),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  child: const Text('Credential Preview', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  child: const Text('Add to LinkedIn', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileCurriculumSection() {
+    return Container(
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            color: AppColors.surfaceContainerLow,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Course Syllabus', style: AppTypography.headlineSm(color: AppColors.onSurface).copyWith(fontSize: 14)),
+                      Text('8 Modules • 3.2 Total Hours', style: AppTypography.bodySm()),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.surfaceContainer, borderRadius: BorderRadius.circular(4)),
+                  child: Text('OSHA Approved', style: AppTypography.labelSm(color: AppColors.secondary)),
+                ),
+              ],
+            ),
+          ),
+          for (final m in _modules) _mobileModuleRow(m),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileModuleRow(_ModuleItem m) {
+    final isActive = m.state == _ModuleState.active;
+    final isCompleted = m.state == _ModuleState.completed;
+    final isExam = m.title.contains('Final');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isActive ? AppColors.secondaryContainer.withValues(alpha: 0.08) : null,
+        border: isActive ? const Border(left: BorderSide(color: AppColors.secondary, width: 3)) : null,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isActive ? Icons.play_circle : (isCompleted ? Icons.check_circle : (isExam ? Icons.task_alt : Icons.lock)),
+            size: 18,
+            color: isActive ? AppColors.secondary : (isCompleted ? AppColors.onTertiaryContainer : (isExam ? AppColors.tertiaryFixed : AppColors.outline)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(m.title, style: AppTypography.labelMd(color: isActive ? AppColors.secondary : AppColors.onSurface).copyWith(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(m.subtitle, style: AppTypography.bodySm().copyWith(fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          Text(
+            isActive ? 'In Progress' : (isCompleted ? 'Passed' : (isExam ? 'Exam' : 'Locked')),
+            style: AppTypography.labelSm(color: isActive ? AppColors.secondary : (isCompleted ? AppColors.onTertiaryContainer : (isExam ? AppColors.onTertiaryContainer : AppColors.outline))).copyWith(fontSize: 9),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileMaterialsSection() {
+    final files = const [
+      ('OSHA Safety Data Sheets (SDS) Guide', 'PDF • 1.8 MB • Rev. 2025'),
+      ('Emergency Evacuation Blueprint', 'PDF • 3.2 MB • Plant Wide'),
+      ('Hazardous Spill Containment Checklist', 'PDF • 450 KB • Field Ready'),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 32,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _mobileTabPill('Materials & Downloads (3)', 0),
+                const SizedBox(width: 6),
+                _mobileTabPill('Compliance Portals', 1),
+                const SizedBox(width: 6),
+                _mobileTabPill('Ask Compliance Officer', 2),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text('Review required documentation prior to taking the Module 04 Compliance Exam.', style: AppTypography.bodySm()),
+          const SizedBox(height: 10),
+          if (_activeTab == 0) ...[
+            for (final f in files) _mobileFileRow(f.$1, f.$2),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.download, size: 16),
+                label: const Text('Download Complete Kit (.ZIP • 5.4 MB)'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.onSurfaceVariant,
+                  backgroundColor: AppColors.surfaceContainerLow,
+                  side: BorderSide.none,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ] else if (_activeTab == 1) ...[
+            _mobilePortalRow('OSHA.gov — 29 CFR 1910.1200'),
+            _mobilePortalRow('GHS Revision 8 Classification Portal'),
+            _mobilePortalRow('Accredited Enterprise Safety Board Directory'),
+          ] else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _qaController,
+                  maxLines: 2,
+                  style: AppTypography.bodySm(color: AppColors.onSurface),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppColors.surfaceContainerLow,
+                    hintText: 'Have a compliance question about this module?',
+                    hintStyle: AppTypography.bodySm(color: AppColors.outline),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.all(8),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_qaController.text.trim().isNotEmpty) {
+                        _qaController.clear();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Question submitted to Dr. V. Morales.'), backgroundColor: AppColors.secondary),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                    child: const Text('Submit Question'),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileTabPill(String label, int index) {
+    final active = _activeTab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _activeTab = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(color: active ? AppColors.secondary : AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+        child: Text(label, style: AppTypography.labelSm(color: active ? Colors.white : AppColors.onSurfaceVariant)),
+      ),
+    );
+  }
+
+  Widget _mobileFileRow(String name, String meta) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(color: AppColors.errorContainer, borderRadius: BorderRadius.circular(6)),
+            child: const Icon(Icons.picture_as_pdf, size: 16, color: AppColors.error),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: AppTypography.labelMd(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(meta, style: AppTypography.bodySm()),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.download, size: 18, color: AppColors.secondary),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobilePortalRow(String title) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        children: [
+          const Icon(Icons.gavel, size: 18, color: AppColors.secondary),
+          const SizedBox(width: 8),
+          Expanded(child: Text(title, style: AppTypography.labelMd(), maxLines: 2, overflow: TextOverflow.ellipsis)),
+          const Icon(Icons.open_in_new, size: 16, color: AppColors.outline),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileDisclaimer() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppColors.tertiaryFixed.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info, size: 16, color: AppColors.onTertiaryContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: AppTypography.bodySm(color: AppColors.onSurface),
+                children: const [
+                  TextSpan(text: 'Mandatory Employer Record: ', style: TextStyle(fontWeight: FontWeight.w700)),
+                  TextSpan(text: 'Time spent logged into this video player is continuously monitored and reported to your organization\'s OSHA Safety Records Admin.'),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

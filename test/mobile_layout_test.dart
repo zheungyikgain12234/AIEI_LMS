@@ -7,6 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/data/datasources/mock_courses_data_source.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen_2.dart';
+import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/credential_detail/revoked_credential_detail_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/credential_detail/executive_leadership_detail_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/compliance_quiz/compliance_quiz_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
 
 void main() {
   group('Mobile (< 700px) layouts render without overflow', () {
@@ -70,6 +76,142 @@ void main() {
         await tester.tap(find.text('Ask a Question'), warnIfMissed: false);
         await tester.pump();
         expect(tester.takeException(), isNull);
+      }, createHttpClient: (context) => _FakeHttpClient());
+    });
+
+    testWidgets('CourseInfoScreen2 (OSHE) mobile layout',
+        (WidgetTester tester) async {
+      await HttpOverrides.runZoned(() async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final course = MockCoursesDataSource.courses.firstWhere((c) => c.id == 'c2-oshe');
+
+        await tester.pumpWidget(
+          MaterialApp(home: CourseInfoScreen2(course: course)),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Course Details'), findsOneWidget);
+        expect(find.text('Take Lesson 4 Compliance Quiz'), findsOneWidget);
+
+        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -800));
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+      }, createHttpClient: (context) => _FakeHttpClient());
+    });
+
+    testWidgets('CertificationsBadgesScreen mobile layout',
+        (WidgetTester tester) async {
+      await HttpOverrides.runZoned(() async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          const ProviderScope(
+            child: MaterialApp(home: CertificationsBadgesScreen()),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(tester.takeException(), isNull);
+
+        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+      }, createHttpClient: (context) => _FakeHttpClient());
+    });
+
+    testWidgets('RevokedCredentialDetailScreen mobile layout',
+        (WidgetTester tester) async {
+      await HttpOverrides.runZoned(() async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          const MaterialApp(home: RevokedCredentialDetailScreen()),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(tester.takeException(), isNull);
+      }, createHttpClient: (context) => _FakeHttpClient());
+    });
+
+    testWidgets('ExecutiveLeadershipDetailScreen mobile layout',
+        (WidgetTester tester) async {
+      await HttpOverrides.runZoned(() async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          const MaterialApp(home: ExecutiveLeadershipDetailScreen()),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(tester.takeException(), isNull);
+      }, createHttpClient: (context) => _FakeHttpClient());
+    });
+
+    testWidgets('ComplianceQuizScreen mobile layout',
+        (WidgetTester tester) async {
+      await HttpOverrides.runZoned(() async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          const MaterialApp(home: ComplianceQuizScreen()),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Compliance Quiz'), findsOneWidget);
+
+        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -800));
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox());
+      }, createHttpClient: (context) => _FakeHttpClient());
+    });
+
+    testWidgets('AssignmentSubmissionScreen mobile layout',
+        (WidgetTester tester) async {
+      await HttpOverrides.runZoned(() async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          const MaterialApp(home: AssignmentSubmissionScreen()),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Assignment Submission'), findsOneWidget);
+
+        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -800));
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox());
       }, createHttpClient: (context) => _FakeHttpClient());
     });
   });

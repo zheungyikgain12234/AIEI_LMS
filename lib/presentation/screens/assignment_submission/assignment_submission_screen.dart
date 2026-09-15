@@ -206,6 +206,9 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: PortalHeader(onSearch: (_) {}),
@@ -258,6 +261,44 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Mobile layout ─────────────────────────────────────────────────────────
+  Widget _buildMobileScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleSpacing: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
+        ),
+        title: Text('Assignment Submission', style: AppTypography.headlineSm(color: AppColors.onSurface)),
+      ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeroBanner(),
+              const SizedBox(height: 12),
+              _buildTimeCard(),
+              const SizedBox(height: 12),
+              _buildFacultyCard(),
+              const SizedBox(height: 12),
+              _buildBriefingCard(),
+              const SizedBox(height: 12),
+              _buildSubmissionCard(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -335,9 +376,12 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                       decoration: const BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      _submitted ? 'STATUS: SUBMITTED' : 'STATUS: PENDING SUBMISSION',
-                      style: AppTypography.labelSm(color: AppColors.secondary),
+                    Flexible(
+                      child: Text(
+                        _submitted ? 'STATUS: SUBMITTED' : 'STATUS: PENDING SUBMISSION',
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.labelSm(color: AppColors.secondary),
+                      ),
                     ),
                   ],
                 ),
@@ -412,14 +456,14 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTypography.labelSm()),
+                Text(label, style: AppTypography.labelSm(), overflow: TextOverflow.ellipsis),
                 Text(value, style: AppTypography.labelLg(), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
           if (trailing != null) ...[
             const SizedBox(width: 8),
-            Text(trailing, style: AppTypography.labelMd(color: AppColors.secondary)),
+            Text(trailing, style: AppTypography.labelMd(color: AppColors.secondary), overflow: TextOverflow.ellipsis),
           ],
         ],
       ),
@@ -511,20 +555,28 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.folder_zip, color: AppColors.secondary, size: 24),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('dataset_q3_raw.xlsx & starter_pipeline.py', style: AppTypography.labelMd()),
-                          Text('Production sandbox bundle • Version 2.4.1 • 3.4 MB', style: AppTypography.bodySm()),
-                        ],
-                      ),
-                    ],
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.folder_zip, color: AppColors.secondary, size: 24),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('dataset_q3_raw.xlsx & starter_pipeline.py',
+                                  style: AppTypography.labelMd(), overflow: TextOverflow.ellipsis, maxLines: 2),
+                              Text('Production sandbox bundle • Version 2.4.1 • 3.4 MB',
+                                  style: AppTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => _showToast('Starter package archive (.zip) download initiated.'),
@@ -809,26 +861,29 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: 4,
+            runSpacing: 4,
             children: [
               Text('03', style: AppTypography.headlineXl()),
               const SizedBox(width: 4),
               Text('Days', style: AppTypography.labelMd(color: AppColors.onSurfaceVariant)),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               Text('08', style: AppTypography.headlineXl()),
               const SizedBox(width: 4),
               Text('Hours', style: AppTypography.labelMd(color: AppColors.onSurfaceVariant)),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               Text(_secondsLeft.toString().padLeft(2, '0'), style: AppTypography.headlineXl(color: AppColors.secondary)),
               const SizedBox(width: 4),
               Text('Sec', style: AppTypography.labelMd(color: AppColors.onSurfaceVariant)),
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               Text('Attempt Window', style: AppTypography.labelSm()),
               Text('Attempt 1 of 3', style: AppTypography.labelSm()),

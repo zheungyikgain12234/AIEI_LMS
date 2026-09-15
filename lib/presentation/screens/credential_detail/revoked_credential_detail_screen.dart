@@ -6,6 +6,8 @@ import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_sidebar.dart';
+import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
 
 class RevokedCredentialDetailScreen extends StatelessWidget {
   const RevokedCredentialDetailScreen({super.key});
@@ -22,6 +24,51 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    if (isMobile) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surfaceContainerLowest,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          titleSpacing: 0,
+          leading: IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
+          ),
+          title: Text('Credential Details', style: AppTypography.headlineSm(color: AppColors.onSurface)),
+        ),
+        bottomNavigationBar: MobileBottomNav(
+          selectedIndex: 1,
+          onTap: (index) {
+            if (index == 0) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const EnrolledCoursesCatalogueScreen()),
+              );
+            } else {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const CertificationsBadgesScreen()),
+              );
+            }
+          },
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildBreadcrumbBar(context),
+              const SizedBox(height: 16),
+              _buildHeroCard(context, mobile: true),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: PortalHeader(onSearch: (_) {}),
@@ -88,9 +135,12 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
                 children: [
                   const Icon(Icons.arrow_back, size: 18, color: AppColors.onSurface),
                   const SizedBox(width: 6),
-                  Text(
-                    'Back to Certifications & Badges',
-                    style: AppTypography.labelMd().copyWith(fontWeight: FontWeight.w700),
+                  Flexible(
+                    child: Text(
+                      'Back to Certifications & Badges',
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.labelMd().copyWith(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ],
               ),
@@ -109,16 +159,22 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 2,
                 children: [
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                  Text(
-                    'REVOKED / CONFISCATED',
-                    style: AppTypography.labelSm(color: AppColors.error).copyWith(fontWeight: FontWeight.w800),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'REVOKED / CONFISCATED',
+                        style: AppTypography.labelSm(color: AppColors.error).copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
                   Text('#INC-2025-08492', style: AppTypography.labelMd(color: AppColors.onSurfaceVariant)),
                 ],
               ),
@@ -142,9 +198,9 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroCard(BuildContext context) {
+  Widget _buildHeroCard(BuildContext context, {bool mobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(mobile ? 16 : 32),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
@@ -221,14 +277,15 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
                         ]),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 96,
-                              height: 96,
+                              width: 72,
+                              height: 72,
                               decoration: BoxDecoration(color: AppColors.outlineVariant.withValues(alpha: 0.6), shape: BoxShape.circle),
-                              child: const Icon(Icons.shield_moon, size: 56, color: AppColors.outline),
+                              child: const Icon(Icons.shield_moon, size: 42, color: AppColors.outline),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Text('CSO-2025', style: AppTypography.headlineSm(color: AppColors.onSurfaceVariant)),
                             Text(
                               'TIER-1 FIELD SPEC',
@@ -301,10 +358,17 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
 
   Widget _idRow(String label, String value) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.w500)),
-        Text(value, style: AppTypography.bodySm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.bodySm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w700, fontFamily: 'monospace'),
+          ),
+        ),
       ],
     );
   }
@@ -354,7 +418,13 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
             Icon(icon, size: 14, color: fg),
             const SizedBox(width: 4),
           ],
-          Text(label, style: AppTypography.labelSm(color: fg).copyWith(fontWeight: FontWeight.w700)),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.labelSm(color: fg).copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );

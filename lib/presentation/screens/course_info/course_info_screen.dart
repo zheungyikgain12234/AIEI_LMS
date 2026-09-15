@@ -1786,6 +1786,22 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
+              onPressed: _openAssignmentSubmission,
+              icon: const Icon(Icons.upload_file, size: 16),
+              label: const Text('Submit Assignment 02', overflow: TextOverflow.ellipsis),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+                foregroundColor: AppColors.onSecondary,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
               onPressed: null,
               icon: const Icon(Icons.lock, size: 16),
               label: const Text('Mark as Complete (Unlocked at 100%)', overflow: TextOverflow.ellipsis),

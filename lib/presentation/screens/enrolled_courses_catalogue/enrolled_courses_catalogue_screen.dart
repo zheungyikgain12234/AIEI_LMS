@@ -17,6 +17,8 @@ import 'widgets/telemetry_banner.dart';
 import 'widgets/course_filters_bar.dart';
 import 'widgets/course_grid.dart';
 import 'widgets/mobile_course_card.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/mobile_top_bar.dart';
 
 const double _kMobileBreakpoint = 700;
 
@@ -166,79 +168,16 @@ class _EnrolledCoursesCatalogueScreenState
   Widget _buildMobileScaffold(BuildContext context, CoursesState state, CoursesNotifier notifier) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(64),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 1))],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: SafeArea(
-            bottom: false,
-            child: Row(
-              children: [
-                Image.network(
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuDCaMBS-U4oFSVROHoDpAiGwvpOy1ivvJGSI_WfY0WX7QoRM-fyACYsDXamVpuy9nPp4DS3CZS5Id-vsuIkd0IFETOltui-g18k3ZBnLHM1PY4o6wE9LeNHbGeuIBBYIVzFUtG1JDowy2iHIYlvr9T8QTrZSotsTanHF_Cc5uzgEJpX3htWp4qlZ2-oqutU_ei1cNZGJhEaiBobBpOspNBtvF96qnHxoXh2QI6_aQoJfzsJW49NLMxIIM7emyAqSTeeWw',
-                  height: 24,
-                  errorBuilder: (context, error, stackTrace) => Text('AIEI', style: AppTypography.headlineSm(color: AppColors.primary)),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(9999)),
-                  child: Text('STUDENT', style: AppTypography.labelSm(color: AppColors.secondary)),
-                ),
-                const Spacer(),
-                Stack(
-                  children: [
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.notifications_outlined, color: AppColors.onSurfaceVariant),
-                    ),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: const BoxDecoration(color: AppColors.surfaceContainerHigh, shape: BoxShape.circle),
-                  child: const Icon(Icons.person, size: 18, color: AppColors.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          height: 64,
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            boxShadow: [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, -1))],
-          ),
-          child: Row(
-            children: [
-              Expanded(child: _mobileNavItem(Icons.menu_book, 'My Courses', _sidebarIndex == 0, () => setState(() => _sidebarIndex = 0))),
-              Expanded(
-                child: _mobileNavItem(Icons.verified_outlined, 'Certifications & Badges', _sidebarIndex == 1, () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const CertificationsBadgesScreen()),
-                  );
-                }),
-              ),
-            ],
-          ),
-        ),
+      appBar: const MobileTopBar(),
+      bottomNavigationBar: MobileBottomNav(
+        selectedIndex: 0,
+        onTap: (index) {
+          if (index == 1) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const CertificationsBadgesScreen()),
+            );
+          }
+        },
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
@@ -296,20 +235,6 @@ class _EnrolledCoursesCatalogueScreenState
     );
   }
 
-  Widget _mobileNavItem(IconData icon, String label, bool active, VoidCallback onTap) {
-    final color = active ? AppColors.secondary : AppColors.onSurfaceVariant;
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 24, color: color),
-          const SizedBox(height: 2),
-          Text(label, style: AppTypography.labelSm(color: color).copyWith(fontWeight: active ? FontWeight.w700 : FontWeight.w400), textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
 
   Widget _buildMobileTelemetryChips(CourseStats stats) {
     Widget chip(Color dotColor, String label, String value, {IconData? icon}) {

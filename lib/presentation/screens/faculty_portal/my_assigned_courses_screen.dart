@@ -3,6 +3,8 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
+import 'widgets/faculty_mobile_top_bar.dart';
+import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
 import 'student_directory_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/admin_portal/manage_lecturers_screen.dart';
@@ -94,6 +96,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return FacultyScaffold(
       selected: FacultyNavDestination.myCourses,
       onDestinationSelected: _handleNav,
@@ -478,6 +483,704 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                 Text(
                   'All midterm assignment grades for PY-402 and DATA-501 must be finalized before the institutional audit lock on Friday, Nov 21. For schedule changes or section capacity overrides, contact your Chief Academic Administrator (Marcus Vance).',
                   style: FacultyTypography.labelXs(color: const Color(0xFF1E40AF)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Mobile (< 700px) layout
+  // ---------------------------------------------------------------------
+
+  Widget _buildMobileScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: FacultyColors.background,
+      appBar: const FacultyMobileTopBar.root(),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('My Courses', style: FacultyTypography.headlineLg(color: FacultyColors.primary)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(8)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: FacultyColors.secondary, shape: BoxShape.circle)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'FALL 2025 TERM',
+                          style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.6),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.school, size: 14, color: FacultyColors.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Text('Computing & AI', style: FacultyTypography.labelXs()),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Manage active curriculum, track progress, and review pending evaluations.',
+                style: FacultyTypography.bodyMd(),
+              ),
+              const SizedBox(height: 20),
+              _buildMobileKpiGrid(),
+              const SizedBox(height: 20),
+              _buildMobileSearchBar(),
+              const SizedBox(height: 10),
+              _buildMobileFilterRow(),
+              const SizedBox(height: 20),
+              for (final c in _rows) ...[
+                _buildMobileCourseCard(c),
+                const SizedBox(height: 16),
+              ],
+              _buildMobileComplianceNotice(),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: FacultyMobileBottomNav(
+        selected: FacultyNavDestination.myCourses,
+        pendingCount: 22,
+        onDestinationSelected: _handleNav,
+      ),
+    );
+  }
+
+  Widget _buildMobileKpiGrid() {
+    return Column(
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _mobileKpiCard(
+                  label: 'Active Courses',
+                  icon: Icons.menu_book,
+                  iconBg: FacultyColors.surfaceContainer,
+                  iconColor: FacultyColors.secondary,
+                  value: '3',
+                  valueColor: FacultyColors.primary,
+                  footnote: '112 Enrolled Learners',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _mobileKpiCard(
+                  label: 'Pending Reviews',
+                  icon: Icons.pending_actions,
+                  iconBg: FacultyColors.errorContainer,
+                  iconColor: FacultyColors.onErrorContainer,
+                  value: '22',
+                  valueColor: FacultyColors.error,
+                  valueTag: 'urgent',
+                  valueTagColor: FacultyColors.onErrorContainer,
+                  footnote: '14 asgns • 8 quizzes',
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _mobileKpiCard(
+                  label: 'Avg Cohort Score',
+                  icon: Icons.trending_up,
+                  iconBg: FacultyColors.tertiaryFixed,
+                  iconColor: FacultyColors.onTertiaryFixedVariant,
+                  value: '86.4%',
+                  valueColor: FacultyColors.primary,
+                  valueTag: '+2.8%',
+                  valueTagColor: FacultyColors.onTertiaryContainer,
+                  footnote: 'vs. last academic term',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _mobileKpiCard(
+                  label: 'Workload',
+                  icon: Icons.pie_chart,
+                  iconBg: FacultyColors.surfaceContainer,
+                  iconColor: FacultyColors.primary,
+                  value: '12',
+                  valueSuffix: '/ 15 Cr',
+                  valueColor: FacultyColors.primary,
+                  footnote: 'Capacity: 80% assigned',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _mobileKpiCard({
+    required String label,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String value,
+    Color? valueColor,
+    String? valueSuffix,
+    String? valueTag,
+    Color? valueTagColor,
+    required String footnote,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label.toUpperCase(),
+                  style: FacultyTypography.labelXs(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 16, color: iconColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: 5,
+            children: [
+              Text(
+                value,
+                style: FacultyTypography.headlineLg(color: valueColor ?? FacultyColors.primary).copyWith(fontWeight: FontWeight.w700, height: 1),
+              ),
+              if (valueSuffix != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(valueSuffix, style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w400)),
+                ),
+              if (valueTag != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: Text(valueTag, style: FacultyTypography.labelXs(color: valueTagColor ?? FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            footnote,
+            style: FacultyTypography.bodySm(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: TextField(
+        style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+        decoration: InputDecoration(
+          isDense: true,
+          filled: true,
+          fillColor: Colors.transparent,
+          hintText: 'Search assigned courses or codes...',
+          hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
+          prefixIcon: const Icon(Icons.search, size: 20, color: FacultyColors.outline),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileFilterRow() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _mobileFilterChip(label: 'Active Cohorts', bg: FacultyColors.secondary, fg: Colors.white, trailingBadge: '3'),
+        _mobileFilterChip(label: 'Fall 2025', icon: Icons.calendar_month, bg: FacultyColors.surfaceContainerLowest, fg: FacultyColors.onSurfaceVariant),
+        _mobileFilterChip(label: 'Role: All', icon: Icons.tune, bg: FacultyColors.surfaceContainerLowest, fg: FacultyColors.onSurfaceVariant),
+      ],
+    );
+  }
+
+  Widget _mobileFilterChip({required String label, required Color bg, required Color fg, IconData? icon, String? trailingBadge}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: FacultyColors.outline),
+            const SizedBox(width: 6),
+          ],
+          Text(label, style: FacultyTypography.labelMd(color: fg)),
+          if (trailingBadge != null) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+              child: Text(
+                trailingBadge,
+                style: FacultyTypography.labelXs(color: fg).copyWith(fontWeight: FontWeight.w700, fontSize: 10),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileCourseCard(_CourseRow c) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 8)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _mobileCourseMediaHeader(c),
+          const SizedBox(height: 12),
+          Text(c.title, style: FacultyTypography.titleSm(), maxLines: 2, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Text(c.description, style: FacultyTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.schedule, size: 14, color: c.accent),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  c.schedule,
+                  style: FacultyTypography.bodySm(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('•', style: FacultyTypography.bodySm()),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  c.modules,
+                  style: FacultyTypography.bodySm(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _mobileCourseMetricsBox(c),
+          const SizedBox(height: 12),
+          _mobileCourseActions(c),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileCourseMediaHeader(_CourseRow c) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(
+        height: 128,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [c.accent, c.accent.withValues(alpha: 0.65)],
+                ),
+              ),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    FacultyColors.primary.withValues(alpha: 0.9),
+                    FacultyColors.primary.withValues(alpha: 0.45),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: FacultyColors.primaryContainer, borderRadius: BorderRadius.circular(4)),
+                          child: Text(
+                            c.code,
+                            style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: FacultyColors.tertiaryFixed, borderRadius: BorderRadius.circular(9999)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(width: 5, height: 5, decoration: const BoxDecoration(color: FacultyColors.onTertiaryFixedVariant, shape: BoxShape.circle)),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'Active Cohort',
+                                  style: FacultyTypography.labelXs(color: FacultyColors.onTertiaryFixedVariant).copyWith(fontWeight: FontWeight.w700),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+                          child: Text(
+                            c.roleLabel,
+                            style: FacultyTypography.labelXs(color: Colors.white),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          c.enrolled,
+                          style: FacultyTypography.labelXs(color: Colors.white),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileCourseMetricsBox(_CourseRow c) {
+    final pendingNumber = c.pendingCount.split(' ').first;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'SYLLABUS PACING',
+                  style: FacultyTypography.labelXs(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '${c.avgProgress}% Completed',
+                style: FacultyTypography.labelMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(9999),
+            child: LinearProgressIndicator(
+              value: c.avgProgress / 100,
+              minHeight: 8,
+              backgroundColor: FacultyColors.surfaceContainerHighest,
+              valueColor: const AlwaysStoppedAnimation<Color>(FacultyColors.secondaryContainer),
+            ),
+          ),
+          const SizedBox(height: 10),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _mobileMetricTile(
+                    icon: Icons.assignment_late,
+                    iconBg: FacultyColors.errorContainer,
+                    iconColor: FacultyColors.onErrorContainer,
+                    value: '$pendingNumber to Grade',
+                    valueColor: FacultyColors.error,
+                    footnote: c.pendingLabel,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _mobileMetricTile(
+                    icon: Icons.grade,
+                    iconBg: FacultyColors.tertiaryFixed,
+                    iconColor: FacultyColors.onTertiaryFixedVariant,
+                    value: c.classAvg,
+                    valueColor: FacultyColors.primary,
+                    footnote: 'Class Avg Grade',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileMetricTile({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String value,
+    Color? valueColor,
+    required String footnote,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 3)],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(6)),
+            child: Icon(icon, size: 14, color: iconColor),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: FacultyTypography.labelXs(color: valueColor ?? FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  footnote,
+                  style: FacultyTypography.labelXs().copyWith(fontSize: 10),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileCourseActions(_CourseRow c) {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => c.dashboardAvailable
+                ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseDashboardScreen()))
+                : _unavailable(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: FacultyColors.secondary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              minimumSize: const Size(0, 44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    'Open Dashboard',
+                    style: FacultyTypography.labelMd(color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.arrow_forward, size: 18, color: Colors.white),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _mobileIconButton(
+          icon: Icons.group,
+          tooltip: 'Course Roster',
+          onTap: () => c.dashboardAvailable
+              ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen()))
+              : _unavailable(),
+        ),
+        const SizedBox(width: 8),
+        _mobileIconButton(icon: Icons.description, tooltip: 'Course Syllabus', onTap: _unavailable),
+      ],
+    );
+  }
+
+  Widget _mobileIconButton({required IconData icon, required String tooltip, required VoidCallback onTap}) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: FacultyColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(icon, size: 20, color: FacultyColors.secondary),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileComplianceNotice() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerHigh.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            margin: const EdgeInsets.only(top: 2),
+            decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.verified_user, size: 20, color: FacultyColors.secondary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Teaching Compliance Notice',
+                        style: FacultyTypography.labelMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: FacultyColors.secondary, shape: BoxShape.circle)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                RichText(
+                  text: TextSpan(
+                    style: FacultyTypography.bodySm(),
+                    children: [
+                      const TextSpan(text: 'Midterm assignment grades finalized before audit lock on '),
+                      TextSpan(
+                        text: 'Nov 21, 23:59 UTC',
+                        style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const TextSpan(text: '. Course syllabi and telemetry synchronize bi-hourly with Registrar systems.'),
+                    ],
+                  ),
                 ),
               ],
             ),

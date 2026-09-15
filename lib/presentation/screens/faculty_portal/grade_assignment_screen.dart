@@ -3,6 +3,7 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
+import 'widgets/faculty_mobile_top_bar.dart';
 import 'my_assigned_courses_screen.dart';
 import 'student_directory_screen.dart';
 
@@ -52,6 +53,9 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return FacultyScaffold(
       selected: FacultyNavDestination.gradingAndSubmissions,
       onDestinationSelected: _handleNav,
@@ -464,6 +468,583 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Mobile (<700px) layout — separate Scaffold, drill-in top bar, sticky
+  // bottom action bar. Reuses _scoreController / _feedbackController.
+  // ---------------------------------------------------------------------
+
+  Widget _buildMobileScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: FacultyColors.background,
+      appBar: const FacultyMobileTopBar(title: 'Grading Assessment'),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildMobileTopRow(context),
+              const SizedBox(height: 16),
+              _buildMobileAssignmentCard(),
+              const SizedBox(height: 16),
+              _buildMobileArtifactsCard(),
+              const SizedBox(height: 16),
+              _buildMobileNotesCard(),
+              const SizedBox(height: 16),
+              _buildMobileEvaluationCard(),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: _buildMobileBottomBar(context),
+    );
+  }
+
+  Widget _mobileCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildMobileTopRow(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.arrow_back, size: 18, color: FacultyColors.secondary),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      'Back to Submissions Queue',
+                      style: FacultyTypography.labelMd(color: FacultyColors.secondary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+          child: Text(
+            'DATA-402 • Fall 2025',
+            style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _mobileNavChevron({required IconData icon, required String tooltip, required VoidCallback onTap}) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
+            ),
+            child: Icon(icon, size: 18, color: FacultyColors.onSurfaceVariant),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileAssignmentCard() {
+    return _mobileCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.assignment_turned_in, size: 14, color: FacultyColors.secondary),
+              const SizedBox(width: 4),
+              Text(
+                'ASSIGNMENT EVALUATION',
+                style: FacultyTypography.labelXs(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Assignment 02: Automated Data Pipelines',
+            style: FacultyTypography.headlineMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(child: Text('COHORT PROGRESS', style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis)),
+                    const SizedBox(width: 8),
+                    Text(
+                      '2 of 36 Students',
+                      style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _mobileNavChevron(icon: Icons.chevron_left, tooltip: 'Previous: Maya Patel', onTap: _otherStudent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: FacultyColors.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: const BoxDecoration(color: FacultyColors.secondaryContainer, shape: BoxShape.circle),
+                              alignment: Alignment.center,
+                              child: Text('AC', style: FacultyTypography.labelMd(color: FacultyColors.onSecondaryContainer)),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Alex Chen',
+                                    style: FacultyTypography.titleSm(color: FacultyColors.primary),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'EMP-88219',
+                                    style: FacultyTypography.bodySm(color: FacultyColors.outline),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _mobileNavChevron(icon: Icons.chevron_right, tooltip: 'Next: Marcus Vance', onTap: _otherStudent),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: FacultyColors.tertiaryContainer.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.circle, size: 6, color: FacultyColors.tertiary),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Submitted on Time • Nov 14, 2025, 4:15 PM',
+                          style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileArtifactsCard() {
+    return _mobileCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.folder_zip, color: FacultyColors.secondary, size: 20),
+              const SizedBox(width: 6),
+              Expanded(child: Text('Submitted Artifacts', style: FacultyTypography.titleSm(color: FacultyColors.primary))),
+              const SizedBox(width: 6),
+              TextButton.icon(
+                onPressed: () =>
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Downloading all files (.zip)...'))),
+                icon: const Icon(Icons.download, size: 16),
+                label: const Text('Download All'),
+                style: TextButton.styleFrom(
+                  foregroundColor: FacultyColors.secondary,
+                  backgroundColor: FacultyColors.surfaceContainerLow,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: FacultyTypography.labelMd(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _mobileFileRow(Icons.code, FacultyColors.secondary, 'pipeline_etl_v2_chen.py', 'Python Script • 48 KB • Nov 14'),
+          const SizedBox(height: 8),
+          _mobileFileRow(
+              Icons.description, FacultyColors.error, 'pipeline_execution_report.pdf', 'PDF Document • 1.2 MB • Benchmark Data'),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileFileRow(IconData icon, Color iconColor, String name, String meta) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+            alignment: Alignment.center,
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(meta, style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Downloading $name...'))),
+            icon: const Icon(Icons.download, size: 18),
+            color: FacultyColors.secondary,
+            tooltip: 'Download $name',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileNotesCard() {
+    return _mobileCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.chat, color: FacultyColors.secondary, size: 20),
+              const SizedBox(width: 6),
+              Expanded(child: Text('Student Implementation Notes', style: FacultyTypography.titleSm(color: FacultyColors.primary))),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: Text(
+              '"Handled edge case where column \'tax_code\' had null values by defaulting to regional regulatory rate '
+              '0.0825. Quarantine routing extracts invalid rows into isolated parquet buffer with timestamp tracking. '
+              'Vectorized transformations yielded 3.8x speedup."',
+              style: FacultyTypography.bodyMd(color: FacultyColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileEvaluationCard() {
+    return _mobileCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.fact_check, color: FacultyColors.secondary, size: 20),
+              const SizedBox(width: 6),
+              Expanded(child: Text('Evaluation & Feedback', style: FacultyTypography.titleSm(color: FacultyColors.primary))),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: FacultyColors.tertiaryContainer.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Grade: A (Pass)',
+                  style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('FINAL SCORE', style: FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700)),
+                          Text('Scale 0 - 100 max', style: FacultyTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: FacultyColors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          SizedBox(
+                            width: 44,
+                            child: TextField(
+                              controller: _scoreController,
+                              textAlign: TextAlign.right,
+                              keyboardType: TextInputType.number,
+                              onChanged: (_) => setState(() {}),
+                              style: FacultyTypography.headlineMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text('/ 100', style: FacultyTypography.titleSm(color: FacultyColors.outline)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text('Quick Presets:', style: FacultyTypography.labelXs()),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(child: _mobileScorePreset('85')),
+                    const SizedBox(width: 8),
+                    Expanded(child: _mobileScorePreset('90')),
+                    const SizedBox(width: 8),
+                    Expanded(child: _mobileScorePreset('94')),
+                    const SizedBox(width: 8),
+                    Expanded(child: _mobileScorePreset('100')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Instructor Written Feedback', style: FacultyTypography.labelMd(color: FacultyColors.onSurface)),
+              ),
+              const SizedBox(width: 8),
+              Text('Markdown supported', style: FacultyTypography.bodySm(), overflow: TextOverflow.ellipsis),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _feedbackController,
+            maxLines: 4,
+            style: FacultyTypography.bodyMd(color: FacultyColors.onSurface),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: FacultyColors.surfaceContainerLow,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.check_circle, size: 16, color: FacultyColors.tertiary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Telemetry criteria auto-verified (5/5)',
+                  style: FacultyTypography.labelXs(color: FacultyColors.tertiary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('Rubric v2.1', style: FacultyTypography.labelXs(color: FacultyColors.outline)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileScorePreset(String value) {
+    final selected = _scoreController.text.trim() == value;
+    return OutlinedButton(
+      onPressed: () => setState(() => _scoreController.text = value),
+      style: OutlinedButton.styleFrom(
+        backgroundColor: selected ? FacultyColors.secondary : FacultyColors.surfaceContainerLowest,
+        side: BorderSide.none,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Text(
+        value,
+        style: FacultyTypography.labelMd(color: selected ? FacultyColors.onSecondary : FacultyColors.onSurface),
+      ),
+    );
+  }
+
+  Widget _buildMobileBottomBar(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 8, offset: Offset(0, -2))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _mobileActionButton(
+                      icon: Icons.save,
+                      label: 'Save Draft',
+                      background: FacultyColors.surfaceContainerLow,
+                      foreground: FacultyColors.secondary,
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draft saved.'))),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _mobileActionButton(
+                      icon: Icons.publish,
+                      label: 'Save & Publish',
+                      background: FacultyColors.secondary,
+                      foreground: FacultyColors.onSecondary,
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Grade published to Alex Chen.'), backgroundColor: FacultyColors.primary),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: _mobileActionButton(
+                  icon: Icons.arrow_forward,
+                  label: 'Save & Next Student (Marcus Vance)',
+                  background: FacultyColors.primary,
+                  foreground: FacultyColors.onPrimary,
+                  onPressed: _otherStudent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileActionButton({
+    required IconData icon,
+    required String label,
+    required Color background,
+    required Color foreground,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: background,
+        foregroundColor: foreground,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              style: FacultyTypography.labelMd(color: foreground),
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Icon(icon, size: 18, color: foreground),
+        ],
+      ),
     );
   }
 }

@@ -240,7 +240,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
-              width: 1060,
+              width: 1080,
               child: Column(children: [for (final l in _lecturers) _lecturerRow(l)]),
             ),
           ),
@@ -360,7 +360,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
             ),
           ),
           SizedBox(
-            width: 90,
+            width: 120,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -370,7 +370,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Container(width: 6, height: 6, decoration: BoxDecoration(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant, shape: BoxShape.circle)),
                 const SizedBox(width: 6),
-                Text(l.status, style: AdminTypography.labelSm(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
+                Flexible(
+                  child: Text(
+                    l.status,
+                    overflow: TextOverflow.ellipsis,
+                    style: AdminTypography.labelSm(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
               ]),
             ),
           ),

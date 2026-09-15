@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 class PortalHeader extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<String>? onSearch;
@@ -141,41 +142,50 @@ class PortalHeader extends StatelessWidget implements PreferredSizeWidget {
 
           const SizedBox(width: 8),
 
-          // User Profile Info
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
+          // User Profile Info — tap to sign out back to Login
+          GestureDetector(
+            onTap: () => Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            ),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    'Alex Chen',
-                    style: AppTypography.labelMd(color: AppColors.onSurface),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Alex Chen',
+                        style: AppTypography.labelMd(color: AppColors.onSurface),
+                      ),
+                      Text(
+                        'Product Analyst • Operations',
+                        style: AppTypography.bodySm(
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Product Analyst • Operations',
-                    style: AppTypography.bodySm(
-                      color: AppColors.onSurfaceVariant,
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      color: AppColors.onPrimary,
+                      size: 20,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 10),
-              Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: AppColors.onPrimary,
-                  size: 20,
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 class FacultyHeader extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<String>? onSearch;
@@ -95,25 +96,34 @@ class FacultyHeader extends StatelessWidget implements PreferredSizeWidget {
             ],
           ),
           const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(color: FacultyColors.primary, shape: BoxShape.circle),
-                child: const Icon(Icons.person, color: FacultyColors.onPrimary, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Column(
+          GestureDetector(
+            onTap: () => Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            ),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Dr. Sarah Lin', style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                  Text('Lead Data Architect • Faculty Instructor', style: FacultyTypography.labelXs()),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: const BoxDecoration(color: FacultyColors.primary, shape: BoxShape.circle),
+                    child: const Icon(Icons.person, color: FacultyColors.onPrimary, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Dr. Sarah Lin', style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                      Text('Lead Data Architect • Faculty Instructor', style: FacultyTypography.labelXs()),
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ],
       ),

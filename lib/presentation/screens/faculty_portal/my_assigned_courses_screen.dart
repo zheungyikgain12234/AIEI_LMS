@@ -7,7 +7,6 @@ import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
 import 'student_directory_screen.dart';
-import 'package:stitch_aiei_lms/presentation/screens/admin_portal/manage_lecturers_screen.dart';
 
 class MyAssignedCoursesScreen extends StatefulWidget {
   const MyAssignedCoursesScreen({super.key});
@@ -102,11 +101,6 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     return FacultyScaffold(
       selected: FacultyNavDestination.myCourses,
       onDestinationSelected: _handleNav,
-      onOpenAdminPortal: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ManageLecturersScreen()),
-        );
-      },
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

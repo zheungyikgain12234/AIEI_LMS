@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 class AdminHeader extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<String>? onSearch;
@@ -84,25 +85,34 @@ class AdminHeader extends StatelessWidget implements PreferredSizeWidget {
             ],
           ),
           const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
+          GestureDetector(
+            onTap: () => Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            ),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Marcus Vance', style: AdminTypography.titleSm(color: AdminColors.onSurface)),
-                  Text('Chief Academic Administrator', style: AdminTypography.labelSm()),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Marcus Vance', style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+                      Text('Chief Academic Administrator', style: AdminTypography.labelSm()),
+                    ],
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: const BoxDecoration(color: AdminColors.primary, shape: BoxShape.circle),
+                    child: const Icon(Icons.person, color: AdminColors.onPrimary, size: 20),
+                  ),
                 ],
               ),
-              const SizedBox(width: 10),
-              Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(color: AdminColors.primary, shape: BoxShape.circle),
-                child: const Icon(Icons.person, color: AdminColors.onPrimary, size: 20),
-              ),
-            ],
+            ),
           ),
         ],
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
-import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 void main() {
   runApp(
@@ -29,7 +29,7 @@ class AieiLmsApp extends StatelessWidget {
           surface: AppColors.surface,
         ),
       ),
-      home: const EnrolledCoursesCatalogueScreen(),
+      home: const LoginScreen(),
     );
   }
 }

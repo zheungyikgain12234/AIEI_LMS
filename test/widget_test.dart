@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/data/datasources/mock_courses_data_source.dart';
 import 'package:stitch_aiei_lms/data/repositories/mock_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
-import 'package:stitch_aiei_lms/main.dart';
+import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/controllers/courses_controller.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/controllers/courses_state.dart';
 
@@ -123,7 +123,7 @@ void main() {
 
         await tester.pumpWidget(
           const ProviderScope(
-            child: AieiLmsApp(),
+            child: MaterialApp(home: EnrolledCoursesCatalogueScreen()),
           ),
         );
         await tester.pump();

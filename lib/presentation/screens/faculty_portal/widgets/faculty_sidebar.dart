@@ -8,14 +8,12 @@ class FacultySidebar extends StatelessWidget {
   final FacultyNavDestination selected;
   final ValueChanged<FacultyNavDestination>? onDestinationSelected;
   final int pendingCount;
-  final VoidCallback? onOpenAdminPortal;
 
   const FacultySidebar({
     super.key,
     this.selected = FacultyNavDestination.myCourses,
     this.onDestinationSelected,
     this.pendingCount = 14,
-    this.onOpenAdminPortal,
   });
 
   @override
@@ -60,16 +58,6 @@ class FacultySidebar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          if (onOpenAdminPortal != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _NavItem(
-                icon: Icons.switch_account_outlined,
-                label: 'Admin Portal',
-                isSelected: false,
-                onTap: onOpenAdminPortal,
-              ),
-            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
@@ -82,13 +70,15 @@ class FacultySidebar extends StatelessWidget {
                 children: [
                   const Icon(Icons.verified, color: FacultyColors.primary, size: 20),
                   const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Term 2024-Q3', style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                      Text('Active Academic Session', style: FacultyTypography.labelXs()),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Term 2024-Q3', overflow: TextOverflow.ellipsis, style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                        Text('Active Academic Session', overflow: TextOverflow.ellipsis, style: FacultyTypography.labelXs()),
+                      ],
+                    ),
                   ),
                 ],
               ),

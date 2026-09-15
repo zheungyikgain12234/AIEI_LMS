@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 /// Compact mobile (< 700px) app bar for the student portal's bottom-nav
 /// tab pages — logo, role badge, notification bell, avatar. Replaces the
@@ -52,11 +53,17 @@ class MobileTopBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ],
             ),
-            Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(color: AppColors.surfaceContainerHigh, shape: BoxShape.circle),
-              child: const Icon(Icons.person, size: 18, color: AppColors.onSurfaceVariant),
+            GestureDetector(
+              onTap: () => Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              ),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(color: AppColors.surfaceContainerHigh, shape: BoxShape.circle),
+                child: const Icon(Icons.person, size: 18, color: AppColors.onSurfaceVariant),
+              ),
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 /// Compact mobile (< 700px) app bar for the Faculty Portal.
 ///
@@ -54,11 +55,14 @@ class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        Container(
-          width: 32,
-          height: 32,
-          decoration: const BoxDecoration(color: FacultyColors.primary, shape: BoxShape.circle),
-          child: const Icon(Icons.person, color: FacultyColors.onPrimary, size: 18),
+        GestureDetector(
+          onTap: () => _goToLogin(context),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: const BoxDecoration(color: FacultyColors.primary, shape: BoxShape.circle),
+            child: const Icon(Icons.person, color: FacultyColors.onPrimary, size: 18),
+          ),
         ),
         const SizedBox(width: 4),
       ],
@@ -98,14 +102,24 @@ class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget
             ),
           ],
         ),
-        Container(
-          width: 32,
-          height: 32,
-          decoration: const BoxDecoration(color: FacultyColors.primary, shape: BoxShape.circle),
-          alignment: Alignment.center,
-          child: Text('SL', style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
+        GestureDetector(
+          onTap: () => _goToLogin(context),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: const BoxDecoration(color: FacultyColors.primary, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Text('SL', style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
+          ),
         ),
       ],
+    );
+  }
+
+  void _goToLogin(BuildContext context) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
     );
   }
 }

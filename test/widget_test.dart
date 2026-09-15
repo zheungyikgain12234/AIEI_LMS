@@ -122,8 +122,11 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
 
         await tester.pumpWidget(
-          const ProviderScope(
-            child: MaterialApp(home: EnrolledCoursesCatalogueScreen()),
+          ProviderScope(
+            overrides: [
+              coursesRepositoryProvider.overrideWithValue(MockCoursesRepositoryImpl()),
+            ],
+            child: const MaterialApp(home: EnrolledCoursesCatalogueScreen()),
           ),
         );
         await tester.pump();

@@ -1,11 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stitch_aiei_lms/core/supabase/supabase_providers.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/repositories/courses_repository.dart';
-import 'package:stitch_aiei_lms/data/repositories/mock_courses_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_courses_repository_impl.dart';
 import 'courses_state.dart';
 
 final coursesRepositoryProvider = Provider<CoursesRepository>((ref) {
-  return MockCoursesRepositoryImpl();
+  return SupabaseCoursesRepositoryImpl(ref.watch(supabaseClientProvider));
 });
 
 class CoursesNotifier extends Notifier<CoursesState> {

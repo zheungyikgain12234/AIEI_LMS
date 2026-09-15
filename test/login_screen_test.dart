@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stitch_aiei_lms/data/repositories/mock_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/controllers/courses_controller.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/my_assigned_courses_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/admin_portal/manage_lecturers_screen.dart';
 
@@ -53,7 +55,14 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
 
-        await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: LoginScreen())));
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              coursesRepositoryProvider.overrideWithValue(MockCoursesRepositoryImpl()),
+            ],
+            child: const MaterialApp(home: LoginScreen()),
+          ),
+        );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
 

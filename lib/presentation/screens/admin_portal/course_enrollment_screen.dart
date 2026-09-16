@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -22,15 +26,68 @@ class CourseEnrollmentScreen extends StatefulWidget {
 }
 
 class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
-  static const _roster = [
-    _RosterStudent('Alex Chen', 'EMP-88219', 'alex.chen@enterprise.com', 'Oct 12, 2024', 'Corporate Sponsored', 2, 2, 94, 3, 3, 90, 92.4, 'A', 'On Track', '2 hrs ago', true),
-    _RosterStudent('Maya Patel', 'EMP-77402', 'maya.patel@enterprise.com', 'Oct 10, 2024', 'Corporate Sponsored', 2, 2, 98, 3, 3, 95, 96.1, 'A+', 'Cohort Top 5%', '35 mins ago', true),
-    _RosterStudent('Liam Nguyen', 'EMP-66381', 'liam.nguyen@enterprise.com', 'Oct 14, 2024', 'Self-Enrolled (Direct)', 2, 2, 86, 3, 3, 91, 88.5, 'B+', 'On Track', 'Yesterday', true),
-    _RosterStudent('Jordan Taylor', 'EMP-99214', 'jordan.taylor@enterprise.com', 'Oct 18, 2024', 'Corporate Sponsored', 1, 2, 70, 3, 3, 76, 73.2, 'C', 'At Risk (<80%)', '4 days ago', false, atRisk: true),
-    _RosterStudent('Chloe Bennett', 'EMP-44820', 'chloe.bennett@enterprise.com', 'Oct 11, 2024', 'Corporate Sponsored', 2, 2, 90, 3, 3, 88, 89.0, 'B+', 'On Track', '5 hrs ago', true),
-  ];
+  final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  bool _isLoading = true;
+  Map<String, dynamic>? _course;
+  List<RosterStudent> _roster = [];
 
   final Set<String> _selected = {};
+
+  String get _courseCode => (_course?['course_code'] as String?) ?? '';
+  String get _courseTitle => (_course?['course_title'] as String?) ?? '';
+  int get _capacity => (_course?['capacity'] as int?) ?? 0;
+  int get _enrolledCount => _roster.length;
+  int get _atRiskCount => _roster.where((s) => _isAtRisk(s.riskStatus)).length;
+  int get _passingCount => _roster.length - _atRiskCount;
+
+  double? get _averageScore {
+    final scores = _roster.map((s) => s.overallScore).whereType<double>().toList();
+    if (scores.isEmpty) return null;
+    return scores.reduce((a, b) => a + b) / scores.length;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final course = await Supabase.instance.client.from('courses').select().eq('id', DemoIdentity.courseSecId).single();
+    final roster = await _repository.getCourseRoster(DemoIdentity.courseSecId);
+    if (!mounted) return;
+    setState(() {
+      _course = course;
+      _roster = roster;
+      _isLoading = false;
+    });
+  }
+
+  String _riskLabel(String risk) {
+    switch (risk) {
+      case 'at_risk':
+        return 'At Risk';
+      case 'critical':
+        return 'Critical';
+      default:
+        return 'On Track';
+    }
+  }
+
+  bool _isAtRisk(String risk) => risk != 'on_track';
+
+  static const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  String _formatDate(DateTime d) => '${_monthNames[d.month - 1]} ${d.day}, ${d.year}';
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} mins ago';
+    if (diff.inHours < 24) return '${diff.inHours} hrs ago';
+    if (diff.inDays < 2) return 'Yesterday';
+    return '${diff.inDays} days ago';
+  }
 
   void _handleNav(AdminNavDestination dest) {
     switch (dest) {
@@ -56,6 +113,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -94,7 +154,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
               const SizedBox(width: 6),
               Text('•', style: AdminTypography.labelSm()),
               const SizedBox(width: 6),
-              Text('Section ID: SEC-PY402-FA25', style: AdminTypography.labelSm()),
+              Text('Course: $_courseCode', style: AdminTypography.labelSm()),
             ]),
             const SizedBox(height: 4),
             Text('Manage Students of Courses', style: AdminTypography.headlineLg()),
@@ -145,20 +205,10 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Wrap(spacing: 6, children: [
                 _tag('Active Cohort', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
-                _tag('Term: Fall 2025', AdminColors.secondaryFixed, AdminColors.onSecondaryFixedVariant),
-                _tag('4 Credit Units', AdminColors.surfaceContainerHigh, AdminColors.onSurfaceVariant),
+                _tag('$_enrolledCount / $_capacity Enrolled', AdminColors.secondaryFixed, AdminColors.onSecondaryFixedVariant),
               ]),
               const SizedBox(height: 4),
-              Text('PY-402: Python for Enterprise Data Analysis & Automation', style: AdminTypography.headlineSm()),
-              const SizedBox(height: 4),
-              Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.verified_user, size: 15, color: AdminColors.secondary),
-                  const SizedBox(width: 4),
-                  Text('Instructor: Dr. Sarah Lin', style: AdminTypography.bodySm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                ]),
-                Text('Schedule: Mon / Wed 18:00–20:30 UTC', style: AdminTypography.bodySm()),
-              ]),
+              Text('$_courseCode: $_courseTitle', style: AdminTypography.headlineSm()),
             ]),
           ]),
           OutlinedButton.icon(
@@ -182,11 +232,13 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
     return LayoutBuilder(builder: (context, constraints) {
       final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
+      final fillPct = _capacity == 0 ? 0.0 : _enrolledCount / _capacity;
       final cards = <Widget>[
-        _metricCard('Enrolled Capacity', '42 / 50', Icons.group_outlined, progress: 0.84, footer: '84% filled', footerRight: '8 Seats Available'),
-        _metricCard('Active Waitlist', '4 Students', Icons.hourglass_top_outlined, footer: 'Priority FIFO', action: 'Review Waitlist'),
-        _metricCard('Benchmark Standard', '80%', Icons.verified_outlined, footer: 'Passing Criteria Threshold', tag: 'Strict Cutoff'),
-        _metricCard('Aggregated Average Grade', '87.2%', Icons.analytics_outlined, footer: 'Assignments & Quizzes', trend: '+3.4% vs Prev. Cohort'),
+        _metricCard('Enrolled Capacity', '$_enrolledCount / $_capacity', Icons.group_outlined,
+            progress: fillPct, footer: '${(fillPct * 100).round()}% filled', footerRight: '${_capacity - _enrolledCount} Seats Available'),
+        _metricCard('Passing (On Track)', '$_passingCount Students', Icons.verified_outlined, footer: 'Risk status: on track'),
+        _metricCard('At Risk / Critical', '$_atRiskCount Students', Icons.warning_amber_outlined, footer: 'Risk status: at risk or critical'),
+        _metricCard('Aggregated Average Grade', _averageScore == null ? '—' : '${_averageScore!.toStringAsFixed(1)}%', Icons.analytics_outlined, footer: 'Across graded students'),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -241,17 +293,16 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
             constraints: const BoxConstraints(maxWidth: 380),
             child: TextField(
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
-              decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search enrolled students in PY-402...', hintStyle: AdminTypography.bodySm(color: AdminColors.outline), prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
+              decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search enrolled students in $_courseCode...', hintStyle: AdminTypography.bodySm(color: AdminColors.outline), prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
             ),
           ),
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              _filterPill('All (42)', true),
-              _filterPill('Passing (≥80%)', false),
-              _filterPill('At Risk (<80%)', false),
-              _filterPill('Incomplete', false),
+              _filterPill('All ($_enrolledCount)', true),
+              _filterPill('Passing ($_passingCount)', false),
+              _filterPill('At Risk ($_atRiskCount)', false),
             ]),
           ),
         ],
@@ -283,8 +334,8 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
               spacing: 12,
               runSpacing: 8,
               children: [
-                Text('${_selected.length} of 42 students selected', style: AdminTypography.bodySm()),
-                Text('Showing 1–5 of 42', style: AdminTypography.bodySm()),
+                Text('${_selected.length} of $_enrolledCount students selected', style: AdminTypography.bodySm()),
+                Text('Showing 1–$_enrolledCount of $_enrolledCount', style: AdminTypography.bodySm()),
               ],
             ),
           ),
@@ -293,11 +344,13 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
     );
   }
 
-  Widget _rosterRow(_RosterStudent s) {
+  Widget _rosterRow(RosterStudent s) {
     final selected = _selected.contains(s.employeeId);
+    final atRisk = _isAtRisk(s.riskStatus);
+    final gradeLabel = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(1)}% (${s.grade ?? '—'})' : 'No grade yet';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)), color: s.atRisk ? AdminColors.errorContainer.withValues(alpha: 0.1) : null),
+      decoration: BoxDecoration(border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)), color: atRisk ? AdminColors.errorContainer.withValues(alpha: 0.1) : null),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -315,17 +368,17 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
             ]),
           ),
           SizedBox(width: 150, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(s.enrolledDate, style: AdminTypography.titleSm()),
+            Text(_formatDate(s.enrolledAt), style: AdminTypography.titleSm()),
             Text(s.sponsorship, style: AdminTypography.labelSm()),
           ])),
-          SizedBox(width: 170, child: _progressCell('${s.assignDone} of ${s.assignTotal} Completed', s.assignPct, s.assignPct >= 100)),
-          SizedBox(width: 170, child: _progressCell('${s.quizDone} of ${s.quizTotal} Completed', s.quizPct, true)),
+          SizedBox(width: 170, child: _progressCell('${s.progressPercentage}% Course Progress', s.progressPercentage, s.progressPercentage >= 80)),
+          SizedBox(width: 170, child: _progressCell('${s.attendancePercentage}% Attendance', s.attendancePercentage, s.attendancePercentage >= 80)),
           SizedBox(width: 130, child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: s.atRisk ? AdminColors.errorContainer : AdminColors.secondaryFixed, borderRadius: BorderRadius.circular(9999)),
-            child: Text('${s.grade}% (${s.letterGrade})', style: AdminTypography.labelMd(color: s.atRisk ? AdminColors.onErrorContainer : AdminColors.onSecondaryFixedVariant)),
+            decoration: BoxDecoration(color: atRisk ? AdminColors.errorContainer : AdminColors.secondaryFixed, borderRadius: BorderRadius.circular(9999)),
+            child: Text(gradeLabel, style: AdminTypography.labelMd(color: atRisk ? AdminColors.onErrorContainer : AdminColors.onSecondaryFixedVariant)),
           )),
-          SizedBox(width: 120, child: Text(s.lastActive, style: AdminTypography.bodySm(color: s.online ? AdminColors.onSurface : AdminColors.onSurfaceVariant))),
+          SizedBox(width: 120, child: Text(_timeAgo(s.lastActivityAt), style: AdminTypography.bodySm(color: s.isOnlineNow ? AdminColors.onSurface : AdminColors.onSurfaceVariant))),
           SizedBox(
             width: 110,
             child: Align(
@@ -432,7 +485,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
                 const SizedBox(width: 6),
                 Text('•', style: AdminTypography.labelSm(color: AdminColors.outlineVariant)),
                 const SizedBox(width: 6),
-                Text('SEC-PY402-FA25', style: AdminTypography.labelSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w700)),
+                Text(_courseCode, style: AdminTypography.labelSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -488,7 +541,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
           OutlinedButton.icon(
             onPressed: _notAvailable,
             icon: const Icon(Icons.unfold_more, size: 18),
-            label: const Text('SEC-PY402 (Active)'),
+            label: Text('$_courseCode (Active)'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AdminColors.onSurfaceVariant,
               backgroundColor: AdminColors.surfaceContainerLowest,
@@ -543,11 +596,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Wrap(spacing: 6, runSpacing: 4, children: [
-                      _tag('PY-402', AdminColors.primary, AdminColors.onPrimary),
-                      _tag('4 Credit Units', AdminColors.surfaceContainerHigh, AdminColors.onSurfaceVariant),
+                      _tag(_courseCode, AdminColors.primary, AdminColors.onPrimary),
+                      _tag('$_enrolledCount / $_capacity Enrolled', AdminColors.surfaceContainerHigh, AdminColors.onSurfaceVariant),
                     ]),
                     const SizedBox(height: 6),
-                    Text('Python for Enterprise Data Analysis & Automation', style: AdminTypography.headlineSm(color: AdminColors.primary)),
+                    Text(_courseTitle, style: AdminTypography.headlineSm(color: AdminColors.primary)),
                   ],
                 ),
               ),
@@ -599,6 +652,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
   }
 
   Widget _mobileMetricsGrid() {
+    final fillPct = _capacity == 0 ? 0.0 : _enrolledCount / _capacity;
     return Column(
       children: [
         IntrinsicHeight(
@@ -608,20 +662,20 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
               Expanded(
                 child: _mobileMetricTile(
                   label: 'Capacity',
-                  value: '42 / 50',
+                  value: '$_enrolledCount / $_capacity',
                   icon: Icons.group_outlined,
-                  progress: 0.84,
-                  footerLeft: '84% filled',
-                  footerRight: '8 Seats Available',
+                  progress: fillPct,
+                  footerLeft: '${(fillPct * 100).round()}% filled',
+                  footerRight: '${_capacity - _enrolledCount} Seats Available',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _mobileMetricTile(
-                  label: 'Waitlist',
-                  value: '4 Learners',
-                  icon: Icons.hourglass_top_outlined,
-                  footerAction: 'Review Queue',
+                  label: 'At Risk',
+                  value: '$_atRiskCount Students',
+                  icon: Icons.warning_amber_outlined,
+                  footerLeft: 'Risk status: at risk / critical',
                 ),
               ),
             ],
@@ -634,19 +688,18 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
             children: [
               Expanded(
                 child: _mobileMetricTile(
-                  label: 'Benchmark',
-                  value: '80%',
+                  label: 'Passing',
+                  value: '$_passingCount Students',
                   icon: Icons.verified_outlined,
-                  footerLeft: 'Passing Threshold',
+                  footerLeft: 'Risk status: on track',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _mobileMetricTile(
                   label: 'Avg Grade',
-                  value: '87.2%',
+                  value: _averageScore == null ? '—' : '${_averageScore!.toStringAsFixed(1)}%',
                   icon: Icons.analytics_outlined,
-                  trend: '+3.4% vs Prev.',
                 ),
               ),
             ],
@@ -737,13 +790,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _mobileFilterChip('All', '42', true),
+          _mobileFilterChip('All', '$_enrolledCount', true),
           const SizedBox(width: 8),
-          _mobileFilterChip('Passing (≥80%)', '38', false),
+          _mobileFilterChip('Passing', '$_passingCount', false),
           const SizedBox(width: 8),
-          _mobileFilterChip('At Risk (<80%)', '4', false, badgeColor: AdminColors.errorContainer, badgeTextColor: AdminColors.onErrorContainer),
-          const SizedBox(width: 8),
-          _mobileFilterChip('Incomplete', '1', false),
+          _mobileFilterChip('At Risk', '$_atRiskCount', false, badgeColor: AdminColors.errorContainer, badgeTextColor: AdminColors.onErrorContainer),
         ],
       ),
     );
@@ -766,13 +817,14 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
     );
   }
 
-  Widget _mobileStudentCard(_RosterStudent s) {
+  Widget _mobileStudentCard(RosterStudent s) {
     final selected = _selected.contains(s.employeeId);
-    final compact = !s.atRisk && s.standing.toLowerCase().contains('top');
+    final atRisk = _isAtRisk(s.riskStatus);
+    final gradeLabel = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(0)}%' : '—';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: s.atRisk ? AdminColors.errorContainer.withValues(alpha: 0.12) : AdminColors.surfaceContainerLowest,
+        color: atRisk ? AdminColors.errorContainer.withValues(alpha: 0.12) : AdminColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
@@ -819,35 +871,30 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
                         decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(6)),
                         child: Text(s.sponsorship, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
                       ),
-                      Text(s.enrolledDate, style: AdminTypography.bodySm(color: AdminColors.outline)),
+                      Text(_formatDate(s.enrolledAt), style: AdminTypography.bodySm(color: AdminColors.outline)),
                     ]),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text('${s.grade}%', style: AdminTypography.headlineSm(color: s.atRisk ? AdminColors.error : AdminColors.primary)),
+                Text(gradeLabel, style: AdminTypography.headlineSm(color: atRisk ? AdminColors.error : AdminColors.primary)),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: s.atRisk ? AdminColors.errorContainer : AdminColors.tertiaryFixed, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: atRisk ? AdminColors.errorContainer : AdminColors.tertiaryFixed, borderRadius: BorderRadius.circular(8)),
                   child: Text(
-                    s.standing,
-                    style: AdminTypography.labelSm(color: s.atRisk ? AdminColors.onErrorContainer : AdminColors.onTertiaryFixedVariant).copyWith(fontWeight: FontWeight.w700),
+                    _riskLabel(s.riskStatus),
+                    style: AdminTypography.labelSm(color: atRisk ? AdminColors.onErrorContainer : AdminColors.onTertiaryFixedVariant).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
               ]),
             ],
           ),
           const SizedBox(height: 12),
-          if (s.atRisk)
-            _mobileAtRiskPanel(s)
-          else if (compact)
-            _mobileCompactPanel(s)
-          else
-            _mobileBreakdownPanel(s),
+          if (atRisk) _mobileAtRiskPanel(s) else _mobileBreakdownPanel(s),
           const SizedBox(height: 8),
-          if (s.atRisk)
+          if (atRisk)
             Row(children: [
               const Icon(Icons.notification_important, size: 16, color: AdminColors.error),
               const SizedBox(width: 6),
@@ -873,53 +920,32 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
     );
   }
 
-  Widget _mobileBreakdownPanel(_RosterStudent s) {
+  Widget _mobileBreakdownPanel(RosterStudent s) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
       child: Column(children: [
-        _mobileProgressRow('Assignments: ${s.assignDone} of ${s.assignTotal} (${s.assignPct}%)', s.assignPct),
+        _mobileProgressRow('Course Progress (${s.progressPercentage}%)', s.progressPercentage),
         const SizedBox(height: 8),
-        _mobileProgressRow('Quizzes: ${s.quizDone} of ${s.quizTotal} (${s.quizPct}%)', s.quizPct),
+        _mobileProgressRow('Attendance (${s.attendancePercentage}%)', s.attendancePercentage),
       ]),
     );
   }
 
-  Widget _mobileAtRiskPanel(_RosterStudent s) {
+  Widget _mobileAtRiskPanel(RosterStudent s) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
       child: Column(children: [
-        _mobileProgressRow('Assignments: ${s.assignDone} of ${s.assignTotal} (${s.assignPct}%)', s.assignPct),
+        _mobileProgressRow('Course Progress (${s.progressPercentage}%)', s.progressPercentage),
         const SizedBox(height: 8),
-        _mobileProgressRow('Quizzes: ${s.quizDone} of ${s.quizTotal} (${s.quizPct}%)', s.quizPct),
+        _mobileProgressRow('Attendance (${s.attendancePercentage}%)', s.attendancePercentage),
         const SizedBox(height: 8),
         Row(children: [
           const Icon(Icons.warning, size: 14, color: AdminColors.error),
           const SizedBox(width: 4),
           Expanded(child: Text('Below passing threshold', style: AdminTypography.labelSm(color: AdminColors.error), overflow: TextOverflow.ellipsis)),
         ]),
-      ]),
-    );
-  }
-
-  Widget _mobileCompactPanel(_RosterStudent s) {
-    final done = s.assignDone + s.quizDone;
-    final total = s.assignTotal + s.quizTotal;
-    final pct = total == 0 ? 0 : ((done / total) * 100).round();
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-      child: Row(children: [
-        const Icon(Icons.checklist, size: 16, color: AdminColors.secondary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'Core Milestones: $done of $total Complete ($pct%)',
-            style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
       ]),
     );
   }
@@ -938,31 +964,4 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
       ],
     );
   }
-}
-
-class _RosterStudent {
-  final String name, employeeId, email, enrolledDate, sponsorship, letterGrade, standing, lastActive;
-  final int assignDone, assignTotal, assignPct, quizDone, quizTotal, quizPct;
-  final double grade;
-  final bool online, atRisk;
-
-  const _RosterStudent(
-    this.name,
-    this.employeeId,
-    this.email,
-    this.enrolledDate,
-    this.sponsorship,
-    this.assignDone,
-    this.assignTotal,
-    this.assignPct,
-    this.quizDone,
-    this.quizTotal,
-    this.quizPct,
-    this.grade,
-    this.letterGrade,
-    this.standing,
-    this.lastActive,
-    this.online, {
-    this.atRisk = false,
-  });
 }

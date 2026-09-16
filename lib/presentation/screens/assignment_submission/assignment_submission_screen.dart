@@ -1,7 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+import 'package:stitch_aiei_lms/domain/models/material_progress.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 
 // ---------------------------------------------------------------------------
@@ -16,30 +23,24 @@ class AssignmentSubmissionScreen extends StatefulWidget {
 }
 
 class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen> {
+  final _progressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
+
+  bool _isLoading = true;
   bool _briefingExpanded = true;
   bool _submitting = false;
   bool _submitted = false;
 
+  ModuleMaterial? _material;
+  MaterialProgress? _progress;
+  Lecturer? _facultyContact;
+
   int _secondsLeft = 50;
   Timer? _timer;
 
-  final TextEditingController _notesController = TextEditingController(
-    text:
-        "Handled edge case where column 'tax_code' had null values by defaulting to regional regulatory rate 0.0825 as instructed in Section 3.2. Vectorized timestamp transformations yielding a 3.8x execution time reduction compared to naive apply iterations. Included complete unit test suite in /tests directory verifying all schema constraints.",
-  );
+  final TextEditingController _notesController = TextEditingController();
 
-  final List<_StagedFile> _stagedFiles = [
-    _StagedFile(
-      icon: Icons.code,
-      name: 'pipeline_etl_v2_chen.py',
-      subtitle: '48 KB • Synthesized script with quarantine isolation & unit tests',
-    ),
-    _StagedFile(
-      icon: Icons.picture_as_pdf,
-      name: 'pipeline_execution_report.pdf',
-      subtitle: '1.2 MB • Execution terminal telemetry and aggregated profit graphs',
-    ),
-  ];
+  final List<_StagedFile> _stagedFiles = [];
 
   @override
   void initState() {
@@ -47,6 +48,63 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _secondsLeft = _secondsLeft > 0 ? _secondsLeft - 1 : 59);
     });
+    _load();
+  }
+
+  Future<void> _load() async {
+    final materialRow = await Supabase.instance.client
+        .from('module_materials')
+        .select()
+        .eq('id', DemoIdentity.materialAssignment02Id)
+        .single();
+    final material = ModuleMaterial.fromMap(materialRow);
+    final progress = await _progressRepository.getProgress(
+      DemoIdentity.studentId,
+      DemoIdentity.materialAssignment02Id,
+    );
+    final lecturers = await _lecturersRepository.getLecturers();
+    final contact = lecturers.where((l) => l.id == DemoIdentity.lecturerId).firstOrNull;
+    if (!mounted) return;
+    setState(() {
+      _material = material;
+      _progress = progress;
+      _facultyContact = contact;
+      if (progress != null && progress.submissionContent.isNotEmpty) {
+        _notesController.text = progress.submissionContent['writeup'] as String? ?? '';
+        final files = progress.submissionContent['files'] as List? ?? [];
+        _stagedFiles.addAll(files.map((raw) {
+          final f = Map<String, dynamic>.from(raw as Map);
+          final name = f['name'] as String? ?? 'file';
+          return _StagedFile(
+            icon: _iconForFile(name),
+            name: name,
+            sizeLabel: f['sizeLabel'] as String? ?? '',
+            description: f['description'] as String? ?? '',
+          );
+        }));
+      }
+      _submitted = progress != null && progress.status == 'completed';
+      _isLoading = false;
+    });
+  }
+
+  IconData _iconForFile(String name) {
+    if (name.endsWith('.py') || name.endsWith('.ipynb')) return Icons.code;
+    if (name.endsWith('.pdf')) return Icons.picture_as_pdf;
+    if (name.endsWith('.zip')) return Icons.folder_zip;
+    return Icons.insert_drive_file;
+  }
+
+  String _formatDueAt(DateTime? dueAt) {
+    if (dueAt == null) return 'No due date set';
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final local = dueAt.toLocal();
+    final hour12 = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final period = local.hour >= 12 ? 'PM' : 'AM';
+    final minute = local.minute.toString().padLeft(2, '0');
+    return 'Due ${months[local.month - 1]} ${local.day}, ${local.year} • $hour12:$minute $period';
   }
 
   @override
@@ -88,19 +146,33 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     setState(() => _submitting = true);
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _submitted = true;
-      });
-      _showToast('Assignment successfully transmitted to auto-grading queue.');
+    await _progressRepository.submitContent(
+      DemoIdentity.studentId,
+      DemoIdentity.materialAssignment02Id,
+      {
+        'writeup': _notesController.text,
+        'files': [
+          for (final f in _stagedFiles)
+            {'name': f.name, 'sizeLabel': f.sizeLabel, 'description': f.description},
+        ],
+        'submittedAt': DateTime.now().toIso8601String(),
+        'onTime': true,
+      },
+    );
+    if (!mounted) return;
+    setState(() {
+      _submitting = false;
+      _submitted = true;
     });
+    _showToast('Assignment successfully transmitted to auto-grading queue.');
   }
 
   void _showRubricModal() {
+    final content = _material?.content ?? const {};
+    final rubricLabel = content['rubricLabel'] as String? ?? 'Institutional Grading Rubric (100 Pts)';
+    final passMark = content['passMarkPercentage'];
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -119,7 +191,7 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                     const Icon(Icons.assignment_turned_in, color: AppColors.secondary, size: 24),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text('Institutional Grading Rubric (100 Pts)', style: AppTypography.headlineMd()),
+                      child: Text(rubricLabel, style: AppTypography.headlineMd()),
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(ctx).pop(),
@@ -128,7 +200,8 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                   ],
                 ),
                 Text(
-                  'Submissions undergo synchronous static analysis, syntax verification, and dual-blind review by course enterprise faculty. A composite score of 80% is required for module credentialing.',
+                  'Submissions undergo synchronous static analysis, syntax verification, and dual-blind review by course enterprise faculty. '
+                  'A composite score of ${passMark ?? 80}% is required for module credentialing.',
                   style: AppTypography.bodyMd(),
                 ),
                 const SizedBox(height: 12),
@@ -206,6 +279,9 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -347,6 +423,13 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
   }
 
   Widget _buildHeroBanner() {
+    final material = _material;
+    final content = material?.content ?? const {};
+    final title = material?.name ?? 'Assignment 02: Building Automated Data Pipelines with Pandas & Excel';
+    final description = content['instruction'] as String? ??
+        'Develop an end-to-end Python script to validate, cleanse, and automate enterprise Excel sales reports into clean database-ready format with quarantine auditing.';
+    final maxScore = content['maxScore'] ?? 100;
+    final passMark = content['passMarkPercentage'] ?? 80;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -392,12 +475,12 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Assignment 02: Building Automated Data Pipelines with Pandas & Excel',
+            title,
             style: AppTypography.headlineLg(color: AppColors.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
-            'Develop an end-to-end Python script to validate, cleanse, and automate enterprise Excel sales reports into clean database-ready format with quarantine auditing.',
+            description,
             style: AppTypography.bodyMd(),
           ),
           const SizedBox(height: 16),
@@ -409,7 +492,7 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
               children: [
                 SizedBox(
                   width: wide ? (constraints.maxWidth - 12) / 2 : constraints.maxWidth,
-                  child: _metricPill(Icons.calendar_today, 'FORMAL DEADLINE', 'Due Nov 15, 2025 • 11:59 PM EST'),
+                  child: _metricPill(Icons.calendar_today, 'FORMAL DEADLINE', _formatDueAt(material?.dueAt)),
                 ),
                 SizedBox(
                   width: wide ? (constraints.maxWidth - 12) / 2 : constraints.maxWidth,
@@ -417,7 +500,8 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                     onTap: _showRubricModal,
                     child: MouseRegion(
                       cursor: SystemMouseCursors.click,
-                      child: _metricPill(Icons.military_tech, 'EVALUATION WEIGHTS', '100 Points (Pass mark: 80%)',
+                      child: _metricPill(
+                          Icons.military_tech, 'EVALUATION WEIGHTS', '$maxScore Points (Pass mark: $passMark%)',
                           trailing: 'View Rubric'),
                     ),
                   ),
@@ -483,6 +567,12 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
   }
 
   Widget _buildBriefingCard() {
+    final content = _material?.content ?? const {};
+    final instruction = content['instruction'] as String? ??
+        'In this assignment, you act as the Senior Analytics Engineer for Global Retail Corp. You have been provided quarterly workbook dumps containing raw unformatted transactions spanning 14 regional distribution entities.';
+    final notes = content['notes'] as String?;
+    final references = (content['references'] as List?)?.cast<String>() ?? const [];
+    final attachedFiles = _material?.attachedFiles ?? const [];
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -524,9 +614,17 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
           if (_briefingExpanded) ...[
             const SizedBox(height: 12),
             Text(
-              'In this assignment, you act as the Senior Analytics Engineer for Global Retail Corp. You have been provided quarterly workbook dumps containing raw unformatted transactions spanning 14 regional distribution entities.',
+              instruction,
               style: AppTypography.bodyMd(),
             ),
+            if (notes != null) ...[
+              const SizedBox(height: 6),
+              Text(notes, style: AppTypography.bodySm(color: AppColors.onSurfaceVariant)),
+            ],
+            if (references.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('References: ${references.join(', ')}', style: AppTypography.bodySm(color: AppColors.secondary)),
+            ],
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
@@ -550,45 +648,54 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                 color: AppColors.surfaceContainerHigh.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.folder_zip, color: AppColors.secondary, size: 24),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('dataset_q3_raw.xlsx & starter_pipeline.py',
-                                  style: AppTypography.labelMd(), overflow: TextOverflow.ellipsis, maxLines: 2),
-                              Text('Production sandbox bundle • Version 2.4.1 • 3.4 MB',
-                                  style: AppTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                            ],
+                  for (final f in attachedFiles)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 320),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.folder_zip, color: AppColors.secondary, size: 24),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(f['name'] as String? ?? '',
+                                          style: AppTypography.labelMd(), overflow: TextOverflow.ellipsis, maxLines: 2),
+                                      Text('${f['footer'] ?? ''} • ${f['sizeLabel'] ?? ''}',
+                                          style: AppTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                          OutlinedButton.icon(
+                            onPressed: () => _showToast('${f['name']} download initiated.'),
+                            icon: const Icon(Icons.cloud_download, size: 16),
+                            label: Text('Download (${f['sizeLabel'] ?? ''})'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.onSurface,
+                              backgroundColor: AppColors.surfaceContainer,
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => _showToast('Starter package archive (.zip) download initiated.'),
-                    icon: const Icon(Icons.cloud_download, size: 16),
-                    label: const Text('Download Starter Files (3.4 MB)'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.onSurface,
-                      backgroundColor: AppColors.surfaceContainer,
-                      side: BorderSide.none,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -646,6 +753,36 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
             ],
           ),
           const SizedBox(height: 16),
+          if (_progress?.score != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.tertiaryContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.grade, size: 18, color: AppColors.onTertiaryContainer),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Already graded: ${_progress!.score}/100', style: AppTypography.labelLg()),
+                        if (_progress!.feedback != null) ...[
+                          const SizedBox(height: 4),
+                          Text(_progress!.feedback!, style: AppTypography.bodySm()),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           _buildDropZone(),
           const SizedBox(height: 16),
           Text('STAGED ARTIFACTS (${_stagedFiles.length} Files Attached)', style: AppTypography.labelSm()),
@@ -886,14 +1023,14 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
             runSpacing: 4,
             children: [
               Text('Attempt Window', style: AppTypography.labelSm()),
-              Text('Attempt 1 of 3', style: AppTypography.labelSm()),
+              Text('Attempt ${_progress?.attempts ?? 1} of 3', style: AppTypography.labelSm()),
             ],
           ),
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(9999),
             child: LinearProgressIndicator(
-              value: 0.33,
+              value: (_progress?.attempts ?? 1) / 3,
               minHeight: 8,
               backgroundColor: AppColors.surfaceContainer,
               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.secondary),
@@ -941,8 +1078,13 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Dr. Sarah Lin', style: AppTypography.labelLg()),
-                    Text('Lead Data Architect • Enterprise Fellow', style: AppTypography.bodySm()),
+                    Text(_facultyContact?.name ?? 'Dr. Sarah Lin', style: AppTypography.labelLg()),
+                    Text(
+                      _facultyContact != null
+                          ? '${_facultyContact!.title} • ${_facultyContact!.specialization}'
+                          : 'Lead Data Architect • Enterprise Fellow',
+                      style: AppTypography.bodySm(),
+                    ),
                   ],
                 ),
               ),
@@ -957,7 +1099,18 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
 class _StagedFile {
   final IconData icon;
   final String name;
-  final String subtitle;
+  final String sizeLabel;
+  final String description;
 
-  _StagedFile({required this.icon, required this.name, required this.subtitle});
+  _StagedFile({
+    required this.icon,
+    required this.name,
+    required this.sizeLabel,
+    required this.description,
+  });
+
+  String get subtitle => [
+        if (sizeLabel.isNotEmpty) sizeLabel,
+        if (description.isNotEmpty) description,
+      ].join(' • ');
 }

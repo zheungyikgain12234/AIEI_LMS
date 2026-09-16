@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -22,20 +25,38 @@ class ManageStudentsScreen extends StatefulWidget {
 }
 
 class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
-  static const _students = [
-    _Student('Alex Chen', 'EMP-88219', 'alex.chen@enterprise.com', 'Data Architecture Specialist', 'Fall 2025 Cohort',
-        4, '94%', 'Good Standing', ['Python Specialist', 'OSHE Certified'], hasCourses: true),
-    _Student('Maya Patel', 'EMP-77402', 'maya.patel@enterprise.com', 'AI Engineering Track', 'Fall 2025 Cohort',
-        3, '96%', 'Good Standing', ['Executive Leadership', 'Distinction Honor']),
-    _Student('Marcus Vance', 'EMP-55190', 'marcus.vance@enterprise.com', 'Executive Operations', 'Executive Summer 2025',
-        2, '82%', 'Good Standing', ['Executive Leadership']),
-    _Student('Jordan Taylor', 'EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety Track', 'Spring 2025 Cohort',
-        3, '68%', 'Flagged / Remediation', ['OSHE Revoked'], flagged: true),
-    _Student('Sarah Jenkins', 'EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud & Distributed Systems', 'Fall 2025 Cohort',
-        4, '91%', 'Good Standing', ['Cloud Architect', 'DevOps Master']),
-  ];
+  final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  bool _isLoading = true;
+  List<Student> _students = [];
+  Map<String, int> _enrollmentCounts = {};
+  Map<String, List<String>> _credentialTitles = {};
+  List<(String, int)> _tracks = [];
+  List<(String, int)> _trend = [];
 
   final Set<String> _selected = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final students = await _repository.getStudents();
+    final counts = await _repository.getEnrollmentCounts();
+    final credentials = await _repository.getEarnedCredentialTitles();
+    final tracks = await _repository.getProgramTracks();
+    final trend = await _repository.getEnrollmentTrend();
+    if (!mounted) return;
+    setState(() {
+      _students = students;
+      _enrollmentCounts = counts;
+      _credentialTitles = credentials;
+      _tracks = tracks;
+      _trend = trend;
+      _isLoading = false;
+    });
+  }
 
   void _handleNav(AdminNavDestination dest) {
     switch (dest) {
@@ -61,6 +82,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -128,15 +152,25 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
+  bool _isFlagged(Student s) => s.gpa < 2.0;
+
+  int get _totalEnrolled => _students.length;
+
+  double get _avgGpa => _students.isEmpty ? 0 : _students.map((s) => s.gpa).reduce((a, b) => a + b) / _students.length;
+
+  int get _totalCredentials => _credentialTitles.values.fold(0, (sum, list) => sum + list.length);
+
+  int get _academicReviewCount => _students.where(_isFlagged).length;
+
   Widget _buildMetrics() {
     return LayoutBuilder(builder: (context, constraints) {
       final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
-        _metric('TOTAL ENROLLED', '1,420 Active', Icons.groups_outlined, '+64 new registrations this term'),
-        _metric('AVG COMPLETION', '88.4%', Icons.percent_outlined, '+2.8% vs. previous cohort milestone'),
-        _metric('GRANTED CREDENTIALS', '3,812 Granted', Icons.workspace_premium_outlined, '99.1% verified valid'),
-        _metric('ACADEMIC REVIEW', '14 Students', Icons.warning_amber_outlined, 'Safety & grading alerts', urgent: true),
+        _metric('TOTAL ENROLLED', '$_totalEnrolled Active', Icons.groups_outlined, 'Registered across all cohorts'),
+        _metric('AVG GPA', _avgGpa.toStringAsFixed(2), Icons.percent_outlined, 'Across all registered students'),
+        _metric('GRANTED CREDENTIALS', '$_totalCredentials Granted', Icons.workspace_premium_outlined, 'Earned or revoked credentials'),
+        _metric('ACADEMIC REVIEW', '$_academicReviewCount Students', Icons.warning_amber_outlined, 'GPA below 2.0 threshold', urgent: _academicReviewCount > 0),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -230,7 +264,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Showing 1 - 5 of 1,420 students', style: AdminTypography.bodySm()),
+                Text('Showing 1 - ${_students.length} of ${_students.length} students', style: AdminTypography.bodySm()),
                 Row(mainAxisSize: MainAxisSize.min, children: [1, 2, 3].map((p) {
                   final active = p == 1;
                   return Container(
@@ -259,12 +293,16 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         textStyle: AdminTypography.labelSm(),
       );
 
-  Widget _studentRow(_Student s) {
-    final selected = _selected.contains(s.employeeId);
+  Widget _studentRow(Student s) {
+    final selected = _selected.contains(s.id);
+    final enrollments = _enrollmentCounts[s.id] ?? 0;
+    final credentials = _credentialTitles[s.id] ?? const [];
+    final flagged = _isFlagged(s);
+    final standing = flagged ? 'Under Review' : 'Good Standing';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: s.flagged ? AdminColors.errorContainer.withValues(alpha: 0.12) : null,
+        color: flagged ? AdminColors.errorContainer.withValues(alpha: 0.12) : null,
         border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
       ),
       child: Row(
@@ -272,20 +310,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(s.employeeId) : _selected.remove(s.employeeId)),
+            onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
             activeColor: AdminColors.primaryContainer,
           ),
           SizedBox(
             width: 220,
             child: Row(children: [
-              Container(width: 36, height: 36, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle), child: Icon(s.flagged ? Icons.person_off : Icons.person, color: s.flagged ? AdminColors.error : AdminColors.primary, size: 18)),
+              Container(width: 36, height: 36, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle), child: Icon(flagged ? Icons.person_off : Icons.person, color: flagged ? AdminColors.error : AdminColors.primary, size: 18)),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s.name, style: AdminTypography.titleSm(color: s.flagged ? AdminColors.error : AdminColors.onSurface), overflow: TextOverflow.ellipsis),
-                    Text(s.employeeId, style: AdminTypography.labelSm()),
+                    Text(s.name, style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+                    Text(s.studentId, style: AdminTypography.labelSm()),
                     Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
                   ],
                 ),
@@ -295,34 +333,34 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           SizedBox(
             width: 200,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(s.track, style: AdminTypography.titleSm()),
+              Text(s.programTrack, style: AdminTypography.titleSm()),
               Text(s.cohort, style: AdminTypography.bodySm()),
             ]),
           ),
           SizedBox(
             width: 150,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${s.enrollments} Enrolled', style: AdminTypography.titleSm(color: s.flagged ? AdminColors.error : AdminColors.primary)),
-              Text('Avg ${s.avgGrade}', style: AdminTypography.labelSm()),
+              Text('$enrollments Enrolled', style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.primary)),
+              Text('GPA ${s.gpa.toStringAsFixed(2)}', style: AdminTypography.labelSm()),
             ]),
           ),
           SizedBox(
             width: 150,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: s.flagged ? AdminColors.errorContainer : AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
+              decoration: BoxDecoration(color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(s.flagged ? Icons.error_outline : Icons.check_circle_outline, size: 14, color: s.flagged ? AdminColors.onErrorContainer : AdminColors.secondary),
+                Icon(flagged ? Icons.error_outline : Icons.check_circle_outline, size: 14, color: flagged ? AdminColors.onErrorContainer : AdminColors.secondary),
                 const SizedBox(width: 4),
-                Flexible(child: Text(s.standing, style: AdminTypography.labelSm(color: s.flagged ? AdminColors.onErrorContainer : AdminColors.secondary), overflow: TextOverflow.ellipsis)),
+                Flexible(child: Text(standing, style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.secondary), overflow: TextOverflow.ellipsis)),
               ]),
             ),
           ),
           Expanded(
-            child: Wrap(spacing: 4, runSpacing: 4, children: s.credentials.map((c) => Container(
+            child: Wrap(spacing: 4, runSpacing: 4, children: credentials.map((c) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: s.flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-              child: Text(c, style: AdminTypography.labelSm(color: s.flagged ? AdminColors.onErrorContainer : AdminColors.onSurface)),
+              decoration: BoxDecoration(color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
+              child: Text(c, style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.onSurface)),
             )).toList()),
           ),
           SizedBox(
@@ -330,18 +368,18 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             child: Align(
               alignment: Alignment.centerRight,
               child: OutlinedButton(
-                onPressed: () => s.hasCourses
+                onPressed: () => enrollments > 0
                     ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()))
                     : _notAvailable(),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: s.flagged ? AdminColors.error : AdminColors.primary,
-                  backgroundColor: s.flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
+                  foregroundColor: flagged ? AdminColors.error : AdminColors.primary,
+                  backgroundColor: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: Text(s.flagged ? 'Resolve Flag' : 'Manage Courses'),
+                child: Text(flagged ? 'Resolve Flag' : 'Manage Courses'),
               ),
             ),
           ),
@@ -351,12 +389,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   }
 
   Widget _buildTracksCard() {
-    const tracks = [
-      ('AI & Machine Learning', 542, 38),
-      ('Cloud & Distributed Computing', 418, 29),
-      ('Data Architecture & Analytics', 298, 21),
-      ('OSHE & Workplace Safety Compliance', 162, 12),
-    ];
+    final totalStudents = _tracks.fold<int>(0, (sum, t) => sum + t.$2);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
@@ -367,7 +400,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           const SizedBox(height: 4),
           Text('Distribution across active institutional specializations.', style: AdminTypography.bodySm()),
           const SizedBox(height: 12),
-          for (final t in tracks)
+          for (final t in _tracks)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Column(
@@ -375,12 +408,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 children: [
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Expanded(child: Text(t.$1, style: AdminTypography.labelMd(color: AdminColors.onSurface))),
-                    Text('${t.$2} Students (${t.$3}%)', style: AdminTypography.labelSm()),
+                    Text('${t.$2} Students (${totalStudents == 0 ? 0 : (t.$2 * 100 / totalStudents).round()}%)', style: AdminTypography.labelSm()),
                   ]),
                   const SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(9999),
-                    child: LinearProgressIndicator(value: t.$3 / 100, minHeight: 6, backgroundColor: AdminColors.surfaceContainerLow, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.secondaryContainer)),
+                    child: LinearProgressIndicator(value: totalStudents == 0 ? 0 : t.$2 / totalStudents, minHeight: 6, backgroundColor: AdminColors.surfaceContainerLow, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.secondaryContainer)),
                   ),
                 ],
               ),
@@ -391,7 +424,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   }
 
   Widget _buildCredentialTrendCard() {
-    const months = [('Oct', 48), ('Nov', 64), ('Dec', 82), ('Jan', 96), ('Feb', 110), ('Mar', 132)];
+    final months = _trend;
+    final maxValue = months.isEmpty ? 1 : months.map((m) => m.$2).reduce((a, b) => a > b ? a : b);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
@@ -422,7 +456,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Container(
-                          height: m.$2.toDouble(),
+                          height: maxValue == 0 ? 0 : (m.$2 / maxValue) * 140.0,
                           decoration: BoxDecoration(
                             color: isLast ? AdminColors.secondaryContainer : AdminColors.surfaceContainerHigh,
                             borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
@@ -447,7 +481,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               spacing: 10,
               runSpacing: 6,
               children: [
-                Text('Current Term Peak: 488 Badges', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
+                Text('Current Term Peak: $maxValue Badges', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
                 GestureDetector(
                   onTap: _notAvailable,
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -561,20 +595,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 child: _mobileKpiCard(
                   label: 'TOTAL ENROLLED',
                   icon: Icons.groups,
-                  value: '1,420',
+                  value: '$_totalEnrolled',
                   valueSuffix: 'Active',
                   footerIcon: Icons.trending_up,
-                  footerText: '+64 new registrations',
+                  footerText: 'Registered students',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _mobileKpiCard(
-                  label: 'AVG COMPLETION',
+                  label: 'AVG GPA',
                   icon: Icons.insights,
-                  value: '88.4%',
+                  value: _avgGpa.toStringAsFixed(2),
                   footerIcon: Icons.arrow_upward,
-                  footerText: '+2.8% vs prev',
+                  footerText: 'Across all students',
                 ),
               ),
             ],
@@ -589,9 +623,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 child: _mobileKpiCard(
                   label: 'GRANTED CREDS',
                   icon: Icons.verified,
-                  value: '3,812',
+                  value: '$_totalCredentials',
                   footerIcon: Icons.check_circle,
-                  footerText: '99.1% verified',
+                  footerText: 'Earned or revoked',
                 ),
               ),
               const SizedBox(width: 12),
@@ -599,11 +633,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 child: _mobileKpiCard(
                   label: 'ACAD. REVIEW',
                   icon: Icons.warning,
-                  value: '14',
+                  value: '$_academicReviewCount',
                   valueSuffix: 'Flagged',
                   footerIcon: Icons.flag,
                   footerText: 'Action Required',
-                  urgent: true,
+                  urgent: _academicReviewCount > 0,
                 ),
               ),
             ],
@@ -735,7 +769,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 height: 16,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(color: AdminColors.onSecondary.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: Text('4', style: AdminTypography.labelSm(color: AdminColors.onSecondary).copyWith(fontSize: 10)),
+                child: Text('${_tracks.length}', style: AdminTypography.labelSm(color: AdminColors.onSecondary).copyWith(fontSize: 10)),
               ),
             ]),
           ),
@@ -777,8 +811,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
-  Widget _buildMobileStudentCard(_Student s) {
-    final progress = (double.tryParse(s.avgGrade.replaceAll('%', '')) ?? 0) / 100;
+  Widget _buildMobileStudentCard(Student s) {
+    final enrollments = _enrollmentCounts[s.id] ?? 0;
+    final credentials = _credentialTitles[s.id] ?? const [];
+    final flagged = _isFlagged(s);
+    final standing = flagged ? 'Under Review' : 'Good Standing';
+    final progress = (s.gpa / 4.0).clamp(0.0, 1.0);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -796,7 +834,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 width: 48,
                 height: 48,
                 decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-                child: Icon(s.flagged ? Icons.person_off : Icons.person, color: s.flagged ? AdminColors.error : AdminColors.primary, size: 22),
+                child: Icon(flagged ? Icons.person_off : Icons.person, color: flagged ? AdminColors.error : AdminColors.primary, size: 22),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -810,12 +848,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                       children: [
                         Text(
                           s.name,
-                          style: AdminTypography.headlineSm(color: s.flagged ? AdminColors.error : AdminColors.onSurface),
+                          style: AdminTypography.headlineSm(color: flagged ? AdminColors.error : AdminColors.onSurface),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(4)),
-                          child: Text(s.employeeId, style: AdminTypography.labelSm()),
+                          child: Text(s.studentId, style: AdminTypography.labelSm()),
                         ),
                       ],
                     ),
@@ -838,7 +876,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  '${s.track} (${s.cohort})',
+                  '${s.programTrack} (${s.cohort})',
                   style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -847,12 +885,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: s.flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerHigh,
+                  color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  s.standing,
-                  style: AdminTypography.labelSm(color: s.flagged ? AdminColors.onErrorContainer : AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
+                  standing,
+                  style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -867,18 +905,18 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${s.enrollments} Enrolled Courses', style: AdminTypography.labelSm()),
-                    Text('Avg ${s.avgGrade}', style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+                    Text('$enrollments Enrolled Courses', style: AdminTypography.labelSm()),
+                    Text('GPA ${s.gpa.toStringAsFixed(2)}', style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
                   ],
                 ),
                 const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(9999),
                   child: LinearProgressIndicator(
-                    value: progress.clamp(0.0, 1.0),
+                    value: progress,
                     minHeight: 8,
                     backgroundColor: AdminColors.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(s.flagged ? AdminColors.error : AdminColors.secondaryContainer),
+                    valueColor: AlwaysStoppedAnimation<Color>(flagged ? AdminColors.error : AdminColors.secondaryContainer),
                   ),
                 ),
               ],
@@ -888,8 +926,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: s.credentials.map((c) {
-              final revoked = s.flagged;
+            children: credentials.map((c) {
+              final revoked = c.contains('(Revoked)');
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: BoxDecoration(
@@ -909,16 +947,16 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             width: double.infinity,
             height: 36,
             child: ElevatedButton.icon(
-              onPressed: () => s.flagged
+              onPressed: () => flagged
                   ? _notAvailable()
-                  : (s.hasCourses
+                  : (enrollments > 0
                       ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()))
                       : _notAvailable()),
-              icon: Icon(s.flagged ? Icons.assignment_turned_in : Icons.menu_book, size: 18),
-              label: Text(s.flagged ? 'Resolve Flag & Review' : 'Manage Courses'),
+              icon: Icon(flagged ? Icons.assignment_turned_in : Icons.menu_book, size: 18),
+              label: Text(flagged ? 'Resolve Flag & Review' : 'Manage Courses'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: s.flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
-                foregroundColor: s.flagged ? AdminColors.onErrorContainer : AdminColors.secondary,
+                backgroundColor: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
+                foregroundColor: flagged ? AdminColors.onErrorContainer : AdminColors.secondary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 textStyle: AdminTypography.labelMd(),
@@ -934,7 +972,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Showing 1-${_students.length} of 1,420 students', style: AdminTypography.bodySm()),
+        Text('Showing 1-${_students.length} of ${_students.length} students', style: AdminTypography.bodySm()),
         const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -977,20 +1015,4 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       ),
     );
   }
-}
-
-class _Student {
-  final String name;
-  final String employeeId;
-  final String email;
-  final String track;
-  final String cohort;
-  final int enrollments;
-  final String avgGrade;
-  final String standing;
-  final List<String> credentials;
-  final bool flagged;
-  final bool hasCourses;
-
-  const _Student(this.name, this.employeeId, this.email, this.track, this.cohort, this.enrollments, this.avgGrade, this.standing, this.credentials, {this.flagged = false, this.hasCourses = false});
 }

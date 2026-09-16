@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 
 // ---------------------------------------------------------------------------
@@ -16,30 +20,88 @@ class ComplianceQuizScreen extends StatefulWidget {
 }
 
 class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
-  static const int _totalQuestions = 15;
-  static const int _passingCount = 12;
-  static const int _currentQuestion = 6;
+  final _progressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
 
-  int _timerSeconds = 18 * 60 + 42;
+  bool _isLoading = true;
+  Map<String, dynamic> _mcq = const {};
+  Map<String, dynamic> _freeResponse = const {};
+
+  int _totalQuestions = 15;
+  int _passingCount = 12;
+  int _currentQuestion = 6;
+
+  int _timerSeconds = 0;
   Timer? _timer;
 
-  final Set<int> _answered = {1, 2, 3, 4, 5};
-  final Set<int> _flagged = {3, 8};
+  Set<int> _answered = {};
+  Set<int> _flagged = {};
   String? _q6Selection;
-  late final TextEditingController _freeResponseController;
+  final TextEditingController _freeResponseController = TextEditingController();
   int _wordCount = 0;
+
+  int get _q6Number => (_mcq['number'] as int?) ?? 6;
+  int get _q7Number => (_freeResponse['number'] as int?) ?? 7;
 
   @override
   void initState() {
     super.initState();
-    _freeResponseController = TextEditingController(
-      text:
-          'Phase 1: Immediate Personnel Safety. Activate the Bay emergency pull station to trip audible alarm for Assembly Cell 3, mandating immediate evacuation to Upwind Assembly Point Charlie. Prevent any unauthorized shop personnel from approaching the plume corridor.\n\n'
-          'Phase 2: Responder PPE Gear-Up. Secondary spill response team must don Level B HazMat PPE equipped with Self-Contained Breathing Apparatus (SCBA) due to organic acetic acid vapors exceeding IDLH thresholds, alongside butyl-rubber protective coveralls and chemically resistant footwear.\n\n'
-          'Phase 3: Containment and Neutralization. Deploy non-combustible polypropylene absorbent berm socks around drain grates. Apply dry sodium bicarbonate gradually to neutralize corrosive runoff while checking pH telemetry.',
+    _load();
+  }
+
+  Future<void> _load() async {
+    final materialRow = await Supabase.instance.client
+        .from('module_materials')
+        .select()
+        .eq('id', DemoIdentity.materialOsheFinalExamId)
+        .single();
+    final material = ModuleMaterial.fromMap(materialRow);
+    final progress = await _progressRepository.getProgress(
+      DemoIdentity.studentId,
+      DemoIdentity.materialOsheFinalExamId,
     );
+    final submission = progress?.submissionContent ?? const <String, dynamic>{};
+
+    final content = material.content;
+    final mcqList = List<Map<String, dynamic>>.from(
+      (content['mcqQuestions'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+    );
+    final frList = List<Map<String, dynamic>>.from(
+      (content['freeResponseQuestions'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _mcq = mcqList.isNotEmpty ? mcqList.first : const {};
+      _freeResponse = frList.isNotEmpty ? frList.first : const {};
+      _totalQuestions = (content['totalQuestions'] as int?) ?? (content['quizLength'] as int?) ?? 15;
+      _passingCount = (content['passingCount'] as int?) ?? 12;
+      _currentQuestion = (submission['currentQuestion'] as int?) ?? 6;
+      _answered = Set<int>.from((submission['answeredQuestions'] as List? ?? const []).map((e) => e as int));
+      _flagged = Set<int>.from((submission['flaggedQuestions'] as List? ?? const []).map((e) => e as int));
+      _timerSeconds = (submission['timerSecondsRemaining'] as int?) ??
+          (((content['timeAllocatedMinutes'] as int?) ?? 45) * 60);
+      _freeResponseController.text = submission['freeResponseDraft'] as String? ?? '';
+      _isLoading = false;
+    });
     _recomputeWordCount();
     _startTimer();
+  }
+
+  Future<void> _persistProgress({String status = 'in_progress'}) async {
+    final answeredSorted = _answered.toList()..sort();
+    final flaggedSorted = _flagged.toList()..sort();
+    await _progressRepository.submitContent(
+      DemoIdentity.studentId,
+      DemoIdentity.materialOsheFinalExamId,
+      {
+        'answeredQuestions': answeredSorted,
+        'flaggedQuestions': flaggedSorted,
+        'currentQuestion': _currentQuestion,
+        'timerSecondsRemaining': _timerSeconds,
+        'freeResponseDraft': _freeResponseController.text,
+      },
+      status: status,
+    );
   }
 
   @override
@@ -90,7 +152,9 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
     });
   }
 
-  void _saveAndExit() {
+  Future<void> _saveAndExit() async {
+    await _persistProgress(status: 'in_progress');
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Progress saved. You can resume this exam anytime.'),
@@ -110,8 +174,10 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
         answeredCount: _answeredCount,
         totalQuestions: _totalQuestions,
         flaggedCount: _flagged.length,
-        onConfirm: () {
+        onConfirm: () async {
           Navigator.of(ctx).pop();
+          await _persistProgress(status: 'completed');
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
@@ -131,6 +197,9 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -652,27 +721,16 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
   }
 
   Widget _buildQuestion6Card() {
-    const options = [
-      (
-        'A',
-        'OSHA General Exception',
-        'No secondary label is mandatory provided the decanted chemical remains under the continuous, direct control of the employee who performed the transfer and is fully consumed within that work shift.',
-      ),
-      (
-        'B',
-        'Full GHS Relabel',
-        'A full 6-point GHS secondary label (including pictograms, signal word, hazard statements, and manufacturer address) must be affixed prior to transferring any liquid volume greater than 500 mL.',
-      ),
-      (
-        'C',
-        'Simplified NFPA Diamond',
-        'Only an abbreviated NFPA 704 standard diamond stamp with health rating 3 is required, regardless of usage duration or proximity to other shop personnel.',
-      ),
-      (
-        'D',
-        'Shift Lead Certification',
-        'The secondary container may be left unmarked only if co-signed on the department whiteboard log by an authorized shift supervisor and environmental officer.',
-      ),
+    final items = List<Map<String, dynamic>>.from(
+      (_mcq['items'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)),
+    );
+    final options = [
+      for (final item in items)
+        (
+          item['letter'] as String? ?? '',
+          item['title'] as String? ?? '',
+          item['description'] as String? ?? '',
+        ),
     ];
 
     return Container(
@@ -686,10 +744,10 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _questionHeader(
-            number: '06',
-            kicker: 'MULTIPLE CHOICE • STANDARD 4 POINTS',
-            title: 'OSHA Secondary Container Labeling GHS Exemptions',
-            flagQuestion: 6,
+            number: _q6Number.toString().padLeft(2, '0'),
+            kicker: _mcq['kicker'] as String? ?? '',
+            title: _mcq['question'] as String? ?? '',
+            flagQuestion: _q6Number,
           ),
           const SizedBox(height: 16),
           Container(
@@ -715,21 +773,9 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                RichText(
-                  text: TextSpan(
-                    style: AppTypography.bodyMd(color: AppColors.onSurface),
-                    children: const [
-                      TextSpan(text: 'At 09:30 AM, an industrial technician decants '),
-                      TextSpan(
-                        text: '2.5 liters of Concentrated Sulfuric Acid (98% H₂SO₄)',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      TextSpan(
-                        text:
-                            ' from a certified 55-gallon primary drum into an unlabelled polyethylene secondary beaker to neutralize an adjacent alkaline spill basin. The technician intends to execute the spill neutralization immediately and complete the task within 45 minutes of their shift.',
-                      ),
-                    ],
-                  ),
+                Text(
+                  _mcq['scenario'] as String? ?? '',
+                  style: AppTypography.bodyMd(color: AppColors.onSurface),
                 ),
                 const SizedBox(height: 10),
                 Container(
@@ -746,11 +792,11 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                         child: RichText(
                           text: TextSpan(
                             style: AppTypography.bodySm(),
-                            children: const [
-                              TextSpan(text: 'Reference Standard: '),
+                            children: [
+                              const TextSpan(text: 'Reference Standard: '),
                               TextSpan(
-                                text: 'OSHA HazCom CFR 1910.1200(f)(8) Portable Container Rule',
-                                style: TextStyle(fontWeight: FontWeight.w700),
+                                text: _mcq['referenceStandard'] as String? ?? '',
+                                style: const TextStyle(fontWeight: FontWeight.w700),
                               ),
                             ],
                           ),
@@ -764,7 +810,7 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'According to standard GHS alignment and OSHA workplace standards, which regulatory action is required regarding the secondary beaker container?',
+            _mcq['prompt'] as String? ?? '',
             style: AppTypography.headlineSm(color: AppColors.primary),
           ),
           const SizedBox(height: 12),
@@ -821,6 +867,11 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
   }
 
   Widget _buildQuestion7Card() {
+    final rubricTags = List<Map<String, dynamic>>.from(
+      (_freeResponse['rubricTags'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)),
+    );
+    final recommendedWordCount = _freeResponse['recommendedWordCount'] as String? ?? '80 - 250 words';
+    final minWordThreshold = int.tryParse(RegExp(r'\d+').firstMatch(recommendedWordCount)?.group(0) ?? '') ?? 80;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -832,10 +883,10 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _questionHeader(
-            number: '07',
-            kicker: 'FREE RESPONSE • CASE STUDY • 6 POINTS',
-            title: 'Incident Containment Plan & PPE Protocol Diagnosis',
-            flagQuestion: 7,
+            number: _q7Number.toString().padLeft(2, '0'),
+            kicker: _freeResponse['kicker'] as String? ?? '',
+            title: _freeResponse['title'] as String? ?? '',
+            flagQuestion: _q7Number,
           ),
           const SizedBox(height: 16),
           Row(
@@ -845,7 +896,7 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  'Critical Facility Incident Narrative',
+                  _freeResponse['incidentLabel'] as String? ?? 'Critical Facility Incident Narrative',
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.labelMd(color: AppColors.error).copyWith(fontWeight: FontWeight.w700),
                 ),
@@ -853,35 +904,17 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          RichText(
-            text: TextSpan(
-              style: AppTypography.bodyMd(color: AppColors.onSurface),
-              children: const [
-                TextSpan(
-                  text:
-                      'During a routine forklift repositioning at the East Chem Bay storage rack, a puncture occurs on an intermediate bulk container (IBC) carrying ',
-                ),
-                TextSpan(
-                  text: 'Glacial Acetic Acid (approx. 450 Liters)',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                TextSpan(
-                  text:
-                      '. Dense pungent vapors are propagating toward an adjacent assembly cell with 18 unevacuated personnel. The ventilation stack has entered automatic fault fallback.',
-                ),
-              ],
-            ),
+          Text(
+            _freeResponse['scenario'] as String? ?? '',
+            style: AppTypography.bodyMd(color: AppColors.onSurface),
           ),
           const SizedBox(height: 8),
           RichText(
             text: TextSpan(
               style: AppTypography.bodyMd(),
-              children: const [
-                TextSpan(text: 'Task Prompt: ', style: TextStyle(fontWeight: FontWeight.w700)),
-                TextSpan(
-                  text:
-                      'Outline the immediate 4-step emergency containment action sequence. Identify the exact minimum Level PPE required for the entry response team, specific neutralization agent, and mandatory regulatory reporting triggers under EPCRA / OSHA.',
-                ),
+              children: [
+                const TextSpan(text: 'Task Prompt: ', style: TextStyle(fontWeight: FontWeight.w700)),
+                TextSpan(text: _freeResponse['taskPrompt'] as String? ?? ''),
               ],
             ),
           ),
@@ -905,12 +938,8 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
-                    _rubricChip('1. Immediate Evacuation (2 pts)',
-                        'Must state alarm sounding and 100m upwind muster protocol before physical containment.'),
-                    _rubricChip('2. Proper PPE Specified (2 pts)',
-                        'Must designate Level B minimum with SCBA (due to vapor threshold) and neoprene/butyl gloves.'),
-                    _rubricChip('3. Neutralizer & Agency (2 pts)',
-                        'Must specify dry sodium carbonate / bicarbonate absorbent and National Response Center if threshold exceeded.'),
+                    for (final tag in rubricTags)
+                      _rubricChip(tag['title'] as String? ?? '', tag['description'] as String? ?? ''),
                   ],
                 ),
               ],
@@ -958,8 +987,7 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                     onChanged: (_) => setState(_recomputeWordCount),
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText:
-                          'Draft your step-by-step incident response plan here... Mention evacuation radius, Level B PPE equipment, neutralization chemistry, and regulatory notifications.',
+                      hintText: _freeResponse['hint'] as String? ?? '',
                       hintStyle: AppTypography.bodyMd(color: AppColors.outline),
                     ),
                   ),
@@ -974,11 +1002,11 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
             spacing: 8,
             runSpacing: 6,
             children: [
-              Text('Recommended: 80 - 250 words', style: AppTypography.labelSm()),
+              Text('Recommended: $recommendedWordCount', style: AppTypography.labelSm()),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _wordCount >= 80
+                  color: _wordCount >= minWordThreshold
                       ? AppColors.tertiaryContainer.withValues(alpha: 0.15)
                       : AppColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(9999),
@@ -986,18 +1014,18 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.edit_note, size: 14, color: _wordCount >= 80 ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant),
+                    Icon(Icons.edit_note, size: 14, color: _wordCount >= minWordThreshold ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       '$_wordCount word${_wordCount == 1 ? '' : 's'}',
                       style: AppTypography.labelSm(
-                        color: _wordCount >= 80 ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant,
+                        color: _wordCount >= minWordThreshold ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant,
                       ),
                     ),
                     Text(
-                      _wordCount >= 80 ? ' • Threshold Met' : ' • Below Threshold',
+                      _wordCount >= minWordThreshold ? ' • Threshold Met' : ' • Below Threshold',
                       style: AppTypography.labelSm(
-                        color: _wordCount >= 80 ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant,
+                        color: _wordCount >= minWordThreshold ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -1088,7 +1116,7 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
             runSpacing: 10,
             children: [
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _persistProgress(),
                 icon: const Icon(Icons.arrow_forward, size: 18),
                 label: const Text('Save & Next Question'),
                 style: ElevatedButton.styleFrom(
@@ -1198,7 +1226,7 @@ class _ComplianceQuizScreenState extends State<ComplianceQuizScreen> {
   Widget _paletteTile(int n) {
     final isCurrent = n == _currentQuestion;
     final isAnswered = _answered.contains(n);
-    final isOpenEnded = n == 7;
+    final isOpenEnded = n == _q7Number;
     final isFlagged = _flagged.contains(n);
 
     Color bg = AppColors.surfaceContainerLow;

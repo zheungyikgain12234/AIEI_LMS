@@ -282,8 +282,8 @@ class CertificationsBadgesScreen extends ConsumerWidget {
                 onViewLedger: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => credential.isRevoked
-                        ? const RevokedCredentialDetailScreen()
-                        : const ExecutiveLeadershipDetailScreen(),
+                        ? RevokedCredentialDetailScreen(credential: credential)
+                        : ExecutiveLeadershipDetailScreen(credential: credential),
                   ),
                 ),
               ),

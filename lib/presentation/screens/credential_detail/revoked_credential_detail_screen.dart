@@ -1,16 +1,46 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'package:stitch_aiei_lms/domain/models/earned_credential.dart';
+import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_sidebar.dart';
 import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
 
+const _monthNames = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+String _formatDate(DateTime date) => '${_monthNames[date.month - 1]} ${date.day}, ${date.year}';
+
+String _formatDateTime(DateTime date) {
+  final hour24 = date.hour;
+  final period = hour24 >= 12 ? 'PM' : 'AM';
+  final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
+  final minute = date.minute.toString().padLeft(2, '0');
+  return '${_formatDate(date)} ($hour12:$minute $period)';
+}
+
 class RevokedCredentialDetailScreen extends StatelessWidget {
-  const RevokedCredentialDetailScreen({super.key});
+  const RevokedCredentialDetailScreen({super.key, required this.credential});
+
+  final EarnedCredential credential;
+
+  Future<Student> _fetchStudent() async {
+    final row = await Supabase.instance.client
+        .from('students')
+        .select()
+        .eq('id', DemoIdentity.studentId)
+        .single();
+    return Student.fromMap(row);
+  }
 
   void _showToast(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -175,7 +205,10 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text('#INC-2025-08492', style: AppTypography.labelMd(color: AppColors.onSurfaceVariant)),
+                  Text(
+                    credential.caseRef != null ? '#${credential.caseRef}' : '',
+                    style: AppTypography.labelMd(color: AppColors.onSurfaceVariant),
+                  ),
                 ],
               ),
             ),
@@ -286,7 +319,7 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
                               child: const Icon(Icons.shield_moon, size: 42, color: AppColors.outline),
                             ),
                             const SizedBox(height: 6),
-                            Text('CSO-2025', style: AppTypography.headlineSm(color: AppColors.onSurfaceVariant)),
+                            Text(credential.emblemCode, style: AppTypography.headlineSm(color: AppColors.onSurfaceVariant)),
                             Text(
                               'TIER-1 FIELD SPEC',
                               style: AppTypography.labelSm(color: AppColors.outline),
@@ -383,7 +416,13 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
           runSpacing: 8,
           children: [
             _tag('Tier-1 Operational Level', AppColors.surfaceContainer, AppColors.onSurfaceVariant),
-            _tag('Confiscated Oct 24, 2025', AppColors.errorContainer, AppColors.onErrorContainer),
+            _tag(
+              credential.revokedAt != null
+                  ? 'Confiscated ${_formatDate(credential.revokedAt!)}'
+                  : 'Confiscated',
+              AppColors.errorContainer,
+              AppColors.onErrorContainer,
+            ),
             _tag(
               'Field Privileges Suspended',
               AppColors.error.withValues(alpha: 0.1),
@@ -393,10 +432,10 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Text('Certified Safety Officer 2025 (CSO-2025)', style: AppTypography.headlineXl()),
+        Text(credential.title, style: AppTypography.headlineXl()),
         const SizedBox(height: 6),
         Text(
-          'Accredited by OSHA Corporate Safety Board & Enterprise EHS Division',
+          'Accredited by ${credential.accreditingBodies.join(' & ')}',
           style: AppTypography.bodyLg(),
         ),
         const SizedBox(height: 16),
@@ -431,58 +470,78 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
   }
 
   Widget _buildMetadataGrid() {
-    const entries = [
-      ['ISSUED TO', 'Alex Chen (EMP-88219)', false],
-      ['ORIGINAL ISSUE DATE', 'Jan 15, 2025', false],
-      ['ORIGINAL EXPIRY DATE', 'Dec 31, 2025', true],
-      ['REVOCATION EFFECTIVE', 'Oct 24, 2025 (08:30 AM EST)', false],
-      ['INSPECTING OFFICER', 'Dr. V. Morales, Sr. EHS Officer', false],
-      ['CASE REFERENCE', '#INC-2025-08492', false],
-    ];
+    return FutureBuilder<Student>(
+      future: _fetchStudent(),
+      builder: (context, snapshot) {
+        final student = snapshot.data;
+        final issuedTo = student != null ? '${student.name} (${student.studentId})' : '';
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
-      ),
-      child: Wrap(
-        spacing: 16,
-        runSpacing: 12,
-        children: entries.map((e) {
-          final label = e[0] as String;
-          final value = e[1] as String;
-          final strike = e[2] as bool;
-          final isRevocation = label == 'REVOCATION EFFECTIVE';
-          final isCaseRef = label == 'CASE REFERENCE';
-          return SizedBox(
-            width: 220,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(label, style: AppTypography.labelSm(color: AppColors.outline)),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: AppTypography.bodySm(
-                    color: isRevocation
-                        ? AppColors.error
-                        : isCaseRef
-                            ? AppColors.secondary
-                            : AppColors.onSurface,
-                  ).copyWith(
-                    fontWeight: FontWeight.w600,
-                    decoration: strike ? TextDecoration.lineThrough : null,
-                    fontFamily: isCaseRef ? 'monospace' : null,
-                  ),
+        final entries = [
+          ['ISSUED TO', issuedTo, false],
+          [
+            'ORIGINAL ISSUE DATE',
+            credential.issuedAt != null ? _formatDate(credential.issuedAt!) : '',
+            false,
+          ],
+          [
+            'ORIGINAL EXPIRY DATE',
+            credential.expiresAt != null ? _formatDate(credential.expiresAt!) : '',
+            true,
+          ],
+          [
+            'REVOCATION EFFECTIVE',
+            credential.revokedAt != null ? _formatDateTime(credential.revokedAt!) : '',
+            false,
+          ],
+          ['INSPECTING OFFICER', credential.inspectingOfficer ?? '', false],
+          ['CASE REFERENCE', credential.caseRef != null ? '#${credential.caseRef}' : '', false],
+        ];
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+          ),
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: entries.map((e) {
+              final label = e[0] as String;
+              final value = e[1] as String;
+              final strike = e[2] as bool;
+              final isRevocation = label == 'REVOCATION EFFECTIVE';
+              final isCaseRef = label == 'CASE REFERENCE';
+              return SizedBox(
+                width: 220,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(label, style: AppTypography.labelSm(color: AppColors.outline)),
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: AppTypography.bodySm(
+                        color: isRevocation
+                            ? AppColors.error
+                            : isCaseRef
+                                ? AppColors.secondary
+                                : AppColors.onSurface,
+                      ).copyWith(
+                        fontWeight: FontWeight.w600,
+                        decoration: strike ? TextDecoration.lineThrough : null,
+                        fontFamily: isCaseRef ? 'monospace' : null,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 
@@ -510,31 +569,9 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          RichText(
-            text: TextSpan(
-              style: AppTypography.bodyMd(color: AppColors.onErrorContainer),
-              children: [
-                const TextSpan(
-                  text: 'Confiscated due to high-voltage main switchboard isolation failure prior to '
-                      'shift clock-out on Zone 3 Factory Floor (',
-                ),
-                TextSpan(
-                  text: 'OSHA Standard 29 CFR 1910.147',
-                  style: AppTypography.bodyMd(color: AppColors.onErrorContainer).copyWith(
-                    fontWeight: FontWeight.w700,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-                const TextSpan(
-                  text: ' - Control of Hazardous Energy / Lockout-Tagout Infraction). Incident Ref ',
-                ),
-                TextSpan(
-                  text: '#INC-2025-08492',
-                  style: AppTypography.bodyMd(color: AppColors.onErrorContainer).copyWith(fontWeight: FontWeight.w700),
-                ),
-                const TextSpan(text: '.'),
-              ],
-            ),
+          Text(
+            credential.incidentBannerText ?? 'No revocation reason on record.',
+            style: AppTypography.bodyMd(color: AppColors.onErrorContainer),
           ),
           const SizedBox(height: 8),
           Row(

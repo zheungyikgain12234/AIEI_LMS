@@ -4,6 +4,7 @@ import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/domain/models/urgent_notice.dart';
 import 'package:stitch_aiei_lms/domain/repositories/courses_repository.dart';
 
@@ -128,6 +129,41 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       ctaButtonText: isCompleted ? 'Review Course / View Badge' : 'Continue Course',
       isCompleted: isCompleted,
     );
+  }
+
+  @override
+  Future<List<(ModuleMaterial, String)>> getCourseLessons(String courseId) async {
+    final modules = await _client
+        .from('course_modules')
+        .select('id, module_sorting')
+        .eq('course_id', courseId)
+        .order('module_sorting');
+    final moduleIds = [for (final m in modules as List) m['id'] as String];
+    if (moduleIds.isEmpty) return [];
+
+    final materialRows = await _client
+        .from('module_materials')
+        .select()
+        .inFilter('module_id', moduleIds)
+        .order('material_sorting');
+    final materials = [
+      for (final row in materialRows as List) ModuleMaterial.fromMap(row as Map<String, dynamic>),
+    ];
+
+    final progressRows = await _client
+        .from('student_materials')
+        .select('material_id, status')
+        .eq('student_id', DemoIdentity.studentId)
+        .inFilter('material_id', [for (final m in materials) m.id]);
+    final statusByMaterial = {
+      for (final row in progressRows as List)
+        row['material_id'] as String: row['status'] as String,
+    };
+
+    return [
+      for (final material in materials)
+        (material, statusByMaterial[material.id] ?? 'not_started'),
+    ];
   }
 
   Color? _hexToColor(String? hex) {

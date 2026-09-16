@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'package:stitch_aiei_lms/domain/models/earned_credential.dart';
+import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_sidebar.dart';
@@ -12,8 +16,26 @@ const _gold300 = Color(0xFFFCD34D);
 const _gold400 = Color(0xFFFBBF24);
 const _emerald600 = Color(0xFF059669);
 
+const _monthNames = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+String _formatDate(DateTime date) => '${_monthNames[date.month - 1]} ${date.day}, ${date.year}';
+
 class ExecutiveLeadershipDetailScreen extends StatelessWidget {
-  const ExecutiveLeadershipDetailScreen({super.key});
+  const ExecutiveLeadershipDetailScreen({super.key, required this.credential});
+
+  final EarnedCredential credential;
+
+  Future<Student> _fetchStudent() async {
+    final row = await Supabase.instance.client
+        .from('students')
+        .select()
+        .eq('id', DemoIdentity.studentId)
+        .single();
+    return Student.fromMap(row);
+  }
 
   void _showToast(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -165,7 +187,7 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => _showToast(
                 context,
-                'Downloading Official Executive Leadership Communicator Certificate PDF...',
+                'Downloading Official ${credential.title} Certificate PDF...',
               ),
               icon: const Icon(Icons.download, size: 16, color: AppColors.onSurfaceVariant),
               label: const Text('Download Official Certificate (PDF)'),
@@ -231,7 +253,8 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
           _buildBadgeEmblem(),
           const SizedBox(height: 16),
           Text(
-            'Issued: Oct 24, 2024 • Expiration: Lifetime Credential',
+            'Issued: ${credential.issuedAt != null ? _formatDate(credential.issuedAt!) : 'Unknown'} • '
+            'Expiration: ${credential.expiresAt != null ? _formatDate(credential.expiresAt!) : 'Lifetime Credential'}',
             textAlign: TextAlign.center,
             style: AppTypography.bodySm(),
           ),
@@ -239,7 +262,7 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => _showToast(context, 'Added Executive Leadership Communicator to LinkedIn profile.'),
+              onPressed: () => _showToast(context, 'Added ${credential.title} to LinkedIn profile.'),
               icon: const Icon(Icons.link, size: 18),
               label: const Text('Add to LinkedIn Profile'),
               style: ElevatedButton.styleFrom(
@@ -330,7 +353,9 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
                 ],
               ),
               Text(
-                'OCT 2024',
+                credential.issuedAt != null
+                    ? '${_monthNames[credential.issuedAt!.month - 1].toUpperCase()} ${credential.issuedAt!.year}'
+                    : '',
                 style: AppTypography.labelSm(color: AppColors.secondaryFixedDim).copyWith(fontSize: 10),
               ),
             ],
@@ -348,11 +373,11 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
           Column(
             children: [
               Text(
-                'EXEC-COMM',
+                credential.emblemCode,
                 style: AppTypography.labelMd(color: _gold300).copyWith(fontWeight: FontWeight.w900, letterSpacing: 1.5),
               ),
               Text(
-                'LEADERSHIP COHORT',
+                (credential.cohortLabel ?? 'LEADERSHIP COHORT').toUpperCase(),
                 style: AppTypography.bodySm(color: AppColors.surfaceContainerHigh).copyWith(fontSize: 10),
               ),
             ],
@@ -362,7 +387,7 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 6),
             decoration: BoxDecoration(color: _gold400, borderRadius: BorderRadius.circular(4)),
             child: Text(
-              '★ Top 5% Cohort Score',
+              '★ ${credential.metrics['percentileLabel'] ?? ''} Cohort Score',
               textAlign: TextAlign.center,
               style: AppTypography.labelSm(color: AppColors.onSurface).copyWith(
                 fontWeight: FontWeight.w900,
@@ -394,52 +419,43 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
             runSpacing: 2,
             children: [
               Text('Executive Leadership Track', style: AppTypography.labelSm(color: AppColors.secondary)),
-              Container(width: 4, height: 4, decoration: const BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle)),
-              Text('Cohort Fall 2024', style: AppTypography.labelSm(color: AppColors.secondary)),
+              if (credential.cohortLabel != null) ...[
+                Container(width: 4, height: 4, decoration: const BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle)),
+                Text(credential.cohortLabel!, style: AppTypography.labelSm(color: AppColors.secondary)),
+              ],
             ],
           ),
         ),
         const SizedBox(height: 10),
-        Text('Executive Leadership Communicator', style: AppTypography.headlineXl()),
+        Text(credential.title, style: AppTypography.headlineXl()),
         const SizedBox(height: 4),
         Text(
           'Enterprise Leadership & Strategic Influence Mastery Program',
           style: AppTypography.bodyLg(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 2),
-        RichText(
-          text: TextSpan(
-            style: AppTypography.bodySm(),
-            children: [
-              const TextSpan(text: 'Accredited by '),
-              TextSpan(
-                text: 'AIEI Executive Leadership Academy',
-                style: AppTypography.bodySm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w700),
-              ),
-              const TextSpan(text: ' & '),
-              TextSpan(
-                text: 'Wharton Executive Education Partner Alliance',
-                style: AppTypography.bodySm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
+        Text(
+          'Accredited by ${credential.accreditingBodies.join(' & ')}',
+          style: AppTypography.bodySm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 20),
         _buildMetricsBar(),
         const SizedBox(height: 20),
-        Text(
-          'This credential certifies that Alex Chen (EMP-88219) has demonstrated exceptional '
-          'executive presence, strategic narrative design, and high-impact negotiation in '
-          'mission-critical corporate settings.',
-          style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Completion required passing four intensive boardroom simulation defenses before an '
-          'executive panel, managing multi-tier crisis communications scenarios, and synthesizing '
-          'complex enterprise initiatives into actionable operational roadmaps for C-suite '
-          'stakeholders.',
-          style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant),
+        FutureBuilder<Student>(
+          future: _fetchStudent(),
+          builder: (context, snapshot) {
+            final student = snapshot.data;
+            final narrative = student != null
+                ? credential.narrative.replaceFirst(
+                    'the recipient',
+                    '${student.name} (${student.studentId})',
+                  )
+                : credential.narrative;
+            return Text(
+              narrative,
+              style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant),
+            );
+          },
         ),
         const SizedBox(height: 16),
         Container(
@@ -452,11 +468,8 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              Text('Core Focus:', style: AppTypography.labelSm(color: AppColors.outline)),
-              _focusPill('Boardroom Presentations'),
-              _focusPill('Crisis Communications'),
-              _focusPill('Cross-Functional Negotiation'),
-              _focusPill('Executive Presence'),
+              Text('${credential.competenciesLabel}:', style: AppTypography.labelSm(color: AppColors.outline)),
+              for (final competency in credential.competencies) _focusPill(competency),
             ],
           ),
         ),
@@ -483,9 +496,24 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
         spacing: 24,
         runSpacing: 16,
         children: [
-          _metricTile('Cohort Standing', 'Top 5%', 'Score: 98.4 / 100', _emerald600),
-          _metricTile('Capstone Defense', 'Distinction', 'Unanimous Board Pass', AppColors.onSurfaceVariant),
-          _metricTile('Learning Hours', '16.0 Hours', 'Accredited Units', AppColors.secondary),
+          _metricTile(
+            'Cohort Standing',
+            (credential.metrics['percentileLabel'] as String?) ?? '',
+            (credential.metrics['scoreLabel'] as String?) ?? '',
+            _emerald600,
+          ),
+          _metricTile(
+            'Capstone Defense',
+            (credential.metrics['panelResultLabel'] as String?) ?? '',
+            (credential.metrics['panelResultSubtitle'] as String?) ?? '',
+            AppColors.onSurfaceVariant,
+          ),
+          _metricTile(
+            'Learning Hours',
+            (credential.metrics['accreditedHoursLabel'] as String?) ?? '',
+            (credential.metrics['accreditedHoursSubtitle'] as String?) ?? '',
+            AppColors.secondary,
+          ),
         ],
       ),
     );

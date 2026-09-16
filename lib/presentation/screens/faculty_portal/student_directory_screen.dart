@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/material_progress.dart';
+import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -20,21 +26,124 @@ class StudentDirectoryScreen extends StatefulWidget {
 }
 
 class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
-  static const _students = [
-    _Student('Maya Patel', 'Business Intelligence Analyst • BI Group', 'EMP-74102', 92, 'Ahead', FacultyColors.tertiary,
-        '2/2', '98% Graded', FacultyColors.tertiaryFixed, '98.0%', '18m ago', 'Top Performer', FacultyColors.secondaryContainer, hasSubmission: false),
-    _Student('Alex Chen', 'Product Analyst • Operations Core', 'EMP-88219', 75, 'On Schedule', FacultyColors.primary,
-        '1/2', 'Pending Review', FacultyColors.surfaceContainerHigh, '94.0%', '2 hours ago', 'On Track', FacultyColors.surfaceContainer, hasSubmission: true),
-    _Student('Marcus Vance', 'Financial Systems Lead • Treasury Tech', 'EMP-91024', 45, 'Stalled', FacultyColors.error,
-        '0/2', 'Assignment 2 Late', FacultyColors.errorContainer, '68.0%', '6 days ago', 'Needs Review', FacultyColors.errorContainer,
-        flagged: true, hasSubmission: false),
-    _Student('Elena Rostova', 'Compliance Engineer • Global Risk', 'EMP-60211', 80, 'On Pace', FacultyColors.tertiary,
-        '2/2', '89% Avg', FacultyColors.surfaceContainer, '88.5%', 'Yesterday', 'On Track', FacultyColors.surfaceContainer, hasSubmission: false),
-    _Student('David Kim', 'Data Ops Associate • Analytics Platform', 'EMP-43890', 70, 'On Pace', FacultyColors.primary,
-        '1/2', '92% Graded', FacultyColors.surfaceContainer, '91.0%', '4 hours ago', 'On Track', FacultyColors.surfaceContainer, hasSubmission: false),
-    _Student('Sophia Loren', 'Logistics Analyst • Supply Chain Intelligence', 'EMP-55198', 60, 'Behind', FacultyColors.secondary,
-        '1/2', 'Draft Saved', FacultyColors.surfaceContainerHigh, '84.0%', '3 days ago', 'Behind Schedule', FacultyColors.surfaceContainer, hasSubmission: false),
-  ];
+  final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  final _materialProgressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
+
+  bool _isLoading = true;
+  List<_Student> _students = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final roster = await _rosterRepository.getCourseRoster(DemoIdentity.coursePyId);
+
+    final assignmentProgress = <String, MaterialProgress?>{};
+    final quizProgress = <String, MaterialProgress?>{};
+    await Future.wait([
+      for (final s in roster) ...[
+        _materialProgressRepository
+            .getProgress(s.studentId, DemoIdentity.materialAssignment02Id)
+            .then((p) => assignmentProgress[s.studentId] = p),
+        _materialProgressRepository
+            .getProgress(s.studentId, DemoIdentity.materialComplianceQuizId)
+            .then((p) => quizProgress[s.studentId] = p),
+      ],
+    ]);
+
+    if (!mounted) return;
+
+    final students = [
+      for (final s in roster)
+        _studentFromRoster(s, assignmentProgress[s.studentId], quizProgress[s.studentId]),
+    ];
+
+    setState(() {
+      _students = students;
+      _isLoading = false;
+    });
+  }
+
+  _Student _studentFromRoster(RosterStudent s, MaterialProgress? assignment, MaterialProgress? quiz) {
+    final (progressTag, progressColor) = _paceFor(s.riskStatus);
+    final (status, statusBg) = _standingFor(s.riskStatus);
+
+    final doneCount = [assignment, quiz].where((p) => p?.status == 'completed').length;
+    final hasSubmission = assignment != null && assignment.status == 'completed' && assignment.score == null;
+
+    String assignmentsTag;
+    Color assignmentsTagBg;
+    if (hasSubmission) {
+      assignmentsTag = 'Pending Review';
+      assignmentsTagBg = FacultyColors.surfaceContainerHigh;
+    } else if (doneCount == 2) {
+      assignmentsTag = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(0)}% Graded' : 'Graded';
+      assignmentsTagBg = FacultyColors.surfaceContainer;
+    } else if (doneCount == 1) {
+      assignmentsTag = 'In Progress';
+      assignmentsTagBg = FacultyColors.surfaceContainerHigh;
+    } else if (s.riskStatus == 'critical') {
+      assignmentsTag = 'Assignment Late';
+      assignmentsTagBg = FacultyColors.errorContainer;
+    } else {
+      assignmentsTag = 'Not Started';
+      assignmentsTagBg = FacultyColors.surfaceContainer;
+    }
+
+    return _Student(
+      studentId: s.studentId,
+      name: s.name,
+      role: s.title ?? 'Enrolled Student',
+      employeeId: s.employeeId,
+      progress: s.progressPercentage,
+      progressTag: progressTag,
+      progressColor: progressColor,
+      assignments: '$doneCount/2',
+      assignmentsTag: assignmentsTag,
+      assignmentsTagBg: assignmentsTagBg,
+      quizAvg: s.overallScore != null ? '${s.overallScore!.toStringAsFixed(1)}%' : '—',
+      lastActive: _formatLastActive(s.lastActivityAt),
+      status: status,
+      statusBg: statusBg,
+      flagged: s.riskStatus == 'critical',
+      hasSubmission: hasSubmission,
+    );
+  }
+
+  (String, Color) _paceFor(String riskStatus) {
+    switch (riskStatus) {
+      case 'critical':
+        return ('Stalled', FacultyColors.error);
+      case 'at_risk':
+        return ('Behind', FacultyColors.secondary);
+      default:
+        return ('On Pace', FacultyColors.tertiary);
+    }
+  }
+
+  (String, Color) _standingFor(String riskStatus) {
+    switch (riskStatus) {
+      case 'critical':
+        return ('Needs Review', FacultyColors.errorContainer);
+      case 'at_risk':
+        return ('Behind Schedule', FacultyColors.surfaceContainer);
+      default:
+        return ('On Track', FacultyColors.surfaceContainer);
+    }
+  }
+
+  String _formatLastActive(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${(diff.inDays / 7).floor()}w ago';
+  }
 
   void _handleNav(FacultyNavDestination dest) {
     switch (dest) {
@@ -61,6 +170,9 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -79,6 +191,9 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
       ),
     );
   }
+
+  int get _onTrackCount => _students.where((s) => s.status == 'On Track').length;
+  int get _flaggedCount => _students.where((s) => s.flagged).length;
 
   Widget _buildTopBar() {
     return Column(
@@ -138,18 +253,18 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
                   spacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text('42 enrolled students in Fall 2025 Cohort', style: FacultyTypography.bodyMd(color: FacultyColors.onSurfaceVariant)),
+                    Text('${_students.length} enrolled students in Fall 2025 Cohort', style: FacultyTypography.bodyMd(color: FacultyColors.onSurfaceVariant)),
                     Text('•', style: FacultyTypography.bodyMd()),
                     Row(mainAxisSize: MainAxisSize.min, children: [
                       Container(width: 8, height: 8, decoration: const BoxDecoration(color: FacultyColors.tertiary, shape: BoxShape.circle)),
                       const SizedBox(width: 4),
-                      Text('38 on-track', style: FacultyTypography.bodyMd(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700)),
+                      Text('$_onTrackCount on-track', style: FacultyTypography.bodyMd(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700)),
                     ]),
                     Text('•', style: FacultyTypography.bodyMd()),
                     Row(mainAxisSize: MainAxisSize.min, children: [
                       Container(width: 8, height: 8, decoration: const BoxDecoration(color: FacultyColors.error, shape: BoxShape.circle)),
                       const SizedBox(width: 4),
-                      Text('4 flagged for review', style: FacultyTypography.bodyMd(color: FacultyColors.error).copyWith(fontWeight: FontWeight.w700)),
+                      Text('$_flaggedCount flagged for review', style: FacultyTypography.bodyMd(color: FacultyColors.error).copyWith(fontWeight: FontWeight.w700)),
                     ]),
                   ],
                 ),
@@ -174,14 +289,28 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
   }
 
   Widget _buildStatsRow() {
+    final total = _students.length;
+    final avgProgress = total == 0 ? 0 : (_students.fold<int>(0, (sum, s) => sum + s.progress) / total).round();
+    final scored = _students.where((s) => s.quizAvg != '—').toList();
+    final avgQuiz = scored.isEmpty
+        ? null
+        : scored.fold<double>(0, (sum, s) => sum + double.parse(s.quizAvg.replaceAll('%', ''))) / scored.length;
+    final assignmentDone = _students.fold<int>(0, (sum, s) => sum + int.parse(s.assignments.split('/').first));
+    final assignmentCompletionPct = total == 0 ? 0.0 : assignmentDone / (total * 2);
+    final onPace = _students.where((s) => s.status != 'Needs Review').length;
+    final needsIntervention = _flaggedCount;
+
     return LayoutBuilder(builder: (context, constraints) {
       final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
-        _stat('COHORT CAPACITY', '42', Icons.groups_outlined, FacultyColors.primary, footer: '100% Enrolled', footer2: 'Max Seat: 45', barColor: FacultyColors.primary),
-        _stat('AVG. QUIZ PERFORMANCE', '88.4%', Icons.quiz_outlined, FacultyColors.primary, footer: '+3.1% vs Q2', barColor: FacultyColors.tertiary, progress: 0.884),
-        _stat('ASSIGNMENT COMPLETION', '81.0%', Icons.task_alt_outlined, FacultyColors.primary, footer: '34 of 42 on pace', footer2: 'Module 3 Due Fri', barColor: FacultyColors.primaryContainer),
-        _stat('REQUIRES INTERVENTION', '3 Students', Icons.warning_amber_outlined, FacultyColors.error, footer: 'Overdue submissions', valueColor: FacultyColors.error, iconBg: FacultyColors.errorContainer, barColor: FacultyColors.error),
+        _stat('COHORT CAPACITY', '$total', Icons.groups_outlined, FacultyColors.primary, footer: '$avgProgress% Avg Progress', barColor: FacultyColors.primary),
+        _stat('AVG. QUIZ PERFORMANCE', avgQuiz != null ? '${avgQuiz.toStringAsFixed(1)}%' : '—', Icons.quiz_outlined, FacultyColors.primary,
+            footer: '${scored.length} of $total scored', barColor: FacultyColors.tertiary, progress: avgQuiz != null ? avgQuiz / 100 : null),
+        _stat('ASSIGNMENT COMPLETION', '${(assignmentCompletionPct * 100).toStringAsFixed(0)}%', Icons.task_alt_outlined, FacultyColors.primary,
+            footer: '$onPace of $total on pace', barColor: FacultyColors.primaryContainer),
+        _stat('REQUIRES INTERVENTION', '$needsIntervention Students', Icons.warning_amber_outlined, FacultyColors.error,
+            footer: 'Flagged for review', valueColor: FacultyColors.error, iconBg: FacultyColors.errorContainer, barColor: FacultyColors.error),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -277,7 +406,7 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Showing 1 to 6 of 42 students', style: FacultyTypography.bodySm()),
+                Text('Showing 1 to ${_students.length} of ${_students.length} students', style: FacultyTypography.bodySm()),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [1, 2, 3, 4].map((p) {
@@ -525,11 +654,11 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Container(width: 8, height: 8, decoration: const BoxDecoration(color: FacultyColors.tertiary, shape: BoxShape.circle)),
-                  Text('42 enrolled', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
+                  Text('${_students.length} enrolled', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
                   Text('•', style: FacultyTypography.bodySm(color: FacultyColors.outlineVariant)),
-                  Text('38 on-track', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
+                  Text('$_onTrackCount on-track', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
                   Text('•', style: FacultyTypography.bodySm(color: FacultyColors.outlineVariant)),
-                  Text('4 flagged', style: FacultyTypography.bodySm(color: FacultyColors.error).copyWith(fontWeight: FontWeight.w700)),
+                  Text('$_flaggedCount flagged', style: FacultyTypography.bodySm(color: FacultyColors.error).copyWith(fontWeight: FontWeight.w700)),
                 ],
               ),
             ],
@@ -563,6 +692,16 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
   }
 
   Widget _mobileTelemetryGrid() {
+    final total = _students.length;
+    final avgProgress = total == 0 ? 0 : (_students.fold<int>(0, (sum, s) => sum + s.progress) / total).round();
+    final scored = _students.where((s) => s.quizAvg != '—').toList();
+    final avgQuiz = scored.isEmpty
+        ? null
+        : scored.fold<double>(0, (sum, s) => sum + double.parse(s.quizAvg.replaceAll('%', ''))) / scored.length;
+    final assignmentDone = _students.fold<int>(0, (sum, s) => sum + int.parse(s.assignments.split('/').first));
+    final assignmentCompletionPct = total == 0 ? 0.0 : assignmentDone / (total * 2) * 100;
+    final onPace = _students.where((s) => s.status != 'Needs Review').length;
+
     return Column(
       children: [
         IntrinsicHeight(
@@ -574,11 +713,8 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
                   label: 'Cohort Fill',
                   icon: Icons.groups_outlined,
                   iconColor: FacultyColors.secondary,
-                  value: '42',
-                  valueSuffix: ' / 45',
-                  progress: 42 / 45,
-                  progressColor: FacultyColors.secondary,
-                  footer: '93% Capacity',
+                  value: '$total',
+                  footer: '$avgProgress% Avg Progress',
                 ),
               ),
               const SizedBox(width: 12),
@@ -587,10 +723,8 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
                   label: 'Avg Quiz Score',
                   icon: Icons.verified_outlined,
                   iconColor: FacultyColors.onTertiaryContainer,
-                  value: '88.4%',
-                  trendIcon: Icons.trending_up,
-                  trendText: '+2.1% benchmark',
-                  trendColor: FacultyColors.onTertiaryContainer,
+                  value: avgQuiz != null ? '${avgQuiz.toStringAsFixed(1)}%' : '—',
+                  footer: '${scored.length} of $total scored',
                 ),
               ),
             ],
@@ -606,8 +740,8 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
                   label: 'Assignments',
                   icon: Icons.task_outlined,
                   iconColor: FacultyColors.secondaryContainer,
-                  value: '81.0%',
-                  footer: '34 of 42 on pace',
+                  value: '${assignmentCompletionPct.toStringAsFixed(0)}%',
+                  footer: '$onPace of $total on pace',
                 ),
               ),
               const SizedBox(width: 12),
@@ -616,9 +750,9 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
                   label: 'Requires Action',
                   icon: Icons.notification_important_outlined,
                   iconColor: FacultyColors.error,
-                  value: '3',
+                  value: '$_flaggedCount',
                   valueSuffix: ' alerts',
-                  footer: 'Overdue submissions',
+                  footer: 'Flagged for review',
                   labelColor: FacultyColors.error,
                   valueColor: FacultyColors.error,
                   footerColor: FacultyColors.error,
@@ -750,11 +884,11 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _mobileFilterChip('All', '42', selected: true),
+          _mobileFilterChip('All', '${_students.length}', selected: true),
           const SizedBox(width: 8),
-          _mobileFilterChip('On Track', '38'),
+          _mobileFilterChip('On Track', '$_onTrackCount'),
           const SizedBox(width: 8),
-          _mobileFilterChip('Review', '4', dotColor: FacultyColors.error),
+          _mobileFilterChip('Review', '$_flaggedCount', dotColor: FacultyColors.error),
         ],
       ),
     );
@@ -1005,7 +1139,7 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      '${s.assignmentsTag}: No draft activity for ${s.lastActive}.',
+                      '${s.assignmentsTag}: No recorded activity for ${s.lastActive}.',
                       style: FacultyTypography.labelXs(color: FacultyColors.onErrorContainer),
                     ),
                   ),
@@ -1114,7 +1248,7 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
         runSpacing: 8,
         children: [
           Text(
-            'Showing ${_students.length} of 42 students',
+            'Showing ${_students.length} of ${_students.length} students',
             style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
           ),
           Row(
@@ -1153,6 +1287,7 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
 }
 
 class _Student {
+  final String studentId;
   final String name;
   final String role;
   final String employeeId;
@@ -1171,20 +1306,21 @@ class _Student {
 
   Color get statusColor => status == 'Needs Review' ? FacultyColors.onErrorContainer : (status == 'Top Performer' ? FacultyColors.primary : FacultyColors.tertiary);
 
-  const _Student(
-    this.name,
-    this.role,
-    this.employeeId,
-    this.progress,
-    this.progressTag,
-    this.progressColor,
-    this.assignments,
-    this.assignmentsTag,
-    this.assignmentsTagBg,
-    this.quizAvg,
-    this.lastActive,
-    this.status,
-    this.statusBg, {
+  const _Student({
+    required this.studentId,
+    required this.name,
+    required this.role,
+    required this.employeeId,
+    required this.progress,
+    required this.progressTag,
+    required this.progressColor,
+    required this.assignments,
+    required this.assignmentsTag,
+    required this.assignmentsTagBg,
+    required this.quizAvg,
+    required this.lastActive,
+    required this.status,
+    required this.statusBg,
     this.flagged = false,
     this.hasSubmission = false,
   });

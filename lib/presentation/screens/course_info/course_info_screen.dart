@@ -1,8 +1,11 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide MaterialType;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
 
@@ -39,24 +42,106 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
   // --- Q&A ---
   final TextEditingController _qaController = TextEditingController();
 
-  // Lesson list (matches Stitch design exactly)
-  static const List<_LessonItem> _lessons = [
-    _LessonItem('01: Enterprise Python Environment Setup', '25 min • Video & Lab', _LessonState.completed, 'Quiz: 100%'),
-    _LessonItem('02: Pandas Series & DataFrame Mechanics', '38 min • Video & Lab', _LessonState.completed, 'Quiz: 95%'),
-    _LessonItem('03: Data Cleansing, Deduplication & Imputation', '42 min • Video', _LessonState.completed, 'Quiz: 90%'),
-    _LessonItem('04: Merging, Joining & Aggregating Datasets', '35 min • Video & Lab', _LessonState.completed, 'Quiz: 100%'),
-    _LessonItem('05: Vectorized Operations & Performance', '30 min • Video', _LessonState.completed, 'Quiz: 88%'),
-    _LessonItem('06: Working with OpenPyXL & Multi-Tab Books', '40 min • Video & Lab', _LessonState.completed, 'Quiz: 92%'),
-    _LessonItem('07: Building Automated Data Pipelines', '45 min • Active Playback', _LessonState.active, 'Playing'),
-    _LessonItem('08: Scheduled Automated Cron & Windows Tasks', '32 min • Video & Lab', _LessonState.locked, 'Locked'),
-    _LessonItem('09: Automated Email Alerts & PDF Report Delivery', '36 min • Video', _LessonState.locked, 'Locked'),
-    _LessonItem('10: Capstone Project: End-to-End Enterprise ETL', '60 min • Evaluation Project', _LessonState.capstone, 'Capstone'),
-  ];
+  // --- Real data (Supabase-backed lesson/module list) ---
+  final _repository = SupabaseCoursesRepositoryImpl(Supabase.instance.client);
+  bool _isLoading = true;
+  List<(ModuleMaterial, String)> _materials = [];
+  List<_LessonItem> _lessons = [];
+  ModuleMaterial? _activeMaterial;
+  int _activeModuleNumber = 1;
 
   @override
   void initState() {
     super.initState();
     _startTimer();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final lessons = await _repository.getCourseLessons(widget.course.id);
+    if (!mounted) return;
+    setState(() {
+      _applyLessons(lessons);
+      _isLoading = false;
+    });
+  }
+
+  void _applyLessons(List<(ModuleMaterial, String)> data) {
+    _materials = data;
+
+    int activeIndex = data.indexWhere((e) => e.$2 == 'in_progress');
+    if (activeIndex == -1) {
+      activeIndex = data.indexWhere((e) => e.$2 != 'completed');
+    }
+
+    _lessons = [
+      for (var i = 0; i < data.length; i++)
+        _toLessonItem(data[i].$1, data[i].$2, i, activeIndex, data.length),
+    ];
+
+    if (activeIndex != -1) {
+      _activeMaterial = data[activeIndex].$1;
+    } else if (data.isNotEmpty) {
+      _activeMaterial = data.last.$1;
+    }
+
+    if (_activeMaterial != null) {
+      final moduleIds = <String>[];
+      for (final entry in data) {
+        if (!moduleIds.contains(entry.$1.moduleId)) moduleIds.add(entry.$1.moduleId);
+      }
+      _activeModuleNumber = moduleIds.indexOf(_activeMaterial!.moduleId) + 1;
+    }
+  }
+
+  _LessonItem _toLessonItem(
+    ModuleMaterial material,
+    String status,
+    int index,
+    int activeIndex,
+    int total,
+  ) {
+    final isCapstone = material.type == MaterialType.assignment && index == total - 1;
+    _LessonState state;
+    String badge;
+    if (status == 'completed') {
+      state = _LessonState.completed;
+      badge = 'Completed';
+    } else if (index == activeIndex) {
+      state = _LessonState.active;
+      badge = 'Playing';
+    } else if (isCapstone) {
+      state = _LessonState.capstone;
+      badge = 'Capstone';
+    } else {
+      state = _LessonState.locked;
+      badge = 'Locked';
+    }
+    return _LessonItem(material.name, _subtitleFor(material, state), state, badge);
+  }
+
+  String get _curriculumSummary {
+    final totalMinutes = _materials.fold<int>(0, (sum, e) {
+      final dur = e.$1.content['durationMinutes'];
+      return sum + (dur is int ? dur : (dur is num ? dur.toInt() : 0));
+    });
+    final hrs = totalMinutes / 60;
+    return '${_lessons.length} Lessons • ${hrs.toStringAsFixed(1)} hrs';
+  }
+
+  String _subtitleFor(ModuleMaterial material, _LessonState state) {
+    switch (material.type) {
+      case MaterialType.video:
+      case MaterialType.lesson:
+        final dur = material.content['durationMinutes'];
+        final label = dur != null ? '$dur min' : 'Video';
+        return state == _LessonState.active ? '$label • Active Playback' : '$label • Video';
+      case MaterialType.quiz:
+        final qLen = material.content['quizLength'];
+        return qLen != null ? '$qLen Questions • Quiz' : 'Quiz';
+      case MaterialType.assignment:
+        return state == _LessonState.capstone ? 'Evaluation Project • Capstone' : 'Assignment';
+    }
   }
 
   @override
@@ -82,6 +167,12 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -611,6 +702,13 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
   }
 
   Widget _buildLessonTitleBlock() {
+    final active = _activeMaterial;
+    final durationMinutes = active?.content['durationMinutes'];
+    final durationLabel = durationMinutes != null ? '$durationMinutes minutes' : 'Self-paced';
+    final title = active?.name ?? 'Lesson';
+    final description = (active?.content['transcript'] as String?) ??
+        (active?.content['instruction'] as String?) ??
+        '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -618,28 +716,29 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
           spacing: 6,
           runSpacing: 6,
           children: [
-            _badge('MODULE 02', AppColors.secondary.withValues(alpha: 0.1), AppColors.secondary),
+            _badge('MODULE ${_activeModuleNumber.toString().padLeft(2, '0')}', AppColors.secondary.withValues(alpha: 0.1), AppColors.secondary),
             _badge('Lecture & Practical Lab', AppColors.surfaceContainer, AppColors.onSurfaceVariant),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.schedule, size: 14, color: AppColors.onSurfaceVariant),
                 const SizedBox(width: 4),
-                Text('45 minutes', style: AppTypography.labelSm()),
+                Text(durationLabel, style: AppTypography.labelSm()),
               ],
             ),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          'Lesson 07: Building Automated Data Pipelines with Pandas & Excel',
+          title,
           style: AppTypography.headlineLg(color: AppColors.primary),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Master automated ingestion of multi-sheet workbooks, schema validation routines, exception quarantine tables, and automated email broadcast alerts.',
-          style: AppTypography.bodyMd(),
-        ),
+        if (description.isNotEmpty)
+          Text(
+            description,
+            style: AppTypography.bodyMd(),
+          ),
       ],
     );
   }
@@ -1286,7 +1385,7 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
                     color: AppColors.surfaceContainer,
                     borderRadius: BorderRadius.circular(9999),
                   ),
-                  child: Text('10 Lessons • 6.2 hrs', style: AppTypography.labelSm()),
+                  child: Text(_curriculumSummary, style: AppTypography.labelSm()),
                 ),
               ],
             ),
@@ -1699,19 +1798,19 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
             spacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('MODULE 02', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+              Text('MODULE ${_activeModuleNumber.toString().padLeft(2, '0')}', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
               Text('•', style: AppTypography.labelSm()),
               Text('Lecture & Lab', style: AppTypography.labelSm()),
               Text('•', style: AppTypography.labelSm()),
               Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.schedule, size: 13, color: AppColors.onSurfaceVariant),
                 const SizedBox(width: 3),
-                Text('45m', style: AppTypography.labelSm()),
+                Text(_activeMaterial?.content['durationMinutes'] != null ? '${_activeMaterial!.content['durationMinutes']}m' : '—', style: AppTypography.labelSm()),
               ]),
             ],
           ),
           const SizedBox(height: 8),
-          Text('Lesson 07: Building Automated Data Pipelines with Pandas & Excel', style: AppTypography.headlineMd(color: AppColors.onSurface)),
+          Text(_activeMaterial?.name ?? 'Lesson', style: AppTypography.headlineMd(color: AppColors.onSurface)),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -1744,10 +1843,11 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            'Master automated ingestion of multi-sheet workbooks, schema validation routines, exception quarantine tables, and export synchronization for operational reporting.',
-            style: AppTypography.bodyMd(),
-          ),
+          if ((_activeMaterial?.content['transcript'] as String?)?.isNotEmpty ?? false)
+            Text(
+              _activeMaterial!.content['transcript'] as String,
+              style: AppTypography.bodyMd(),
+            ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -1883,7 +1983,7 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Curriculum Syllabus: Module 02', style: AppTypography.headlineSm(color: AppColors.onSurface).copyWith(fontSize: 14)),
+                        Text('Curriculum Syllabus: Module ${_activeModuleNumber.toString().padLeft(2, '0')}', style: AppTypography.headlineSm(color: AppColors.onSurface).copyWith(fontSize: 14)),
                         Text('${_lessons.length} Lessons • $completed Completed • $inProgress In Progress', style: AppTypography.bodySm()),
                       ],
                     ),

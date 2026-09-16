@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/course_section.dart';
+import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -22,28 +28,47 @@ class EnrollStudentsScreen extends StatefulWidget {
 }
 
 class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
-  static const int _baseEnrolled = 42;
-  static const int _capacity = 50;
+  final _adminStudentsRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
 
-  static const _candidates = [
-    _Candidate('DR', 'Daniel Ross', 'EMP-61092', 'daniel.ross@enterprise.com', 'Data Architecture', 'Fall 2025 Cohort',
-        'CS-101 Met (GPA 3.9)', 'Academic Good Standing', 'Enterprise Full', tag: 'Staged'),
-    _Candidate('EL', 'Emily Lawson', 'EMP-88231', 'emily.lawson@enterprise.com', 'AI Engineering', 'Fall 2025 Cohort',
-        'MATH-204 Met', 'Academic Good Standing', 'Enterprise Full', tag: 'Waitlist #1'),
-    _Candidate('RK', 'Ravi Kumar', 'EMP-54910', 'ravi.kumar@enterprise.com', 'Cloud & Distributed', 'Fall 2025 Cohort',
-        'All Prerequisites Met', 'Ready for section assign', 'Enterprise Full'),
-    _Candidate('SM', 'Sophia Martinez', 'EMP-30491', 's.martinez@enterprise.com', 'Data Architecture', 'Fall 2025 Cohort',
-        'Prereq PY-101 Verified', 'Academic Good Standing', 'Self-Enrolled'),
-    _Candidate('JT', 'Jason Todd', 'EMP-77182', 'jason.todd@enterprise.com', 'Executive Operations', 'Summer 2025 Cohort',
-        'Prereq Waiver Required', 'Conditional dean approval', 'Enterprise Full', tag: 'Waitlist #2', warn: true),
-  ];
+  bool _isLoading = true;
+  CourseSection? _section;
+  List<EnrollmentCandidate> _candidates = [];
+  late Set<String> _staged;
 
-  late final Set<String> _staged;
+  int get _baseEnrolled => _section?.enrolledCount ?? 0;
+  int get _capacity => _section?.capacity ?? 0;
+  String get _courseCode => _section?.courseCode ?? '';
+  String get _courseTitle => _section?.courseTitle ?? '';
+  String get _sectionCode => _section?.sectionCode ?? '';
+
+  int get _waitlistCount => _candidates.where((c) => c.queueTag?.contains('Waitlist') ?? false).length;
+  int get _sponsoredCount => _candidates.where((c) => c.sponsorship != 'Self-Enrolled').length;
 
   @override
   void initState() {
     super.initState();
-    _staged = {'Daniel Ross', 'Emily Lawson'};
+    _staged = {};
+    _load();
+  }
+
+  Future<void> _load() async {
+    final sections = await _lecturersRepository.getAllSections();
+    final candidates = await _adminStudentsRepository.getEnrollmentCandidates(DemoIdentity.coursePyId);
+    if (!mounted) return;
+    CourseSection? section;
+    for (final s in sections) {
+      if (s.courseId == DemoIdentity.coursePyId) {
+        section = s;
+        break;
+      }
+    }
+    setState(() {
+      _section = section;
+      _candidates = candidates;
+      _staged = {for (final c in candidates.where((c) => c.queueTag == 'Staged')) c.id};
+      _isLoading = false;
+    });
   }
 
   void _handleNav(AdminNavDestination dest) {
@@ -65,6 +90,9 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -138,17 +166,18 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Wrap(spacing: 6, children: [
                 _tag('Active Cohort', AdminColors.tertiaryFixed, AdminColors.onTertiaryFixedVariant, dot: true),
-                _tag('TERM: FALL 2025', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
-                _tag('4 CREDIT UNITS', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
+                _tag('SECTION: $_sectionCode', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
               ]),
               const SizedBox(height: 4),
-              Text('PY-402: Python for Enterprise Data Analysis & Automation', style: AdminTypography.headlineSm()),
+              Text('$_courseCode: $_courseTitle', style: AdminTypography.headlineSm()),
               const SizedBox(height: 4),
-              Wrap(spacing: 8, children: [
-                Text('Instructor: Dr. Sarah Lin (Lead Data Architect)', style: AdminTypography.bodySm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                Text('• Schedule: Mon / Wed 18:00–20:30 UTC', style: AdminTypography.bodySm()),
-                Text('• Location: Virtual Synchronous Lab 04', style: AdminTypography.bodySm()),
-              ]),
+              if (_section?.lecturerName != null)
+                Wrap(spacing: 8, children: [
+                  Text('Instructor: ${_section!.lecturerName}', style: AdminTypography.bodySm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                  Text('• Schedule: ${_section!.scheduleText}', style: AdminTypography.bodySm()),
+                ])
+              else if (_section != null)
+                Text('Schedule: ${_section!.scheduleText}', style: AdminTypography.bodySm()),
             ]),
           ]),
           Container(
@@ -167,7 +196,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 const SizedBox(height: 6),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text('${_capacity - postCapacity} seats remaining', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-                  Text('4 on Waitlist', style: AdminTypography.labelSm()),
+                  Text('$_waitlistCount on Waitlist', style: AdminTypography.labelSm()),
                 ]),
               ],
             ),
@@ -207,9 +236,9 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     const SizedBox(height: 10),
                     Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
                       Text('Filter by:', style: AdminTypography.labelSm()),
-                      _pill('All Eligible (18)', true),
-                      _pill('From Waitlist (4)', false),
-                      _pill('Corporate Sponsored (14)', false),
+                      _pill('All Eligible (${_candidates.length})', true),
+                      _pill('From Waitlist ($_waitlistCount)', false),
+                      _pill('Corporate Sponsored ($_sponsoredCount)', false),
                     ]),
                   ],
                 ),
@@ -241,8 +270,9 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         child: Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSecondaryFixedVariant : AdminColors.onSurfaceVariant)),
       );
 
-  Widget _candidateRow(_Candidate c) {
-    final staged = _staged.contains(c.name);
+  Widget _candidateRow(EnrollmentCandidate c) {
+    final staged = _staged.contains(c.id);
+    final warn = c.needsReview;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -252,7 +282,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Checkbox(value: staged, onChanged: (v) => setState(() => v == true ? _staged.add(c.name) : _staged.remove(c.name)), activeColor: AdminColors.primaryContainer),
+          Checkbox(value: staged, onChanged: (v) => setState(() => v == true ? _staged.add(c.id) : _staged.remove(c.id)), activeColor: AdminColors.primaryContainer),
           SizedBox(
             width: 230,
             child: Row(children: [
@@ -260,27 +290,27 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Flexible(child: Text(c.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
-                  if (c.tag != null) ...[
+                  Flexible(child: Text(c.studentName, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  if (c.queueTag != null) ...[
                     const SizedBox(width: 4),
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: c.warn ? AdminColors.errorContainer : AdminColors.primaryFixed, borderRadius: BorderRadius.circular(4)), child: Text(c.tag!, style: AdminTypography.labelSm(color: c.warn ? AdminColors.onErrorContainer : AdminColors.onPrimaryFixed))),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: warn ? AdminColors.errorContainer : AdminColors.primaryFixed, borderRadius: BorderRadius.circular(4)), child: Text(c.queueTag!, style: AdminTypography.labelSm(color: warn ? AdminColors.onErrorContainer : AdminColors.onPrimaryFixed))),
                   ],
                 ]),
-                Text('${c.employeeId} • ${c.email}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                Text('${c.studentEmployeeId ?? '—'} • ${c.studentEmail}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
               ])),
             ]),
           ),
           SizedBox(width: 150, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(c.track, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
+            Text(c.department, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
             Text(c.cohort, style: AdminTypography.labelSm()),
           ])),
           SizedBox(width: 220, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Icon(c.warn ? Icons.warning_amber_rounded : Icons.check_circle, size: 14, color: c.warn ? const Color(0xFFB45309) : AdminColors.secondary),
+              Icon(warn ? Icons.warning_amber_rounded : Icons.check_circle, size: 14, color: warn ? const Color(0xFFB45309) : AdminColors.secondary),
               const SizedBox(width: 4),
-              Flexible(child: Text(c.prereq, style: AdminTypography.bodyMd(color: c.warn ? const Color(0xFFB45309) : AdminColors.secondary).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+              Flexible(child: Text(c.prerequisiteDetail, style: AdminTypography.bodyMd(color: warn ? const Color(0xFFB45309) : AdminColors.secondary).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
             ]),
-            Text(c.standing, style: AdminTypography.labelSm()),
+            Text(c.standingDetail, style: AdminTypography.labelSm()),
           ])),
           SizedBox(width: 120, child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -293,12 +323,12 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               alignment: Alignment.centerRight,
               child: staged
                   ? OutlinedButton(
-                      onPressed: () => setState(() => _staged.remove(c.name)),
+                      onPressed: () => setState(() => _staged.remove(c.id)),
                       style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, backgroundColor: AdminColors.errorContainer.withValues(alpha: 0.3), side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
                       child: const Text('Remove'),
                     )
                   : OutlinedButton(
-                      onPressed: () => setState(() => _staged.add(c.name)),
+                      onPressed: () => setState(() => _staged.add(c.id)),
                       style: OutlinedButton.styleFrom(foregroundColor: AdminColors.primary, backgroundColor: AdminColors.surfaceContainerLow, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
                       child: const Text('+ Add'),
                     ),
@@ -354,7 +384,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   : () {
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${_staged.length} student(s) enrolled into PY-402.'), backgroundColor: AdminColors.primary),
+                        SnackBar(content: Text('${_staged.length} student(s) enrolled into $_courseCode.'), backgroundColor: AdminColors.primary),
                       );
                     },
               icon: const Icon(Icons.person_add_alt_1, size: 18),
@@ -414,7 +444,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       const Icon(Icons.tag, size: 14, color: AdminColors.onSurfaceVariant),
                       const SizedBox(width: 4),
-                      Text('SEC-PY402-FA25', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(letterSpacing: 0.5)),
+                      Text(_sectionCode, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(letterSpacing: 0.5)),
                     ]),
                   ),
                 ],
@@ -482,42 +512,33 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(color: AdminColors.primary, borderRadius: BorderRadius.circular(4)),
-                      child: Text('PY-402', style: AdminTypography.labelSm(color: AdminColors.onPrimary).copyWith(fontWeight: FontWeight.w700)),
+                      child: Text(_courseCode, style: AdminTypography.labelSm(color: AdminColors.onPrimary).copyWith(fontWeight: FontWeight.w700)),
                     ),
                     const SizedBox(width: 6),
-                    Flexible(child: Text('• Fall 2025', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+                    Flexible(child: Text('• $_sectionCode', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
                   ]),
                   const SizedBox(height: 4),
-                  Text('Python for Enterprise Data Analysis & Automation', style: AdminTypography.headlineSm()),
-                ]),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.school, size: 14, color: AdminColors.secondary),
-                  const SizedBox(width: 4),
-                  Text('4 Cr', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+                  Text(_courseTitle, style: AdminTypography.headlineSm()),
                 ]),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Row(children: [
-              Container(width: 32, height: 32, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHighest, shape: BoxShape.circle), child: const Icon(Icons.co_present, size: 18, color: AdminColors.primary)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Dr. Sarah Lin', style: AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
-                  Text('Lead Data Architect • Mon/Wed 18:00-20:30 UTC', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
-                ]),
-              ),
-            ]),
-          ),
+          if (_section?.lecturerName != null)
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+              child: Row(children: [
+                Container(width: 32, height: 32, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHighest, shape: BoxShape.circle), child: const Icon(Icons.co_present, size: 18, color: AdminColors.primary)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_section!.lecturerName!, style: AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                    Text(_section!.scheduleText, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
+                  ]),
+                ),
+              ]),
+            ),
           const SizedBox(height: 12),
           _mobileCapacityBar(postCapacity),
         ],
@@ -562,7 +583,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Text('4 on Waitlist', style: AdminTypography.labelSm()),
+          Text('$_waitlistCount on Waitlist', style: AdminTypography.labelSm()),
         ]),
       ],
     );
@@ -590,13 +611,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _mobileFilterPill('All Eligible', '18', true),
+          _mobileFilterPill('All Eligible', '${_candidates.length}', true),
           const SizedBox(width: 8),
-          _mobileFilterPill('From Waitlist', '4', false),
+          _mobileFilterPill('From Waitlist', '$_waitlistCount', false),
           const SizedBox(width: 8),
-          _mobileFilterPill('Corporate Sponsored', '14', false),
-          const SizedBox(width: 8),
-          _mobileTrackPill(),
+          _mobileFilterPill('Corporate Sponsored', '$_sponsoredCount', false),
         ],
       ),
     );
@@ -618,18 +637,6 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
           decoration: BoxDecoration(color: active ? Colors.white.withValues(alpha: 0.2) : AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
           child: Text(count, style: AdminTypography.labelSm(color: active ? Colors.white : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700, fontSize: 10)),
         ),
-      ]),
-    );
-  }
-
-  Widget _mobileTrackPill() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)]),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text('All Tracks', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
-        const SizedBox(width: 4),
-        const Icon(Icons.expand_more, size: 16, color: AdminColors.onSurfaceVariant),
       ]),
     );
   }
@@ -668,9 +675,9 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     );
   }
 
-  Widget _mobileCandidateCard(_Candidate c) {
-    final staged = _staged.contains(c.name);
-    final locked = c.warn;
+  Widget _mobileCandidateCard(EnrollmentCandidate c) {
+    final staged = _staged.contains(c.id);
+    final locked = c.needsReview;
 
     String pillText;
     Color pillBg;
@@ -679,10 +686,10 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
       pillText = 'Staged';
       pillBg = AdminColors.secondary.withValues(alpha: 0.15);
       pillFg = AdminColors.secondary;
-    } else if (c.tag != null) {
-      pillText = c.tag!;
-      pillBg = c.warn ? AdminColors.errorContainer : AdminColors.surfaceContainer;
-      pillFg = c.warn ? AdminColors.onErrorContainer : AdminColors.onSurfaceVariant;
+    } else if (c.queueTag != null) {
+      pillText = c.queueTag!;
+      pillBg = c.needsReview ? AdminColors.errorContainer : AdminColors.surfaceContainer;
+      pillFg = c.needsReview ? AdminColors.onErrorContainer : AdminColors.onSurfaceVariant;
     } else if (c.sponsorship == 'Self-Enrolled') {
       pillText = 'Self-Enrolled';
       pillBg = AdminColors.surfaceContainer;
@@ -717,7 +724,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 )
               else
                 GestureDetector(
-                  onTap: () => setState(() => staged ? _staged.remove(c.name) : _staged.add(c.name)),
+                  onTap: () => setState(() => staged ? _staged.remove(c.id) : _staged.add(c.id)),
                   child: Container(
                     width: 20,
                     height: 20,
@@ -734,10 +741,10 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                      Text(c.name, style: AdminTypography.headlineSm()),
-                      Text(c.employeeId, style: AdminTypography.labelSm()),
+                      Text(c.studentName, style: AdminTypography.headlineSm()),
+                      Text(c.studentEmployeeId ?? '—', style: AdminTypography.labelSm()),
                     ]),
-                    Text(c.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
+                    Text(c.studentEmail, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
                   ],
                 ),
               ),
@@ -754,14 +761,14 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
             child: Column(children: [
-              _mobileDetailRow('Track', '${c.track} (${_shortCohort(c.cohort)})'),
+              _mobileDetailRow('Track', '${c.department} (${_shortCohort(c.cohort)})'),
               const SizedBox(height: 6),
               _mobileDetailRow(
                 'Prereqs',
-                c.prereq,
-                icon: c.warn ? Icons.warning_amber_rounded : Icons.verified,
-                iconColor: c.warn ? const Color(0xFFB45309) : AdminColors.secondary,
-                valueColor: c.warn ? const Color(0xFFB45309) : AdminColors.secondary,
+                c.prerequisiteDetail,
+                icon: c.needsReview ? Icons.warning_amber_rounded : Icons.verified,
+                iconColor: c.needsReview ? const Color(0xFFB45309) : AdminColors.secondary,
+                valueColor: c.needsReview ? const Color(0xFFB45309) : AdminColors.secondary,
               ),
               const SizedBox(height: 6),
               _mobileDetailRow('Sponsor', c.sponsorship),
@@ -785,7 +792,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Prereq Waiver Required', style: AdminTypography.labelMd(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
-                      Text(c.standing, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+                      Text(c.standingDetail, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
                     ]),
                   ),
                 ],
@@ -797,7 +804,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               child: OutlinedButton(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Waiver review requested for ${c.name}.'), backgroundColor: AdminColors.primary),
+                    SnackBar(content: Text('Waiver review requested for ${c.studentName}.'), backgroundColor: AdminColors.primary),
                   );
                 },
                 style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: BorderSide(color: AdminColors.error), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
@@ -811,11 +818,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   child: Row(children: [
                     const Icon(Icons.check_circle, size: 14, color: AdminColors.secondary),
                     const SizedBox(width: 4),
-                    Flexible(child: Text(c.standing, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+                    Flexible(child: Text(c.standingDetail, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
                   ]),
                 ),
                 TextButton(
-                  onPressed: () => setState(() => staged ? _staged.remove(c.name) : _staged.add(c.name)),
+                  onPressed: () => setState(() => staged ? _staged.remove(c.id) : _staged.add(c.id)),
                   style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                   child: Text(
                     staged ? 'Remove' : '+ Stage',
@@ -880,7 +887,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   : () {
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${_staged.length} student(s) enrolled into PY-402.'), backgroundColor: AdminColors.primary),
+                        SnackBar(content: Text('${_staged.length} student(s) enrolled into $_courseCode.'), backgroundColor: AdminColors.primary),
                       );
                     },
               icon: const Icon(Icons.how_to_reg, size: 18),
@@ -901,12 +908,4 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
       ),
     );
   }
-}
-
-class _Candidate {
-  final String initials, name, employeeId, email, track, cohort, prereq, standing, sponsorship;
-  final String? tag;
-  final bool warn;
-
-  const _Candidate(this.initials, this.name, this.employeeId, this.email, this.track, this.cohort, this.prereq, this.standing, this.sponsorship, {this.tag, this.warn = false});
 }

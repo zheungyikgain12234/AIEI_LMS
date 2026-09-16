@@ -1,12 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
 import 'student_directory_screen.dart';
+
+/// The course dashboard/roster preview in this app is only wired up for
+/// PY-402's seeded data, so only that course's "Open Dashboard"/"Roster"
+/// actions are enabled — mirrors the old hardcoded `dashboardAvailable`.
+const _kDashboardCourseId = '44444444-4444-4444-4444-444444444401';
+
+const _kAccentPalette = [
+  (FacultyColors.primary, Color(0xFFDBEAFE)),
+  (Color(0xFF9333EA), Color(0xFFF3E8FF)),
+  (Color(0xFF0284C7), Color(0xFFE0F2FE)),
+];
 
 class MyAssignedCoursesScreen extends StatefulWidget {
   const MyAssignedCoursesScreen({super.key});
@@ -16,65 +34,119 @@ class MyAssignedCoursesScreen extends StatefulWidget {
 }
 
 class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
-  static const _rows = [
-    _CourseRow(
-      initials: 'PY',
-      accent: FacultyColors.primary,
-      accentBg: Color(0xFFDBEAFE),
-      code: 'PY-402',
-      roleLabel: 'Primary Instructor',
-      section: 'Sec A01 • 4 Credit Units',
-      title: 'Python for Enterprise Data Analysis & Automation',
-      description: 'ETL pipelines, pandas data structures, automated business workflows, and production API connectors.',
-      schedule: 'Mon / Wed 18:00–20:30 UTC',
-      enrolled: '42 / 50 Enrolled Students',
-      modules: '4 Modules • 28 Assets',
-      avgProgress: 72,
-      pendingCount: '14 items',
-      pendingLabel: 'Assignment 02',
-      classAvg: '88.4%',
-      classAvgTag: 'On Track',
-      dashboardAvailable: true,
-    ),
-    _CourseRow(
-      initials: 'ETL',
-      accent: Color(0xFF9333EA),
-      accentBg: Color(0xFFF3E8FF),
-      code: 'DATA-501',
-      roleLabel: 'Primary Instructor',
-      section: 'Sec B02 • 4 Credit Units',
-      title: 'Automated ETL & Enterprise Data Pipelines',
-      description: 'Airflow orchestration, real-time Kafka event streams, schema validation, and SQL warehouse data transformations.',
-      schedule: 'Tue / Thu 13:00–14:45 UTC',
-      enrolled: '38 / 45 Enrolled Students',
-      modules: '6 Modules • 34 Assets',
-      avgProgress: 84,
-      pendingCount: '6 items',
-      pendingLabel: 'Pipeline Lab 03',
-      classAvg: '89.1%',
-      classAvgTag: 'Top Tier',
-      dashboardAvailable: false,
-    ),
-    _CourseRow(
-      initials: 'AI',
-      accent: Color(0xFF0284C7),
-      accentBg: Color(0xFFE0F2FE),
-      code: 'AI-301',
-      roleLabel: 'Co-Lecturer',
-      section: 'Sec C01 • 4 Credit Units',
-      title: 'Applied Machine Learning in Enterprise',
-      description: 'Supervised models, gradient boosted trees, scikit-learn optimization, and enterprise model governance.',
-      schedule: 'Lab Fridays 14:00–17:00 UTC',
-      enrolled: '29 / 35 Enrolled Students',
-      modules: '5 Modules • 22 Assets',
-      avgProgress: 65,
-      pendingCount: '2 items',
-      pendingLabel: 'Midterm Lab',
-      classAvg: '82.7%',
-      classAvgTag: 'Expected Band',
-      dashboardAvailable: false,
-    ),
-  ];
+  final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
+  final _adminStudentsRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  final _progressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
+
+  bool _isLoading = true;
+  List<_CourseRow> _rows = const [];
+  List<_Stat> _stats = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
+    final lecturers = await _lecturersRepository.getLecturers();
+
+    // Only PY-402 (_kDashboardCourseId) has a full seeded roster + graded
+    // submissions in this demo, so that's the only course we can compute
+    // real grading/progress KPIs for — see DemoIdentity for the material ids.
+    final roster = await _adminStudentsRepository.getCourseRoster(_kDashboardCourseId);
+    final modules = await _facultyRepository.getCourseModules(_kDashboardCourseId);
+    final materials = await _facultyRepository.getCourseMaterials(_kDashboardCourseId);
+    final assignmentSubs =
+        await _progressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id);
+    final quizSubs =
+        await _progressRepository.getSubmissionsForMaterial(DemoIdentity.materialComplianceQuizId);
+    if (!mounted) return;
+
+    final lecturer = lecturers.where((l) => l.id == DemoIdentity.lecturerId).firstOrNull;
+
+    final pendingAssignments = assignmentSubs.where((m) => m.status == 'completed' && m.score == null).length;
+    final pendingQuizzes = quizSubs.where((m) => m.status == 'completed' && m.score == null).length;
+    final totalPending = pendingAssignments + pendingQuizzes;
+
+    final scores = roster.map((s) => s.overallScore).whereType<double>().toList();
+    final avgCohortScore = scores.isEmpty ? null : scores.reduce((a, b) => a + b) / scores.length;
+    final assetCount = materials.fold<int>(0, (sum, m) => sum + m.attachedFiles.length);
+    final avgRosterProgress = roster.isEmpty
+        ? null
+        : roster.fold<int>(0, (sum, s) => sum + s.progressPercentage) ~/ roster.length;
+
+    final rows = [
+      for (var i = 0; i < assignedCourses.length; i++)
+        _rowFromCourse(
+          assignedCourses[i],
+          i,
+          moduleCount: assignedCourses[i].courseId == _kDashboardCourseId ? modules.length : null,
+          assetCount: assignedCourses[i].courseId == _kDashboardCourseId ? assetCount : null,
+          avgProgress: assignedCourses[i].courseId == _kDashboardCourseId ? avgRosterProgress : null,
+          pendingCount: assignedCourses[i].courseId == _kDashboardCourseId ? totalPending : null,
+          classAvgScore: assignedCourses[i].courseId == _kDashboardCourseId ? avgCohortScore : null,
+        ),
+    ];
+
+    final totalEnrolled = assignedCourses.fold<int>(0, (sum, c) => sum + c.enrolledCount);
+
+    setState(() {
+      _rows = rows;
+      _stats = [
+        _Stat('Active Courses', '${assignedCourses.length} Courses', '$totalEnrolled Enrolled Learners', Icons.school_outlined,
+            FacultyColors.primary, FacultyColors.surfaceContainer),
+        _Stat('Pending Reviews', '$totalPending Items', '$pendingAssignments assignments • $pendingQuizzes quizzes',
+            Icons.history_toggle_off, const Color(0xFFD97706), const Color(0xFFFEF3C7)),
+        _Stat(
+            'Average Cohort Score',
+            avgCohortScore == null ? '—' : '${avgCohortScore.toStringAsFixed(1)}%',
+            null,
+            Icons.show_chart,
+            const Color(0xFF059669),
+            const Color(0xFFD1FAE5)),
+        _Stat('Teaching Capacity', lecturer != null ? '${lecturer.creditsUsed} / ${lecturer.creditsMax} Cr' : '— / — Cr', null,
+            Icons.speed, const Color(0xFF4F46E5), const Color(0xFFE0E7FF)),
+      ];
+      _isLoading = false;
+    });
+  }
+
+  _CourseRow _rowFromCourse(
+    AssignedCourse c,
+    int index, {
+    int? moduleCount,
+    int? assetCount,
+    int? avgProgress,
+    int? pendingCount,
+    double? classAvgScore,
+  }) {
+    final segments = c.courseCode.split('-');
+    var initials = segments.first;
+    if (initials.length > 3) initials = initials.substring(0, 3);
+    final (accent, accentBg) = _kAccentPalette[index % _kAccentPalette.length];
+    return _CourseRow(
+      initials: initials,
+      accent: accent,
+      accentBg: accentBg,
+      code: c.courseCode,
+      roleLabel: c.roleLabel,
+      section: '${c.sectionCode} • ${c.capacity} Cap.',
+      title: c.title,
+      description: c.description,
+      schedule: c.scheduleText,
+      enrolled: '${c.enrolledCount} / ${c.capacity} Enrolled Students',
+      modules: moduleCount == null ? '— Modules • — Assets' : '$moduleCount Modules • $assetCount Assets',
+      avgProgress: avgProgress ?? 0,
+      pendingCount: pendingCount == null ? '— items' : '$pendingCount items',
+      pendingLabel: 'Review Items',
+      classAvg: classAvgScore == null ? '—' : '${classAvgScore.toStringAsFixed(1)}%',
+      classAvgTag: classAvgScore == null ? 'On Track' : (classAvgScore >= 80 ? 'On Track' : 'Needs Attention'),
+      dashboardAvailable: c.courseId == _kDashboardCourseId,
+    );
+  }
 
   void _handleNav(FacultyNavDestination dest) {
     if (dest == FacultyNavDestination.myCourses) return;
@@ -95,6 +167,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -161,19 +236,13 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   }
 
   Widget _buildStatsRow() {
-    final stats = [
-      _Stat('Active Courses', '3 Courses', '112 Enrolled Learners', Icons.school_outlined, FacultyColors.primary, FacultyColors.surfaceContainer),
-      _Stat('Pending Reviews', '22 Items', '14 assignments • 8 quizzes', Icons.history_toggle_off, const Color(0xFFD97706), const Color(0xFFFEF3C7)),
-      _Stat('Average Cohort Score', '86.4%', '+2.8% vs last term', Icons.show_chart, const Color(0xFF059669), const Color(0xFFD1FAE5)),
-      _Stat('Teaching Capacity', '12 / 15 Cr', null, Icons.speed, const Color(0xFF4F46E5), const Color(0xFFE0E7FF)),
-    ];
     return LayoutBuilder(builder: (context, constraints) {
       final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       return Wrap(
         spacing: 16,
         runSpacing: 16,
-        children: stats.map((s) => SizedBox(width: width, child: _statCard(s))).toList(),
+        children: _stats.map((s) => SizedBox(width: width, child: _statCard(s))).toList(),
       );
     });
   }

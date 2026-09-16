@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -22,23 +25,29 @@ class ManageLecturersScreen extends StatefulWidget {
 }
 
 class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
-  static const _lecturers = [
-    _Lecturer('Dr. Sarah Lin', 'Lead Data Architect', 'EMP-7721', 'sarah.lin@aiei.edu',
-        'Computer Science & Data', 'Distributed ETL & Python', 3, ['PY-402', 'DATA-501', 'AI-301'],
-        12, 15, 80, 'Active', accredited: true, manageable: true),
-    _Lecturer('Prof. David Miller', 'Senior EHS Director', 'EMP-5402', 'd.miller@aiei.edu',
-        'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 2, ['OSHE-101', 'SAF-204'],
-        8, 15, 53, 'Active', accredited: true),
-    _Lecturer('Dr. Aris Thorne', 'Head of AI & Machine Learning', 'EMP-8910', 'a.thorne@aiei.edu',
-        'Data Science & AI', 'Deep Neural Architectures', 4, ['ML-800', 'DL-901', 'RL-705', '+1 more'],
-        15, 15, 100, 'Active', accredited: true),
-    _Lecturer('Elena Rostova', 'VP Leadership Development', 'EMP-3211', 'e.rostova@aiei.edu',
-        'Executive Leadership', 'Org Dynamics & Crisis Management', 2, ['LEAD-400', 'COMM-102'],
-        6, 12, 50, 'Active', accredited: true),
-    _Lecturer('Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'EMP-6129', 'k.wu@aiei.edu',
-        'Computer Science & Data', 'Distributed Cloud Governance', 0, [],
-        0, 15, 0, 'Sabbatical'),
-  ];
+  final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
+  bool _isLoading = true;
+  List<Lecturer> _lecturers = [];
+  Map<String, List<String>> _courseCodesByLecturer = {};
+
+  List<String> _coursesFor(Lecturer l) => _courseCodesByLecturer[l.id] ?? const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final lecturers = await _repository.getLecturers();
+    final codes = await _repository.getLecturerCourseCodes();
+    if (!mounted) return;
+    setState(() {
+      _lecturers = lecturers;
+      _courseCodesByLecturer = codes;
+      _isLoading = false;
+    });
+  }
 
   void _handleNav(AdminNavDestination dest) {
     switch (dest) {
@@ -64,6 +73,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -241,7 +253,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
             scrollDirection: Axis.horizontal,
             child: SizedBox(
               width: 1080,
-              child: Column(children: [for (final l in _lecturers) _lecturerRow(l)]),
+              child: Column(children: [for (final l in _lecturers) _lecturerRow(l, _coursesFor(l))]),
             ),
           ),
           Padding(
@@ -277,7 +289,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _lecturerRow(_Lecturer l) {
+  Widget _lecturerRow(Lecturer l, List<String> courses) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
@@ -326,10 +338,10 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l.courseCount == 0 ? '0 Courses Assigned' : '${l.courseCount} Active Courses',
-                    style: AdminTypography.labelSm(color: l.courseCount == 0 ? AdminColors.onSurfaceVariant : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+                Text(courses.isEmpty ? '0 Courses Assigned' : '${courses.length} Active Courses',
+                    style: AdminTypography.labelSm(color: courses.isEmpty ? AdminColors.onSurfaceVariant : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Wrap(spacing: 4, runSpacing: 4, children: l.courses.map((c) => Container(
+                Wrap(spacing: 4, runSpacing: 4, children: courses.map((c) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
                   child: Text(c, style: AdminTypography.labelSm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
@@ -396,7 +408,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: Text(l.courseCount == 0 ? 'Assign Load' : 'Manage Courses'),
+                child: Text(courses.isEmpty ? 'Assign Load' : 'Manage Courses'),
               ),
             ),
           ),
@@ -431,7 +443,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
               _mobileFilterChips(),
               const SizedBox(height: 16),
               for (final l in _lecturers) ...[
-                _mobileLecturerCard(l),
+                _mobileLecturerCard(l, _coursesFor(l)),
                 const SizedBox(height: 12),
               ],
               const SizedBox(height: 4),
@@ -720,8 +732,8 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _mobileLecturerCard(_Lecturer l) {
-    final isSabbatical = l.courseCount == 0;
+  Widget _mobileLecturerCard(Lecturer l, List<String> courses) {
+    final isSabbatical = courses.isEmpty;
     final isMaxLoad = !isSabbatical && l.capacityPercent >= 100;
 
     return Container(
@@ -842,14 +854,14 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ACTIVE COURSES (${l.courseCount})',
+                  'ACTIVE COURSES (${courses.length})',
                   style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: l.courses
+                  children: courses
                       .map((c) => Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(6)),
@@ -863,7 +875,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Flexible(child: _mobileStatusPill(l, isSabbatical: isSabbatical, isMaxLoad: isMaxLoad)),
+              Flexible(child: _mobileStatusPill(isSabbatical: isSabbatical, isMaxLoad: isMaxLoad)),
               const SizedBox(width: 8),
               _mobileCardActionButton(l, isSabbatical: isSabbatical),
             ],
@@ -873,7 +885,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _mobileStatusPill(_Lecturer l, {required bool isSabbatical, required bool isMaxLoad}) {
+  Widget _mobileStatusPill({required bool isSabbatical, required bool isMaxLoad}) {
     if (isSabbatical) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -925,7 +937,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _mobileCardActionButton(_Lecturer l, {required bool isSabbatical}) {
+  Widget _mobileCardActionButton(Lecturer l, {required bool isSabbatical}) {
     void onPressed() => l.manageable
         ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LecturerAllocationScreen()))
         : _notAvailable();
@@ -1034,38 +1046,4 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
       ),
     );
   }
-}
-
-class _Lecturer {
-  final String name;
-  final String title;
-  final String employeeId;
-  final String email;
-  final String department;
-  final String specialization;
-  final int courseCount;
-  final List<String> courses;
-  final int creditsUsed;
-  final int creditsMax;
-  final int capacityPercent;
-  final String status;
-  final bool accredited;
-  final bool manageable;
-
-  const _Lecturer(
-    this.name,
-    this.title,
-    this.employeeId,
-    this.email,
-    this.department,
-    this.specialization,
-    this.courseCount,
-    this.courses,
-    this.creditsUsed,
-    this.creditsMax,
-    this.capacityPercent,
-    this.status, {
-    this.accredited = false,
-    this.manageable = false,
-  });
 }

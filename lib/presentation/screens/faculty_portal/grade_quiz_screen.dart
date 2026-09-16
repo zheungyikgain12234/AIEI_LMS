@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -19,20 +23,81 @@ class GradeQuizScreen extends StatefulWidget {
 }
 
 class _GradeQuizScreenState extends State<GradeQuizScreen> {
-  static const int _autoScore = 60;
-  int _q3Score = 18;
-  int _q4Score = 19;
+  final _progressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
+
+  bool _isLoading = true;
+  int _autoScore = 0;
+  int _q3Score = 0;
+  int _q4Score = 0;
   bool _mobileShowAllMcqs = false;
 
-  final TextEditingController _q3Feedback = TextEditingController(
-    text: 'Good explanation of the non-blocking pattern and alerting. Next time include schema fallback defaults.',
-  );
-  final TextEditingController _q4Feedback = TextEditingController(
-    text: 'Precise snapshot time-travel reference and systematic isolation steps.',
-  );
+  Map<String, dynamic> _q3Data = const {};
+  Map<String, dynamic> _q4Data = const {};
+
+  final TextEditingController _q3Feedback = TextEditingController();
+  final TextEditingController _q4Feedback = TextEditingController();
 
   int get _manualTotal => _q3Score + _q4Score;
   int get _projectedTotal => _autoScore + _manualTotal;
+  int get _q3MaxScore => (_q3Data['maxScore'] as int?) ?? 20;
+  int get _q4MaxScore => (_q4Data['maxScore'] as int?) ?? 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final materialRow = await Supabase.instance.client
+        .from('module_materials')
+        .select()
+        .eq('id', DemoIdentity.materialComplianceQuizId)
+        .single();
+    final material = ModuleMaterial.fromMap(materialRow);
+    final progress = await _progressRepository.getProgress(
+      DemoIdentity.studentId,
+      DemoIdentity.materialComplianceQuizId,
+    );
+
+    final freeResponseQuestions = List<Map<String, dynamic>>.from(
+      (material.content['freeResponseQuestions'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+    );
+    final q3 = freeResponseQuestions.firstWhere(
+      (q) => q['number'] == '03',
+      orElse: () => const {},
+    );
+    final q4 = freeResponseQuestions.firstWhere(
+      (q) => q['number'] == '04',
+      orElse: () => const {},
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _autoScore = progress?.score ?? 0;
+      _q3Data = q3;
+      _q4Data = q4;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _submitGrade() async {
+    final combinedFeedback = 'Q03: ${_q3Feedback.text}\n\nQ04: ${_q4Feedback.text}';
+    await _progressRepository.gradeSubmission(
+      DemoIdentity.studentId,
+      DemoIdentity.materialComplianceQuizId,
+      score: _projectedTotal,
+      feedback: combinedFeedback,
+      gradedByLecturerId: DemoIdentity.lecturerId,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Grades Successfully Released — Alex Chen has been notified via the student portal.'),
+        backgroundColor: FacultyColors.primary,
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -62,6 +127,9 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -107,30 +175,30 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
           const SizedBox(height: 12),
           _freeResponseCard(
             number: '03',
-            prompt: 'Explain how you would handle an unmapped categorical value encountered mid-pipeline without breaking downstream consumers or halting the ETL batch.',
+            prompt: _q3Data['prompt'] as String? ?? '',
             submissionMeta: '48 words • 3 sentences',
             submission:
                 '"I implement a dual-stream quarantine pattern. The pipeline isolates records with unseen categorical keys into a quarantined JSON array with an UNKNOWN_ENUM error tag, while valid transactions proceed through normalization. An asynchronous alert is dispatched to the data steward to update the category registry."',
-            rubricIntro: 'Expected Core Elements: Quarantine isolation, structured error tagging (UNKNOWN_ENUM), alerting steward mechanism, and non-blocking streaming execution.',
-            rubricTags: const ['Non-blocking Flow (+6)', 'Error Tagging (+5)', 'Async Alerting (+5)', 'Fallback Schema (+4)'],
+            rubricIntro: _q3Data['rubricIntro'] as String? ?? '',
+            rubricTags: List<String>.from(_q3Data['rubricTags'] as List? ?? const []),
             feedbackController: _q3Feedback,
             score: _q3Score,
-            maxScore: 20,
+            maxScore: _q3MaxScore,
             presets: const [10, 15, 18, 20],
             onScoreChanged: (v) => setState(() => _q3Score = v),
           ),
           const SizedBox(height: 16),
           _freeResponseCard(
             number: '04',
-            prompt: 'Describe the rollback and disaster recovery procedure if an automated ETL job corrupts a production table partition.',
+            prompt: _q4Data['prompt'] as String? ?? '',
             submissionMeta: '35 words • 3 key phases',
             submission:
                 '"First, trigger an automated partition rollback utilizing snapshot time-travel queries to restore the partition to state t-1. Second, freeze the ingestion worker pool. Third, run audit delta reconciliation against the raw landing bucket."',
-            rubricIntro: 'Benchmark Rubric: Immediate partition isolation, point-in-time recovery mechanism (time-travel/snapshot), upstream pipeline freeze, and subsequent idempotent replay from raw bronze ingest.',
-            rubricTags: const ['Snapshot Time-travel (+8)', 'Ingestion Worker Freeze (+6)', 'Delta Reconciliation (+6)'],
+            rubricIntro: _q4Data['rubricIntro'] as String? ?? '',
+            rubricTags: List<String>.from(_q4Data['rubricTags'] as List? ?? const []),
             feedbackController: _q4Feedback,
             score: _q4Score,
-            maxScore: 20,
+            maxScore: _q4MaxScore,
             presets: const [12, 16, 19, 20],
             onScoreChanged: (v) => setState(() => _q4Score = v),
           ),
@@ -766,14 +834,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
               ),
               const SizedBox(width: 10),
               ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Grades Successfully Released — Alex Chen has been notified via the student portal.'),
-                      backgroundColor: FacultyColors.primary,
-                    ),
-                  );
-                },
+                onPressed: _submitGrade,
                 icon: const Icon(Icons.send, size: 16),
                 label: const Text('Release Grade & Feedback'),
                 style: ElevatedButton.styleFrom(
@@ -1463,13 +1524,12 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
           _mobileFreeResponseBlock(
             questionNumber: '03',
             title: 'Question 03 (Analytical Prompt)',
-            maxScore: 20,
-            prompt:
-                'Explain how you would handle an unmapped categorical value encountered mid-pipeline without breaking downstream consumers or halting the ETL batch.',
+            maxScore: _q3MaxScore,
+            prompt: _q3Data['prompt'] as String? ?? '',
             wordCount: '48 words',
             submission:
                 '"I implement a dual-stream quarantine pattern. The pipeline isolates records with unseen categorical keys into a quarantined JSON array with an UNKNOWN_ENUM error tag, while valid transactions proceed through normalization. An asynchronous alerting worker notifies schema admins without blocking downstream consumers."',
-            rubricTags: const ['Non-blocking flow (+6)', 'Structured tag (+5)', 'Async alerting (+5)', 'Fallback schema (+4)'],
+            rubricTags: List<String>.from(_q3Data['rubricTags'] as List? ?? const []),
             feedbackController: _q3Feedback,
             score: _q3Score,
             presets: const [10, 15, 18, 20],
@@ -1479,12 +1539,12 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
           _mobileFreeResponseBlock(
             questionNumber: '04',
             title: 'Question 04 (Disaster Recovery & Rollback)',
-            maxScore: 20,
-            prompt: 'Describe the rollback and disaster recovery procedure if an automated ETL job corrupts a production table partition.',
+            maxScore: _q4MaxScore,
+            prompt: _q4Data['prompt'] as String? ?? '',
             wordCount: '35 words',
             submission:
                 '"First, trigger an automated partition rollback utilizing snapshot time-travel queries to restore the partition to state t-1. Second, freeze the ingestion worker pool. Third, run audit delta reconciliation against the raw landing bucket."',
-            rubricTags: const ['Snapshot time-travel (+8)', 'Ingestion freeze (+6)', 'Delta reconciliation (+6)'],
+            rubricTags: List<String>.from(_q4Data['rubricTags'] as List? ?? const []),
             feedbackController: _q4Feedback,
             score: _q4Score,
             presets: const [12, 16, 19, 20],
@@ -1554,14 +1614,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Grades Successfully Released — Alex Chen has been notified via the student portal.'),
-                        backgroundColor: FacultyColors.primary,
-                      ),
-                    );
-                  },
+                  onPressed: _submitGrade,
                   icon: const Icon(Icons.send, size: 18),
                   label: const Text('Release Grade'),
                   style: ElevatedButton.styleFrom(

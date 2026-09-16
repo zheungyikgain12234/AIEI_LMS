@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/material_progress.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
+import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -19,11 +25,100 @@ class GradeAssignmentScreen extends StatefulWidget {
 }
 
 class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
-  final TextEditingController _scoreController = TextEditingController(text: '94');
-  final TextEditingController _feedbackController = TextEditingController(
-    text:
-        'Exceptional submission Alex. Your vectorized transformation logic was one of the most performant in the cohort. Solid edge case handling on the tax code and clean quarantine parquet routing.',
-  );
+  final _progressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
+
+  final TextEditingController _scoreController = TextEditingController();
+  final TextEditingController _feedbackController = TextEditingController();
+
+  bool _isLoading = true;
+  ModuleMaterial? _material;
+  MaterialProgress? _progress;
+  Student? _student;
+  int _totalSubmissions = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final client = Supabase.instance.client;
+    final materialRow =
+        await client.from('module_materials').select().eq('id', DemoIdentity.materialAssignment02Id).single();
+    final material = ModuleMaterial.fromMap(materialRow);
+    final progress = await _progressRepository.getProgress(
+      DemoIdentity.studentId,
+      DemoIdentity.materialAssignment02Id,
+    );
+    final studentRow =
+        await client.from('students').select().eq('id', DemoIdentity.studentId).single();
+    final student = Student.fromMap(studentRow);
+    final submissions = await _progressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id);
+    if (!mounted) return;
+    setState(() {
+      _material = material;
+      _progress = progress;
+      _student = student;
+      _totalSubmissions = submissions.length;
+      _scoreController.text = (progress?.score ?? 0).toString();
+      _feedbackController.text = progress?.feedback ?? '';
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _publishGrade() async {
+    final score = int.tryParse(_scoreController.text.trim());
+    if (score == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid numeric score before publishing.')),
+      );
+      return;
+    }
+    await _progressRepository.gradeSubmission(
+      DemoIdentity.studentId,
+      DemoIdentity.materialAssignment02Id,
+      score: score,
+      feedback: _feedbackController.text,
+      gradedByLecturerId: DemoIdentity.lecturerId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _progress = MaterialProgress(
+        materialId: DemoIdentity.materialAssignment02Id,
+        status: 'completed',
+        score: score,
+        attempts: _progress?.attempts ?? 1,
+        submissionContent: _progress?.submissionContent ?? const {},
+        feedback: _feedbackController.text,
+        gradedBy: DemoIdentity.lecturerId,
+      );
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Grade published to Alex Chen.'), backgroundColor: FacultyColors.primary),
+    );
+  }
+
+  String _formatSubmittedAt(String? iso) {
+    if (iso == null) return 'Not submitted';
+    final dt = DateTime.tryParse(iso)?.toLocal();
+    if (dt == null) return iso;
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}, $hour12:$minute $period';
+  }
+
+  String _letterGrade(int score) {
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B';
+    if (score >= 70) return 'C';
+    if (score >= 60) return 'D';
+    return 'F';
+  }
 
   @override
   void dispose() {
@@ -53,6 +148,9 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -86,6 +184,13 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   }
 
   Widget _buildHeaderCard() {
+    final content = _material?.content ?? const {};
+    final title = _material?.name ?? 'Assignment 02: Automated Data Pipelines';
+    final benchmark = content['cohortBenchmarkLabel'] as String?;
+    final studentName = _student?.name ?? 'Alex Chen';
+    final studentEmployeeId = _student?.studentId ?? 'EMP-88219';
+    final submittedAt = _progress?.submissionContent['submittedAt'] as String?;
+    final onTime = _progress?.submissionContent['onTime'] as bool? ?? true;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -131,9 +236,11 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Grade Assignment: Assignment 02 - Automated Data Pipelines', style: FacultyTypography.headlineLg()),
-                    const SizedBox(height: 2),
-                    Text('Building Automated Data Pipelines with Pandas & Excel • Cohort Analytics Benchmark: 88.4%', style: FacultyTypography.bodySm()),
+                    Text('Grade Assignment: $title', style: FacultyTypography.headlineLg()),
+                    if (benchmark != null) ...[
+                      const SizedBox(height: 2),
+                      Text(benchmark, style: FacultyTypography.bodySm()),
+                    ],
                   ],
                 ),
               ),
@@ -149,7 +256,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                         IconButton(
                           onPressed: _otherStudent,
                           icon: const Icon(Icons.chevron_left, size: 18),
-                          tooltip: 'Prev: Maya Patel',
+                          tooltip: 'Previous submission',
                           color: FacultyColors.onSurfaceVariant,
                         ),
                         Container(
@@ -157,21 +264,21 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Container(width: 8, height: 8, decoration: const BoxDecoration(color: FacultyColors.primary, shape: BoxShape.circle)),
                             const SizedBox(width: 6),
-                            Text('Alex Chen', style: FacultyTypography.titleSm(color: FacultyColors.primary)),
+                            Text(studentName, style: FacultyTypography.titleSm(color: FacultyColors.primary)),
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(4)),
-                              child: Text('EMP-88219', style: FacultyTypography.labelXs()),
+                              child: Text(studentEmployeeId, style: FacultyTypography.labelXs()),
                             ),
                             const SizedBox(width: 6),
-                            Text('(2 of 36)', style: FacultyTypography.labelXs(color: FacultyColors.secondary)),
+                            Text('($_totalSubmissions submitted)', style: FacultyTypography.labelXs(color: FacultyColors.secondary)),
                           ]),
                         ),
                         IconButton(
                           onPressed: _otherStudent,
                           icon: const Icon(Icons.chevron_right, size: 18),
-                          tooltip: 'Next: Marcus Vance',
+                          tooltip: 'Next submission',
                           color: FacultyColors.onSurfaceVariant,
                         ),
                       ],
@@ -184,7 +291,10 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       const Icon(Icons.task_alt, size: 15, color: FacultyColors.tertiary),
                       const SizedBox(width: 4),
-                      Text('SUBMITTED ON TIME • Nov 14, 2025, 4:15 PM', style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700)),
+                      Text(
+                        '${onTime ? 'SUBMITTED ON TIME' : 'SUBMITTED LATE'} • ${_formatSubmittedAt(submittedAt)}',
+                        style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ]),
                   ),
                 ],
@@ -205,6 +315,10 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   }
 
   Widget _buildLeftColumn() {
+    final files = ((_progress?.submissionContent['files'] as List?) ?? const [])
+        .map((f) => Map<String, dynamic>.from(f as Map))
+        .toList();
+    final writeup = _progress?.submissionContent['writeup'] as String?;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -237,9 +351,18 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 ),
               ]),
               const SizedBox(height: 12),
-              _fileRow(Icons.description_outlined, FacultyColors.primary, 'pipeline_etl_v2_chen.py', 'Python Script • 48 KB • Submitted Nov 14, 4:15 PM'),
-              const SizedBox(height: 8),
-              _fileRow(Icons.picture_as_pdf_outlined, FacultyColors.error, 'pipeline_execution_report.pdf', 'PDF Document • 1.2 MB • Submitted Nov 14, 4:15 PM'),
+              if (files.isEmpty)
+                Text('No files submitted.', style: FacultyTypography.bodySm())
+              else
+                for (var i = 0; i < files.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 8),
+                  _fileRow(
+                    _fileIcon(files[i]['name'] as String? ?? ''),
+                    _fileIconColor(files[i]['name'] as String? ?? ''),
+                    files[i]['name'] as String? ?? '',
+                    '${files[i]['description'] ?? ''} • ${files[i]['sizeLabel'] ?? ''}',
+                  ),
+                ],
             ],
           ),
         ),
@@ -266,7 +389,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
                 child: Text(
-                  '"Handled edge case where column tax_code had null values by defaulting to regional regulatory rate 0.0825. Quarantine routing extracts invalid rows into an isolated parquet buffer with timestamp tracking. Vectorized timestamp transformations yielding a 3.8x execution time reduction compared with standard iteration."',
+                  writeup != null ? '"$writeup"' : 'No submission notes provided.',
                   style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
                 ),
               ),
@@ -276,6 +399,15 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
       ],
     );
   }
+
+  IconData _fileIcon(String name) {
+    if (name.endsWith('.pdf')) return Icons.picture_as_pdf_outlined;
+    if (name.endsWith('.py') || name.endsWith('.ipynb')) return Icons.description_outlined;
+    if (name.endsWith('.zip')) return Icons.folder_zip_outlined;
+    return Icons.insert_drive_file_outlined;
+  }
+
+  Color _fileIconColor(String name) => name.endsWith('.pdf') ? FacultyColors.error : FacultyColors.primary;
 
   Widget _fileRow(IconData icon, Color iconColor, String name, String meta) {
     return Container(
@@ -318,6 +450,9 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   }
 
   Widget _buildRightColumn() {
+    final currentScore = int.tryParse(_scoreController.text.trim()) ?? (_progress?.score ?? 0);
+    final passMark = (_material?.content['passMarkPercentage'] as num?)?.toInt() ?? 80;
+    final gradeLabel = '${_letterGrade(currentScore)} (${currentScore >= passMark ? 'Pass' : 'Fail'})';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -338,7 +473,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(color: FacultyColors.tertiaryContainer.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                  child: Text('Grade: A (Pass)', style: FacultyTypography.titleSm(color: FacultyColors.tertiary).copyWith(fontSize: 13)),
+                  child: Text('Grade: $gradeLabel', style: FacultyTypography.titleSm(color: FacultyColors.tertiary).copyWith(fontSize: 13)),
                 ),
               ]),
               const SizedBox(height: 12),
@@ -364,6 +499,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                             controller: _scoreController,
                             textAlign: TextAlign.right,
                             keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
                             style: FacultyTypography.headlineMd(color: FacultyColors.primary),
                             decoration: InputDecoration(
                               filled: true,
@@ -430,11 +566,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Grade published to Alex Chen.'), backgroundColor: FacultyColors.primary),
-                        );
-                      },
+                      onPressed: _publishGrade,
                       icon: const Icon(Icons.publish_outlined, size: 16),
                       label: const Text('Save & Publish'),
                       style: ElevatedButton.styleFrom(
@@ -454,7 +586,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _otherStudent,
                   icon: const Icon(Icons.arrow_forward, size: 16),
-                  label: const Text('Save & Next Student (Marcus Vance)'),
+                  label: const Text('Save & Next Submission'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: FacultyColors.primary,
                     backgroundColor: FacultyColors.surfaceContainerHigh,
@@ -580,6 +712,11 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   }
 
   Widget _buildMobileAssignmentCard() {
+    final title = _material?.name ?? 'Assignment 02: Automated Data Pipelines';
+    final studentName = _student?.name ?? 'Alex Chen';
+    final studentEmployeeId = _student?.studentId ?? 'EMP-88219';
+    final submittedAt = _progress?.submissionContent['submittedAt'] as String?;
+    final onTime = _progress?.submissionContent['onTime'] as bool? ?? true;
     return _mobileCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,7 +734,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Assignment 02: Automated Data Pipelines',
+            title,
             style: FacultyTypography.headlineMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
@@ -609,10 +746,10 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
               children: [
                 Row(
                   children: [
-                    Flexible(child: Text('COHORT PROGRESS', style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis)),
+                    Flexible(child: Text('SUBMISSIONS', style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis)),
                     const SizedBox(width: 8),
                     Text(
-                      '2 of 36 Students',
+                      '$_totalSubmissions submitted',
                       style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
                     ),
                   ],
@@ -620,7 +757,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _mobileNavChevron(icon: Icons.chevron_left, tooltip: 'Previous: Maya Patel', onTap: _otherStudent),
+                    _mobileNavChevron(icon: Icons.chevron_left, tooltip: 'Previous submission', onTap: _otherStudent),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Container(
@@ -647,12 +784,12 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Alex Chen',
+                                    studentName,
                                     style: FacultyTypography.titleSm(color: FacultyColors.primary),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
-                                    'EMP-88219',
+                                    studentEmployeeId,
                                     style: FacultyTypography.bodySm(color: FacultyColors.outline),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -664,7 +801,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    _mobileNavChevron(icon: Icons.chevron_right, tooltip: 'Next: Marcus Vance', onTap: _otherStudent),
+                    _mobileNavChevron(icon: Icons.chevron_right, tooltip: 'Next submission', onTap: _otherStudent),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -681,7 +818,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          'Submitted on Time • Nov 14, 2025, 4:15 PM',
+                          '${onTime ? 'Submitted on Time' : 'Submitted Late'} • ${_formatSubmittedAt(submittedAt)}',
                           style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -698,6 +835,9 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   }
 
   Widget _buildMobileArtifactsCard() {
+    final files = ((_progress?.submissionContent['files'] as List?) ?? const [])
+        .map((f) => Map<String, dynamic>.from(f as Map))
+        .toList();
     return _mobileCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -724,10 +864,18 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _mobileFileRow(Icons.code, FacultyColors.secondary, 'pipeline_etl_v2_chen.py', 'Python Script • 48 KB • Nov 14'),
-          const SizedBox(height: 8),
-          _mobileFileRow(
-              Icons.description, FacultyColors.error, 'pipeline_execution_report.pdf', 'PDF Document • 1.2 MB • Benchmark Data'),
+          if (files.isEmpty)
+            Text('No files submitted.', style: FacultyTypography.bodySm())
+          else
+            for (var i = 0; i < files.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              _mobileFileRow(
+                _fileIcon(files[i]['name'] as String? ?? ''),
+                _fileIconColor(files[i]['name'] as String? ?? ''),
+                files[i]['name'] as String? ?? '',
+                '${files[i]['description'] ?? ''} • ${files[i]['sizeLabel'] ?? ''}',
+              ),
+            ],
         ],
       ),
     );
@@ -772,6 +920,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   }
 
   Widget _buildMobileNotesCard() {
+    final writeup = _progress?.submissionContent['writeup'] as String?;
     return _mobileCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -789,9 +938,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
             child: Text(
-              '"Handled edge case where column \'tax_code\' had null values by defaulting to regional regulatory rate '
-              '0.0825. Quarantine routing extracts invalid rows into isolated parquet buffer with timestamp tracking. '
-              'Vectorized transformations yielded 3.8x speedup."',
+              writeup != null ? '"$writeup"' : 'No submission notes provided.',
               style: FacultyTypography.bodyMd(color: FacultyColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
             ),
           ),
@@ -801,6 +948,9 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   }
 
   Widget _buildMobileEvaluationCard() {
+    final currentScore = int.tryParse(_scoreController.text.trim()) ?? (_progress?.score ?? 0);
+    final passMark = (_material?.content['passMarkPercentage'] as num?)?.toInt() ?? 80;
+    final gradeLabel = '${_letterGrade(currentScore)} (${currentScore >= passMark ? 'Pass' : 'Fail'})';
     return _mobileCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -818,7 +968,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Grade: A (Pass)',
+                  'Grade: $gradeLabel',
                   style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -986,11 +1136,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                       label: 'Save & Publish',
                       background: FacultyColors.secondary,
                       foreground: FacultyColors.onSecondary,
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Grade published to Alex Chen.'), backgroundColor: FacultyColors.primary),
-                        );
-                      },
+                      onPressed: _publishGrade,
                     ),
                   ),
                 ],
@@ -1000,7 +1146,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 width: double.infinity,
                 child: _mobileActionButton(
                   icon: Icons.arrow_forward,
-                  label: 'Save & Next Student (Marcus Vance)',
+                  label: 'Save & Next Submission',
                   background: FacultyColors.primary,
                   foreground: FacultyColors.onPrimary,
                   onPressed: _otherStudent,

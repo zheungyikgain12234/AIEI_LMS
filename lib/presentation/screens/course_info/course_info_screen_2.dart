@@ -1,8 +1,11 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide MaterialType;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/compliance_quiz/compliance_quiz_screen.dart';
 
@@ -32,21 +35,106 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
 
   final TextEditingController _qaController = TextEditingController();
 
-  static const List<_ModuleItem> _modules = [
-    _ModuleItem('01. Regulatory Framework', '14m • Completed', _ModuleState.completed, '95%'),
-    _ModuleItem('02. Hazard Identification & PPE', '22m • Completed', _ModuleState.completed, '100%'),
-    _ModuleItem('03. Electrical & Lockout/Tagout', '18m • Completed', _ModuleState.completed, '92%'),
-    _ModuleItem('04. Chemical Handling & SDS', '16m • Playing Now', _ModuleState.active, 'Active'),
-    _ModuleItem('05. Fire Protection & Suppression', '20m • Locked', _ModuleState.locked, 'Req. L04'),
-    _ModuleItem('06. Ergonomics & Physical', '15m • Locked', _ModuleState.locked, 'Req. L05'),
-    _ModuleItem('07. Incident Response & Reporting', '25m • Locked', _ModuleState.locked, 'Req. L06'),
-    _ModuleItem('08. Final Regulatory Audit Exam', '45m • Comprehensive', _ModuleState.locked, '50 Qs'),
-  ];
+  // --- Real data (Supabase-backed module list) ---
+  final _repository = SupabaseCoursesRepositoryImpl(Supabase.instance.client);
+  bool _isLoading = true;
+  List<(ModuleMaterial, String)> _materials = [];
+  List<_ModuleItem> _modules = [];
+  ModuleMaterial? _activeMaterial;
+  int _activeModuleNumber = 1;
 
   @override
   void initState() {
     super.initState();
     _startTimer();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final modules = await _repository.getCourseLessons(widget.course.id);
+    if (!mounted) return;
+    setState(() {
+      _applyModules(modules);
+      _isLoading = false;
+    });
+  }
+
+  void _applyModules(List<(ModuleMaterial, String)> data) {
+    _materials = data;
+
+    int activeIndex = data.indexWhere((e) => e.$2 == 'in_progress');
+    if (activeIndex == -1) {
+      activeIndex = data.indexWhere((e) => e.$2 != 'completed');
+    }
+
+    _modules = [
+      for (var i = 0; i < data.length; i++)
+        _toModuleItem(data[i].$1, data[i].$2, i, activeIndex),
+    ];
+
+    if (activeIndex != -1) {
+      _activeMaterial = data[activeIndex].$1;
+    } else if (data.isNotEmpty) {
+      _activeMaterial = data.last.$1;
+    }
+
+    if (_activeMaterial != null) {
+      final moduleIds = <String>[];
+      for (final entry in data) {
+        if (!moduleIds.contains(entry.$1.moduleId)) moduleIds.add(entry.$1.moduleId);
+      }
+      _activeModuleNumber = moduleIds.indexOf(_activeMaterial!.moduleId) + 1;
+    }
+  }
+
+  _ModuleItem _toModuleItem(ModuleMaterial material, String status, int index, int activeIndex) {
+    final _ModuleState state;
+    if (status == 'completed') {
+      state = _ModuleState.completed;
+    } else if (index == activeIndex) {
+      state = _ModuleState.active;
+    } else {
+      state = _ModuleState.locked;
+    }
+    return _ModuleItem(material.name, _subtitleFor(material, state), state, _badgeFor(material, state));
+  }
+
+  String _subtitleFor(ModuleMaterial material, _ModuleState state) {
+    switch (material.type) {
+      case MaterialType.video:
+      case MaterialType.lesson:
+        final dur = material.content['durationMinutes'];
+        final label = dur != null ? '${dur}m' : 'Video';
+        switch (state) {
+          case _ModuleState.completed:
+            return '$label • Completed';
+          case _ModuleState.active:
+            return '$label • Playing Now';
+          case _ModuleState.locked:
+            return '$label • Locked';
+        }
+      case MaterialType.quiz:
+        final timeAllocated = material.content['timeAllocatedMinutes'];
+        final label = timeAllocated != null ? '${timeAllocated}m' : 'Exam';
+        return '$label • Comprehensive';
+      case MaterialType.assignment:
+        return 'Assignment';
+    }
+  }
+
+  String _badgeFor(ModuleMaterial material, _ModuleState state) {
+    switch (state) {
+      case _ModuleState.completed:
+        return 'Completed';
+      case _ModuleState.active:
+        return 'Active';
+      case _ModuleState.locked:
+        if (material.type == MaterialType.quiz) {
+          final qLen = material.content['quizLength'];
+          if (qLen != null) return '$qLen Qs';
+        }
+        return 'Locked';
+    }
   }
 
   @override
@@ -78,6 +166,12 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -461,6 +555,14 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
   }
 
   Widget _buildLessonMeta() {
+    final active = _activeMaterial;
+    final durationMinutes = active?.content['durationMinutes'];
+    final durationLabel =
+        durationMinutes != null ? '$durationMinutes Minutes Streaming Required' : 'Self-paced';
+    final title = active?.name ?? 'Lesson';
+    final description = (active?.content['transcript'] as String?) ??
+        (active?.content['instruction'] as String?) ??
+        '';
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -482,21 +584,21 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        _badge('MODULE 04', AppColors.secondaryFixed, const Color(0xFF00174B)),
+                        _badge('MODULE ${_activeModuleNumber.toString().padLeft(2, '0')}', AppColors.secondaryFixed, const Color(0xFF00174B)),
                         _badge('Lecture & Practical Lab', AppColors.surfaceContainer, AppColors.onSurfaceVariant),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.schedule, size: 14, color: AppColors.onSurfaceVariant),
                             const SizedBox(width: 4),
-                            Text('16 Minutes Streaming Required', style: AppTypography.bodySm()),
+                            Text(durationLabel, style: AppTypography.bodySm()),
                           ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Lesson 04: Chemical Handling, SDS Protocols & Hazard Containment',
+                      title,
                       style: AppTypography.headlineLg(color: AppColors.onSurface),
                     ),
                   ],
@@ -507,10 +609,11 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            'This module covers standardized chemical container labeling, primary vs. secondary vessel safety under GHS Revision 8, interpreting 16-section Safety Data Sheets (SDS), and immediate physical containment actions during an emergency spill protocol. Completion logs required under OSHA Standard 1910.1200.',
-            style: AppTypography.bodyMd(),
-          ),
+          if (description.isNotEmpty)
+            Text(
+              description,
+              style: AppTypography.bodyMd(),
+            ),
           const SizedBox(height: 16),
           Divider(color: AppColors.outlineVariant.withValues(alpha: 0.4), height: 1),
           const SizedBox(height: 16),
@@ -1094,7 +1197,7 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
               children: [
                 Text('Curriculum Modules', style: AppTypography.headlineSm()),
                 const Spacer(),
-                Text('8 Modules • 3.2 hrs', style: AppTypography.bodySm()),
+                Text(_curriculumSummary, style: AppTypography.bodySm()),
               ],
             ),
           ),
@@ -1176,6 +1279,15 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+  String get _curriculumSummary {
+    final totalMinutes = _materials.fold<int>(0, (sum, e) {
+      final dur = e.$1.content['durationMinutes'];
+      return sum + (dur is int ? dur : (dur is num ? dur.toInt() : 0));
+    });
+    final hrs = totalMinutes / 60;
+    return '${_modules.length} Modules • ${hrs.toStringAsFixed(1)} hrs';
+  }
+
   Widget _badge(String text, Color bg, Color fg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1420,20 +1532,21 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
             spacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('MODULE 04', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+              Text('MODULE ${_activeModuleNumber.toString().padLeft(2, '0')}', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
               Text('•', style: AppTypography.labelSm()),
               Text('Lecture & Practical Lab', style: AppTypography.labelSm()),
               Text('•', style: AppTypography.labelSm()),
-              Text('16m Streaming', style: AppTypography.labelSm()),
+              Text(_activeMaterial?.content['durationMinutes'] != null ? '${_activeMaterial!.content['durationMinutes']}m Streaming' : 'Self-paced', style: AppTypography.labelSm()),
             ],
           ),
           const SizedBox(height: 8),
-          Text('Lesson 04: Chemical Handling, SDS Protocols & Hazard Containment', style: AppTypography.headlineMd(color: AppColors.onSurface)),
+          Text(_activeMaterial?.name ?? 'Lesson', style: AppTypography.headlineMd(color: AppColors.onSurface)),
           const SizedBox(height: 8),
-          Text(
-            'This module covers standardized chemical container labeling, primary vs. secondary vessel safety under GHS Revision 8, interpreting 16-section Safety Data Sheets (SDS), and immediate physical containment actions during an emergency spill protocol.',
-            style: AppTypography.bodyMd(),
-          ),
+          if ((_activeMaterial?.content['transcript'] as String?)?.isNotEmpty ?? false)
+            Text(
+              _activeMaterial!.content['transcript'] as String,
+              style: AppTypography.bodyMd(),
+            ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -1645,7 +1758,7 @@ class _CourseInfoScreen2State extends State<CourseInfoScreen2> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Course Syllabus', style: AppTypography.headlineSm(color: AppColors.onSurface).copyWith(fontSize: 14)),
-                      Text('8 Modules • 3.2 Total Hours', style: AppTypography.bodySm()),
+                      Text(_curriculumSummary, style: AppTypography.bodySm()),
                     ],
                   ),
                 ),

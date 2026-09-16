@@ -1,7 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide MaterialType;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
-import 'package:stitch_aiei_lms/data/datasources/mock_courses_data_source.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_courses_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
@@ -24,7 +30,82 @@ class CourseDashboardScreen extends StatefulWidget {
 }
 
 class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
+  final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
+  final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  final _materialProgressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
+  final _coursesRepository = SupabaseCoursesRepositoryImpl(Supabase.instance.client);
+
+  bool _isLoading = true;
   bool _showAnnouncementForm = false;
+
+  String _courseTitle = 'Course';
+  String _courseCode = 'PY-402';
+  int? _capacity;
+  int _enrolledCount = 0;
+  int _avgProgress = 0;
+  int _assignmentsToGrade = 0;
+  int _quizzesToGrade = 0;
+  int _flaggedCount = 0;
+  int _moduleCount = 0;
+  int _materialCount = 0;
+  List<_DeadlineItem> _deadlines = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
+    final students = await _rosterRepository.getCourseRoster(DemoIdentity.coursePyId);
+    final modules = await _facultyRepository.getCourseModules(DemoIdentity.coursePyId);
+    final materials = await _facultyRepository.getCourseMaterials(DemoIdentity.coursePyId);
+    final assignmentSubs = await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id);
+    final quizSubs = await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialComplianceQuizId);
+    if (!mounted) return;
+
+    final course = assignedCourses.where((c) => c.courseId == DemoIdentity.coursePyId).firstOrNull;
+
+    final avgProgress = students.isEmpty
+        ? 0
+        : (students.fold<int>(0, (sum, s) => sum + s.progressPercentage) / students.length).round();
+    final assignmentsToGrade = assignmentSubs.where((p) => p.status == 'completed' && p.score == null).length;
+    final quizzesToGrade = quizSubs.where((p) => p.status == 'completed' && p.score == null).length;
+    final assignmentSubmittedCount = assignmentSubs.where((p) => p.status == 'completed').length;
+    final quizSubmittedCount = quizSubs.where((p) => p.status == 'completed').length;
+    final flaggedCount = students.where((s) => s.riskStatus == 'critical').length;
+
+    final deadlineMaterials = materials.where((m) => m.dueAt != null).toList()
+      ..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
+
+    final deadlines = [
+      for (final m in deadlineMaterials)
+        _DeadlineItem(
+          material: m,
+          submittedCount: m.id == DemoIdentity.materialAssignment02Id
+              ? assignmentSubmittedCount
+              : m.id == DemoIdentity.materialComplianceQuizId
+                  ? quizSubmittedCount
+                  : null,
+        ),
+    ];
+
+    setState(() {
+      _courseTitle = course?.title ?? 'Course';
+      _courseCode = course?.courseCode ?? _courseCode;
+      _capacity = course?.capacity;
+      _enrolledCount = students.length;
+      _avgProgress = avgProgress;
+      _assignmentsToGrade = assignmentsToGrade;
+      _quizzesToGrade = quizzesToGrade;
+      _flaggedCount = flaggedCount;
+      _moduleCount = modules.length;
+      _materialCount = materials.length;
+      _deadlines = deadlines;
+      _isLoading = false;
+    });
+  }
 
   void _handleNav(FacultyNavDestination dest) {
     switch (dest) {
@@ -40,8 +121,14 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     }
   }
 
-  void _previewAsStudent() {
-    final course = MockCoursesDataSource.courses.firstWhere((c) => c.id == 'c1-python');
+  Future<void> _previewAsStudent() async {
+    final courses = await _coursesRepository.getEnrolledCourses();
+    final course = courses.where((c) => c.id == DemoIdentity.coursePyId).firstOrNull;
+    if (!mounted) return;
+    if (course == null) {
+      _notAvailable();
+      return;
+    }
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => CourseInfoScreen(course: course)));
   }
 
@@ -51,8 +138,55 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     );
   }
 
+  // ---------------------------------------------------------------------
+  // Deadline CTA wiring — only the assignment/quiz materials this demo is
+  // hard-wired to have a real grading screen; other due materials fall
+  // back to a generic "not available" action.
+  // ---------------------------------------------------------------------
+
+  IconData _iconForMaterial(ModuleMaterial m) {
+    switch (m.type) {
+      case MaterialType.assignment:
+        return Icons.terminal;
+      case MaterialType.quiz:
+        return Icons.rule_outlined;
+      case MaterialType.video:
+        return Icons.play_circle_outline;
+      case MaterialType.lesson:
+        return Icons.menu_book_outlined;
+    }
+  }
+
+  (String, IconData?, bool) _ctaForMaterial(ModuleMaterial m) {
+    if (m.id == DemoIdentity.materialAssignment02Id) {
+      return ('Grade Submissions', Icons.arrow_forward, true);
+    }
+    if (m.id == DemoIdentity.materialComplianceQuizId) {
+      return ('Review Answers', Icons.checklist, false);
+    }
+    return ('View Details', null, false);
+  }
+
+  VoidCallback _onTapForMaterial(ModuleMaterial m) {
+    if (m.id == DemoIdentity.materialAssignment02Id) {
+      return () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));
+    }
+    if (m.id == DemoIdentity.materialComplianceQuizId) {
+      return () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeQuizScreen()));
+    }
+    return _notAvailable;
+  }
+
+  String _formatDue(DateTime dt) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return 'Due ${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -126,7 +260,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               ),
             ),
             const SizedBox(height: 6),
-            Text('Python for Enterprise Data Analysis & Automation', style: FacultyTypography.displayLg()),
+            Text(_courseTitle, style: FacultyTypography.displayLg()),
             const SizedBox(height: 6),
             Wrap(
               spacing: 8,
@@ -134,7 +268,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               children: [
                 _tag('ACTIVE COHORT', FacultyColors.tertiaryContainer, Colors.white, dot: true),
                 _tag('TERM: FALL 2025', FacultyColors.surfaceContainer, FacultyColors.onSurfaceVariant),
-                _tag('COURSE ID: PY-402', FacultyColors.surfaceContainerHigh, FacultyColors.onSurface),
+                _tag('COURSE ID: $_courseCode', FacultyColors.surfaceContainerHigh, FacultyColors.onSurface),
               ],
             ),
           ],
@@ -195,14 +329,14 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
-        _kpiCard('ENROLLED STUDENTS', '42', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
-            footer: '+4 this week from waitlist', footerColor: FacultyColors.tertiary, footerIcon: Icons.trending_up),
-        _kpiCard('ASSIGNMENTS TO GRADE', '14', Icons.assignment_turned_in_outlined, FacultyColors.onSecondaryFixedVariant, FacultyColors.secondaryContainer,
-            footer: '14 pending submissions', footerColor: FacultyColors.onSecondaryFixedVariant, pillFooter: true),
-        _kpiCard('QUIZZES TO GRADE', '8', Icons.quiz_outlined, FacultyColors.primary, FacultyColors.surfaceContainerHigh,
-            footer: '8 open-ended manual checks'),
-        _kpiCard('AVG. COHORT PROGRESS', '72%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
-            progress: 0.72),
+        _kpiCard('ENROLLED STUDENTS', '$_enrolledCount', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
+            footer: 'Live roster count'),
+        _kpiCard('ASSIGNMENTS TO GRADE', '$_assignmentsToGrade', Icons.assignment_turned_in_outlined, FacultyColors.onSecondaryFixedVariant, FacultyColors.secondaryContainer,
+            footer: '$_assignmentsToGrade pending submissions', footerColor: FacultyColors.onSecondaryFixedVariant, pillFooter: true),
+        _kpiCard('QUIZZES TO GRADE', '$_quizzesToGrade', Icons.quiz_outlined, FacultyColors.primary, FacultyColors.surfaceContainerHigh,
+            footer: '$_quizzesToGrade open-ended manual checks'),
+        _kpiCard('AVG. COHORT PROGRESS', '$_avgProgress%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
+            progress: _avgProgress / 100),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -297,56 +431,42 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 const Icon(Icons.event_note_outlined, color: FacultyColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Expanded(child: Text('Upcoming Deadlines & Schedule', style: FacultyTypography.headlineMd())),
-                Text('3 items queued', style: FacultyTypography.labelXs()),
+                Text('${_deadlines.length} items queued', style: FacultyTypography.labelXs()),
               ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                _deadlineRow(
-                  icon: Icons.terminal,
-                  title: 'Assignment 02: Building Automated Data Pipelines',
-                  dueText: 'Due Nov 15',
-                  dueColor: FacultyColors.error,
-                  meta: '36 submitted / 42 total',
-                  ctaLabel: 'Grade Submissions',
-                  ctaIcon: Icons.arrow_forward,
-                  ctaPrimary: true,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen())),
-                ),
-                const SizedBox(height: 12),
-                _deadlineRow(
-                  icon: Icons.rule_outlined,
-                  title: 'Quiz 03: Compliance & Schema Handling',
-                  dueText: 'Due Nov 18',
-                  dueColor: FacultyColors.onSurface,
-                  meta: '40 submitted / 42 total',
-                  ctaLabel: 'Review Answers',
-                  ctaIcon: Icons.checklist,
-                  ctaPrimary: false,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeQuizScreen())),
-                ),
-                const SizedBox(height: 12),
-                _deadlineRow(
-                  icon: Icons.flag_outlined,
-                  title: 'Final Capstone Project Release',
-                  dueText: 'Scheduled for Dec 01, 2025',
-                  dueColor: FacultyColors.onSurfaceVariant,
-                  meta: null,
-                  badge: 'Upcoming',
-                  ctaLabel: 'Edit Schedule',
-                  ctaIcon: null,
-                  ctaPrimary: false,
-                  muted: true,
-                  onTap: _notAvailable,
-                ),
-              ],
-            ),
+            child: _deadlines.isEmpty
+                ? Text('No upcoming deadlines for this course.', style: FacultyTypography.bodySm())
+                : Column(
+                    children: [
+                      for (var i = 0; i < _deadlines.length; i++) ...[
+                        if (i > 0) const SizedBox(height: 12),
+                        _deadlineRowFor(_deadlines[i]),
+                      ],
+                    ],
+                  ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _deadlineRowFor(_DeadlineItem item) {
+    final m = item.material;
+    final overdue = m.dueAt!.isBefore(DateTime.now());
+    final (ctaLabel, ctaIcon, ctaPrimary) = _ctaForMaterial(m);
+    return _deadlineRow(
+      icon: _iconForMaterial(m),
+      title: m.name,
+      dueText: _formatDue(m.dueAt!),
+      dueColor: overdue ? FacultyColors.error : FacultyColors.onSurfaceVariant,
+      meta: item.submittedCount != null ? '${item.submittedCount} submitted / $_enrolledCount total' : null,
+      ctaLabel: ctaLabel,
+      ctaIcon: ctaIcon,
+      ctaPrimary: ctaPrimary,
+      onTap: _onTapForMaterial(m),
     );
   }
 
@@ -460,6 +580,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   }
 
   Widget _buildQuickSettingsCard() {
+    final capacityText = _capacity != null ? '$_enrolledCount / $_capacity' : '$_enrolledCount';
+    final seatsRemaining = _capacity != null ? '${(_capacity! - _enrolledCount).clamp(0, _capacity!)} seats remaining' : 'Live roster count';
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -504,7 +626,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
             final items = [
               _infoTile('Passing Criteria', '80%', 'Weighted total grade'),
-              _infoTile('Enrollment Capacity', '42 / 50', '8 seats remaining'),
+              _infoTile('Enrollment Capacity', capacityText, seatsRemaining),
               _infoTile('Granted Credential', 'Enterprise Python Specialist', 'Accredited', badge: true),
             ];
             return Wrap(spacing: 16, runSpacing: 16, children: items.map((i) => SizedBox(width: width, child: i)).toList());
@@ -557,7 +679,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             iconBg: FacultyColors.primary,
             iconColor: Colors.white,
             title: 'Curriculum & Materials',
-            subtitle: '4 core modules • 28 assets uploaded',
+            subtitle: '$_moduleCount core modules • $_materialCount assets uploaded',
             ctaLabel: 'Manage',
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CurriculumManagerScreen())),
           ),
@@ -567,8 +689,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             iconBg: FacultyColors.surfaceContainerHigh,
             iconColor: FacultyColors.primary,
             title: 'Student Directory',
-            subtitle: '42 active learners',
-            trailingBadge: '3 flagged',
+            subtitle: '$_enrolledCount active learners',
+            trailingBadge: _flaggedCount > 0 ? '$_flaggedCount flagged' : null,
             ctaLabel: 'View',
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen())),
           ),
@@ -876,12 +998,12 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             children: [
               _tag('ACTIVE COHORT', FacultyColors.tertiaryContainer, Colors.white, dot: true),
               _tag('TERM: FALL 2025', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
-              _tag('PY-402', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
+              _tag(_courseCode, FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'Python for Enterprise Data Analysis & Automation',
+            _courseTitle,
             style: FacultyTypography.headlineLg(color: FacultyColors.primary),
           ),
           const SizedBox(height: 4),
@@ -916,8 +1038,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                   icon: Icons.group,
                   iconBg: FacultyColors.surfaceContainer,
                   iconColor: FacultyColors.secondary,
-                  cornerBadge: _mobileBadgePill('+4 waitlist', FacultyColors.surfaceContainerLow, FacultyColors.tertiary),
-                  value: '42',
+                  cornerBadge: _mobileBadgePill('Live', FacultyColors.surfaceContainerLow, FacultyColors.tertiary),
+                  value: '$_enrolledCount',
                   label: 'Enrolled Students',
                 ),
               ),
@@ -927,8 +1049,13 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                   icon: Icons.assignment_turned_in,
                   iconBg: FacultyColors.errorContainer.withValues(alpha: 0.4),
                   iconColor: FacultyColors.error,
-                  cornerBadge: _mobileBadgePill('Action req.', FacultyColors.errorContainer, FacultyColors.onErrorContainer, bold: true),
-                  value: '14',
+                  cornerBadge: _mobileBadgePill(
+                    _assignmentsToGrade > 0 ? 'Action req.' : 'Clear',
+                    FacultyColors.errorContainer,
+                    FacultyColors.onErrorContainer,
+                    bold: true,
+                  ),
+                  value: '$_assignmentsToGrade',
                   label: 'Assignments to Grade',
                 ),
               ),
@@ -945,8 +1072,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                   icon: Icons.quiz,
                   iconBg: FacultyColors.surfaceContainer,
                   iconColor: FacultyColors.secondary,
-                  cornerBadge: _mobileBadgePill('8 checks', FacultyColors.surfaceContainer, FacultyColors.secondary),
-                  value: '8',
+                  cornerBadge: _mobileBadgePill('$_quizzesToGrade checks', FacultyColors.surfaceContainer, FacultyColors.secondary),
+                  value: '$_quizzesToGrade',
                   label: 'Quizzes to Grade',
                 ),
               ),
@@ -960,13 +1087,13 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                     width: 26,
                     height: 26,
                     child: CircularProgressIndicator(
-                      value: 0.72,
+                      value: _avgProgress / 100,
                       strokeWidth: 3,
                       backgroundColor: FacultyColors.surfaceContainerHigh,
                       valueColor: const AlwaysStoppedAnimation<Color>(FacultyColors.secondary),
                     ),
                   ),
-                  value: '72%',
+                  value: '$_avgProgress%',
                   label: 'Cohort Progress',
                 ),
               ),
@@ -1046,45 +1173,45 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               child: Text('Grading Queue & Deadlines', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
             ),
             const SizedBox(width: 6),
-            _mobileBadgePill('3 Active', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant, bold: true),
+            _mobileBadgePill('${_deadlines.length} Active', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant, bold: true),
           ],
         ),
         const SizedBox(height: 10),
-        _mobileQueueCard(
-          badgeText: 'High Priority',
-          badgeBg: FacultyColors.errorContainer.withValues(alpha: 0.4),
-          badgeFg: FacultyColors.error,
-          title: 'Assignment 02: Building Automated Data Pipelines',
-          subtitle: 'Due Nov 15, 2025 • 36 / 42 Students Submitted',
-          progressLabel: 'Submission Status',
-          progressValueText: '85% turned in',
-          progressValue: 0.857,
-          buttonLabel: 'Grade Submissions (14)',
-          buttonIcon: Icons.arrow_forward,
-          buttonBg: FacultyColors.secondary,
-          buttonFg: Colors.white,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen())),
-        ),
-        const SizedBox(height: 10),
-        _mobileQueueCard(
-          badgeText: 'Evaluation',
-          badgeBg: FacultyColors.surfaceContainer,
-          badgeFg: FacultyColors.secondary,
-          title: 'Quiz 03: Compliance & Schema Handling',
-          subtitle: 'Due Nov 18, 2025 • 40 / 42 Students Submitted',
-          progressLabel: 'Completion Metric',
-          progressValueText: '95% completed',
-          progressValue: 0.952,
-          buttonLabel: 'Review Answers (8)',
-          buttonIcon: Icons.rate_review,
-          buttonBg: FacultyColors.surfaceContainer,
-          buttonFg: FacultyColors.secondary,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeQuizScreen())),
-        ),
-        const SizedBox(height: 10),
-        _mobileUpcomingCard(),
+        if (_deadlines.isEmpty)
+          Text('No upcoming deadlines for this course.', style: FacultyTypography.bodySm())
+        else
+          for (var i = 0; i < _deadlines.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _mobileDeadlineCardFor(_deadlines[i]),
+          ],
       ],
     );
+  }
+
+  Widget _mobileDeadlineCardFor(_DeadlineItem item) {
+    final m = item.material;
+    final (ctaLabel, ctaIcon, ctaPrimary) = _ctaForMaterial(m);
+    if (item.submittedCount != null) {
+      final ratio = _enrolledCount == 0 ? 0.0 : item.submittedCount! / _enrolledCount;
+      return _mobileQueueCard(
+        badgeText: m.type == MaterialType.assignment ? 'High Priority' : 'Evaluation',
+        badgeBg: m.type == MaterialType.assignment
+            ? FacultyColors.errorContainer.withValues(alpha: 0.4)
+            : FacultyColors.surfaceContainer,
+        badgeFg: m.type == MaterialType.assignment ? FacultyColors.error : FacultyColors.secondary,
+        title: m.name,
+        subtitle: '${_formatDue(m.dueAt!)} • ${item.submittedCount} / $_enrolledCount Students Submitted',
+        progressLabel: 'Submission Status',
+        progressValueText: '${(ratio * 100).toStringAsFixed(0)}% turned in',
+        progressValue: ratio,
+        buttonLabel: '$ctaLabel${m.type == MaterialType.assignment ? ' ($_assignmentsToGrade)' : ' ($_quizzesToGrade)'}',
+        buttonIcon: ctaIcon ?? Icons.arrow_forward,
+        buttonBg: ctaPrimary ? FacultyColors.secondary : FacultyColors.surfaceContainer,
+        buttonFg: ctaPrimary ? Colors.white : FacultyColors.secondary,
+        onTap: _onTapForMaterial(m),
+      );
+    }
+    return _mobileUpcomingCardFor(item);
   }
 
   Widget _mobileQueueCard({
@@ -1178,7 +1305,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     );
   }
 
-  Widget _mobileUpcomingCard() {
+  Widget _mobileUpcomingCardFor(_DeadlineItem item) {
+    final m = item.material;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1199,13 +1327,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     _mobileBadgePill('Upcoming', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant, bold: true),
-                    Text('Dec 01, 2025', style: FacultyTypography.bodySm()),
+                    Text(_formatDue(m.dueAt!), style: FacultyTypography.bodySm()),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('Final Capstone Project Release', style: FacultyTypography.titleSm(color: FacultyColors.primary), maxLines: 2, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('Architecture review & automated rubric setup', style: FacultyTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(m.name, style: FacultyTypography.titleSm(color: FacultyColors.primary), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -1251,7 +1377,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
           iconBg: FacultyColors.surfaceContainer,
           iconColor: FacultyColors.secondary,
           title: 'Curriculum & Materials',
-          subtitle: '4 core modules • 28 assets uploaded',
+          subtitle: '$_moduleCount core modules • $_materialCount assets uploaded',
           buttonLabel: 'Manage',
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CurriculumManagerScreen())),
         ),
@@ -1260,9 +1386,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
           icon: Icons.badge,
           iconBg: FacultyColors.surfaceContainerLow,
           iconColor: FacultyColors.primary,
-          badgeCount: '3',
+          badgeCount: _flaggedCount > 0 ? '$_flaggedCount' : null,
           title: 'Student Directory',
-          subtitle: '42 active learners • 3 flagged for follow-up',
+          subtitle: _flaggedCount > 0
+              ? '$_enrolledCount active learners • $_flaggedCount flagged for follow-up'
+              : '$_enrolledCount active learners',
           buttonLabel: 'View Roster',
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen())),
         ),
@@ -1510,7 +1638,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
           const SizedBox(height: 10),
           _mobileGovernanceTile('Passing Benchmark', '80% Aggregate', 'Inclusive of capstone audit'),
           const SizedBox(height: 8),
-          _mobileGovernanceTile('Cohort Capacity', '42 / 50 Enrolled', '8 enterprise seats remaining'),
+          _mobileGovernanceTile(
+            'Cohort Capacity',
+            _capacity != null ? '$_enrolledCount / $_capacity Enrolled' : '$_enrolledCount Enrolled',
+            _capacity != null ? '${(_capacity! - _enrolledCount).clamp(0, _capacity!)} enterprise seats remaining' : 'Live roster count',
+          ),
           const SizedBox(height: 8),
           _mobileGovernanceTile('Target Credential', 'Enterprise Python Specialist', 'AIEI Industry Accreditation'),
         ],
@@ -1535,4 +1667,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       ),
     );
   }
+}
+
+class _DeadlineItem {
+  final ModuleMaterial material;
+  final int? submittedCount;
+
+  const _DeadlineItem({required this.material, this.submittedCount});
 }

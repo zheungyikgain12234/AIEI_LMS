@@ -7,4 +7,16 @@ class DemoIdentity {
   static const String studentId = '22222222-2222-2222-2222-222222222201';
   static const String lecturerId = '11111111-1111-1111-1111-111111111101';
   static const String adminId = '33333333-3333-3333-3333-333333333301';
+
+  // ── Courses (see "Courses" block in supabase/seed.sql) ──────────────────
+  static const String coursePyId = '44444444-4444-4444-4444-444444444401'; // PY-402
+  static const String courseOsheId = '44444444-4444-4444-4444-444444444402'; // OSHE-101
+  static const String courseSecId = '44444444-4444-4444-4444-444444444405'; // SEC-410
+
+  // ── Specific module_materials this demo's student-facing submission /
+  // faculty-facing grading screens are hard-wired to (see comments beside
+  // the matching rows in supabase/seed.sql). ──────────────────────────────
+  static const String materialAssignment02Id = '66666666-6666-6666-6666-666666666611';
+  static const String materialComplianceQuizId = '66666666-6666-6666-6666-666666666612';
+  static const String materialOsheFinalExamId = '66666666-6666-6666-6666-666666666627';
 }

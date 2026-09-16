@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide MaterialType;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/course_module.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -20,8 +25,173 @@ class CurriculumManagerScreen extends StatefulWidget {
 }
 
 class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
-  final Set<int> _expanded = {2};
-  bool _module3Published = false;
+  final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
+  bool _isLoading = true;
+  List<CourseModule> _modules = [];
+  Map<String, List<ModuleMaterial>> _materialsByModule = {};
+  List<ModuleMaterial> _allMaterials = [];
+  String? _courseCode;
+
+  final Set<int> _expanded = {};
+  final Set<String> _locallyPublishedModuleIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final modules = await _facultyRepository.getCourseModules(DemoIdentity.coursePyId);
+    final materials = await _facultyRepository.getCourseMaterials(DemoIdentity.coursePyId);
+    final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
+    if (!mounted) return;
+
+    final byModule = <String, List<ModuleMaterial>>{};
+    for (final material in materials) {
+      byModule.putIfAbsent(material.moduleId, () => []).add(material);
+    }
+
+    String? courseCode;
+    for (final course in assignedCourses) {
+      if (course.courseId == DemoIdentity.coursePyId) {
+        courseCode = course.courseCode;
+        break;
+      }
+    }
+
+    setState(() {
+      _modules = modules;
+      _materialsByModule = byModule;
+      _allMaterials = materials;
+      _courseCode = courseCode;
+      if (modules.isNotEmpty) _expanded.add(1);
+      _isLoading = false;
+    });
+  }
+
+  // ── Derived counts (real data — no invented numbers) ────────────────────
+  int get _publishedModuleCount => _modules.where((m) => m.isPublished).length;
+  int get _draftModuleCount => _modules.length - _publishedModuleCount;
+
+  int _lessonCount(CourseModule module) => (_materialsByModule[module.id] ?? const []).length;
+
+  int _fileCount(CourseModule module) =>
+      (_materialsByModule[module.id] ?? const []).fold(0, (sum, m) => sum + m.attachedFiles.length);
+
+  List<Map<String, dynamic>> get _allAttachedFiles => [
+        for (final m in _allMaterials) ...m.attachedFiles,
+      ];
+
+  int get _videoFilterCount => _allMaterials.where((m) => m.type == MaterialType.video).length;
+  int get _docFilterCount => _allAttachedFiles.where((f) => f['kind'] == 'doc').length;
+  int get _codeFilterCount => _allAttachedFiles.where((f) => f['kind'] == 'code').length;
+  int get _datasetFilterCount => _allAttachedFiles.where((f) => f['kind'] == 'dataset').length;
+  int get _allFilterCount => _videoFilterCount + _docFilterCount + _codeFilterCount + _datasetFilterCount;
+
+  String _formatDate(DateTime dt) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[dt.month - 1]} ${dt.day}';
+  }
+
+  String _formatDueDate(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '${_formatDate(dt)}, $h:$m';
+  }
+
+  IconData _materialIcon(ModuleMaterial m) {
+    switch (m.type) {
+      case MaterialType.video:
+        return Icons.play_circle_outline;
+      case MaterialType.lesson:
+        return Icons.menu_book_outlined;
+      case MaterialType.quiz:
+        return Icons.quiz_outlined;
+      case MaterialType.assignment:
+        return Icons.assignment_outlined;
+    }
+  }
+
+  Color _materialIconColor(ModuleMaterial m) {
+    switch (m.type) {
+      case MaterialType.video:
+        return FacultyColors.primary;
+      case MaterialType.lesson:
+        return FacultyColors.tertiary;
+      case MaterialType.quiz:
+        return FacultyColors.secondary;
+      case MaterialType.assignment:
+        return FacultyColors.tertiary;
+    }
+  }
+
+  String _materialMeta(ModuleMaterial m) {
+    final duration = m.content['durationMinutes'];
+    if (m.type == MaterialType.video && duration != null) return '$duration mins';
+    if (m.type == MaterialType.quiz) {
+      final len = m.content['quizLength'] ?? (m.content['mcqQuestions'] as List?)?.length;
+      if (len != null) return '$len Qs';
+    }
+    return '';
+  }
+
+  String _materialSubtitle(ModuleMaterial m) {
+    String base;
+    switch (m.type) {
+      case MaterialType.video:
+        base = 'HD Video';
+        break;
+      case MaterialType.lesson:
+        base = 'Reading material';
+        break;
+      case MaterialType.quiz:
+        final timeMin = m.content['timeAllocatedMinutes'];
+        base = timeMin != null ? 'Quiz • $timeMin min time limit' : 'Quiz';
+        break;
+      case MaterialType.assignment:
+        base = 'Assignment';
+        break;
+    }
+    if (m.dueAt != null) base += ' • Due ${_formatDate(m.dueAt!)}';
+    return base;
+  }
+
+  IconData _fileKindIcon(String kind) {
+    switch (kind) {
+      case 'dataset':
+        return Icons.table_chart_outlined;
+      case 'code':
+        return Icons.terminal;
+      case 'doc':
+      default:
+        return Icons.description_outlined;
+    }
+  }
+
+  Color _fileKindColor(String kind) {
+    switch (kind) {
+      case 'dataset':
+        return FacultyColors.tertiaryContainer;
+      case 'code':
+        return FacultyColors.primaryContainer;
+      case 'doc':
+      default:
+        return FacultyColors.error;
+    }
+  }
+
+  String _fileKindLabel(String kind) {
+    switch (kind) {
+      case 'dataset':
+        return 'Dataset';
+      case 'code':
+        return 'Source Code';
+      case 'doc':
+      default:
+        return 'Reference Doc';
+    }
+  }
 
   void _handleNav(FacultyNavDestination dest) {
     switch (dest) {
@@ -45,6 +215,9 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -60,12 +233,10 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
           const SizedBox(height: 20),
           _buildToolbar(),
           const SizedBox(height: 20),
-          _buildModule1(),
-          const SizedBox(height: 16),
-          _buildModule2(),
-          const SizedBox(height: 16),
-          _buildModule3(),
-          const SizedBox(height: 20),
+          for (var i = 0; i < _modules.length; i++) ...[
+            _moduleCard(_modules[i], i + 1),
+            const SizedBox(height: 16),
+          ],
           _buildBottomBar(),
         ],
       ),
@@ -107,7 +278,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(color: FacultyColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(6)),
-                      child: Text('CS-408', style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700)),
+                      child: Text(_courseCode ?? 'CS-408', style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700)),
                     ),
                     Text('•', style: FacultyTypography.labelXs()),
                     Text('Fall Cohort Alpha', style: FacultyTypography.labelXs(color: FacultyColors.secondary)),
@@ -168,7 +339,9 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
       final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
-        _kpi('TOTAL MODULES', '6', '2 Published, 4 Draft', Icons.folder_copy_outlined, FacultyColors.primary, progress: 0.33),
+        _kpi('TOTAL MODULES', '${_modules.length}', '$_publishedModuleCount Published, $_draftModuleCount Draft', Icons.folder_copy_outlined,
+            FacultyColors.primary,
+            progress: _modules.isEmpty ? 0.0 : _publishedModuleCount / _modules.length),
         _kpi('INTERACTIVE SANDBOX', 'Python 3.11', 'Runtime cluster operational', Icons.terminal, FacultyColors.tertiary, extra: 'JupyterLab 4.2'),
         _kpi('ATTACHED STORAGE', '4.8 GB', '/ 10 GB Quota', Icons.storage_outlined, FacultyColors.primaryContainer, progress: 0.48),
         _kpi('STUDENT ACCESS RATE', '94.2%', 'Active on Module 2 materials', Icons.insights_outlined, FacultyColors.primary, extra: '+3.1%'),
@@ -264,11 +437,11 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                   ),
                 ),
               ),
-              _filterPill('All (18)', true),
-              _filterPill('Videos (9)', false),
-              _filterPill('Documents & PDFs (4)', false),
-              _filterPill('Starter Code (3)', false),
-              _filterPill('Datasets (2)', false),
+              _filterPill('All ($_allFilterCount)', true),
+              _filterPill('Videos ($_videoFilterCount)', false),
+              _filterPill('Documents & PDFs ($_docFilterCount)', false),
+              _filterPill('Starter Code ($_codeFilterCount)', false),
+              _filterPill('Datasets ($_datasetFilterCount)', false),
             ],
           ),
           Row(
@@ -297,10 +470,10 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               const SizedBox(width: 6),
               GestureDetector(
                 onTap: () => setState(() {
-                  if (_expanded.length == 3) {
+                  if (_expanded.length == _modules.length) {
                     _expanded.clear();
                   } else {
-                    _expanded.addAll([1, 2, 3]);
+                    _expanded.addAll(List.generate(_modules.length, (i) => i + 1));
                   }
                 }),
                 child: Container(
@@ -387,7 +560,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                             ],
                           ),
                         ),
-                        if (trailing != null) trailing,
+                        ?trailing,
                         Icon(open ? Icons.expand_less : Icons.expand_more, color: FacultyColors.secondary, size: 24),
                       ],
                     ),
@@ -454,163 +627,175 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
     );
   }
 
-  Widget _buildModule1() {
+  /// Single reusable module card builder (desktop) — replaces the former
+  /// per-index _buildModule1/2/3 methods now that modules come from Supabase.
+  Widget _moduleCard(CourseModule module, int displayIndex) {
+    final materials = _materialsByModule[module.id] ?? const <ModuleMaterial>[];
+    final published = module.isPublished || _locallyPublishedModuleIds.contains(module.id);
+    final attachedFiles = [for (final m in materials) ...m.attachedFiles];
+
     return _moduleShell(
-      index: 1,
-      titleTop: 'MODULE 01',
-      badge: 'PUBLISHED',
-      badgeBg: FacultyColors.tertiaryFixed,
-      badgeFg: FacultyColors.onTertiaryFixedVariant,
+      index: displayIndex,
+      titleTop: 'MODULE ${displayIndex.toString().padLeft(2, '0')}',
+      badge: published ? 'PUBLISHED' : 'DRAFT',
+      badgeBg: published ? FacultyColors.tertiaryFixed : FacultyColors.surfaceContainerHigh,
+      badgeFg: published ? FacultyColors.onTertiaryFixedVariant : FacultyColors.secondary,
       extraBadges: [
         Text('•', style: FacultyTypography.labelXs()),
-        Text('8 Lessons • 4 Files attached', style: FacultyTypography.labelXs(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w600)),
+        if (!published && module.unlockAt != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(4)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.lock_clock, size: 11, color: FacultyColors.onSecondaryContainer),
+              const SizedBox(width: 2),
+              Text('Scheduled: Unlock ${_formatDate(module.unlockAt!)}',
+                  style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700)),
+            ]),
+          ),
+          Text('•', style: FacultyTypography.labelXs()),
+        ],
+        Text('${_lessonCount(module)} Lessons • ${_fileCount(module)} Files attached',
+            style: FacultyTypography.labelXs(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w600)),
       ],
-      title: 'Foundations of Enterprise Data Processing',
+      title: module.name,
+      trailing: published
+          ? null
+          : Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => setState(() => _locallyPublishedModuleIds.add(module.id)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(color: FacultyColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.publish, size: 14, color: FacultyColors.onSurface),
+                    const SizedBox(width: 4),
+                    Text('Publish Now', style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+            ),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Core concepts covering Python virtual environments, memory-safe tabular streams, and parsing malformed enterprise legacy formats.',
-              style: FacultyTypography.bodySm(color: FacultyColors.secondary)),
+          Text(module.description, style: FacultyTypography.bodySm(color: FacultyColors.secondary)),
           const SizedBox(height: 10),
-          _lessonRow(Icons.play_circle_outline, FacultyColors.primary, 'Lesson 1.1: Virtual Environments & Poetry Setup', '18 mins',
-              'HD Video • Captions auto-generated • Embed code ready'),
-          _lessonRow(Icons.menu_book_outlined, FacultyColors.tertiary, 'Lesson 1.2: Reading Heterogeneous Data Sources', 'Guide & Notebook',
-              'Reading material • Interactive Jupyter Notebook linked'),
-          _lessonRow(Icons.play_circle_outline, FacultyColors.primary, 'Lesson 1.3: Memory Management in Large DataFrames', '24 mins',
-              'HD Video • Garbage collector telemetry examples'),
-          _lessonRow(Icons.picture_as_pdf_outlined, FacultyColors.error, 'Python_Enterprise_CheatSheet.pdf', '',
-              'Document • 1.4 MB • Updated Aug 14'),
+          for (final material in materials)
+            if (material.id == DemoIdentity.materialAssignment02Id)
+              _assignmentRow(material)
+            else
+              _lessonRow(
+                _materialIcon(material),
+                _materialIconColor(material),
+                material.name,
+                _materialMeta(material),
+                _materialSubtitle(material),
+                status: material.isPublished ? 'Published' : 'Draft',
+              ),
+          if (attachedFiles.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.attachment, size: 16, color: FacultyColors.secondary),
+                const SizedBox(width: 4),
+                Expanded(child: Text('Attached Course Materials & Sandbox Assets (${attachedFiles.length} files)', style: FacultyTypography.titleSm())),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LayoutBuilder(builder: (context, constraints) {
+              final cols = constraints.maxWidth >= 640 ? 3 : 1;
+              final width = (constraints.maxWidth - (cols - 1) * 12) / cols;
+              final cards = [
+                for (final f in attachedFiles)
+                  _materialCard(
+                    _fileKindIcon(f['kind'] as String? ?? 'doc'),
+                    _fileKindColor(f['kind'] as String? ?? 'doc'),
+                    f['name'] as String? ?? '',
+                    '${_fileKindLabel(f['kind'] as String? ?? 'doc')} • ${f['sizeLabel'] ?? ''}',
+                    f['footer'] as String? ?? '',
+                  ),
+              ];
+              return Wrap(spacing: 12, runSpacing: 12, children: cards.map((m) => SizedBox(width: width, child: m)).toList());
+            }),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _notAvailable,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(12)),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12)),
+                        child: const Icon(Icons.upload_file_outlined, color: FacultyColors.primary, size: 24),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Drop replacement or new files here', style: FacultyTypography.titleSm()),
+                      const SizedBox(height: 2),
+                      Text('Supported: .xlsx, .py, .pdf, .zip, .csv, .ipynb (Max 250 MB)', style: FacultyTypography.labelXs(), textAlign: TextAlign.center),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8)),
+                        child: Text('Browse Local Files', style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildModule2() {
-    return _moduleShell(
-      index: 2,
-      accent: true,
-      titleTop: 'MODULE 02',
-      badge: 'PUBLISHED',
-      badgeBg: FacultyColors.tertiaryFixed,
-      badgeFg: FacultyColors.onTertiaryFixedVariant,
-      extraBadges: [
-        Text('•', style: FacultyTypography.labelXs()),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(4)),
-          child: Text('ACTIVE MODULE', style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700)),
-        ),
-        Text('•', style: FacultyTypography.labelXs()),
-        Text('6 Lessons • 6 Files attached', style: FacultyTypography.labelXs(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w600)),
-      ],
-      title: 'Automation Pipelines with Pandas & Excel',
-      trailing: Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: Text('Students here: 38/42', style: FacultyTypography.labelXs()),
-      ),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Hands-on production pipeline construction: parsing nested multi-sheet client financials, data type casting, error quarantining, and automatic CSV output sync.',
-              style: FacultyTypography.bodySm(color: FacultyColors.secondary)),
-          const SizedBox(height: 10),
-          _lessonRow(Icons.play_circle_outline, FacultyColors.primary, 'Lesson 2.1: Multi-Tab Workbook ETL Ingestion', '32 mins',
-              'Video Lecture • openpyxl vs pandas read_excel performance'),
-          _lessonRow(Icons.play_circle_outline, FacultyColors.primary, 'Lesson 2.2: Schema Sanitization & Date Formatting', '21 mins',
-              'Video Lecture • Handling mismatched regional dates & string casting'),
-          _lessonRow(Icons.code, FacultyColors.tertiary, 'Lesson 2.3: Automated Quarantine Routing for Corrupted Rows', 'Code Walkthrough',
-              'Interactive Python script • PyTest suite included'),
-          GestureDetector(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen())),
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: FacultyColors.surfaceContainerHigh.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(10)),
-                child: Row(
+  /// Special-cased row for the Assignment 02 material (the one wired to the
+  /// grading flow via GradeAssignmentScreen) — kept from the original design,
+  /// now triggered by matching DemoIdentity.materialAssignment02Id.
+  Widget _assignmentRow(ModuleMaterial material) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen())),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: FacultyColors.surfaceContainerHigh.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(10)),
+          child: Row(
+            children: [
+              const Icon(Icons.drag_handle, size: 18, color: FacultyColors.outline),
+              const SizedBox(width: 8),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(color: FacultyColors.primary, borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.assignment_outlined, color: Colors.white, size: 16),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.drag_handle, size: 18, color: FacultyColors.outline),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(color: FacultyColors.primary, borderRadius: BorderRadius.circular(8)),
-                      child: const Icon(Icons.assignment_outlined, color: Colors.white, size: 16),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Assignment 02: Building Automated Data Pipelines',
-                              style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                          Text('Due Oct 28, 23:59 EST • Pass rate 80% • 34/42 Submitted', style: FacultyTypography.labelXs()),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8)),
-                      child: Text('View Submissions', style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700)),
-                    ),
+                    Text(material.name, style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+                    Text(material.dueAt != null ? 'Due ${_formatDueDate(material.dueAt!)}' : 'No due date set', style: FacultyTypography.labelXs()),
                   ],
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.attachment, size: 16, color: FacultyColors.secondary),
-              const SizedBox(width: 4),
-              Expanded(child: Text('Attached Course Materials & Sandbox Assets (3 files)', style: FacultyTypography.titleSm())),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8)),
+                child: Text('View Submissions', style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700)),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          LayoutBuilder(builder: (context, constraints) {
-            final cols = constraints.maxWidth >= 640 ? 3 : 1;
-            final width = (constraints.maxWidth - (cols - 1) * 12) / cols;
-            final materials = [
-              _materialCard(Icons.table_chart_outlined, FacultyColors.tertiaryContainer, 'dataset_q3_raw.xlsx', 'Dataset • 3.4 MB', 'Replaced 2 days ago'),
-              _materialCard(Icons.terminal, FacultyColors.primaryContainer, 'starter_pipeline.py', 'Source Code • 48 KB', 'Pre-configured template'),
-              _materialCard(Icons.description_outlined, FacultyColors.error, 'pipeline_architecture_spec.pdf', 'Reference Doc • 850 KB', 'Verified checksum'),
-            ];
-            return Wrap(spacing: 12, runSpacing: 12, children: materials.map((m) => SizedBox(width: width, child: m)).toList());
-          }),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: _notAvailable,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.upload_file_outlined, color: FacultyColors.primary, size: 24),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Drop replacement or new files here', style: FacultyTypography.titleSm()),
-                    const SizedBox(height: 2),
-                    Text('Supported: .xlsx, .py, .pdf, .zip, .csv, .ipynb (Max 250 MB)', style: FacultyTypography.labelXs(), textAlign: TextAlign.center),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8)),
-                      child: Text('Browse Local Files', style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -645,64 +830,6 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
     );
   }
 
-  Widget _buildModule3() {
-    return _moduleShell(
-      index: 3,
-      titleTop: 'MODULE 03',
-      badge: 'DRAFT',
-      badgeBg: FacultyColors.surfaceContainerHigh,
-      badgeFg: FacultyColors.secondary,
-      extraBadges: [
-        Text('•', style: FacultyTypography.labelXs()),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(4)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.lock_clock, size: 11, color: FacultyColors.onSecondaryContainer),
-            const SizedBox(width: 2),
-            Text('Scheduled: Unlock Nov 20', style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700)),
-          ]),
-        ),
-        Text('•', style: FacultyTypography.labelXs()),
-        Text('4 lessons queued', style: FacultyTypography.labelXs(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w600)),
-      ],
-      title: 'Enterprise Database Connectors & Async Tasks',
-      trailing: Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: GestureDetector(
-          onTap: () => setState(() {
-            _module3Published = true;
-            _expanded.add(3);
-          }),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: _module3Published ? FacultyColors.tertiaryFixed : FacultyColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(_module3Published ? Icons.check : Icons.publish, size: 14, color: _module3Published ? FacultyColors.onTertiaryFixedVariant : FacultyColors.onSurface),
-              const SizedBox(width: 4),
-              Text(_module3Published ? 'Published' : 'Publish Now',
-                  style: FacultyTypography.labelXs(color: _module3Published ? FacultyColors.onTertiaryFixedVariant : FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-            ]),
-          ),
-        ),
-      ),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Advanced topics in SQLAlchemy 2.0 async sessions, connection pooling under concurrency, and Celery asynchronous task queues.',
-              style: FacultyTypography.bodySm(color: FacultyColors.secondary)),
-          const SizedBox(height: 10),
-          _lessonRow(Icons.play_circle_outline, FacultyColors.secondary, 'Lesson 3.1: Asyncpg & Connection Pool Optimization', '',
-              'Video Lecture (Unpublished draft • Processing transcription)', status: 'Draft'),
-          _lessonRow(Icons.terminal, FacultyColors.secondary, 'Lesson 3.2: Redis Queue Integration for Batch Pipelines', '',
-              'Interactive Sandbox Environment', status: 'Draft'),
-        ],
-      ),
-    );
-  }
 
   Widget _buildBottomBar() {
     return Container(
@@ -797,12 +924,10 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
             const SizedBox(height: 10),
             _mobileFilterBar(),
             const SizedBox(height: 20),
-            _mobileModule1(),
-            const SizedBox(height: 16),
-            _mobileModule2(),
-            const SizedBox(height: 16),
-            _mobileModule3(),
-            const SizedBox(height: 20),
+            for (var i = 0; i < _modules.length; i++) ...[
+              _mobileModuleCard(_modules[i], i + 1),
+              const SizedBox(height: 16),
+            ],
             _mobileSyncBanner(),
           ],
         ),
@@ -840,7 +965,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
           child: Text(
-            'CS-408 / PY-402',
+            _courseCode ?? 'CS-408 / PY-402',
             style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(letterSpacing: 0.6),
           ),
         ),
@@ -932,14 +1057,14 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('6 Modules', style: FacultyTypography.headlineMd(color: FacultyColors.primary)),
+                Text('${_modules.length} Modules', style: FacultyTypography.headlineMd(color: FacultyColors.primary)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     Container(width: 6, height: 6, decoration: const BoxDecoration(color: FacultyColors.onTertiaryFixedVariant, shape: BoxShape.circle)),
                     const SizedBox(width: 4),
                     Expanded(
-                      child: Text('2 Published • 4 Draft',
+                      child: Text('$_publishedModuleCount Published • $_draftModuleCount Draft',
                           style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
                   ],
@@ -1100,11 +1225,11 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
 
   Widget _mobileFilterBar() {
     final filters = <(String, String, bool)>[
-      ('All', '18', true),
-      ('Videos', '9', false),
-      ('Documents & PDFs', '4', false),
-      ('Starter Code', '3', false),
-      ('Datasets', '2', false),
+      ('All', '$_allFilterCount', true),
+      ('Videos', '$_videoFilterCount', false),
+      ('Documents & PDFs', '$_docFilterCount', false),
+      ('Starter Code', '$_codeFilterCount', false),
+      ('Datasets', '$_datasetFilterCount', false),
     ];
     return SizedBox(
       height: 36,
@@ -1237,20 +1362,15 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
     );
   }
 
-  Widget _mobileTuneButton() {
-    return GestureDetector(
-      onTap: _notAvailable,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8)),
-        child: const Icon(Icons.tune, size: 16, color: FacultyColors.secondary),
-      ),
-    );
-  }
+  /// Single reusable module card builder (mobile) — replaces the former
+  /// per-index _mobileModule1/2/3 methods now that modules come from
+  /// Supabase (4 modules instead of a fixed 3).
+  Widget _mobileModuleCard(CourseModule module, int displayIndex) {
+    final materials = _materialsByModule[module.id] ?? const <ModuleMaterial>[];
+    final open = _expanded.contains(displayIndex);
+    final published = module.isPublished || _locallyPublishedModuleIds.contains(module.id);
+    final attachedFiles = [for (final m in materials) ...m.attachedFiles];
 
-  Widget _mobileModule1() {
-    final open = _expanded.contains(1);
     return Container(
       decoration: BoxDecoration(
         color: FacultyColors.surfaceContainerLowest,
@@ -1262,7 +1382,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
-            onTap: () => setState(() => open ? _expanded.remove(1) : _expanded.add(1)),
+            onTap: () => setState(() => open ? _expanded.remove(displayIndex) : _expanded.add(displayIndex)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -1273,8 +1393,12 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                     height: 32,
                     margin: const EdgeInsets.only(top: 2),
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-                    child: Text('01', style: FacultyTypography.titleSm(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+                    decoration: BoxDecoration(
+                        color: published ? FacultyColors.surfaceContainerLow : FacultyColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: Text(displayIndex.toString().padLeft(2, '0'),
+                        style: FacultyTypography.titleSm(color: published ? FacultyColors.secondary : FacultyColors.onSurfaceVariant)
+                            .copyWith(fontWeight: FontWeight.w700)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1289,15 +1413,16 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
-                              child: Text('PUBLISHED',
-                                  style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryFixedVariant)
+                              child: Text(published ? 'PUBLISHED' : 'DRAFT',
+                                  style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)
                                       .copyWith(fontWeight: FontWeight.w700, letterSpacing: 1)),
                             ),
-                            Text('8 Lessons • 4 Files', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
+                            Text('${_lessonCount(module)} Lessons • ${_fileCount(module)} Files',
+                                style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text('Foundation Architecture & Virtual Runtimes',
+                        Text(module.name,
                             style: FacultyTypography.titleSm(color: FacultyColors.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ],
                     ),
@@ -1313,32 +1438,74 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               ),
             ),
           ),
+          if (!published)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_clock, size: 16, color: FacultyColors.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      module.unlockAt != null ? 'Scheduled: Unlock ${_formatDate(module.unlockAt!)}' : 'Scheduled release',
+                      style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() => _locallyPublishedModuleIds.add(module.id)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: FacultyColors.secondary, borderRadius: BorderRadius.circular(8)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.publish, size: 16, color: FacultyColors.onSecondary),
+                          const SizedBox(width: 4),
+                          Text('Publish Now', style: FacultyTypography.labelMd(color: FacultyColors.onSecondary)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (open)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 children: [
-                  _mobileLessonRow(
-                    icon: Icons.play_circle,
-                    iconColor: FacultyColors.primary,
-                    title: '1.1 Virtual Environments & Poetry Setup',
-                    meta: '18m HD Video',
-                    trailing: _mobileLiveBadge(),
-                  ),
-                  _mobileLessonRow(
-                    icon: Icons.code,
-                    iconColor: FacultyColors.tertiary,
-                    title: '1.2 Reading Heterogeneous Data Sources',
-                    meta: 'Jupyter Notebook (.ipynb)',
-                    trailing: _mobileLiveBadge(),
-                  ),
-                  _mobileLessonRow(
-                    icon: Icons.description,
-                    iconColor: FacultyColors.error,
-                    title: 'Python_Enterprise_CheatSheet.pdf',
-                    meta: '1.4 MB Attached Guide',
-                    trailing: _mobileDownloadButton(),
-                  ),
+                  for (final material in materials)
+                    if (material.id == DemoIdentity.materialAssignment02Id)
+                      _mobileAssignmentRow(material)
+                    else
+                      _mobileLessonRow(
+                        icon: _materialIcon(material),
+                        iconColor: _materialIconColor(material),
+                        title: material.name,
+                        meta: [_materialMeta(material), material.isPublished ? 'Published' : 'Draft']
+                            .where((s) => s.isNotEmpty)
+                            .join(' • '),
+                        trailing: material.isPublished ? _mobileLiveBadge() : null,
+                      ),
+                  if (attachedFiles.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('ATTACHED SANDBOX ASSETS',
+                          style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(letterSpacing: 1)),
+                    ),
+                    const SizedBox(height: 10),
+                    for (final f in attachedFiles)
+                      _mobileFileRow(
+                        icon: _fileKindIcon(f['kind'] as String? ?? 'doc'),
+                        iconColor: _fileKindColor(f['kind'] as String? ?? 'doc'),
+                        name: f['name'] as String? ?? '',
+                        meta: '${_fileKindLabel(f['kind'] as String? ?? 'doc')} • ${f['sizeLabel'] ?? ''}',
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -1347,335 +1514,58 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
     );
   }
 
-  Widget _mobileModule2() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+  /// Mobile equivalent of _assignmentRow — special-cased for the Assignment
+  /// 02 material, triggered by DemoIdentity.materialAssignment02Id.
+  Widget _mobileAssignmentRow(ModuleMaterial material) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen())),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(10)),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: FacultyColors.secondary,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 4)],
-                ),
-                child: Text('02', style: FacultyTypography.titleSm(color: FacultyColors.onSecondary).copyWith(fontWeight: FontWeight.w700)),
+              Row(
+                children: [
+                  const Icon(Icons.assignment, size: 20, color: FacultyColors.secondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(material.name,
+                        style: FacultyTypography.labelMd(color: FacultyColors.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: FacultyColors.secondary,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 4)],
-                          ),
-                          child: Text('ACTIVE MODULE',
-                              style: FacultyTypography.labelXs(color: FacultyColors.onSecondary).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1)),
-                        ),
-                        Text('6 Lessons • 6 Files', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text('Automation Pipelines with Pandas & Excel',
-                        style: FacultyTypography.titleSm(color: FacultyColors.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _notAvailable,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.more_vert, size: 20, color: FacultyColors.outline),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Row(
-              children: [
-                const Icon(Icons.groups, size: 18, color: FacultyColors.secondary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: RichText(
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    text: TextSpan(
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      material.dueAt != null ? 'Due ${_formatDate(material.dueAt!)}' : 'No due date set',
                       style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
-                      children: const [
-                        TextSpan(text: 'Cohort Progress: '),
-                        TextSpan(text: '38 / 42 Students currently here', style: TextStyle(fontWeight: FontWeight.w700, color: FacultyColors.onSurface)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen())),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('View Submissions', style: FacultyTypography.labelMd(color: FacultyColors.secondary)),
+                        const SizedBox(width: 2),
+                        const Icon(Icons.arrow_forward, size: 14, color: FacultyColors.secondary),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text('90%', style: FacultyTypography.labelMd(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text('CURRICULUM UNITS',
-                    style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(letterSpacing: 1)),
-              ),
-              GestureDetector(
-                onTap: _notAvailable,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.add, size: 16, color: FacultyColors.secondary),
-                    const SizedBox(width: 2),
-                    Text('Add Unit', style: FacultyTypography.labelMd(color: FacultyColors.secondary)),
-                  ],
-                ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          _mobileLessonRow(
-            icon: Icons.play_circle,
-            iconColor: FacultyColors.primary,
-            title: 'Lesson 2.1: Multi-Tab Workbook ETL Ingestion',
-            meta: '32m Video • Published',
-            trailing: _mobileTuneButton(),
-          ),
-          _mobileLessonRow(
-            icon: Icons.play_circle,
-            iconColor: FacultyColors.primary,
-            title: 'Lesson 2.2: Schema Sanitization & Date Formatting',
-            meta: '21m Video • Published',
-            trailing: _mobileTuneButton(),
-          ),
-          _mobileLessonRow(
-            icon: Icons.terminal,
-            iconColor: FacultyColors.onSecondaryContainer,
-            iconBg: FacultyColors.secondaryContainer,
-            title: 'Lesson 2.3: Automated Quarantine Routing',
-            meta: 'Code Walkthrough (.py) • Published',
-            trailing: _mobileTuneButton(),
-          ),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen())),
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(10)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.assignment, size: 20, color: FacultyColors.secondary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text('Assignment 02: Building Automated Pipelines',
-                              style: FacultyTypography.labelMd(color: FacultyColors.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: FacultyColors.surfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
-                          ),
-                          child: Text('Graded', style: FacultyTypography.labelXs(color: FacultyColors.secondary)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: RichText(
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            text: TextSpan(
-                              style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
-                              children: const [
-                                TextSpan(text: 'Due Oct 28 • '),
-                                TextSpan(text: '34/42 Submitted', style: TextStyle(fontWeight: FontWeight.w700, color: FacultyColors.onSurface)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen())),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('View Submissions', style: FacultyTypography.labelMd(color: FacultyColors.secondary)),
-                              const SizedBox(width: 2),
-                              const Icon(Icons.arrow_forward, size: 14, color: FacultyColors.secondary),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text('ATTACHED SANDBOX ASSETS',
-              style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(letterSpacing: 1)),
-          const SizedBox(height: 10),
-          _mobileFileRow(icon: Icons.table_view, iconColor: FacultyColors.tertiaryContainer, name: 'dataset_q3_raw.xlsx', meta: 'Dataset • 3.4 MB'),
-          _mobileFileRow(icon: Icons.data_object, iconColor: FacultyColors.primaryContainer, name: 'starter_pipeline.py', meta: 'Source Code • 48 KB'),
-          _mobileFileRow(
-              icon: Icons.picture_as_pdf, iconColor: FacultyColors.error, name: 'pipeline_architecture_spec.pdf', meta: 'Reference Doc • 850 KB'),
-          const SizedBox(height: 6),
-          GestureDetector(
-            onTap: _notAvailable,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: FacultyColors.surfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
-                      ),
-                      child: const Icon(Icons.upload_file, size: 22, color: FacultyColors.secondary),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Tap to upload lesson files or starter datasets',
-                        style: FacultyTypography.labelMd(color: FacultyColors.primary), textAlign: TextAlign.center),
-                    const SizedBox(height: 2),
-                    Text('Supports .xlsx, .py, .ipynb, .pdf (Max 500MB)',
-                        style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant), textAlign: TextAlign.center),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileModule3() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
-                child: Text('03', style: FacultyTypography.titleSm(color: FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
-                          child: Text('DRAFT',
-                              style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)
-                                  .copyWith(fontWeight: FontWeight.w700, letterSpacing: 1)),
-                        ),
-                        Text('Scheduled Nov 20', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text('Enterprise Database Connectors & Async Tasks',
-                        style: FacultyTypography.titleSm(color: FacultyColors.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.lock_clock, size: 16, color: FacultyColors.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text('4 Pending Lessons Configured',
-                    style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => setState(() => _module3Published = true),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _module3Published ? FacultyColors.tertiaryFixed : FacultyColors.secondary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_module3Published ? Icons.check : Icons.publish,
-                          size: 16, color: _module3Published ? FacultyColors.onTertiaryFixedVariant : FacultyColors.onSecondary),
-                      const SizedBox(width: 4),
-                      Text(_module3Published ? 'Published' : 'Publish Now',
-                          style: FacultyTypography.labelMd(
-                              color: _module3Published ? FacultyColors.onTertiaryFixedVariant : FacultyColors.onSecondary)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

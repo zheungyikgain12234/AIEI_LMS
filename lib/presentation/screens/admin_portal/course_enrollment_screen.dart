@@ -8,10 +8,7 @@ import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
-import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
-import 'manage_lecturers_screen.dart';
-import 'manage_students_screen.dart';
 import 'enroll_students_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -403,7 +400,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.root(title: 'Course Cohorts'),
+      appBar: const AdminMobileTopBar.detail(title: 'Course Cohorts'),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -435,24 +432,6 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: AdminMobileBottomNav(
-        selected: AdminMobileTab.cohorts,
-        onTap: (tab) {
-          switch (tab) {
-            case AdminMobileTab.lecturers:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageLecturersScreen()));
-              break;
-            case AdminMobileTab.students:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
-              break;
-            case AdminMobileTab.cohorts:
-              break;
-            case AdminMobileTab.enroll:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen()));
-              break;
-          }
-        },
       ),
     );
   }

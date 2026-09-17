@@ -11,9 +11,8 @@ import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
-import 'manage_lecturers_screen.dart';
+import 'widgets/admin_more_menu.dart';
 import 'course_enrollment_screen.dart';
-import 'enroll_students_screen.dart';
 import 'student_form_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -614,21 +613,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       appBar: const AdminMobileTopBar.root(title: 'Students'),
       bottomNavigationBar: AdminMobileBottomNav(
         selected: AdminMobileTab.students,
-        onTap: (tab) {
-          switch (tab) {
-            case AdminMobileTab.lecturers:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageLecturersScreen()));
-              break;
-            case AdminMobileTab.students:
-              break; // already here
-            case AdminMobileTab.cohorts:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()));
-              break;
-            case AdminMobileTab.enroll:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen()));
-              break;
-          }
-        },
+        onTap: (tab) => handleAdminMobileTab(context, AdminMobileTab.students, tab),
+        onMore: () => showAdminMoreMenu(context),
       ),
       body: SafeArea(
         top: false,

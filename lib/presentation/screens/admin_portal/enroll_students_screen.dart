@@ -10,11 +10,7 @@ import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
-import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
-import 'manage_lecturers_screen.dart';
-import 'manage_students_screen.dart';
-import 'course_enrollment_screen.dart';
 
 // ---------------------------------------------------------------------------
 // EnrollStudentsScreen – Stitch "Enroll Students into Course" faithful
@@ -393,16 +389,16 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (<700px) layout — separate Scaffold, shared AdminMobileTopBar /
-  // AdminMobileBottomNav shell. Reuses the existing `_candidates` data list
-  // and `_staged` toggle state so staging behavior stays identical.
+  // Mobile (<700px) layout — a drill-in Scaffold (back-arrow top bar, no
+  // bottom nav). Reuses the existing `_candidates` data list and `_staged`
+  // toggle state so staging behavior stays identical.
   // ---------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {
     final postCapacity = _baseEnrolled + _staged.length;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.root(title: 'Enroll'),
+      appBar: const AdminMobileTopBar.detail(title: 'Enroll Students'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -460,24 +456,6 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: AdminMobileBottomNav(
-        selected: AdminMobileTab.enroll,
-        onTap: (tab) {
-          switch (tab) {
-            case AdminMobileTab.lecturers:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageLecturersScreen()));
-              break;
-            case AdminMobileTab.students:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
-              break;
-            case AdminMobileTab.cohorts:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()));
-              break;
-            case AdminMobileTab.enroll:
-              break;
-          }
-        },
       ),
     );
   }

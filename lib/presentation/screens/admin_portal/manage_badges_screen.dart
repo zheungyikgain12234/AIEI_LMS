@@ -6,7 +6,9 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badges_reposito
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
+import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
+import 'widgets/admin_mobile_selection_bar.dart';
 import 'badge_award_form_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -105,6 +107,9 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return AdminScaffold(
       selected: AdminNavDestination.manageBadges,
       onDestinationSelected: _handleNav,
@@ -114,6 +119,129 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
           _buildTopBar(),
           const SizedBox(height: 20),
           _buildListCard(),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Mobile (<700px) layout — a drill-in screen (back-arrow top bar, no
+  // bottom nav; reached from the "More" menu), card list instead of the
+  // desktop table's fixed-width columns.
+  // ---------------------------------------------------------------------
+
+  Widget _buildMobileScaffold(BuildContext context) {
+    final awards = _filtered;
+    return Scaffold(
+      backgroundColor: AdminColors.background,
+      appBar: const AdminMobileTopBar.detail(title: 'Manage Badges'),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Per-course badge awards — which student earned or had revoked which badge.', style: AdminTypography.bodyMd()),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: _openAdd,
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text('Add Badge Award'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AdminColors.primaryContainer,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _searchController,
+                style: AdminTypography.bodySm(color: AdminColors.onSurface),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: AdminColors.surfaceContainerLowest,
+                  hintText: 'Search by student, course, or badge...',
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              if (_selected.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                adminMobileSelectionBar(
+                  count: _selected.length,
+                  itemLabel: 'badge award',
+                  onDeselectAll: () => setState(_selected.clear),
+                  onDelete: _deleteSelected,
+                ),
+              ],
+              const SizedBox(height: 16),
+              if (awards.isEmpty)
+                Padding(padding: const EdgeInsets.all(24), child: Text('No badge awards found.', style: AdminTypography.bodyMd()))
+              else
+                for (final a in awards) ...[
+                  _mobileAwardCard(a),
+                  const SizedBox(height: 12),
+                ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileAwardCard(BadgeAward a) {
+    final selected = _selected.contains(a.id);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: a.isRevoked ? AdminColors.errorContainer.withValues(alpha: 0.12) : AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: selected,
+            onChanged: (v) => setState(() => v == true ? _selected.add(a.id) : _selected.remove(a.id)),
+            activeColor: AdminColors.primaryContainer,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(child: Text(a.studentName, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: a.isRevoked ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                    child: Text(
+                      a.isRevoked ? 'Revoked' : 'Active',
+                      style: AdminTypography.labelSm(color: a.isRevoked ? AdminColors.error : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ]),
+                Text('${a.courseTitle} (${a.courseCode})', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                Text('${a.badgeTitle} • ${a.issueYear}', style: AdminTypography.labelSm()),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _openEdit(a),
+            icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+            visualDensity: VisualDensity.compact,
+          ),
         ],
       ),
     );

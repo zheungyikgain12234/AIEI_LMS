@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'admin_sidebar.dart';
+import 'admin_mobile_bottom_nav.dart';
 import '../manage_lecturers_screen.dart';
 import '../lecturer_allocation_screen.dart';
 import '../manage_students_screen.dart';
@@ -30,6 +31,19 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.manageCohorts => const ManageCohortsScreen(),
     AdminNavDestination.manageLecturerDepartments => const ManageLecturerDepartmentsScreen(),
     AdminNavDestination.manageSpecializations => const ManageSpecializationsScreen(),
+  };
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+}
+
+/// Root mobile bottom-nav tap handling — pushes the screen for [tab], or
+/// does nothing if it's already the [current] screen. Mirrors
+/// [handleAdminNav] but for the 3-tab [AdminMobileBottomNav].
+void handleAdminMobileTab(BuildContext context, AdminMobileTab current, AdminMobileTab tab) {
+  if (tab == current) return;
+  final Widget screen = switch (tab) {
+    AdminMobileTab.lecturers => const ManageLecturersScreen(),
+    AdminMobileTab.students => const ManageStudentsScreen(),
+    AdminMobileTab.courses => const ManageCoursesScreen(),
   };
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 }

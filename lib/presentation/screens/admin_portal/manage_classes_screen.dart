@@ -6,7 +6,9 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
+import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
+import 'widgets/admin_mobile_selection_bar.dart';
 
 // ---------------------------------------------------------------------------
 // ManageClassesScreen – lists every class section (course_sections) created
@@ -92,6 +94,9 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return AdminScaffold(
       selected: AdminNavDestination.manageClasses,
       onDestinationSelected: _handleNav,
@@ -101,6 +106,113 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
           _buildTopBar(),
           const SizedBox(height: 20),
           _buildClassesCard(),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Mobile (<700px) layout — a drill-in screen (back-arrow top bar, no
+  // bottom nav; reached from the "More" menu), card list instead of the
+  // desktop table's fixed-width columns.
+  // ---------------------------------------------------------------------
+
+  Widget _buildMobileScaffold(BuildContext context) {
+    final sections = _filtered;
+    return Scaffold(
+      backgroundColor: AdminColors.background,
+      appBar: const AdminMobileTopBar.detail(title: 'Manage Classes'),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Class sections created when a lecturer is assigned to a course, from Manage Assigned Courses.',
+                style: AdminTypography.bodyMd(),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _searchController,
+                style: AdminTypography.bodySm(color: AdminColors.onSurface),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: AdminColors.surfaceContainerLowest,
+                  hintText: 'Search by section, course, or lecturer...',
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              if (_selected.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                adminMobileSelectionBar(
+                  count: _selected.length,
+                  itemLabel: 'class',
+                  onDeselectAll: () => setState(_selected.clear),
+                  onDelete: _deleteSelected,
+                ),
+              ],
+              const SizedBox(height: 16),
+              if (sections.isEmpty)
+                Padding(padding: const EdgeInsets.all(24), child: Text('No classes found.', style: AdminTypography.bodyMd()))
+              else
+                for (final s in sections) ...[
+                  _mobileSectionCard(s),
+                  const SizedBox(height: 12),
+                ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileSectionCard(CourseSection s) {
+    final selected = _selected.contains(s.id);
+    final unassigned = s.lecturerId == null;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: selected,
+            onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
+            activeColor: AdminColors.primaryContainer,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.sectionCode, style: AdminTypography.titleSm()),
+                Text(s.courseTitle, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                Text(s.courseCode, style: AdminTypography.labelSm()),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      unassigned ? 'Unassigned' : (s.lecturerName ?? '—'),
+                      style: AdminTypography.labelSm(color: unassigned ? AdminColors.onSurfaceVariant : AdminColors.onSurface),
+                    ),
+                    Text(s.scheduleText, style: AdminTypography.labelSm()),
+                    Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm()),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

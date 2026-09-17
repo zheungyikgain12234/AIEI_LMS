@@ -9,9 +9,7 @@ import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
-import 'manage_students_screen.dart';
-import 'course_enrollment_screen.dart';
-import 'enroll_students_screen.dart';
+import 'widgets/admin_more_menu.dart';
 import 'lecturer_form_screen.dart';
 import 'lecturer_course_assignment_screen.dart';
 
@@ -589,21 +587,8 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
       ),
       bottomNavigationBar: AdminMobileBottomNav(
         selected: AdminMobileTab.lecturers,
-        onTap: (tab) {
-          switch (tab) {
-            case AdminMobileTab.lecturers:
-              break; // already here
-            case AdminMobileTab.students:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
-              break;
-            case AdminMobileTab.cohorts:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()));
-              break;
-            case AdminMobileTab.enroll:
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen()));
-              break;
-          }
-        },
+        onTap: (tab) => handleAdminMobileTab(context, AdminMobileTab.lecturers, tab),
+        onMore: () => showAdminMoreMenu(context),
       ),
     );
   }

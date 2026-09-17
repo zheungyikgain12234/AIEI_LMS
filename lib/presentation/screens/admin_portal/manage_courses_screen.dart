@@ -6,7 +6,11 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_reposit
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
+import 'widgets/admin_mobile_top_bar.dart';
+import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
+import 'widgets/admin_more_menu.dart';
+import 'widgets/admin_mobile_selection_bar.dart';
 import 'course_form_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -110,6 +114,9 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    if (MediaQuery.of(context).size.width < 700) {
+      return _buildMobileScaffold(context);
+    }
     return AdminScaffold(
       selected: AdminNavDestination.manageCourses,
       onDestinationSelected: _handleNav,
@@ -119,6 +126,139 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
           _buildTopBar(),
           const SizedBox(height: 20),
           _buildCatalogueCard(),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Mobile (<700px) layout — root bottom-nav tab, card list instead of the
+  // desktop table's fixed-width columns.
+  // ---------------------------------------------------------------------
+
+  Widget _buildMobileScaffold(BuildContext context) {
+    final courses = _filtered;
+    return Scaffold(
+      backgroundColor: AdminColors.background,
+      appBar: const AdminMobileTopBar.root(title: 'Courses'),
+      bottomNavigationBar: AdminMobileBottomNav(
+        selected: AdminMobileTab.courses,
+        onTap: (tab) => handleAdminMobileTab(context, AdminMobileTab.courses, tab),
+        onMore: () => showAdminMoreMenu(context),
+      ),
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Institutional course catalogue. Lecturer and section assignment can be done afterward.', style: AdminTypography.bodyMd()),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: _openAddCourse,
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text('Add New Course'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AdminColors.primaryContainer,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _searchController,
+                style: AdminTypography.bodySm(color: AdminColors.onSurface),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: AdminColors.surfaceContainerLowest,
+                  hintText: 'Search course by code or title...',
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              if (_selected.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                adminMobileSelectionBar(
+                  count: _selected.length,
+                  itemLabel: 'course',
+                  onDeselectAll: () => setState(_selected.clear),
+                  onDelete: _deleteSelected,
+                ),
+              ],
+              const SizedBox(height: 16),
+              if (courses.isEmpty)
+                Padding(padding: const EdgeInsets.all(24), child: Text('No courses found.', style: AdminTypography.bodyMd()))
+              else
+                for (final c in courses) ...[
+                  _mobileCourseCard(c),
+                  const SizedBox(height: 12),
+                ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileCourseCard(AdminCourse c) {
+    final selected = _selected.contains(c.id);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: selected,
+                onChanged: (v) => setState(() => v == true ? _selected.add(c.id) : _selected.remove(c.id)),
+                activeColor: AdminColors.primaryContainer,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                    Text(c.courseCode, style: AdminTypography.labelSm()),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => _openEditCourse(c),
+                icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
+                child: Text(_categoryLabels[c.category] ?? c.category, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+              ),
+              Text(c.scheduleText, style: AdminTypography.bodySm()),
+              Text('Capacity ${c.capacity} • ${c.credits} cr', style: AdminTypography.labelSm()),
+            ],
+          ),
         ],
       ),
     );

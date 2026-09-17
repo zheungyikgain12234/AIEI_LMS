@@ -37,7 +37,7 @@ class RosterStudent {
   factory RosterStudent.fromMap(Map<String, dynamic> map) {
     final student = map['students'] as Map<String, dynamic>;
     return RosterStudent(
-      studentId: student['id'] as String,
+      studentId: (student['id'] as num).toString(),
       name: student['name'] as String,
       title: student['title'] as String?,
       employeeId: student['student_id'] as String,

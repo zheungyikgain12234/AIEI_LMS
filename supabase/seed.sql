@@ -3,7 +3,7 @@
 -- and re-inserts every row below.
 --
 -- Demo identity used throughout the app (see lib/core/config/demo_identity.dart):
---   student = Alex Chen  (22222222-2222-2222-2222-222222222201)
+--   student = Alex Chen  (id 1 — students.id is now a bigint identity column)
 --   lecturer = Dr. Sarah Lin (11111111-1111-1111-1111-111111111101)
 --   admin = Marcus Vance (33333333-3333-3333-3333-333333333301)
 
@@ -25,17 +25,22 @@ insert into lecturers (id, name, title, employee_id, email, department, speciali
   ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 6, 12, 'Active', true, true),
   ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 0, 15, 'Sabbatical', false, false);
 
-insert into students (id, name, student_id, email, department, title, program_track, cohort, gpa) values
-  ('22222222-2222-2222-2222-222222222201', 'Alex Chen', 'EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 3.76),
-  ('22222222-2222-2222-2222-222222222202', 'Maya Patel', 'EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'Fall 2025 Cohort', 3.92),
-  ('22222222-2222-2222-2222-222222222203', 'Marcus Reed', 'EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Summer 2025', 2.90),
-  ('22222222-2222-2222-2222-222222222204', 'Elena Rostova Jr.', 'EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'Spring 2025 Cohort', 3.40),
-  ('22222222-2222-2222-2222-222222222205', 'David Kim', 'EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'Fall 2025 Cohort', 3.55),
-  ('22222222-2222-2222-2222-222222222206', 'Sophia Loren', 'EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'Fall 2025 Cohort', 3.10),
-  ('22222222-2222-2222-2222-222222222207', 'Jordan Taylor', 'EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'Spring 2025 Cohort', 2.60),
-  ('22222222-2222-2222-2222-222222222208', 'Sarah Jenkins', 'EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'Fall 2025 Cohort', 3.70),
-  ('22222222-2222-2222-2222-222222222209', 'Liam Nguyen', 'EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 3.30),
-  ('22222222-2222-2222-2222-222222222210', 'Chloe Bennett', 'EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 3.35);
+insert into students (id, name, student_id, email, department, title, program_track, cohort, gpa) overriding system value values
+  (1, 'Alex Chen', 'EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 3.76),
+  (2, 'Maya Patel', 'EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'Fall 2025 Cohort', 3.92),
+  (3, 'Marcus Reed', 'EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Summer 2025', 2.90),
+  (4, 'Elena Rostova Jr.', 'EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'Spring 2025 Cohort', 3.40),
+  (5, 'David Kim', 'EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'Fall 2025 Cohort', 3.55),
+  (6, 'Sophia Loren', 'EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'Fall 2025 Cohort', 3.10),
+  (7, 'Jordan Taylor', 'EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'Spring 2025 Cohort', 2.60),
+  (8, 'Sarah Jenkins', 'EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'Fall 2025 Cohort', 3.70),
+  (9, 'Liam Nguyen', 'EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 3.30),
+  (10, 'Chloe Bennett', 'EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 3.35);
+
+-- Keep the identity sequence ahead of the explicit ids inserted above, so
+-- the next `insert into students (name, ...)` (no id given — e.g. Register
+-- New Student) auto-assigns 11, not 1.
+select setval(pg_get_serial_sequence('students', 'id'), 10, true);
 
 insert into admins (id, name, title, email) values
   ('33333333-3333-3333-3333-333333333301', 'Marcus Vance', 'Chief Academic Administrator', 'marcus.vance@aiei.edu');
@@ -293,27 +298,27 @@ insert into module_certs (module_id, cert_id) values
 -- ── Student enrollment + progress (Alex Chen — drives catalogue + badges) ──
 
 insert into student_courses (student_id, course_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, sponsorship, last_activity_at, is_online_now) values
-  ('22222222-2222-2222-2222-222222222201', '44444444-4444-4444-4444-444444444401', 70, 'B+', 88.4, 96, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
-  ('22222222-2222-2222-2222-222222222201', '44444444-4444-4444-4444-444444444402', 38, 'C+', 76.0, 88, 'at_risk', 'Corporate Sponsored', now() - interval '1 day', false),
-  ('22222222-2222-2222-2222-222222222201', '44444444-4444-4444-4444-444444444403', 40, 'B', 82.0, 92, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', false),
-  ('22222222-2222-2222-2222-222222222201', '44444444-4444-4444-4444-444444444404', 20, 'B-', 79.5, 90, 'on_track', 'Corporate Sponsored', now() - interval '3 days', false),
-  ('22222222-2222-2222-2222-222222222201', '44444444-4444-4444-4444-444444444405', 85, 'A-', 91.0, 97, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
-  ('22222222-2222-2222-2222-222222222201', '44444444-4444-4444-4444-444444444406', 100, 'A', 94.0, 100, 'on_track', 'Corporate Sponsored', now() - interval '10 days', false);
+  (1, '44444444-4444-4444-4444-444444444401', 70, 'B+', 88.4, 96, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
+  (1, '44444444-4444-4444-4444-444444444402', 38, 'C+', 76.0, 88, 'at_risk', 'Corporate Sponsored', now() - interval '1 day', false),
+  (1, '44444444-4444-4444-4444-444444444403', 40, 'B', 82.0, 92, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', false),
+  (1, '44444444-4444-4444-4444-444444444404', 20, 'B-', 79.5, 90, 'on_track', 'Corporate Sponsored', now() - interval '3 days', false),
+  (1, '44444444-4444-4444-4444-444444444405', 85, 'A-', 91.0, 97, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
+  (1, '44444444-4444-4444-4444-444444444406', 100, 'A', 94.0, 100, 'on_track', 'Corporate Sponsored', now() - interval '10 days', false);
 
 insert into student_materials (student_id, material_id, status, score, attempts, completed_at) values
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666601', 'completed', 100, 1, now() - interval '30 days'),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666602', 'completed', 100, 1, now() - interval '29 days'),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666603', 'completed', 95, 1, now() - interval '25 days'),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666604', 'completed', 90, 1, now() - interval '22 days'),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666605', 'completed', 100, 1, now() - interval '19 days'),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666606', 'completed', 88, 1, now() - interval '16 days'),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666607', 'completed', 92, 1, now() - interval '13 days'),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666618', 'completed', 95, 1, now() - interval '10 days'),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666608', 'in_progress', null, 1, null),
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666612', 'in_progress', 60, 1, null);
+  (1, '66666666-6666-6666-6666-666666666601', 'completed', 100, 1, now() - interval '30 days'),
+  (1, '66666666-6666-6666-6666-666666666602', 'completed', 100, 1, now() - interval '29 days'),
+  (1, '66666666-6666-6666-6666-666666666603', 'completed', 95, 1, now() - interval '25 days'),
+  (1, '66666666-6666-6666-6666-666666666604', 'completed', 90, 1, now() - interval '22 days'),
+  (1, '66666666-6666-6666-6666-666666666605', 'completed', 100, 1, now() - interval '19 days'),
+  (1, '66666666-6666-6666-6666-666666666606', 'completed', 88, 1, now() - interval '16 days'),
+  (1, '66666666-6666-6666-6666-666666666607', 'completed', 92, 1, now() - interval '13 days'),
+  (1, '66666666-6666-6666-6666-666666666618', 'completed', 95, 1, now() - interval '10 days'),
+  (1, '66666666-6666-6666-6666-666666666608', 'in_progress', null, 1, null),
+  (1, '66666666-6666-6666-6666-666666666612', 'in_progress', 60, 1, null);
 
 insert into student_materials (student_id, material_id, status, score, attempts, submission_content, feedback, graded_by, graded_at, completed_at) values
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666611', 'completed', 94, 1,
+  (1, '66666666-6666-6666-6666-666666666611', 'completed', 94, 1,
     '{
       "writeup": "Handled edge case where column tax_code had null values by defaulting to regional regulatory rate 0.0825. Quarantine routing extracts invalid rows into an isolated parquet buffer with timestamp tracking. Vectorized timestamp transformations yielding a 3.8x execution time reduction compared with standard iteration.",
       "files": [
@@ -328,7 +333,7 @@ insert into student_materials (student_id, material_id, status, score, attempts,
 
 -- Alex Chen's OSHE Final Regulatory Audit Exam attempt (in progress, drives compliance_quiz_screen)
 insert into student_materials (student_id, material_id, status, score, attempts, submission_content, completed_at) values
-  ('22222222-2222-2222-2222-222222222201', '66666666-6666-6666-6666-666666666627', 'in_progress', null, 1,
+  (1, '66666666-6666-6666-6666-666666666627', 'in_progress', null, 1,
     '{
       "answeredQuestions": [1, 2, 3, 4, 5],
       "flaggedQuestions": [3, 8],
@@ -341,43 +346,43 @@ insert into student_materials (student_id, material_id, status, score, attempts,
 -- student_directory_screen.dart grading columns and course_dashboard_screen.dart
 -- "assignments/quizzes to grade" KPIs; grader is Dr. Sarah Lin).
 insert into student_materials (student_id, material_id, status, score, attempts, feedback, graded_by, graded_at, completed_at) values
-  ('22222222-2222-2222-2222-222222222202', '66666666-6666-6666-6666-666666666611', 'completed', 98, 1, 'Outstanding cohort-leading submission.', '11111111-1111-1111-1111-111111111101', now() - interval '1 day', now() - interval '1 day'),
-  ('22222222-2222-2222-2222-222222222202', '66666666-6666-6666-6666-666666666612', 'completed', 98, 1, null, '11111111-1111-1111-1111-111111111101', now() - interval '1 day', now() - interval '1 day'),
-  ('22222222-2222-2222-2222-222222222204', '66666666-6666-6666-6666-666666666611', 'completed', 90, 1, 'Solid work overall, minor edge case gaps.', '11111111-1111-1111-1111-111111111101', now() - interval '2 days', now() - interval '2 days'),
-  ('22222222-2222-2222-2222-222222222204', '66666666-6666-6666-6666-666666666612', 'completed', 88, 1, null, '11111111-1111-1111-1111-111111111101', now() - interval '2 days', now() - interval '2 days'),
-  ('22222222-2222-2222-2222-222222222205', '66666666-6666-6666-6666-666666666611', 'completed', 92, 1, 'Well-structured pipeline.', '11111111-1111-1111-1111-111111111101', now() - interval '3 days', now() - interval '3 days'),
-  ('22222222-2222-2222-2222-222222222205', '66666666-6666-6666-6666-666666666612', 'in_progress', null, 1, null, null, null, null),
-  ('22222222-2222-2222-2222-222222222206', '66666666-6666-6666-6666-666666666611', 'in_progress', null, 1, null, null, null, null);
+  (2, '66666666-6666-6666-6666-666666666611', 'completed', 98, 1, 'Outstanding cohort-leading submission.', '11111111-1111-1111-1111-111111111101', now() - interval '1 day', now() - interval '1 day'),
+  (2, '66666666-6666-6666-6666-666666666612', 'completed', 98, 1, null, '11111111-1111-1111-1111-111111111101', now() - interval '1 day', now() - interval '1 day'),
+  (4, '66666666-6666-6666-6666-666666666611', 'completed', 90, 1, 'Solid work overall, minor edge case gaps.', '11111111-1111-1111-1111-111111111101', now() - interval '2 days', now() - interval '2 days'),
+  (4, '66666666-6666-6666-6666-666666666612', 'completed', 88, 1, null, '11111111-1111-1111-1111-111111111101', now() - interval '2 days', now() - interval '2 days'),
+  (5, '66666666-6666-6666-6666-666666666611', 'completed', 92, 1, 'Well-structured pipeline.', '11111111-1111-1111-1111-111111111101', now() - interval '3 days', now() - interval '3 days'),
+  (5, '66666666-6666-6666-6666-666666666612', 'in_progress', null, 1, null, null, null, null),
+  (6, '66666666-6666-6666-6666-666666666611', 'in_progress', null, 1, null, null, null, null);
 
 -- ── Earned / revoked credentials (Alex Chen — credential_detail screens) ──
 
 insert into student_certifications (student_id, cert_id, status, progress_percentage, issued_at, expires_at, revoked_at, revocation_reason, case_ref, inspecting_officer, cohort_label) values
-  ('22222222-2222-2222-2222-222222222201', '88888888-8888-8888-8888-888888888802', 'revoked', 100, '2025-01-15', '2025-12-31', '2025-10-24 08:30:00-05', 'Confiscated due to high-voltage main switchboard isolation failure prior to shift clock-out on Zone 3 Factory Floor (OSHA Standard 29 CFR 1910.147 - Control of Hazardous Energy / Lockout-Tagout Infraction).', 'INC-2025-08492', 'Dr. V. Morales, Sr. EHS Officer', null),
-  ('22222222-2222-2222-2222-222222222201', '88888888-8888-8888-8888-888888888804', 'earned', 100, '2024-10-24', null, null, null, null, null, 'Cohort Fall 2024'),
-  ('22222222-2222-2222-2222-222222222201', '88888888-8888-8888-8888-888888888801', 'in_progress', 70, null, null, null, null, null, null, null),
-  ('22222222-2222-2222-2222-222222222201', '88888888-8888-8888-8888-888888888805', 'in_progress', 40, null, null, null, null, null, null, null),
-  ('22222222-2222-2222-2222-222222222201', '88888888-8888-8888-8888-888888888803', 'in_progress', 85, null, null, null, null, null, null, null),
-  ('22222222-2222-2222-2222-222222222201', '88888888-8888-8888-8888-888888888806', 'in_progress', 20, null, null, null, null, null, null, null);
+  (1, '88888888-8888-8888-8888-888888888802', 'revoked', 100, '2025-01-15', '2025-12-31', '2025-10-24 08:30:00-05', 'Confiscated due to high-voltage main switchboard isolation failure prior to shift clock-out on Zone 3 Factory Floor (OSHA Standard 29 CFR 1910.147 - Control of Hazardous Energy / Lockout-Tagout Infraction).', 'INC-2025-08492', 'Dr. V. Morales, Sr. EHS Officer', null),
+  (1, '88888888-8888-8888-8888-888888888804', 'earned', 100, '2024-10-24', null, null, null, null, null, 'Cohort Fall 2024'),
+  (1, '88888888-8888-8888-8888-888888888801', 'in_progress', 70, null, null, null, null, null, null, null),
+  (1, '88888888-8888-8888-8888-888888888805', 'in_progress', 40, null, null, null, null, null, null, null),
+  (1, '88888888-8888-8888-8888-888888888803', 'in_progress', 85, null, null, null, null, null, null, null),
+  (1, '88888888-8888-8888-8888-888888888806', 'in_progress', 20, null, null, null, null, null, null, null);
 
 -- ── Faculty portal: enrollment rosters for Sarah Lin's 3 courses ─────────
 -- (drives student_directory_screen.dart, course_dashboard_screen.dart, my_assigned_courses_screen.dart)
 
 insert into student_courses (student_id, course_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, last_activity_at) values
-  ('22222222-2222-2222-2222-222222222202', '44444444-4444-4444-4444-444444444401', 92, 'A', 98.0, 98, 'on_track', now() - interval '18 minutes'),
-  ('22222222-2222-2222-2222-222222222203', '44444444-4444-4444-4444-444444444401', 45, 'D', 68.0, 60, 'critical', now() - interval '6 days'),
-  ('22222222-2222-2222-2222-222222222204', '44444444-4444-4444-4444-444444444401', 80, 'B+', 88.5, 90, 'on_track', now() - interval '1 day'),
-  ('22222222-2222-2222-2222-222222222205', '44444444-4444-4444-4444-444444444401', 70, 'A-', 91.0, 94, 'on_track', now() - interval '4 hours'),
-  ('22222222-2222-2222-2222-222222222206', '44444444-4444-4444-4444-444444444401', 60, 'B', 84.0, 82, 'at_risk', now() - interval '3 days');
+  (2, '44444444-4444-4444-4444-444444444401', 92, 'A', 98.0, 98, 'on_track', now() - interval '18 minutes'),
+  (3, '44444444-4444-4444-4444-444444444401', 45, 'D', 68.0, 60, 'critical', now() - interval '6 days'),
+  (4, '44444444-4444-4444-4444-444444444401', 80, 'B+', 88.5, 90, 'on_track', now() - interval '1 day'),
+  (5, '44444444-4444-4444-4444-444444444401', 70, 'A-', 91.0, 94, 'on_track', now() - interval '4 hours'),
+  (6, '44444444-4444-4444-4444-444444444401', 60, 'B', 84.0, 82, 'at_risk', now() - interval '3 days');
 
 -- ── Admin: Course Enrollment roster (SEC-410 Cybersecurity course, admin
 -- view — drives course_enrollment_screen.dart; Alex Chen's own SEC-410
 -- enrollment above rounds this out to a 5-student roster) ───────────────
 
 insert into student_courses (student_id, course_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, sponsorship, last_activity_at, is_online_now) values
-  ('22222222-2222-2222-2222-222222222202', '44444444-4444-4444-4444-444444444405', 96, 'A+', 96.1, 98, 'on_track', 'Corporate Sponsored', now() - interval '35 minutes', true),
-  ('22222222-2222-2222-2222-222222222209', '44444444-4444-4444-4444-444444444405', 88, 'B+', 88.5, 91, 'on_track', 'Self-Enrolled (Direct)', now() - interval '1 day', true),
-  ('22222222-2222-2222-2222-222222222207', '44444444-4444-4444-4444-444444444405', 60, 'C', 73.2, 55, 'at_risk', 'Corporate Sponsored', now() - interval '4 days', false),
-  ('22222222-2222-2222-2222-222222222210', '44444444-4444-4444-4444-444444444405', 84, 'B+', 89.0, 93, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', true);
+  (2, '44444444-4444-4444-4444-444444444405', 96, 'A+', 96.1, 98, 'on_track', 'Corporate Sponsored', now() - interval '35 minutes', true),
+  (9, '44444444-4444-4444-4444-444444444405', 88, 'B+', 88.5, 91, 'on_track', 'Self-Enrolled (Direct)', now() - interval '1 day', true),
+  (7, '44444444-4444-4444-4444-444444444405', 60, 'C', 73.2, 55, 'at_risk', 'Corporate Sponsored', now() - interval '4 days', false),
+  (10, '44444444-4444-4444-4444-444444444405', 84, 'B+', 89.0, 93, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', true);
 
 -- ── Admin: Enrollment candidates / waitlist for PY-402 (drives
 -- enroll_students_screen.dart — its capacity/enrolled figures come from

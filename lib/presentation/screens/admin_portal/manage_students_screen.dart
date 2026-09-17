@@ -12,6 +12,7 @@ import 'manage_lecturers_screen.dart';
 import 'lecturer_allocation_screen.dart';
 import 'course_enrollment_screen.dart';
 import 'enroll_students_screen.dart';
+import 'student_form_screen.dart';
 
 // ---------------------------------------------------------------------------
 // ManageStudentsScreen – Stitch "Manage Students" faithful Flutter
@@ -80,6 +81,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
+  Future<void> _openRegisterStudent() async {
+    final saved = await Navigator.of(context).push<Student>(
+      MaterialPageRoute(builder: (_) => const StudentFormScreen()),
+    );
+    if (saved != null) _load();
+  }
+
+  Future<void> _openEditStudent(Student s) async {
+    final saved = await Navigator.of(context).push<Student>(
+      MaterialPageRoute(builder: (_) => StudentFormScreen(studentId: s.id)),
+    );
+    if (saved != null) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -137,7 +152,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           ],
         ),
         ElevatedButton.icon(
-          onPressed: _notAvailable,
+          onPressed: _openRegisterStudent,
           icon: const Icon(Icons.person_add_outlined, size: 18),
           label: const Text('Register New Student'),
           style: ElevatedButton.styleFrom(
@@ -255,10 +270,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 ],
               ),
             ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(width: 980, child: Column(children: [for (final s in _students) _studentRow(s)])),
-          ),
+          Column(children: [for (final s in _students) _studentRow(s)]),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -313,47 +325,54 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
             activeColor: AdminColors.primaryContainer,
           ),
-          SizedBox(
-            width: 220,
-            child: Row(children: [
-              Container(width: 36, height: 36, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle), child: Icon(flagged ? Icons.person_off : Icons.person, color: flagged ? AdminColors.error : AdminColors.primary, size: 18)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(s.name, style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface), overflow: TextOverflow.ellipsis),
-                    Text(s.studentId, style: AdminTypography.labelSm()),
-                    Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                  ],
-                ),
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(s.name, style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+                      ),
+                      const SizedBox(width: 4),
+                      InkWell(
+                        onTap: () => _openEditStudent(s),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(s.studentId, style: AdminTypography.labelSm()),
+                  Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                ],
               ),
-            ]),
+            ),
           ),
-          SizedBox(
-            width: 200,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(s.programTrack, style: AdminTypography.titleSm()),
-              Text(s.cohort, style: AdminTypography.bodySm()),
-            ]),
-          ),
-          SizedBox(
-            width: 150,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('$enrollments Enrolled', style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.primary)),
-              Text('GPA ${s.gpa.toStringAsFixed(2)}', style: AdminTypography.labelSm()),
-            ]),
-          ),
-          SizedBox(
-            width: 150,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(flagged ? Icons.error_outline : Icons.check_circle_outline, size: 14, color: flagged ? AdminColors.onErrorContainer : AdminColors.secondary),
-                const SizedBox(width: 4),
-                Flexible(child: Text(standing, style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.secondary), overflow: TextOverflow.ellipsis)),
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${s.programTrack} • ${s.cohort}', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                Text('GPA ${s.gpa.toStringAsFixed(2)} • $enrollments Enrolled', style: AdminTypography.labelSm(color: flagged ? AdminColors.error : AdminColors.onSurfaceVariant)),
               ]),
+            ),
+          ),
+          SizedBox(
+            width: 56,
+            child: Tooltip(
+              message: standing,
+              child: Icon(
+                flagged ? Icons.error_outline : Icons.check_circle_outline,
+                size: 28,
+                color: flagged ? AdminColors.error : AdminColors.secondary,
+              ),
             ),
           ),
           Expanded(
@@ -548,7 +567,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               SizedBox(
                 height: 44,
                 child: ElevatedButton.icon(
-                  onPressed: _notAvailable,
+                  onPressed: _openRegisterStudent,
                   icon: const Icon(Icons.person_add, size: 20),
                   label: const Text('Register New Student'),
                   style: ElevatedButton.styleFrom(
@@ -849,6 +868,14 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                         Text(
                           s.name,
                           style: AdminTypography.headlineSm(color: flagged ? AdminColors.error : AdminColors.onSurface),
+                        ),
+                        InkWell(
+                          onTap: () => _openEditStudent(s),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: Icon(Icons.edit_outlined, size: 16, color: AdminColors.onSurfaceVariant),
+                          ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

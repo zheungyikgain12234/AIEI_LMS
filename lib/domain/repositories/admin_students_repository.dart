@@ -5,6 +5,33 @@ import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
 abstract class AdminStudentsRepository {
   Future<List<Student>> getStudents();
 
+  Future<Student> getStudentById(String id);
+
+  /// Inserts a new student row (the `id` is auto-assigned by the database's
+  /// identity column) and returns it.
+  Future<Student> createStudent({
+    required String name,
+    required String studentId,
+    required String email,
+    required String department,
+    String? title,
+    required String programTrack,
+    required String cohort,
+    required double gpa,
+  });
+
+  Future<Student> updateStudent(
+    String id, {
+    required String name,
+    required String studentId,
+    required String email,
+    required String department,
+    String? title,
+    required String programTrack,
+    required String cohort,
+    required double gpa,
+  });
+
   /// Course count + credentials earned per student (from `student_courses`
   /// and `student_certifications`), keyed by student id.
   Future<Map<String, int>> getEnrollmentCounts();

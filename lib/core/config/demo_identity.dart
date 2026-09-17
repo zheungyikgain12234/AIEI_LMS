@@ -4,7 +4,9 @@
 class DemoIdentity {
   DemoIdentity._();
 
-  static const String studentId = '22222222-2222-2222-2222-222222222201';
+  // students.id is a bigint identity column (not a uuid like the other
+  // tables) — Alex Chen is seeded as row 1.
+  static const String studentId = '1';
   static const String lecturerId = '11111111-1111-1111-1111-111111111101';
   static const String adminId = '33333333-3333-3333-3333-333333333301';
 

@@ -16,11 +16,75 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
+  Future<Student> getStudentById(String id) async {
+    final row = await _client.from('students').select().eq('id', id).single();
+    return Student.fromMap(row);
+  }
+
+  @override
+  Future<Student> createStudent({
+    required String name,
+    required String studentId,
+    required String email,
+    required String department,
+    String? title,
+    required String programTrack,
+    required String cohort,
+    required double gpa,
+  }) async {
+    final row = await _client
+        .from('students')
+        .insert({
+          'name': name,
+          'student_id': studentId,
+          'email': email,
+          'department': department,
+          'title': title,
+          'program_track': programTrack,
+          'cohort': cohort,
+          'gpa': gpa,
+        })
+        .select()
+        .single();
+    return Student.fromMap(row);
+  }
+
+  @override
+  Future<Student> updateStudent(
+    String id, {
+    required String name,
+    required String studentId,
+    required String email,
+    required String department,
+    String? title,
+    required String programTrack,
+    required String cohort,
+    required double gpa,
+  }) async {
+    final row = await _client
+        .from('students')
+        .update({
+          'name': name,
+          'student_id': studentId,
+          'email': email,
+          'department': department,
+          'title': title,
+          'program_track': programTrack,
+          'cohort': cohort,
+          'gpa': gpa,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+    return Student.fromMap(row);
+  }
+
+  @override
   Future<Map<String, int>> getEnrollmentCounts() async {
     final rows = await _client.from('student_courses').select('student_id');
     final counts = <String, int>{};
     for (final row in rows as List) {
-      final id = row['student_id'] as String;
+      final id = (row['student_id'] as num).toString();
       counts[id] = (counts[id] ?? 0) + 1;
     }
     return counts;
@@ -34,7 +98,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
         .inFilter('status', ['earned', 'revoked']);
     final result = <String, List<String>>{};
     for (final row in rows as List) {
-      final id = row['student_id'] as String;
+      final id = (row['student_id'] as num).toString();
       final title = (row['certifications'] as Map<String, dynamic>)['title'] as String;
       final label = row['status'] == 'revoked' ? '$title (Revoked)' : title;
       result.putIfAbsent(id, () => []).add(label);

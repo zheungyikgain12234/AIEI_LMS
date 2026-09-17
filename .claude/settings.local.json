@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://mykgomytaivvxsxnilmx.supabase.co/rest/v1/\" -H \"apikey: sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" --max-time 10)",
+      "Bash(curl -s \"https://mykgomytaivvxsxnilmx.supabase.co/rest/v1/\" -H \"apikey: sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" -H \"Authorization: Bearer sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" --max-time 10)",
+      "Bash(curl -s \"https://mykgomytaivvxsxnilmx.supabase.co/rest/v1/courses?select=*&limit=1\" -H \"apikey: sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" -H \"Authorization: Bearer sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" --max-time 10)",
+      "Bash(flutter test *)",
+      "Read(//tmp/**)",
+      "Bash(curl -s \"https://mykgomytaivvxsxnilmx.supabase.co/rest/v1/courses?select=id,course_title&limit=10\" -H \"apikey: sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" -H \"Authorization: Bearer sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" --max-time 10)",
+      "Bash(curl -s \"https://mykgomytaivvxsxnilmx.supabase.co/rest/v1/courses?select=id,course_title,course_tags\\(tags\\(label,color_hex\\)\\),course_modules\\(id,module_sorting,module_materials\\(id,material_name,material_sorting\\)\\)&id=eq.44444444-4444-4444-4444-444444444401\" -H \"apikey: sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" -H \"Authorization: Bearer sb_publishable_KpAicSah9U1Qp5bGyDd5Pw_U7ut-N7B\" --max-time 10)",
+      "Bash(flutter devices *)",
+      "Bash(awk '/static const _roster/{s=NR} s&&/\\\\];/{print NR; exit}' lib/presentation/screens/admin_portal/course_enrollment_screen.dart)",
+      "Bash(awk '/static const _candidates/{s=NR} s&&/^  \\\\];/{print NR; exit}' lib/presentation/screens/admin_portal/enroll_students_screen.dart)",
+      "Bash(awk '/static const _lecturers/{s=NR} s&&/^  \\\\];/{print NR; exit}' lib/presentation/screens/admin_portal/manage_lecturers_screen.dart)",
+      "Bash(awk '/static const _students/{s=NR} s&&/^  \\\\];/{print NR; exit}' lib/presentation/screens/admin_portal/manage_students_screen.dart)",
+      "Bash(awk '/static const _rows/{s=NR} s&&/^  \\\\];/{print NR; exit}' lib/presentation/screens/faculty_portal/my_assigned_courses_screen.dart)",
+      "Bash(awk '/static const _students/{s=NR} s&&/^  \\\\];/{print NR; exit}' lib/presentation/screens/faculty_portal/student_directory_screen.dart)",
+      "Bash(grep -n \"static const\\\\|final List<\\\\|= \\\\[\\\\|class .*{$\\\\|course\\\\.\" lib/presentation/screens/course_info/course_info_screen.dart)",
+      "Bash(grep -n \"static const\\\\|final List<\\\\|= \\\\[\\\\|class .*{$\" lib/presentation/screens/course_info/course_info_screen_2.dart)",
+      "Bash(grep -n \"static const\\\\|final List<\\\\|= \\\\[\\\\|class .*{$\" lib/presentation/screens/assignment_submission/assignment_submission_screen.dart)",
+      "Bash(grep -n \"static const\\\\|final List<\\\\|= \\\\[\\\\|class .*{$\\\\|question\\\\|Question\" lib/presentation/screens/compliance_quiz/compliance_quiz_screen.dart)",
+      "Bash(awk '/static const List<_LessonItem> _lessons/{s=NR} s&&/^  \\\\];/{print NR; exit}' lib/presentation/screens/course_info/course_info_screen.dart)",
+      "Bash(awk '/static const List<_ModuleItem> _modules/{s=NR} s&&/^  \\\\];/{print NR; exit}' lib/presentation/screens/course_info/course_info_screen_2.dart)",
+      "Bash(grep -n \"static const\\\\|final List<\\\\|= \\\\[\\\\|class .*{$\" lib/presentation/screens/credential_detail/executive_leadership_detail_screen.dart)",
+      "Bash(grep -n \"static const\\\\|final List<\\\\|= \\\\[\\\\|class .*{$\" lib/presentation/screens/credential_detail/revoked_credential_detail_screen.dart)",
+      "Bash(grep -n \"static const\\\\|final List<\\\\|= \\\\[\\\\|class .*{$\" lib/presentation/screens/certifications_badges/certifications_badges_screen.dart)",
+      "Bash(awk '{ if \\(length\\($0\\) != 36\\) print \"BAD:\", $0 }')",
+      "Bash(python3 -c ' *)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

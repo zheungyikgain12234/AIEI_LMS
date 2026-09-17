@@ -23,7 +23,7 @@ class Student {
 
   factory Student.fromMap(Map<String, dynamic> map) {
     return Student(
-      id: map['id'] as String,
+      id: (map['id'] as num).toString(),
       name: map['name'] as String,
       studentId: map['student_id'] as String,
       email: map['email'] as String,

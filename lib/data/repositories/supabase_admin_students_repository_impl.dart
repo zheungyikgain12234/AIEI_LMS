@@ -128,6 +128,11 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
+  Future<void> deleteStudents(List<String> ids) async {
+    await _client.from('students').delete().inFilter('id', ids);
+  }
+
+  @override
   Future<List<RosterStudent>> getCourseRoster(String courseId) async {
     final rows = await _client
         .from('student_courses')

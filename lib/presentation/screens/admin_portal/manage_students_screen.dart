@@ -95,6 +95,34 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     if (saved != null) _load();
   }
 
+  Future<void> _deleteSelected() async {
+    final count = _selected.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete students?'),
+        content: Text('This will permanently delete $count student${count == 1 ? '' : 's'}. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _repository.deleteStudents(_selected.toList());
+    if (!mounted) return;
+    setState(_selected.clear);
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$count student${count == 1 ? '' : 's'} deleted')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -261,6 +289,19 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                   Wrap(spacing: 6, children: [
                     OutlinedButton(onPressed: _notAvailable, style: _pillButtonStyle(), child: const Text('Bulk Enroll')),
                     OutlinedButton(onPressed: _notAvailable, style: _pillButtonStyle(), child: const Text('Issue Notice')),
+                    OutlinedButton.icon(
+                      onPressed: _deleteSelected,
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: const Text('Delete'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AdminColors.error,
+                        backgroundColor: AdminColors.errorContainer,
+                        side: BorderSide.none,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        textStyle: AdminTypography.labelSm(),
+                      ),
+                    ),
                     ElevatedButton(
                       onPressed: _notAvailable,
                       style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primary, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
@@ -348,10 +389,16 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                       ),
                     ],
                   ),
-                  Text(s.studentId, style: AdminTypography.labelSm()),
                   Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
                 ],
               ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text(s.studentId, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
             ),
           ),
           Expanded(
@@ -376,11 +423,21 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             ),
           ),
           Expanded(
-            child: Wrap(spacing: 4, runSpacing: 4, children: credentials.map((c) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-              child: Text(c, style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.onSurface)),
-            )).toList()),
+            flex: 4,
+            child: credentials.isEmpty
+                ? Text('—', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
+                : Tooltip(
+                    message: credentials.join('\n'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.workspace_premium_outlined, size: 14, color: flagged ? AdminColors.onErrorContainer : AdminColors.onSurface),
+                        const SizedBox(width: 4),
+                        Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.onSurface)),
+                      ]),
+                    ),
+                  ),
           ),
           SizedBox(
             width: 130,

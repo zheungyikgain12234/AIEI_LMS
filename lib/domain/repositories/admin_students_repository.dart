@@ -43,6 +43,8 @@ abstract class AdminStudentsRepository {
   /// (monthLabel, newEnrollments) from `enrollment_monthly_stats`.
   Future<List<(String, int)>> getEnrollmentTrend();
 
+  Future<void> deleteStudents(List<String> ids);
+
   Future<List<RosterStudent>> getCourseRoster(String courseId);
   Future<List<EnrollmentCandidate>> getEnrollmentCandidates(String courseId);
 }

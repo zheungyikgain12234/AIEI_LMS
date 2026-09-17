@@ -9,37 +9,45 @@ Widget adminMobileSelectionBar({
   required VoidCallback onDeselectAll,
   required VoidCallback onDelete,
   String itemLabel = 'item',
+  List<Widget> extraActions = const [],
 }) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12)),
-    child: Row(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            children: [
-              Text('$count $itemLabel${count == 1 ? '' : 's'} selected', style: AdminTypography.titleSm()),
-              GestureDetector(
-                onTap: onDeselectAll,
-                child: Text('Deselect all', style: AdminTypography.labelMd(color: AdminColors.secondary)),
-              ),
-            ],
-          ),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          children: [
+            Text('$count $itemLabel${count == 1 ? '' : 's'} selected', style: AdminTypography.titleSm()),
+            GestureDetector(
+              onTap: onDeselectAll,
+              child: Text('Deselect all', style: AdminTypography.labelMd(color: AdminColors.secondary)),
+            ),
+          ],
         ),
-        OutlinedButton.icon(
-          onPressed: onDelete,
-          icon: const Icon(Icons.delete_outline, size: 16),
-          label: const Text('Delete'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AdminColors.error,
-            backgroundColor: AdminColors.errorContainer,
-            side: BorderSide.none,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            textStyle: AdminTypography.labelSm(),
-          ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ...extraActions,
+            OutlinedButton.icon(
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline, size: 16),
+              label: const Text('Delete'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AdminColors.error,
+                backgroundColor: AdminColors.errorContainer,
+                side: BorderSide.none,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                textStyle: AdminTypography.labelSm(),
+              ),
+            ),
+          ],
         ),
       ],
     ),

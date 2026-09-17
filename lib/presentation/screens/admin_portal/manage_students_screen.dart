@@ -12,6 +12,7 @@ import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_more_menu.dart';
+import 'widgets/admin_mobile_selection_bar.dart';
 import 'course_enrollment_screen.dart';
 import 'student_form_screen.dart';
 
@@ -645,11 +646,25 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              _buildInstructionBanner(),
+              const SizedBox(height: 16),
               _buildMobileKpiGrid(),
               const SizedBox(height: 20),
               _buildMobileSearchBar(),
               const SizedBox(height: 12),
               _buildMobileFilterPills(),
+              if (_selected.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                adminMobileSelectionBar(
+                  count: _selected.length,
+                  itemLabel: 'student',
+                  onDeselectAll: () => setState(_selected.clear),
+                  onDelete: _deleteSelected,
+                  extraActions: [
+                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enroll')),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               for (final s in _students) ...[
                 _buildMobileStudentCard(s),
@@ -901,6 +916,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final flagged = _isFlagged(s);
     final standing = flagged ? 'Under Review' : 'Good Standing';
     final progress = (s.gpa / 4.0).clamp(0.0, 1.0);
+    final selected = _selected.contains(s.id);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -914,6 +930,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Checkbox(
+                value: selected,
+                onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
+                activeColor: AdminColors.primaryContainer,
+              ),
               Container(
                 width: 48,
                 height: 48,
@@ -953,11 +974,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                     Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
                   ],
                 ),
-              ),
-              IconButton(
-                onPressed: _notAvailable,
-                icon: const Icon(Icons.more_vert, size: 20, color: AdminColors.onSurfaceVariant),
-                visualDensity: VisualDensity.compact,
               ),
             ],
           ),

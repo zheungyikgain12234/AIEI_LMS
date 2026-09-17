@@ -10,6 +10,7 @@ import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_more_menu.dart';
+import 'widgets/admin_mobile_selection_bar.dart';
 import 'lecturer_form_screen.dart';
 import 'lecturer_course_assignment_screen.dart';
 
@@ -567,11 +568,22 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
               const SizedBox(height: 8),
               _mobileTitleRow(),
               const SizedBox(height: 16),
+              _buildInstructionBanner(),
+              const SizedBox(height: 16),
               _mobileKpiGrid(),
               const SizedBox(height: 16),
               _mobileSearchField(),
               const SizedBox(height: 10),
               _mobileFilterChips(),
+              if (_selected.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                adminMobileSelectionBar(
+                  count: _selected.length,
+                  itemLabel: 'lecturer',
+                  onDeselectAll: () => setState(_selected.clear),
+                  onDelete: _deleteSelected,
+                ),
+              ],
               const SizedBox(height: 16),
               for (final l in _lecturers) ...[
                 _mobileLecturerCard(l, _coursesFor(l)),
@@ -853,6 +865,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   Widget _mobileLecturerCard(Lecturer l, List<String> courses) {
     final isSabbatical = courses.isEmpty;
     final isMaxLoad = !isSabbatical && l.capacityPercent >= 100;
+    final selected = _selected.contains(l.id);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -867,6 +880,11 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Checkbox(
+                value: selected,
+                onChanged: (v) => setState(() => v == true ? _selected.add(l.id) : _selected.remove(l.id)),
+                activeColor: AdminColors.primaryContainer,
+              ),
               Container(
                 width: 48,
                 height: 48,
@@ -906,12 +924,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: _notAvailable,
-                icon: const Icon(Icons.more_vert, size: 20, color: AdminColors.onSurfaceVariant),
-                tooltip: 'Faculty actions',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              InkWell(
+                onTap: () => _openEditLecturer(l),
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+                ),
               ),
             ],
           ),

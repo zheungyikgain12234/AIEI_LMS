@@ -4,6 +4,7 @@ import 'package:stitch_aiei_lms/domain/models/program_track.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer_department.dart';
 import 'package:stitch_aiei_lms/domain/models/specialization.dart';
+import 'package:stitch_aiei_lms/domain/models/role.dart';
 import 'package:stitch_aiei_lms/domain/repositories/admin_master_data_repository.dart';
 
 class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository {
@@ -124,5 +125,28 @@ class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository
   @override
   Future<void> deleteSpecializations(List<String> ids) async {
     await _client.from('specializations').delete().inFilter('id', ids);
+  }
+
+  @override
+  Future<List<Role>> getRoles() async {
+    final rows = await _client.from('roles').select().order('name');
+    return [for (final row in rows as List) Role.fromMap(row as Map<String, dynamic>)];
+  }
+
+  @override
+  Future<Role> createRole(String name) async {
+    final row = await _client.from('roles').insert({'name': name}).select().single();
+    return Role.fromMap(row);
+  }
+
+  @override
+  Future<Role> updateRole(String id, String name) async {
+    final row = await _client.from('roles').update({'name': name}).eq('id', id).select().single();
+    return Role.fromMap(row);
+  }
+
+  @override
+  Future<void> deleteRoles(List<String> ids) async {
+    await _client.from('roles').delete().inFilter('id', ids);
   }
 }

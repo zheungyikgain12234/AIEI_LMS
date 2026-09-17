@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
+import 'package:stitch_aiei_lms/domain/models/enrolled_class.dart';
 
 abstract class AdminStudentsRepository {
   Future<List<Student>> getStudents();
@@ -18,6 +19,7 @@ abstract class AdminStudentsRepository {
     String? title,
     required String programTrack,
     required String cohort,
+    required String role,
   });
 
   /// [gpa] is left unchanged when omitted.
@@ -30,6 +32,7 @@ abstract class AdminStudentsRepository {
     String? title,
     required String programTrack,
     required String cohort,
+    required String role,
     double? gpa,
   });
 
@@ -37,6 +40,11 @@ abstract class AdminStudentsRepository {
   /// and `student_certifications`), keyed by student id.
   Future<Map<String, int>> getEnrollmentCounts();
   Future<Map<String, List<String>>> getEarnedCredentialTitles();
+
+  /// Enrolled course ids per student (from `student_courses`), keyed by
+  /// student id — used to flag enrollments that don't fit the student's role
+  /// (see `role_courses` / Role ↔ Course Mapping).
+  Future<Map<String, List<String>>> getEnrolledCourseIdsByStudent();
 
   /// (trackName, studentCount) grouped from `students.program_track`.
   Future<List<(String, int)>> getProgramTracks();
@@ -57,4 +65,12 @@ abstract class AdminStudentsRepository {
     required String sectionId,
     required String courseId,
   });
+
+  /// The classes [studentId] is currently enrolled in — Manage Enrolled
+  /// Courses screen.
+  Future<List<EnrolledClass>> getEnrolledClasses(String studentId);
+
+  /// Removes the student_courses row for (studentId, courseId) and, if it
+  /// was tied to a section, refreshes that section's `enrolled_count`.
+  Future<void> unenrollStudentFromCourse(String studentId, String courseId);
 }

@@ -10,12 +10,12 @@
 truncate table
   enrollment_monthly_stats, enrollment_candidates, course_sections,
   badge_awards, student_certifications, student_materials, student_courses,
-  lecturer_courses, module_certs, course_tags,
+  role_courses, lecturer_courses, module_certs, course_tags,
   module_materials, course_modules, courses,
   certifications, tags,
   lecturers, students, admins,
   departments, program_tracks, cohorts,
-  lecturer_departments, specializations
+  lecturer_departments, specializations, roles
 restart identity cascade;
 
 -- ── Master data (student registry dropdowns) ────────────────────────────
@@ -33,6 +33,17 @@ insert into program_tracks (name) values
 
 insert into cohorts (name) values
   ('Fall 2025 Cohort'), ('Executive Summer 2025'), ('Spring 2025 Cohort'), ('2025-Q1');
+
+-- Job roles (Role → Course Mapping screen: which courses fit which job).
+insert into roles (id, name) values
+  ('99999999-9999-9999-9999-999999999901', 'IT Support Specialist'),
+  ('99999999-9999-9999-9999-999999999902', 'HVAC / Aircon Installer'),
+  ('99999999-9999-9999-9999-999999999903', 'Data Analyst'),
+  ('99999999-9999-9999-9999-999999999904', 'Cloud Engineer'),
+  ('99999999-9999-9999-9999-999999999905', 'Financial Analyst'),
+  ('99999999-9999-9999-9999-999999999906', 'Compliance Officer'),
+  ('99999999-9999-9999-9999-999999999907', 'Safety Officer'),
+  ('99999999-9999-9999-9999-999999999908', 'Executive Manager');
 
 -- ── Master data (lecturer registry dropdowns) ───────────────────────────
 
@@ -57,17 +68,17 @@ insert into lecturers (id, name, title, employee_id, email, department, speciali
   ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true),
   ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false);
 
-insert into students (id, name, student_id, email, department, title, program_track, cohort, gpa) overriding system value values
-  (1, 'Alex Chen', 'EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 3.76),
-  (2, 'Maya Patel', 'EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'Fall 2025 Cohort', 3.92),
-  (3, 'Marcus Reed', 'EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Summer 2025', 2.90),
-  (4, 'Elena Rostova Jr.', 'EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'Spring 2025 Cohort', 3.40),
-  (5, 'David Kim', 'EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'Fall 2025 Cohort', 3.55),
-  (6, 'Sophia Loren', 'EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'Fall 2025 Cohort', 3.10),
-  (7, 'Jordan Taylor', 'EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'Spring 2025 Cohort', 2.60),
-  (8, 'Sarah Jenkins', 'EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'Fall 2025 Cohort', 3.70),
-  (9, 'Liam Nguyen', 'EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 3.30),
-  (10, 'Chloe Bennett', 'EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 3.35);
+insert into students (id, name, student_id, email, department, title, program_track, cohort, role, gpa) overriding system value values
+  (1, 'Alex Chen', 'EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 'Data Analyst', 3.76),
+  (2, 'Maya Patel', 'EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'Fall 2025 Cohort', 'Data Analyst', 3.92),
+  (3, 'Marcus Reed', 'EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Summer 2025', 'Financial Analyst', 2.90),
+  (4, 'Elena Rostova Jr.', 'EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Compliance Officer', 3.40),
+  (5, 'David Kim', 'EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'Fall 2025 Cohort', 'Data Analyst', 3.55),
+  (6, 'Sophia Loren', 'EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'Fall 2025 Cohort', 'Data Analyst', 3.10),
+  (7, 'Jordan Taylor', 'EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Safety Officer', 2.60),
+  (8, 'Sarah Jenkins', 'EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'Fall 2025 Cohort', 'Cloud Engineer', 3.70),
+  (9, 'Liam Nguyen', 'EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'IT Support Specialist', 3.30),
+  (10, 'Chloe Bennett', 'EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'Data Analyst', 3.35);
 
 -- Keep the identity sequence ahead of the explicit ids inserted above, so
 -- the next `insert into students (name, ...)` (no id given — e.g. Register
@@ -113,6 +124,50 @@ insert into lecturer_courses (lecturer_id, course_id) values
   ('11111111-1111-1111-1111-111111111103', '44444444-4444-4444-4444-444444444413'), -- Aris Thorne: NLP-620 (+1 more)
   ('11111111-1111-1111-1111-111111111104', '44444444-4444-4444-4444-444444444406'), -- Elena Rostova: LEAD-400
   ('11111111-1111-1111-1111-111111111104', '44444444-4444-4444-4444-444444444414'); -- Elena Rostova: COMM-102
+
+-- ── Role → Course mapping (which job roles can study which courses) ─────
+
+-- Broad enough that only Alex Chen (id 1, Data Analyst enrolled in OSHE-101 /
+-- SEC-410 / LEAD-400) and Marcus Reed (id 3, Financial Analyst enrolled in
+-- PY-402) end up flagged as role/course mismatches on the Manage Students
+-- screen — every other seeded student's enrollments fit their role.
+insert into role_courses (role_id, course_id) values
+  -- IT Support Specialist: PY-402, DATA-501, SEC-410, CYBER-202, CLOUD-410
+  ('99999999-9999-9999-9999-999999999901', '44444444-4444-4444-4444-444444444401'),
+  ('99999999-9999-9999-9999-999999999901', '44444444-4444-4444-4444-444444444407'),
+  ('99999999-9999-9999-9999-999999999901', '44444444-4444-4444-4444-444444444405'),
+  ('99999999-9999-9999-9999-999999999901', '44444444-4444-4444-4444-444444444415'),
+  ('99999999-9999-9999-9999-999999999901', '44444444-4444-4444-4444-444444444416'),
+  -- HVAC / Aircon Installer: OSHE-101, SAF-204
+  ('99999999-9999-9999-9999-999999999902', '44444444-4444-4444-4444-444444444402'),
+  ('99999999-9999-9999-9999-999999999902', '44444444-4444-4444-4444-444444444409'),
+  -- Data Analyst: PY-402, DATA-501, FIN-410, AI-330, SEC-410
+  ('99999999-9999-9999-9999-999999999903', '44444444-4444-4444-4444-444444444401'),
+  ('99999999-9999-9999-9999-999999999903', '44444444-4444-4444-4444-444444444407'),
+  ('99999999-9999-9999-9999-999999999903', '44444444-4444-4444-4444-444444444404'),
+  ('99999999-9999-9999-9999-999999999903', '44444444-4444-4444-4444-444444444403'),
+  ('99999999-9999-9999-9999-999999999903', '44444444-4444-4444-4444-444444444405'),
+  -- Cloud Engineer: CLOUD-410, DATA-501, CYBER-202, AI-301 (deliberately
+  -- excludes PY-402 — keeps the Ravi Kumar mismatch demo on Enroll Students).
+  ('99999999-9999-9999-9999-999999999904', '44444444-4444-4444-4444-444444444416'),
+  ('99999999-9999-9999-9999-999999999904', '44444444-4444-4444-4444-444444444407'),
+  ('99999999-9999-9999-9999-999999999904', '44444444-4444-4444-4444-444444444415'),
+  ('99999999-9999-9999-9999-999999999904', '44444444-4444-4444-4444-444444444408'),
+  -- Financial Analyst: FIN-410, COMM-102
+  ('99999999-9999-9999-9999-999999999905', '44444444-4444-4444-4444-444444444404'),
+  ('99999999-9999-9999-9999-999999999905', '44444444-4444-4444-4444-444444444414'),
+  -- Compliance Officer: OSHE-101, SEC-410, CYBER-202, PY-402
+  ('99999999-9999-9999-9999-999999999906', '44444444-4444-4444-4444-444444444402'),
+  ('99999999-9999-9999-9999-999999999906', '44444444-4444-4444-4444-444444444405'),
+  ('99999999-9999-9999-9999-999999999906', '44444444-4444-4444-4444-444444444415'),
+  ('99999999-9999-9999-9999-999999999906', '44444444-4444-4444-4444-444444444401'),
+  -- Safety Officer: OSHE-101, SAF-204, SEC-410
+  ('99999999-9999-9999-9999-999999999907', '44444444-4444-4444-4444-444444444402'),
+  ('99999999-9999-9999-9999-999999999907', '44444444-4444-4444-4444-444444444409'),
+  ('99999999-9999-9999-9999-999999999907', '44444444-4444-4444-4444-444444444405'),
+  -- Executive Manager: LEAD-400, COMM-102
+  ('99999999-9999-9999-9999-999999999908', '44444444-4444-4444-4444-444444444406'),
+  ('99999999-9999-9999-9999-999999999908', '44444444-4444-4444-4444-444444444414');
 
 -- ── Course sections (lecturer_allocation screen: assigned + unassigned) ──
 
@@ -428,12 +483,14 @@ insert into student_courses (student_id, course_id, progress_percentage, grade, 
 -- enroll_students_screen.dart — its capacity/enrolled figures come from
 -- the PY-402 'Sec A01' course_sections row above: 42/50) ────────────────
 
-insert into enrollment_candidates (student_name, student_employee_id, student_email, department, cohort, target_course_id, prerequisite_status, prerequisite_detail, standing_detail, sponsorship, queue_tag, needs_review) values
-  ('Daniel Ross', 'EMP-61092', 'daniel.ross@enterprise.com', 'Data Architecture', 'Fall 2025 Cohort', '44444444-4444-4444-4444-444444444401', 'met', 'CS-101 Met (GPA 3.9)', 'Academic Good Standing', 'Enterprise Full', 'Staged', false),
-  ('Emily Lawson', 'EMP-88231', 'emily.lawson@enterprise.com', 'AI Engineering', 'Fall 2025 Cohort', '44444444-4444-4444-4444-444444444401', 'met', 'MATH-204 Met', 'Academic Good Standing', 'Enterprise Full', 'Waitlist #1', false),
-  ('Ravi Kumar', 'EMP-54910', 'ravi.kumar@enterprise.com', 'Cloud & Distributed', 'Fall 2025 Cohort', '44444444-4444-4444-4444-444444444401', 'met', 'All Prerequisites Met', 'Ready for section assign', 'Enterprise Full', null, false),
-  ('Sophia Martinez', 'EMP-30491', 's.martinez@enterprise.com', 'Data Architecture', 'Fall 2025 Cohort', '44444444-4444-4444-4444-444444444401', 'met', 'Prereq PY-101 Verified', 'Academic Good Standing', 'Self-Enrolled', null, false),
-  ('Jason Todd', 'EMP-77182', 'jason.todd@enterprise.com', 'Executive Operations', 'Summer 2025 Cohort', '44444444-4444-4444-4444-444444444401', 'pending', 'Prereq Waiver Required', 'Conditional dean approval', 'Enterprise Full', 'Waitlist #2', true);
+insert into enrollment_candidates (student_name, student_employee_id, student_email, department, cohort, role, target_course_id, prerequisite_status, prerequisite_detail, standing_detail, sponsorship, queue_tag, needs_review) values
+  ('Daniel Ross', 'EMP-61092', 'daniel.ross@enterprise.com', 'Data Architecture', 'Fall 2025 Cohort', 'IT Support Specialist', '44444444-4444-4444-4444-444444444401', 'met', 'CS-101 Met (GPA 3.9)', 'Academic Good Standing', 'Enterprise Full', 'Staged', false),
+  ('Emily Lawson', 'EMP-88231', 'emily.lawson@enterprise.com', 'AI Engineering', 'Fall 2025 Cohort', 'Data Analyst', '44444444-4444-4444-4444-444444444401', 'met', 'MATH-204 Met', 'Academic Good Standing', 'Enterprise Full', 'Waitlist #1', false),
+  -- Cloud Engineer's role→course mapping doesn't include PY-402 — demonstrates the role-mismatch flag.
+  ('Ravi Kumar', 'EMP-54910', 'ravi.kumar@enterprise.com', 'Cloud & Distributed', 'Fall 2025 Cohort', 'Cloud Engineer', '44444444-4444-4444-4444-444444444401', 'met', 'All Prerequisites Met', 'Ready for section assign', 'Enterprise Full', null, false),
+  ('Sophia Martinez', 'EMP-30491', 's.martinez@enterprise.com', 'Data Architecture', 'Fall 2025 Cohort', 'Data Analyst', '44444444-4444-4444-4444-444444444401', 'met', 'Prereq PY-101 Verified', 'Academic Good Standing', 'Self-Enrolled', null, false),
+  -- Executive Manager's role→course mapping doesn't include PY-402 — demonstrates the role-mismatch flag.
+  ('Jason Todd', 'EMP-77182', 'jason.todd@enterprise.com', 'Executive Operations', 'Summer 2025 Cohort', 'Executive Manager', '44444444-4444-4444-4444-444444444401', 'pending', 'Prereq Waiver Required', 'Conditional dean approval', 'Enterprise Full', 'Waitlist #2', true);
 
 -- ── Admin: enrollment monthly trend (Manage Students screen) ────────────
 

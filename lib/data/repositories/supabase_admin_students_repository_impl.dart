@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
+import 'package:stitch_aiei_lms/domain/models/enrolled_class.dart';
 import 'package:stitch_aiei_lms/domain/repositories/admin_students_repository.dart';
 
 class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
@@ -30,6 +31,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     String? title,
     required String programTrack,
     required String cohort,
+    required String role,
   }) async {
     final row = await _client
         .from('students')
@@ -41,6 +43,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'title': title,
           'program_track': programTrack,
           'cohort': cohort,
+          'role': role,
         })
         .select()
         .single();
@@ -57,6 +60,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     String? title,
     required String programTrack,
     required String cohort,
+    required String role,
     double? gpa,
   }) async {
     final row = await _client
@@ -69,6 +73,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'title': title,
           'program_track': programTrack,
           'cohort': cohort,
+          'role': role,
           if (gpa != null) 'gpa': gpa,
         })
         .eq('id', id)
@@ -86,6 +91,17 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
       counts[id] = (counts[id] ?? 0) + 1;
     }
     return counts;
+  }
+
+  @override
+  Future<Map<String, List<String>>> getEnrolledCourseIdsByStudent() async {
+    final rows = await _client.from('student_courses').select('student_id, course_id');
+    final result = <String, List<String>>{};
+    for (final row in rows as List) {
+      final id = (row['student_id'] as num).toString();
+      result.putIfAbsent(id, () => []).add(row['course_id'] as String);
+    }
+    return result;
   }
 
   @override
@@ -167,5 +183,30 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     );
     final enrolled = await _client.from('student_courses').select('student_id').eq('section_id', sectionId);
     await _client.from('course_sections').update({'enrolled_count': (enrolled as List).length}).eq('id', sectionId);
+  }
+
+  @override
+  Future<List<EnrolledClass>> getEnrolledClasses(String studentId) async {
+    final rows = await _client
+        .from('student_courses')
+        .select('course_id, section_id, courses(course_code, course_title), course_sections(section_code)')
+        .eq('student_id', studentId);
+    return [for (final row in rows as List) EnrolledClass.fromMap(row as Map<String, dynamic>)];
+  }
+
+  @override
+  Future<void> unenrollStudentFromCourse(String studentId, String courseId) async {
+    final row = await _client
+        .from('student_courses')
+        .select('section_id')
+        .eq('student_id', studentId)
+        .eq('course_id', courseId)
+        .maybeSingle();
+    final sectionId = row?['section_id'] as String?;
+    await _client.from('student_courses').delete().eq('student_id', studentId).eq('course_id', courseId);
+    if (sectionId != null) {
+      final remaining = await _client.from('student_courses').select('student_id').eq('section_id', sectionId);
+      await _client.from('course_sections').update({'enrolled_count': (remaining as List).length}).eq('id', sectionId);
+    }
   }
 }

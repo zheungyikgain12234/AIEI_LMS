@@ -4,6 +4,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_role_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'widgets/admin_scaffold.dart';
@@ -13,8 +15,8 @@ import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_more_menu.dart';
 import 'widgets/admin_mobile_selection_bar.dart';
-import 'course_enrollment_screen.dart';
 import 'student_form_screen.dart';
+import 'student_enrolled_courses_screen.dart';
 
 // ---------------------------------------------------------------------------
 // ManageStudentsScreen – Stitch "Manage Students" faithful Flutter
@@ -30,12 +32,15 @@ class ManageStudentsScreen extends StatefulWidget {
 class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _roleCourseMappingRepository = SupabaseRoleCourseMappingRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<Student> _students = [];
   Map<String, int> _enrollmentCounts = {};
   Map<String, List<String>> _credentialTitles = {};
   List<(String, int)> _tracks = [];
   List<(String, int)> _trend = [];
+  Set<String> _roleMismatchStudentIds = {};
 
   final Set<String> _selected = {};
 
@@ -51,6 +56,24 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final credentials = await _repository.getEarnedCredentialTitles();
     final tracks = await _repository.getProgramTracks();
     final trend = await _repository.getEnrollmentTrend();
+    final enrolledCourseIds = await _repository.getEnrolledCourseIdsByStudent();
+    final roles = await _masterDataRepository.getRoles();
+
+    // A student's enrollment "mismatches" their role when a course they're
+    // enrolled in isn't mapped to their role in `role_courses` (Role ↔
+    // Course Mapping). This only drives the warning icon below — it never
+    // blocks enrollment.
+    final roleIdByName = {for (final r in roles) r.name: r.id};
+    final allowedCourseIdsByRoleId = <String, Set<String>>{};
+    final mismatches = <String>{};
+    for (final s in students) {
+      final roleId = roleIdByName[s.role];
+      if (roleId == null) continue;
+      final allowed = allowedCourseIdsByRoleId[roleId] ??= await _roleCourseMappingRepository.getCourseIdsForRole(roleId);
+      final enrolled = enrolledCourseIds[s.id] ?? const [];
+      if (enrolled.any((courseId) => !allowed.contains(courseId))) mismatches.add(s.id);
+    }
+
     if (!mounted) return;
     setState(() {
       _students = students;
@@ -58,6 +81,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       _credentialTitles = credentials;
       _tracks = tracks;
       _trend = trend;
+      _roleMismatchStudentIds = mismatches;
       _isLoading = false;
     });
   }
@@ -83,6 +107,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       MaterialPageRoute(builder: (_) => StudentFormScreen(studentId: s.id)),
     );
     if (saved != null) _load();
+  }
+
+  Future<void> _openEnrolledCourses(Student s) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => StudentEnrolledCoursesScreen(studentId: s.id)),
+    );
+    _load();
   }
 
   Future<void> _deleteSelected() async {
@@ -394,6 +425,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final credentials = _credentialTitles[s.id] ?? const [];
     final flagged = _isFlagged(s);
     final standing = flagged ? 'Under Review' : 'Good Standing';
+    final roleMismatch = _roleMismatchStudentIds.contains(s.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -420,6 +452,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                       Flexible(
                         child: Text(s.name, style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface), overflow: TextOverflow.ellipsis),
                       ),
+                      if (roleMismatch) ...[
+                        const SizedBox(width: 4),
+                        Tooltip(
+                          message: 'One or more course mismatch with the student role',
+                          child: Icon(Icons.error, size: 15, color: AdminColors.error),
+                        ),
+                      ],
                       const SizedBox(width: 4),
                       InkWell(
                         onTap: () => _openEditStudent(s),
@@ -449,6 +488,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               padding: const EdgeInsets.only(right: 12),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('${s.programTrack} • ${s.cohort}', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                Text(s.role, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
                 Text('GPA ${s.gpa.toStringAsFixed(2)} • $enrollments Enrolled', style: AdminTypography.labelSm(color: flagged ? AdminColors.error : AdminColors.onSurfaceVariant)),
               ]),
             ),
@@ -480,6 +520,24 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                       ]),
                     ),
                   ),
+          ),
+          SizedBox(
+            width: 190,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton(
+                onPressed: () => _openEnrolledCourses(s),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AdminColors.primary,
+                  backgroundColor: AdminColors.surfaceContainerLow,
+                  side: BorderSide.none,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: AdminTypography.labelSm(),
+                ),
+                child: const Text('Manage Enrolled Courses'),
+              ),
+            ),
           ),
         ],
       ),
@@ -917,6 +975,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final standing = flagged ? 'Under Review' : 'Good Standing';
     final progress = (s.gpa / 4.0).clamp(0.0, 1.0);
     final selected = _selected.contains(s.id);
+    final roleMismatch = _roleMismatchStudentIds.contains(s.id);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -955,6 +1014,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                           s.name,
                           style: AdminTypography.headlineSm(color: flagged ? AdminColors.error : AdminColors.onSurface),
                         ),
+                        if (roleMismatch)
+                          Tooltip(
+                            message: 'One or more course mismatch with the student role',
+                            child: Icon(Icons.error, size: 16, color: AdminColors.error),
+                          ),
                         InkWell(
                           onTap: () => _openEditStudent(s),
                           borderRadius: BorderRadius.circular(6),
@@ -984,7 +1048,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  '${s.programTrack} (${s.cohort})',
+                  '${s.programTrack} (${s.cohort}) • ${s.role}',
                   style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1055,13 +1119,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             width: double.infinity,
             height: 36,
             child: ElevatedButton.icon(
-              onPressed: () => flagged
-                  ? _notAvailable()
-                  : (enrollments > 0
-                      ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()))
-                      : _notAvailable()),
-              icon: Icon(flagged ? Icons.assignment_turned_in : Icons.menu_book, size: 18),
-              label: Text(flagged ? 'Resolve Flag & Review' : 'Manage Courses'),
+              onPressed: () => _openEnrolledCourses(s),
+              icon: const Icon(Icons.menu_book, size: 18),
+              label: const Text('Manage Enrolled Courses'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
                 foregroundColor: flagged ? AdminColors.onErrorContainer : AdminColors.secondary,

@@ -7,12 +7,14 @@ import '../manage_students_screen.dart';
 import '../manage_courses_screen.dart';
 import '../manage_classes_screen.dart';
 import '../manage_badges_screen.dart';
+import '../role_course_mapping_screen.dart';
 import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
 import '../manage_program_tracks_screen.dart';
 import '../manage_cohorts_screen.dart';
 import '../manage_lecturer_departments_screen.dart';
 import '../manage_specializations_screen.dart';
+import '../manage_roles_screen.dart';
 
 /// Centralized sidebar navigation for every Admin Portal screen — pushes the
 /// screen for [dest], or does nothing if it's already the [current] screen.
@@ -25,12 +27,14 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.manageCourses => const ManageCoursesScreen(),
     AdminNavDestination.manageClasses => const ManageClassesScreen(),
     AdminNavDestination.manageBadges => const ManageBadgesScreen(),
+    AdminNavDestination.roleCourseMapping => const RoleCourseMappingScreen(),
     AdminNavDestination.courseEnrollment => const CourseEnrollmentScreen(),
     AdminNavDestination.manageDepartments => const ManageDepartmentsScreen(),
     AdminNavDestination.manageProgramTracks => const ManageProgramTracksScreen(),
     AdminNavDestination.manageCohorts => const ManageCohortsScreen(),
     AdminNavDestination.manageLecturerDepartments => const ManageLecturerDepartmentsScreen(),
     AdminNavDestination.manageSpecializations => const ManageSpecializationsScreen(),
+    AdminNavDestination.manageRoles => const ManageRolesScreen(),
   };
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 }

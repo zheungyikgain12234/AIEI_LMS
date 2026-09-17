@@ -13,11 +13,11 @@
 drop table if exists
   enrollment_monthly_stats, enrollment_candidates, course_sections,
   badge_awards, student_certifications, student_materials, student_courses,
-  lecturer_courses, module_certs, certifications,
+  role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags, module_materials, course_modules, courses,
   admins, students, lecturers,
   departments, program_tracks, cohorts,
-  lecturer_departments, specializations
+  lecturer_departments, specializations, roles
 cascade;
 
 create extension if not exists pgcrypto;
@@ -56,6 +56,15 @@ create table specializations (
   created_at timestamptz not null default now()
 );
 
+-- Job roles (e.g. "IT Support Specialist", "HVAC / Aircon Installer") — what
+-- a student does for work, distinct from their academic program_track. Used
+-- to drive the Role → Course Mapping screen (which courses fit which job).
+create table roles (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
 -- ── People ──────────────────────────────────────────────────────────────
 
 create table lecturers (
@@ -83,6 +92,7 @@ create table students (
   title text,
   program_track text not null references program_tracks(name) on update cascade,
   cohort text not null references cohorts(name) on update cascade,
+  role text not null references roles(name) on update cascade,
   gpa numeric(3, 2) not null default 0,
   created_at timestamptz not null default now()
 );
@@ -174,6 +184,14 @@ create table lecturer_courses (
   lecturer_id uuid not null references lecturers(id) on delete cascade,
   course_id uuid not null references courses(id) on delete cascade,
   primary key (lecturer_id, course_id)
+);
+
+-- Which courses are relevant to which job role — drives the Role ↔ Course
+-- Mapping screen (e.g. "IT Support Specialist can study PY-402, DATA-501...").
+create table role_courses (
+  role_id uuid not null references roles(id) on delete cascade,
+  course_id uuid not null references courses(id) on delete cascade,
+  primary key (role_id, course_id)
 );
 
 -- `lecturers.credits_used` is derived, not app-maintained: it's recomputed
@@ -282,6 +300,7 @@ create table enrollment_candidates (
   student_email text not null,
   department text not null default '',
   cohort text not null default '',
+  role text references roles(name) on update cascade,
   target_course_id uuid not null references courses(id) on delete cascade,
   prerequisite_status text not null default 'met' check (prerequisite_status in ('met', 'pending', 'not_met')),
   prerequisite_detail text not null default '',
@@ -306,6 +325,8 @@ alter table program_tracks enable row level security;
 alter table cohorts enable row level security;
 alter table lecturer_departments enable row level security;
 alter table specializations enable row level security;
+alter table roles enable row level security;
+alter table role_courses enable row level security;
 alter table lecturers enable row level security;
 alter table students enable row level security;
 alter table admins enable row level security;
@@ -331,10 +352,10 @@ declare
 begin
   foreach t in array array[
     'departments', 'program_tracks', 'cohorts',
-    'lecturer_departments', 'specializations',
+    'lecturer_departments', 'specializations', 'roles',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'tags', 'course_tags', 'certifications', 'module_certs',
-    'lecturer_courses', 'student_courses', 'student_materials',
+    'lecturer_courses', 'role_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates',
     'enrollment_monthly_stats'
   ]

@@ -7,6 +7,7 @@ class Student {
   final String? title;
   final String programTrack;
   final String cohort;
+  final String role;
   final double gpa;
 
   const Student({
@@ -18,6 +19,7 @@ class Student {
     this.title,
     required this.programTrack,
     required this.cohort,
+    required this.role,
     required this.gpa,
   });
 
@@ -31,6 +33,7 @@ class Student {
       title: map['title'] as String?,
       programTrack: map['program_track'] as String,
       cohort: map['cohort'] as String,
+      role: map['role'] as String,
       gpa: (map['gpa'] as num).toDouble(),
     );
   }

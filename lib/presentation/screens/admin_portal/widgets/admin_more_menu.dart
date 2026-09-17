@@ -3,12 +3,14 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import '../manage_classes_screen.dart';
 import '../manage_badges_screen.dart';
+import '../role_course_mapping_screen.dart';
 import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
 import '../manage_program_tracks_screen.dart';
 import '../manage_cohorts_screen.dart';
 import '../manage_lecturer_departments_screen.dart';
 import '../manage_specializations_screen.dart';
+import '../manage_roles_screen.dart';
 
 /// The mobile "More" sheet — everything in the desktop sidebar that doesn't
 /// fit as its own [AdminMobileBottomNav] tab. Master Data collapses into a
@@ -32,6 +34,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
             ),
             _tile(context, sheetContext, Icons.event_note_outlined, 'Manage Classes', (ctx) => const ManageClassesScreen()),
             _tile(context, sheetContext, Icons.military_tech_outlined, 'Manage Badges', (ctx) => const ManageBadgesScreen()),
+            _tile(context, sheetContext, Icons.swap_horiz_outlined, 'Role ↔ Course Mapping', (ctx) => const RoleCourseMappingScreen()),
             _tile(context, sheetContext, Icons.school_outlined, 'Course Enrollment', (ctx) => const CourseEnrollmentScreen()),
             ExpansionTile(
               leading: const Icon(Icons.dataset_outlined, color: AdminColors.onSurfaceVariant),
@@ -43,6 +46,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
                 _tile(context, sheetContext, Icons.hub_outlined, 'Manage Cohorts', (ctx) => const ManageCohortsScreen()),
                 _tile(context, sheetContext, Icons.corporate_fare_outlined, 'Manage Lecturer Depts', (ctx) => const ManageLecturerDepartmentsScreen()),
                 _tile(context, sheetContext, Icons.psychology_outlined, 'Manage Specialization', (ctx) => const ManageSpecializationsScreen()),
+                _tile(context, sheetContext, Icons.work_outline, 'Manage Roles', (ctx) => const ManageRolesScreen()),
               ],
             ),
           ],

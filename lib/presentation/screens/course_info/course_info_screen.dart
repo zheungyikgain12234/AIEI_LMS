@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/compliance_quiz/compliance_quiz_screen.dart';
 
 // ---------------------------------------------------------------------------
 // CourseInfoScreen – Stitch "Course info 1" faithful Flutter conversion
@@ -805,7 +806,7 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
             ),
             // Take Quiz button
             OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: _openComplianceQuiz,
               icon: const Icon(Icons.quiz, size: 18),
               label: const Text('Take Lesson 7 Quiz'),
               style: OutlinedButton.styleFrom(
@@ -1399,6 +1400,12 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
     );
   }
 
+  void _openComplianceQuiz() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ComplianceQuizScreen()),
+    );
+  }
+
   void _openAssignmentSubmission() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const AssignmentSubmissionScreen()),
@@ -1868,7 +1875,7 @@ class _CourseInfoScreenState extends State<CourseInfoScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _openComplianceQuiz,
                   icon: const Icon(Icons.arrow_forward, size: 16),
                   label: const Text('Take Quiz 7'),
                   style: ElevatedButton.styleFrom(

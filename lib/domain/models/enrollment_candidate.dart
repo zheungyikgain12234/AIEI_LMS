@@ -5,6 +5,7 @@ class EnrollmentCandidate {
   final String studentEmail;
   final String department;
   final String cohort;
+  final String? role;
   final String targetCourseId;
   final String prerequisiteStatus;
   final String prerequisiteDetail;
@@ -21,6 +22,7 @@ class EnrollmentCandidate {
     required this.studentEmail,
     required this.department,
     required this.cohort,
+    this.role,
     required this.targetCourseId,
     required this.prerequisiteStatus,
     required this.prerequisiteDetail,
@@ -46,6 +48,7 @@ class EnrollmentCandidate {
       studentEmail: map['student_email'] as String,
       department: map['department'] as String? ?? '',
       cohort: map['cohort'] as String? ?? '',
+      role: map['role'] as String?,
       targetCourseId: map['target_course_id'] as String,
       prerequisiteStatus: map['prerequisite_status'] as String,
       prerequisiteDetail: map['prerequisite_detail'] as String? ?? '',

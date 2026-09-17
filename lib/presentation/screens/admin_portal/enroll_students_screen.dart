@@ -5,6 +5,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_role_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
 import 'widgets/admin_scaffold.dart';
@@ -26,11 +28,14 @@ class EnrollStudentsScreen extends StatefulWidget {
 class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   final _adminStudentsRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _roleCourseMappingRepository = SupabaseRoleCourseMappingRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   CourseSection? _section;
   List<EnrollmentCandidate> _candidates = [];
   late Set<String> _staged;
+  Set<String> _roleMismatchCandidateIds = {};
 
   int get _baseEnrolled => _section?.enrolledCount ?? 0;
   int get _capacity => _section?.capacity ?? 0;
@@ -51,6 +56,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Future<void> _load() async {
     final sections = await _lecturersRepository.getAllSections();
     final candidates = await _adminStudentsRepository.getEnrollmentCandidates(DemoIdentity.coursePyId);
+    final roles = await _masterDataRepository.getRoles();
     if (!mounted) return;
     CourseSection? section;
     for (final s in sections) {
@@ -59,10 +65,26 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         break;
       }
     }
+
+    // A candidate's role "mismatches" this course when their role exists but
+    // isn't mapped to it in `role_courses` (Role ↔ Course Mapping). Enrolling
+    // is still allowed — this only drives the warning icon below.
+    final roleIdByName = {for (final r in roles) r.name: r.id};
+    final allowedCourseIdsByRoleId = <String, Set<String>>{};
+    final mismatches = <String>{};
+    for (final c in candidates) {
+      final roleId = roleIdByName[c.role];
+      if (roleId == null) continue;
+      final allowed = allowedCourseIdsByRoleId[roleId] ??= await _roleCourseMappingRepository.getCourseIdsForRole(roleId);
+      if (!allowed.contains(c.targetCourseId)) mismatches.add(c.id);
+    }
+
+    if (!mounted) return;
     setState(() {
       _section = section;
       _candidates = candidates;
       _staged = {for (final c in candidates.where((c) => c.queueTag == 'Staged')) c.id};
+      _roleMismatchCandidateIds = mismatches;
       _isLoading = false;
     });
   }
@@ -255,6 +277,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget _candidateRow(EnrollmentCandidate c) {
     final staged = _staged.contains(c.id);
     final warn = c.needsReview;
+    final roleMismatch = _roleMismatchCandidateIds.contains(c.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -273,6 +296,13 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Flexible(child: Text(c.studentName, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  if (roleMismatch) ...[
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: 'One or more course mismatch with the student role',
+                      child: Icon(Icons.error, size: 15, color: AdminColors.error),
+                    ),
+                  ],
                   if (c.queueTag != null) ...[
                     const SizedBox(width: 4),
                     Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: warn ? AdminColors.errorContainer : AdminColors.primaryFixed, borderRadius: BorderRadius.circular(4)), child: Text(c.queueTag!, style: AdminTypography.labelSm(color: warn ? AdminColors.onErrorContainer : AdminColors.onPrimaryFixed))),
@@ -642,6 +672,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget _mobileCandidateCard(EnrollmentCandidate c) {
     final staged = _staged.contains(c.id);
     final locked = c.needsReview;
+    final roleMismatch = _roleMismatchCandidateIds.contains(c.id);
 
     String pillText;
     Color pillBg;
@@ -707,6 +738,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                       Text(c.studentName, style: AdminTypography.headlineSm()),
                       Text(c.studentEmployeeId ?? '—', style: AdminTypography.labelSm()),
+                      if (roleMismatch)
+                        Tooltip(
+                          message: 'One or more course mismatch with the student role',
+                          child: Icon(Icons.error, size: 15, color: AdminColors.error),
+                        ),
                     ]),
                     Text(c.studentEmail, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
                   ],

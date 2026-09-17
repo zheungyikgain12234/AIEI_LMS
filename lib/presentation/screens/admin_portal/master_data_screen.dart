@@ -23,6 +23,10 @@ class MasterDataScreen extends StatefulWidget {
   final Future<void> Function(String id, String name) update;
   final Future<void> Function(List<String> ids) delete;
 
+  /// Optional italicized note shown under the description (e.g. a note
+  /// about where this list is sourced from).
+  final String? note;
+
   const MasterDataScreen({
     super.key,
     required this.title,
@@ -33,6 +37,7 @@ class MasterDataScreen extends StatefulWidget {
     required this.create,
     required this.update,
     required this.delete,
+    this.note,
   });
 
   @override
@@ -169,6 +174,13 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(widget.description, style: AdminTypography.bodyMd()),
+              if (widget.note != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  widget.note!,
+                  style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
+                ),
+              ],
               const SizedBox(height: 16),
               SizedBox(
                 height: 44,
@@ -243,6 +255,16 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
               constraints: const BoxConstraints(maxWidth: 620),
               child: Text(widget.description, style: AdminTypography.bodyMd()),
             ),
+            if (widget.note != null) ...[
+              const SizedBox(height: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: Text(
+                  widget.note!,
+                  style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
           ],
         ),
         ElevatedButton.icon(

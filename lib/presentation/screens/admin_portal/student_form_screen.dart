@@ -42,9 +42,11 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   List<String> _departments = [];
   List<String> _programTracks = [];
   List<String> _cohorts = [];
+  List<String> _roles = [];
   String? _selectedDepartment;
   String? _selectedProgramTrack;
   String? _selectedCohort;
+  String? _selectedRole;
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -62,6 +64,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
       final departments = await _masterDataRepository.getDepartments();
       final programTracks = await _masterDataRepository.getProgramTracks();
       final cohorts = await _masterDataRepository.getCohorts();
+      final roles = await _masterDataRepository.getRoles();
       Student? student;
       if (widget.isEditing) {
         student = await _repository.getStudentById(widget.studentId!);
@@ -71,6 +74,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         _departments = [for (final d in departments) d.name];
         _programTracks = [for (final t in programTracks) t.name];
         _cohorts = [for (final c in cohorts) c.name];
+        _roles = [for (final r in roles) r.name];
         if (student != null) {
           _nameController.text = student.name;
           _studentIdController.text = student.studentId;
@@ -79,6 +83,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
           _selectedDepartment = _departments.contains(student.department) ? student.department : null;
           _selectedProgramTrack = _programTracks.contains(student.programTrack) ? student.programTrack : null;
           _selectedCohort = _cohorts.contains(student.cohort) ? student.cohort : null;
+          _selectedRole = _roles.contains(student.role) ? student.role : null;
         }
         _isLoading = false;
       });
@@ -119,6 +124,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
           title: title.isEmpty ? null : title,
           programTrack: _selectedProgramTrack!,
           cohort: _selectedCohort!,
+          role: _selectedRole!,
         );
       } else {
         saved = await _repository.createStudent(
@@ -129,6 +135,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
           title: title.isEmpty ? null : title,
           programTrack: _selectedProgramTrack!,
           cohort: _selectedCohort!,
+          role: _selectedRole!,
         );
       }
       if (!mounted) return;
@@ -221,6 +228,14 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                             value: _selectedCohort,
                             options: _cohorts,
                             onChanged: (v) => setState(() => _selectedCohort = v),
+                          ),
+                          const SizedBox(height: 14),
+                          _dropdown(
+                            label: 'Role',
+                            hint: 'Select a role',
+                            value: _selectedRole,
+                            options: _roles,
+                            onChanged: (v) => setState(() => _selectedRole = v),
                           ),
                           const SizedBox(height: 24),
                           Row(

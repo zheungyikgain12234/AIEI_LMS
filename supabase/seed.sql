@@ -9,7 +9,7 @@
 
 truncate table
   enrollment_monthly_stats, enrollment_candidates, course_sections,
-  student_certifications, student_materials, student_courses,
+  badge_awards, student_certifications, student_materials, student_courses,
   lecturer_courses, module_certs, course_tags,
   module_materials, course_modules, courses,
   certifications, tags,
@@ -47,12 +47,15 @@ insert into specializations (name) values
 
 -- ── People ──────────────────────────────────────────────────────────────
 
-insert into lecturers (id, name, title, employee_id, email, department, specialization, credits_used, credits_max, status, accredited, manageable) values
-  ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 'Distributed ETL & Python', 12, 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 8, 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of AI & Machine Learning', 'EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 6, 12, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 0, 15, 'Sabbatical', false, false);
+-- credits_used is not seeded explicitly — it's recomputed by the
+-- `lecturer_courses_recalc_credits` trigger once the lecturer_courses rows
+-- below are inserted (see schema.sql).
+insert into lecturers (id, name, title, employee_id, email, department, specialization, credits_max, status, accredited, manageable) values
+  ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 'Distributed ETL & Python', 15, 'Active', true, true),
+  ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 15, 'Active', true, true),
+  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of AI & Machine Learning', 'EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true),
+  ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true),
+  ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false);
 
 insert into students (id, name, student_id, email, department, title, program_track, cohort, gpa) overriding system value values
   (1, 'Alex Chen', 'EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 3.76),
@@ -113,21 +116,21 @@ insert into lecturer_courses (lecturer_id, course_id) values
 
 -- ── Course sections (lecturer_allocation screen: assigned + unassigned) ──
 
-insert into course_sections (course_id, section_code, role_label, term, schedule_text, lecturer_id, capacity, enrolled_count, status) values
-  ('44444444-4444-4444-4444-444444444401', 'Sec A01', 'Primary Instructor', 'Fall 2025', 'MWF 09:00–10:30', '11111111-1111-1111-1111-111111111101', 50, 42, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444407', 'Sec B02', 'Primary Instructor', 'Fall 2025', 'TTh 13:00–14:45', '11111111-1111-1111-1111-111111111101', 45, 38, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444408', 'Sec C01', 'Co-Lecturer', 'Fall 2025', 'Lab Fri 14:00–17:00', '11111111-1111-1111-1111-111111111101', 35, 29, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444402', 'Sec A1', 'Lead Instructor', 'Fall 2025', 'Mon/Wed 11:00–12:30', '11111111-1111-1111-1111-111111111102', 56, 56, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444409', 'Sec H03', 'Lead Instructor', 'Fall 2025', 'Thursday 14:00–17:30', '11111111-1111-1111-1111-111111111102', 34, 34, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444410', 'Graduate', 'Graduate', 'Fall 2025', 'Monday 14:00–18:00', '11111111-1111-1111-1111-111111111103', 50, 50, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444411', 'Doctoral Seminar', 'Doctoral Seminar', 'Fall 2025', 'Wednesday 14:00–18:00', '11111111-1111-1111-1111-111111111103', 45, 45, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444412', 'Advanced Lab', 'Advanced Lab', 'Fall 2025', 'Friday 08:30–12:30', '11111111-1111-1111-1111-111111111103', 30, 30, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444406', 'Sec E1', 'Section E1', 'Fall 2025', 'Tuesday 18:00–21:00', '11111111-1111-1111-1111-111111111104', 28, 28, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444414', 'Sec C3', 'Section C3', 'Fall 2025', 'Thursday 16:00–19:00', '11111111-1111-1111-1111-111111111104', 40, 40, 'in_progress'),
+insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, enrolled_count, status) values
+  ('44444444-4444-4444-4444-444444444401', 'Sec A01', 'Primary Instructor', 'Fall 2025', 'Monday 09:00–10:30 • Innovation Hall 204', 'Monday', '09:00', '10:30', 'Innovation Hall 204', '11111111-1111-1111-1111-111111111101', 50, 42, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444407', 'Sec B02', 'Primary Instructor', 'Fall 2025', 'Tuesday 13:00–14:45 • Data Lab 3B', 'Tuesday', '13:00', '14:45', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 45, 38, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444408', 'Sec C01', 'Co-Lecturer', 'Fall 2025', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111101', 35, 29, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444402', 'Sec A1', 'Lead Instructor', 'Fall 2025', 'Monday 11:00–12:30 • Safety Training Center', 'Monday', '11:00', '12:30', 'Safety Training Center', '11111111-1111-1111-1111-111111111102', 56, 56, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444409', 'Sec H03', 'Lead Instructor', 'Fall 2025', 'Thursday 14:00–17:30 • Hazmat Simulation Hall', 'Thursday', '14:00', '17:30', 'Hazmat Simulation Hall', '11111111-1111-1111-1111-111111111102', 34, 34, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444410', 'Graduate', 'Graduate', 'Fall 2025', 'Monday 14:00–18:00 • Grad Seminar Room 5', 'Monday', '14:00', '18:00', 'Grad Seminar Room 5', '11111111-1111-1111-1111-111111111103', 50, 50, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444411', 'Doctoral Seminar', 'Doctoral Seminar', 'Fall 2025', 'Wednesday 14:00–18:00 • Doctoral Seminar Hall', 'Wednesday', '14:00', '18:00', 'Doctoral Seminar Hall', '11111111-1111-1111-1111-111111111103', 45, 45, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444412', 'Advanced Lab', 'Advanced Lab', 'Fall 2025', 'Friday 08:30–12:30 • Robotics Lab 2', 'Friday', '08:30', '12:30', 'Robotics Lab 2', '11111111-1111-1111-1111-111111111103', 30, 30, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444406', 'Sec E1', 'Section E1', 'Fall 2025', 'Tuesday 18:00–21:00 • Executive Boardroom', 'Tuesday', '18:00', '21:00', 'Executive Boardroom', '11111111-1111-1111-1111-111111111104', 28, 28, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444414', 'Sec C3', 'Section C3', 'Fall 2025', 'Thursday 16:00–19:00 • Communication Studio C', 'Thursday', '16:00', '19:00', 'Communication Studio C', '11111111-1111-1111-1111-111111111104', 40, 40, 'in_progress'),
   -- Unassigned sections needing lecturer allocation:
-  ('44444444-4444-4444-4444-444444444415', 'Sec 02', 'Unassigned', 'Fall 2025', 'TBD', null, 34, 34, 'scheduled'),
-  ('44444444-4444-4444-4444-444444444416', 'Sec 01', 'Unassigned', 'Fall 2025', 'TBD', null, 50, 50, 'scheduled'),
-  ('44444444-4444-4444-4444-444444444417', 'Sec 01', 'Unassigned', 'Fall 2025', 'TBD', null, 22, 22, 'scheduled');
+  ('44444444-4444-4444-4444-444444444415', 'Sec 02', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 34, 34, 'scheduled'),
+  ('44444444-4444-4444-4444-444444444416', 'Sec 01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 50, 50, 'scheduled'),
+  ('44444444-4444-4444-4444-444444444417', 'Sec 01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 22, 22, 'scheduled');
 
 -- ── Modules + Materials ─────────────────────────────────────────────────
 -- Python course (PY-402) — full 10-lesson curriculum matching course_info_screen.dart
@@ -392,6 +395,14 @@ insert into student_certifications (student_id, cert_id, status, progress_percen
   (1, '88888888-8888-8888-8888-888888888805', 'in_progress', 40, null, null, null, null, null, null, null),
   (1, '88888888-8888-8888-8888-888888888803', 'in_progress', 85, null, null, null, null, null, null, null),
   (1, '88888888-8888-8888-8888-888888888806', 'in_progress', 20, null, null, null, null, null, null, null);
+
+-- ── Manage Badges (per-course badge awards, admin screen) ───────────────
+
+insert into badge_awards (student_id, course_id, badge_id, issue_year, is_revoked) values
+  (1, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', 2025, false),
+  (1, '44444444-4444-4444-4444-444444444402', '88888888-8888-8888-8888-888888888802', 2025, true),
+  (2, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', 2025, false),
+  (4, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', 2025, false);
 
 -- ── Faculty portal: enrollment rosters for Sarah Lin's 3 courses ─────────
 -- (drives student_directory_screen.dart, course_dashboard_screen.dart, my_assigned_courses_screen.dart)

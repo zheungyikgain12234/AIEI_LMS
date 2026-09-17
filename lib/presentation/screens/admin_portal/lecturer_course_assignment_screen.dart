@@ -12,7 +12,9 @@ import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 // lecturer. Shows the lecturer's info + credit capacity, lists courses not
 // yet assigned to them (searchable, checkbox-selectable), keeps a live
 // credit counter as courses are checked, and blocks assignment once the
-// selection would exceed the lecturer's `credits_max`.
+// selection would exceed the lecturer's `credits_max`. Assigning a course
+// creates a new class section (e.g. `OSHE-101-01`) taught by this lecturer;
+// already-assigned courses can be unassigned, which frees up their sections.
 // ---------------------------------------------------------------------------
 class LecturerCourseAssignmentScreen extends StatefulWidget {
   final String lecturerId;
@@ -29,12 +31,19 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
 
   bool _isLoading = true;
   bool _isAssigning = false;
+  bool _isUnassigning = false;
   Lecturer? _lecturer;
   List<AdminCourse> _availableCourses = [];
   List<AdminCourse> _assignedCourses = [];
-  final Set<String> _selected = {};
+  final Set<String> _selectedToAssign = {};
+  final Set<String> _selectedToUnassign = {};
   final _searchController = TextEditingController();
+  final _locationController = TextEditingController();
   String _query = '';
+  static const _dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  String? _dayOfWeek;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
 
   @override
   void initState() {
@@ -46,6 +55,7 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
   @override
   void dispose() {
     _searchController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -59,7 +69,8 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
       _lecturer = lecturer;
       _assignedCourses = allCourses.where((c) => assignedIds.contains(c.id)).toList();
       _availableCourses = allCourses.where((c) => !assignedIds.contains(c.id)).toList();
-      _selected.clear();
+      _selectedToAssign.clear();
+      _selectedToUnassign.clear();
       _isLoading = false;
     });
   }
@@ -70,22 +81,65 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
         c.courseCode.toLowerCase().contains(_query) || c.courseTitle.toLowerCase().contains(_query)).toList();
   }
 
-  int get _selectedCredits => _availableCourses.where((c) => _selected.contains(c.id)).fold(0, (sum, c) => sum + c.credits);
+  int get _assignCredits => _availableCourses.where((c) => _selectedToAssign.contains(c.id)).fold(0, (sum, c) => sum + c.credits);
 
-  int get _projectedCreditsUsed => (_lecturer?.creditsUsed ?? 0) + _selectedCredits;
+  int get _unassignCredits => _assignedCourses.where((c) => _selectedToUnassign.contains(c.id)).fold(0, (sum, c) => sum + c.credits);
+
+  int get _projectedCreditsUsed => (_lecturer?.creditsUsed ?? 0) + _assignCredits - _unassignCredits;
 
   bool get _overCapacity => _lecturer != null && _projectedCreditsUsed > _lecturer!.creditsMax;
 
+  bool get _timeRangeValid => _startTime != null && _endTime != null && _toMinutes(_endTime!) > _toMinutes(_startTime!);
+
+  bool get _canAssign =>
+      _selectedToAssign.isNotEmpty &&
+      !_overCapacity &&
+      _dayOfWeek != null &&
+      _timeRangeValid &&
+      _locationController.text.trim().isNotEmpty;
+
+  int _toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
+
+  String _formatTime(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _pickTime({required bool isStart}) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: (isStart ? _startTime : _endTime) ?? const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (picked == null) return;
+    setState(() => isStart ? _startTime = picked : _endTime = picked);
+  }
+
   Future<void> _assign() async {
-    if (_selected.isEmpty || _overCapacity || _lecturer == null) return;
+    if (!_canAssign || _lecturer == null) return;
     setState(() => _isAssigning = true);
     try {
-      await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, _selected.toList());
-      await _lecturersRepository.setCreditsUsed(widget.lecturerId, _projectedCreditsUsed);
+      final courses = _availableCourses.where((c) => _selectedToAssign.contains(c.id)).toList();
+      final startTime = _formatTime(_startTime!);
+      final endTime = _formatTime(_endTime!);
+      final location = _locationController.text.trim();
+      for (final course in courses) {
+        await _lecturersRepository.createSectionForCourse(
+          courseId: course.id,
+          courseCode: course.courseCode,
+          lecturerId: widget.lecturerId,
+          dayOfWeek: _dayOfWeek!,
+          startTime: startTime,
+          endTime: endTime,
+          location: location,
+          capacity: course.capacity,
+        );
+      }
+      await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, _selectedToAssign.toList());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_selected.length} course${_selected.length == 1 ? '' : 's'} assigned to ${_lecturer!.name}.')),
+        SnackBar(content: Text('${courses.length} course${courses.length == 1 ? '' : 's'} assigned to ${_lecturer!.name}.')),
       );
+      _dayOfWeek = null;
+      _startTime = null;
+      _endTime = null;
+      _locationController.clear();
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -94,6 +148,27 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
       );
     } finally {
       if (mounted) setState(() => _isAssigning = false);
+    }
+  }
+
+  Future<void> _unassign() async {
+    if (_selectedToUnassign.isEmpty || _lecturer == null) return;
+    setState(() => _isUnassigning = true);
+    try {
+      final count = _selectedToUnassign.length;
+      await _lecturersRepository.unassignCoursesFromLecturer(widget.lecturerId, _selectedToUnassign.toList());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$count course${count == 1 ? '' : 's'} unassigned from ${_lecturer!.name}.')),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to unassign courses: $e'), backgroundColor: AdminColors.error),
+      );
+    } finally {
+      if (mounted) setState(() => _isUnassigning = false);
     }
   }
 
@@ -122,9 +197,13 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
                       const SizedBox(height: 20),
                       if (_assignedCourses.isNotEmpty) ...[
                         _buildAssignedCard(),
+                        const SizedBox(height: 16),
+                        _buildUnassignBar(),
                         const SizedBox(height: 20),
                       ],
                       _buildAvailableCoursesCard(),
+                      const SizedBox(height: 16),
+                      _buildClassDetailsCard(),
                       const SizedBox(height: 16),
                       _buildAssignBar(),
                     ],
@@ -174,9 +253,11 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
               ),
               const SizedBox(height: 2),
               Text(
-                _selected.isEmpty
+                _selectedToAssign.isEmpty && _selectedToUnassign.isEmpty
                     ? 'Currently used: ${l.creditsUsed}'
-                    : '${l.creditsUsed} used + $_selectedCredits selected',
+                    : '${l.creditsUsed} used'
+                        '${_assignCredits > 0 ? ' + $_assignCredits selected' : ''}'
+                        '${_unassignCredits > 0 ? ' − $_unassignCredits unassigning' : ''}',
                 style: AdminTypography.labelSm(color: _overCapacity ? AdminColors.error : AdminColors.onSurfaceVariant),
               ),
               if (_overCapacity) ...[
@@ -195,28 +276,86 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
 
   Widget _buildAssignedCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AdminColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Currently Assigned (${_assignedCourses.length})', style: AdminTypography.titleSm()),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: _assignedCourses.map((c) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(6)),
-              child: Text('${c.courseCode} • ${c.credits} cr', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
-            )).toList(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Currently Assigned (${_assignedCourses.length})', style: AdminTypography.titleSm()),
+            ),
+          ),
+          Column(children: [for (final c in _assignedCourses) _assignedRow(c)]),
+        ],
+      ),
+    );
+  }
+
+  Widget _assignedRow(AdminCourse c) {
+    final selected = _selectedToUnassign.contains(c.id);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      child: Row(
+        children: [
+          Checkbox(
+            value: selected,
+            onChanged: (v) => setState(() => v == true ? _selectedToUnassign.add(c.id) : _selectedToUnassign.remove(c.id)),
+            activeColor: AdminColors.error,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                Text(c.courseCode, style: AdminTypography.labelSm()),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
+            child: Text('${c.credits} cr', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildUnassignBar() {
+    final disabled = _selectedToUnassign.isEmpty || _isUnassigning;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            _selectedToUnassign.isEmpty
+                ? 'Select assigned courses above to unassign.'
+                : '${_selectedToUnassign.length} course${_selectedToUnassign.length == 1 ? '' : 's'} selected to unassign • $_unassignCredits credits',
+            style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: disabled ? null : _unassign,
+          icon: _isUnassigning
+              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AdminColors.error))
+              : const Icon(Icons.link_off, size: 16),
+          label: const Text('Unassign Selected'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AdminColors.error,
+            backgroundColor: AdminColors.errorContainer,
+            side: BorderSide.none,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            textStyle: AdminTypography.labelSm(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -264,7 +403,7 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
   }
 
   Widget _courseRow(AdminCourse c) {
-    final selected = _selected.contains(c.id);
+    final selected = _selectedToAssign.contains(c.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
@@ -272,7 +411,7 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(c.id) : _selected.remove(c.id)),
+            onChanged: (v) => setState(() => v == true ? _selectedToAssign.add(c.id) : _selectedToAssign.remove(c.id)),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
@@ -294,15 +433,133 @@ class _LecturerCourseAssignmentScreenState extends State<LecturerCourseAssignmen
     );
   }
 
+  Widget _buildClassDetailsCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Class Details', style: AdminTypography.titleSm()),
+          const SizedBox(height: 2),
+          Text('Applied to every class section created by this assignment.', style: AdminTypography.bodySm()),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 160,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Day', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: _dayOfWeek,
+                      isExpanded: true,
+                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: AdminColors.surfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                      hint: Text('Select day', style: AdminTypography.bodySm(color: AdminColors.outline)),
+                      items: [for (final d in _dayOptions) DropdownMenuItem(value: d, child: Text(d))],
+                      onChanged: (v) => setState(() => _dayOfWeek = v),
+                    ),
+                  ],
+                ),
+              ),
+              _timeField(label: 'Start Time', value: _startTime, onTap: () => _pickTime(isStart: true)),
+              _timeField(label: 'End Time', value: _endTime, onTap: () => _pickTime(isStart: false)),
+              SizedBox(
+                width: 220,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Location', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _locationController,
+                      onChanged: (_) => setState(() {}),
+                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: AdminColors.surfaceContainerLow,
+                        hintText: 'Room 204',
+                        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (_startTime != null && _endTime != null && !_timeRangeValid) ...[
+            const SizedBox(height: 8),
+            Text('End time must be after start time.', style: AdminTypography.labelSm(color: AdminColors.error)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _timeField({required String label, required TimeOfDay? value, required VoidCallback onTap}) {
+    return SizedBox(
+      width: 160,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  Icon(Icons.schedule, size: 16, color: AdminColors.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Text(
+                    value == null ? 'Select time' : _formatTime(value),
+                    style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAssignBar() {
-    final disabled = _selected.isEmpty || _overCapacity || _isAssigning;
+    final disabled = !_canAssign || _isAssigning;
     return Row(
       children: [
         Expanded(
           child: Text(
-            _selected.isEmpty
+            _selectedToAssign.isEmpty
                 ? 'Select courses to assign.'
-                : '${_selected.length} course${_selected.length == 1 ? '' : 's'} selected • $_selectedCredits credits',
+                : _dayOfWeek == null
+                    ? 'Set a day above.'
+                    : !_timeRangeValid
+                        ? 'Set a valid start/end time above.'
+                        : _locationController.text.trim().isEmpty
+                            ? 'Set a location above.'
+                            : '${_selectedToAssign.length} course${_selectedToAssign.length == 1 ? '' : 's'} selected • $_assignCredits credits',
             style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
           ),
         ),

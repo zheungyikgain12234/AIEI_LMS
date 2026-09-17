@@ -3,7 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
+import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -27,6 +29,7 @@ class ManageStudentsScreen extends StatefulWidget {
 
 class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<Student> _students = [];
   Map<String, int> _enrollmentCounts = {};
@@ -110,6 +113,25 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
+  Future<void> _openBulkEnroll() async {
+    final studentIds = _selected.toList();
+    final sections = await _lecturersRepository.getAllSections();
+    if (!mounted) return;
+    final chosen = await showDialog<CourseSection>(
+      context: context,
+      builder: (ctx) => _BulkEnrollDialog(studentCount: studentIds.length, sections: sections),
+    );
+    if (chosen == null) return;
+    await _repository.enrollStudentsInSection(studentIds, sectionId: chosen.id, courseId: chosen.courseId);
+    if (!mounted) return;
+    setState(_selected.clear);
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${studentIds.length} student${studentIds.length == 1 ? '' : 's'} successfully enrolled in ${chosen.sectionCode}.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -125,6 +147,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildTopBar(),
+          const SizedBox(height: 16),
+          _buildInstructionBanner(),
           const SizedBox(height: 20),
           _buildMetrics(),
           const SizedBox(height: 20),
@@ -191,6 +215,37 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   int get _totalCredentials => _credentialTitles.values.fold(0, (sum, list) => sum + list.length);
 
   int get _academicReviewCount => _students.where(_isFlagged).length;
+
+  Widget _buildInstructionBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AdminColors.primaryFixed,
+        borderRadius: BorderRadius.circular(10),
+        border: Border(left: BorderSide(color: AdminColors.primary, width: 4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.check_box_outlined, color: AdminColors.primary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed),
+                children: [
+                  TextSpan(text: 'Tip: ', style: AdminTypography.titleSm(color: AdminColors.onPrimaryFixed)),
+                  const TextSpan(text: 'Check the boxes next to student rows to select them, then click '),
+                  TextSpan(text: 'Bulk Enroll', style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
+                  const TextSpan(text: ' to enroll them into a class.'),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMetrics() {
     return LayoutBuilder(builder: (context, constraints) {
@@ -274,7 +329,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                     ),
                   ]),
                   Wrap(spacing: 6, children: [
-                    OutlinedButton(onPressed: _notAvailable, style: _pillButtonStyle(), child: const Text('Bulk Enroll')),
+                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enroll')),
                     OutlinedButton(onPressed: _notAvailable, style: _pillButtonStyle(), child: const Text('Issue Notice')),
                     OutlinedButton.icon(
                       onPressed: _deleteSelected,
@@ -425,26 +480,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                       ]),
                     ),
                   ),
-          ),
-          SizedBox(
-            width: 130,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton(
-                onPressed: () => enrollments > 0
-                    ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()))
-                    : _notAvailable(),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: flagged ? AdminColors.error : AdminColors.primary,
-                  backgroundColor: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
-                  side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  textStyle: AdminTypography.labelSm(),
-                ),
-                child: Text(flagged ? 'Resolve Flag' : 'Manage Courses'),
-              ),
-            ),
           ),
         ],
       ),
@@ -1084,6 +1119,76 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, size: 18, color: AdminColors.onSurfaceVariant),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _BulkEnrollDialog — lets the admin pick a class (course_sections row) to
+// enroll the selected students into. Pops the chosen CourseSection, or null
+// if cancelled.
+// ---------------------------------------------------------------------------
+class _BulkEnrollDialog extends StatefulWidget {
+  final int studentCount;
+  final List<CourseSection> sections;
+
+  const _BulkEnrollDialog({required this.studentCount, required this.sections});
+
+  @override
+  State<_BulkEnrollDialog> createState() => _BulkEnrollDialogState();
+}
+
+class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
+  String? _selectedSectionId;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = widget.studentCount;
+    return AlertDialog(
+      title: Text('Enroll $count student${count == 1 ? '' : 's'}'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Select a class to enroll ${count == 1 ? 'this student' : 'these students'} into.', style: AdminTypography.bodySm()),
+            const SizedBox(height: 14),
+            if (widget.sections.isEmpty)
+              Text('No classes exist yet. Create one from Manage Assigned Courses first.', style: AdminTypography.bodySm(color: AdminColors.error))
+            else
+              DropdownButtonFormField<String>(
+                initialValue: _selectedSectionId,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: AdminColors.surfaceContainerLow,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+                hint: const Text('Select a class'),
+                items: [
+                  for (final s in widget.sections)
+                    DropdownMenuItem(
+                      value: s.id,
+                      child: Text('${s.sectionCode} • ${s.courseTitle}', overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _selectedSectionId = v),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: _selectedSectionId == null
+              ? null
+              : () => Navigator.of(context).pop(widget.sections.firstWhere((s) => s.id == _selectedSectionId)),
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }

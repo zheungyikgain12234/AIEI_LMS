@@ -151,4 +151,21 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
       for (final row in rows as List) EnrollmentCandidate.fromMap(row as Map<String, dynamic>),
     ];
   }
+
+  @override
+  Future<void> enrollStudentsInSection(
+    List<String> studentIds, {
+    required String sectionId,
+    required String courseId,
+  }) async {
+    await _client.from('student_courses').upsert(
+      [
+        for (final studentId in studentIds)
+          {'student_id': studentId, 'course_id': courseId, 'section_id': sectionId},
+      ],
+      onConflict: 'student_id,course_id',
+    );
+    final enrolled = await _client.from('student_courses').select('student_id').eq('section_id', sectionId);
+    await _client.from('course_sections').update({'enrolled_count': (enrolled as List).length}).eq('id', sectionId);
+  }
 }

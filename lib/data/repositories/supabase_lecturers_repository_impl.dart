@@ -129,7 +129,54 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
   }
 
   @override
-  Future<void> setCreditsUsed(String lecturerId, int creditsUsed) async {
-    await _client.from('lecturers').update({'credits_used': creditsUsed}).eq('id', lecturerId);
+  Future<void> unassignCoursesFromLecturer(String lecturerId, List<String> courseIds) async {
+    await _client.from('lecturer_courses').delete().eq('lecturer_id', lecturerId).inFilter('course_id', courseIds);
+    await _client
+        .from('course_sections')
+        .update({'lecturer_id': null, 'status': 'scheduled'})
+        .eq('lecturer_id', lecturerId)
+        .inFilter('course_id', courseIds);
+  }
+
+  @override
+  Future<CourseSection> createSectionForCourse({
+    required String courseId,
+    required String courseCode,
+    required String lecturerId,
+    required String dayOfWeek,
+    required String startTime,
+    required String endTime,
+    required String location,
+    required int capacity,
+  }) async {
+    final existing = await _client.from('course_sections').select('id').eq('course_id', courseId);
+    final nextNumber = (existing as List).length + 1;
+    final sectionCode = '$courseCode-${nextNumber.toString().padLeft(2, '0')}';
+    final dayAbbrev = dayOfWeek.substring(0, 3);
+    final row = await _client
+        .from('course_sections')
+        .insert({
+          'course_id': courseId,
+          'section_code': sectionCode,
+          'role_label': 'Primary Instructor',
+          'term': 'Fall 2025',
+          'schedule_text': '$dayAbbrev $startTime–$endTime • $location',
+          'day_of_week': dayOfWeek,
+          'start_time': startTime,
+          'end_time': endTime,
+          'location': location,
+          'lecturer_id': lecturerId,
+          'capacity': capacity,
+          'enrolled_count': 0,
+          'status': 'scheduled',
+        })
+        .select('*, courses(course_code, course_title), lecturers(name)')
+        .single();
+    return CourseSection.fromMap(row);
+  }
+
+  @override
+  Future<void> deleteSections(List<String> sectionIds) async {
+    await _client.from('course_sections').delete().inFilter('id', sectionIds);
   }
 }

@@ -125,6 +125,8 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildTopBar(),
+          const SizedBox(height: 16),
+          _buildInstructionBanner(),
           const SizedBox(height: 20),
           _buildMetrics(),
           const SizedBox(height: 20),
@@ -174,6 +176,37 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInstructionBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AdminColors.primaryFixed,
+        borderRadius: BorderRadius.circular(10),
+        border: Border(left: BorderSide(color: AdminColors.primary, width: 4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.check_box_outlined, color: AdminColors.primary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed),
+                children: [
+                  TextSpan(text: 'Tip: ', style: AdminTypography.titleSm(color: AdminColors.onPrimaryFixed)),
+                  const TextSpan(text: 'Check the boxes next to lecturer rows to select them for bulk actions. To assign courses to a lecturer, click '),
+                  TextSpan(text: 'Manage Assigned Courses', style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
+                  const TextSpan(text: ' on that lecturer\'s row.'),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

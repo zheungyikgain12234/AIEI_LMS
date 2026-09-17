@@ -12,7 +12,7 @@
 
 drop table if exists
   enrollment_monthly_stats, enrollment_candidates, course_sections,
-  student_certifications, student_materials, student_courses,
+  badge_awards, student_certifications, student_materials, student_courses,
   lecturer_courses, module_certs, certifications,
   course_tags, tags, module_materials, course_modules, courses,
   admins, students, lecturers,
@@ -176,9 +176,51 @@ create table lecturer_courses (
   primary key (lecturer_id, course_id)
 );
 
+-- `lecturers.credits_used` is derived, not app-maintained: it's recomputed
+-- from `lecturer_courses` (the assignation table) joined against
+-- `courses.credits` any time a row is added to or removed from it.
+create or replace function recalc_lecturer_credits_used() returns trigger as $$
+declare
+  affected_lecturer_id uuid := coalesce(new.lecturer_id, old.lecturer_id);
+begin
+  update lecturers
+  set credits_used = coalesce((
+    select sum(c.credits)
+    from lecturer_courses lc
+    join courses c on c.id = lc.course_id
+    where lc.lecturer_id = affected_lecturer_id
+  ), 0)
+  where id = affected_lecturer_id;
+  return null;
+end;
+$$ language plpgsql;
+
+create trigger lecturer_courses_recalc_credits
+  after insert or delete on lecturer_courses
+  for each row execute function recalc_lecturer_credits_used();
+
+create table course_sections (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references courses(id) on delete cascade,
+  section_code text not null,
+  role_label text not null default 'Primary Instructor',
+  term text not null default 'Fall 2025',
+  schedule_text text not null default 'TBD',
+  day_of_week text check (day_of_week in ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
+  start_time time,
+  end_time time,
+  location text,
+  lecturer_id uuid references lecturers(id),
+  capacity int not null default 30,
+  enrolled_count int not null default 0,
+  start_date date,
+  status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
+);
+
 create table student_courses (
   student_id bigint not null references students(id) on delete cascade,
   course_id uuid not null references courses(id) on delete cascade,
+  section_id uuid references course_sections(id) on delete set null,
   progress_percentage int not null default 0,
   grade text,
   overall_score numeric(5, 2),
@@ -221,18 +263,16 @@ create table student_certifications (
   created_at timestamptz not null default now()
 );
 
-create table course_sections (
+-- Manage Badges: a simpler per-course badge award, distinct from the
+-- broader student_certifications ledger above (which has no course_id).
+create table badge_awards (
   id uuid primary key default gen_random_uuid(),
+  student_id bigint not null references students(id) on delete cascade,
   course_id uuid not null references courses(id) on delete cascade,
-  section_code text not null,
-  role_label text not null default 'Primary Instructor',
-  term text not null default 'Fall 2025',
-  schedule_text text not null default 'TBD',
-  lecturer_id uuid references lecturers(id),
-  capacity int not null default 30,
-  enrolled_count int not null default 0,
-  start_date date,
-  status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
+  badge_id uuid not null references certifications(id) on delete cascade,
+  issue_year int not null,
+  is_revoked boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
 create table enrollment_candidates (
@@ -280,6 +320,7 @@ alter table lecturer_courses enable row level security;
 alter table student_courses enable row level security;
 alter table student_materials enable row level security;
 alter table student_certifications enable row level security;
+alter table badge_awards enable row level security;
 alter table course_sections enable row level security;
 alter table enrollment_candidates enable row level security;
 alter table enrollment_monthly_stats enable row level security;
@@ -294,7 +335,7 @@ begin
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'tags', 'course_tags', 'certifications', 'module_certs',
     'lecturer_courses', 'student_courses', 'student_materials',
-    'student_certifications', 'course_sections', 'enrollment_candidates',
+    'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates',
     'enrollment_monthly_stats'
   ]
   loop

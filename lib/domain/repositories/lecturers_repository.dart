@@ -51,10 +51,31 @@ abstract class LecturersRepository {
   /// — drives the Manage Assigned Courses screen's "already assigned" filter.
   Future<List<String>> getAssignedCourseIds(String lecturerId);
 
-  /// Adds rows to `lecturer_courses` for each course id. Does not touch
-  /// `credits_used` — call [setCreditsUsed] separately once the caller has
-  /// computed the new total.
+  /// Adds rows to `lecturer_courses` for each course id. `credits_used` is
+  /// not touched here — a database trigger recomputes it from
+  /// `lecturer_courses` (the assignation table) whenever it changes.
   Future<void> assignCoursesToLecturer(String lecturerId, List<String> courseIds);
 
-  Future<void> setCreditsUsed(String lecturerId, int creditsUsed);
+  /// Removes the `lecturer_courses` rows for these course ids and unassigns
+  /// the lecturer from any `course_sections` (classes) built for them.
+  /// `credits_used` is recomputed automatically by a database trigger.
+  Future<void> unassignCoursesFromLecturer(String lecturerId, List<String> courseIds);
+
+  /// Creates a new class section for [courseId] taught by [lecturerId], with
+  /// an auto-numbered `section_code` (e.g. `OSHE-101-01`, `OSHE-101-02`, ...
+  /// based on how many sections that course already has). [startTime] and
+  /// [endTime] are `HH:mm` 24-hour strings; [dayOfWeek] is a full day name
+  /// (e.g. `Monday`).
+  Future<CourseSection> createSectionForCourse({
+    required String courseId,
+    required String courseCode,
+    required String lecturerId,
+    required String dayOfWeek,
+    required String startTime,
+    required String endTime,
+    required String location,
+    required int capacity,
+  });
+
+  Future<void> deleteSections(List<String> sectionIds);
 }

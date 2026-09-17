@@ -7,6 +7,10 @@ class CourseSection {
   final String roleLabel;
   final String term;
   final String scheduleText;
+  final String? dayOfWeek;
+  final String? startTime;
+  final String? endTime;
+  final String? location;
   final String? lecturerId;
   final String? lecturerName;
   final int capacity;
@@ -22,6 +26,10 @@ class CourseSection {
     required this.roleLabel,
     required this.term,
     required this.scheduleText,
+    this.dayOfWeek,
+    this.startTime,
+    this.endTime,
+    this.location,
     this.lecturerId,
     this.lecturerName,
     required this.capacity,
@@ -41,6 +49,10 @@ class CourseSection {
       roleLabel: map['role_label'] as String,
       term: map['term'] as String,
       scheduleText: map['schedule_text'] as String,
+      dayOfWeek: map['day_of_week'] as String?,
+      startTime: map['start_time'] as String?,
+      endTime: map['end_time'] as String?,
+      location: map['location'] as String?,
       lecturerId: map['lecturer_id'] as String?,
       lecturerName: lecturer?['name'] as String?,
       capacity: map['capacity'] as int,

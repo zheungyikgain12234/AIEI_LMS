@@ -4,6 +4,8 @@ import '../manage_lecturers_screen.dart';
 import '../lecturer_allocation_screen.dart';
 import '../manage_students_screen.dart';
 import '../manage_courses_screen.dart';
+import '../manage_classes_screen.dart';
+import '../manage_badges_screen.dart';
 import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
 import '../manage_program_tracks_screen.dart';
@@ -20,6 +22,8 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.lecturerAllocation => const LecturerAllocationScreen(),
     AdminNavDestination.manageStudents => const ManageStudentsScreen(),
     AdminNavDestination.manageCourses => const ManageCoursesScreen(),
+    AdminNavDestination.manageClasses => const ManageClassesScreen(),
+    AdminNavDestination.manageBadges => const ManageBadgesScreen(),
     AdminNavDestination.courseEnrollment => const CourseEnrollmentScreen(),
     AdminNavDestination.manageDepartments => const ManageDepartmentsScreen(),
     AdminNavDestination.manageProgramTracks => const ManageProgramTracksScreen(),

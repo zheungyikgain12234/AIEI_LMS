@@ -48,4 +48,13 @@ abstract class AdminStudentsRepository {
 
   Future<List<RosterStudent>> getCourseRoster(String courseId);
   Future<List<EnrollmentCandidate>> getEnrollmentCandidates(String courseId);
+
+  /// Enrolls each student into [courseId] via the class [sectionId] (an
+  /// upsert — re-enrolling an already-enrolled student just moves them to
+  /// this section), then refreshes that section's `enrolled_count`.
+  Future<void> enrollStudentsInSection(
+    List<String> studentIds, {
+    required String sectionId,
+    required String courseId,
+  });
 }

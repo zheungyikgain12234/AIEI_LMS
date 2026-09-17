@@ -30,7 +30,6 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     String? title,
     required String programTrack,
     required String cohort,
-    required double gpa,
   }) async {
     final row = await _client
         .from('students')
@@ -42,7 +41,6 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'title': title,
           'program_track': programTrack,
           'cohort': cohort,
-          'gpa': gpa,
         })
         .select()
         .single();
@@ -59,7 +57,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     String? title,
     required String programTrack,
     required String cohort,
-    required double gpa,
+    double? gpa,
   }) async {
     final row = await _client
         .from('students')
@@ -71,7 +69,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'title': title,
           'program_track': programTrack,
           'cohort': cohort,
-          'gpa': gpa,
+          if (gpa != null) 'gpa': gpa,
         })
         .eq('id', id)
         .select()

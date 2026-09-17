@@ -2,7 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 
-enum AdminNavDestination { manageLecturers, lecturerAllocation, manageStudents, courseEnrollment }
+enum AdminNavDestination {
+  manageLecturers,
+  lecturerAllocation,
+  manageStudents,
+  manageCourses,
+  courseEnrollment,
+  manageDepartments,
+  manageProgramTracks,
+  manageCohorts,
+  manageLecturerDepartments,
+  manageSpecializations,
+}
 
 class AdminSidebar extends StatelessWidget {
   final AdminNavDestination selected;
@@ -51,10 +62,60 @@ class AdminSidebar extends StatelessWidget {
                   onTap: () => onDestinationSelected?.call(AdminNavDestination.manageStudents),
                 ),
                 _NavItem(
+                  icon: Icons.menu_book_outlined,
+                  label: 'Manage Courses',
+                  isSelected: selected == AdminNavDestination.manageCourses,
+                  onTap: () => onDestinationSelected?.call(AdminNavDestination.manageCourses),
+                ),
+                _NavItem(
                   icon: Icons.school_outlined,
                   label: 'Course Enrollment',
                   isSelected: selected == AdminNavDestination.courseEnrollment,
                   onTap: () => onDestinationSelected?.call(AdminNavDestination.courseEnrollment),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text('MASTER DATA', style: AdminTypography.labelSm()),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _NavItem(
+                  icon: Icons.apartment_outlined,
+                  label: 'Manage Departments',
+                  isSelected: selected == AdminNavDestination.manageDepartments,
+                  onTap: () => onDestinationSelected?.call(AdminNavDestination.manageDepartments),
+                ),
+                _NavItem(
+                  icon: Icons.alt_route_outlined,
+                  label: 'Manage Program Tracks',
+                  isSelected: selected == AdminNavDestination.manageProgramTracks,
+                  onTap: () => onDestinationSelected?.call(AdminNavDestination.manageProgramTracks),
+                ),
+                _NavItem(
+                  icon: Icons.hub_outlined,
+                  label: 'Manage Cohorts',
+                  isSelected: selected == AdminNavDestination.manageCohorts,
+                  onTap: () => onDestinationSelected?.call(AdminNavDestination.manageCohorts),
+                ),
+                _NavItem(
+                  icon: Icons.corporate_fare_outlined,
+                  label: 'Manage Lecturer Depts',
+                  isSelected: selected == AdminNavDestination.manageLecturerDepartments,
+                  onTap: () => onDestinationSelected?.call(AdminNavDestination.manageLecturerDepartments),
+                ),
+                _NavItem(
+                  icon: Icons.psychology_outlined,
+                  label: 'Manage Specialization',
+                  isSelected: selected == AdminNavDestination.manageSpecializations,
+                  onTap: () => onDestinationSelected?.call(AdminNavDestination.manageSpecializations),
                 ),
               ],
             ),

@@ -8,10 +8,12 @@ import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_mobile_bottom_nav.dart';
-import 'lecturer_allocation_screen.dart';
+import 'widgets/admin_nav.dart';
 import 'manage_students_screen.dart';
 import 'course_enrollment_screen.dart';
 import 'enroll_students_screen.dart';
+import 'lecturer_form_screen.dart';
+import 'lecturer_course_assignment_screen.dart';
 
 // ---------------------------------------------------------------------------
 // ManageLecturersScreen – Stitch "Manage Lecturers" faithful Flutter
@@ -29,6 +31,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   bool _isLoading = true;
   List<Lecturer> _lecturers = [];
   Map<String, List<String>> _courseCodesByLecturer = {};
+  final Set<String> _selected = {};
 
   List<String> _coursesFor(Lecturer l) => _courseCodesByLecturer[l.id] ?? const [];
 
@@ -49,25 +52,61 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     });
   }
 
-  void _handleNav(AdminNavDestination dest) {
-    switch (dest) {
-      case AdminNavDestination.manageLecturers:
-        break;
-      case AdminNavDestination.lecturerAllocation:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LecturerAllocationScreen()));
-        break;
-      case AdminNavDestination.manageStudents:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
-        break;
-      case AdminNavDestination.courseEnrollment:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()));
-        break;
-    }
-  }
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageLecturers, dest);
 
   void _notAvailable() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Not wired up in this preview.')),
+    );
+  }
+
+  Future<void> _openAssignedCourses(Lecturer l) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => LecturerCourseAssignmentScreen(lecturerId: l.id)),
+    );
+    _load();
+  }
+
+  Future<void> _openAddLecturer() async {
+    final saved = await Navigator.of(context).push<Lecturer>(
+      MaterialPageRoute(builder: (_) => const LecturerFormScreen()),
+    );
+    if (saved != null) _load();
+  }
+
+  Future<void> _openEditLecturer(Lecturer l) async {
+    final saved = await Navigator.of(context).push<Lecturer>(
+      MaterialPageRoute(builder: (_) => LecturerFormScreen(lecturerId: l.id)),
+    );
+    if (saved != null) _load();
+  }
+
+  Future<void> _deleteSelected() async {
+    final count = _selected.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete lecturers?'),
+        content: Text('This will permanently delete $count lecturer${count == 1 ? '' : 's'}. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _repository.deleteLecturers(_selected.toList());
+    if (!mounted) return;
+    setState(_selected.clear);
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$count lecturer${count == 1 ? '' : 's'} deleted')),
     );
   }
 
@@ -123,7 +162,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           ],
         ),
         ElevatedButton.icon(
-          onPressed: _notAvailable,
+          onPressed: _openAddLecturer,
           icon: const Icon(Icons.person_add_outlined, size: 18),
           label: const Text('+ Add New Lecturer'),
           style: ElevatedButton.styleFrom(
@@ -249,13 +288,44 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
               ],
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 1080,
-              child: Column(children: [for (final l in _lecturers) _lecturerRow(l, _coursesFor(l))]),
+          if (_selected.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.check_box, size: 18, color: AdminColors.secondary),
+                    const SizedBox(width: 6),
+                    Text('${_selected.length} lecturer${_selected.length == 1 ? '' : 's'} selected', style: AdminTypography.titleSm()),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => setState(_selected.clear),
+                      child: Text('Deselect all', style: AdminTypography.labelMd(color: AdminColors.secondary)),
+                    ),
+                  ]),
+                  OutlinedButton.icon(
+                    onPressed: _deleteSelected,
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text('Delete'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AdminColors.error,
+                      backgroundColor: AdminColors.errorContainer,
+                      side: BorderSide.none,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      textStyle: AdminTypography.labelSm(),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          Column(children: [for (final l in _lecturers) _lecturerRow(l, _coursesFor(l))]),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -290,116 +360,146 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   }
 
   Widget _lecturerRow(Lecturer l, List<String> courses) {
+    final selected = _selected.contains(l.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 240,
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-                  child: const Icon(Icons.person, color: AdminColors.primary, size: 18),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Flexible(child: Text(l.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
-                        if (l.accredited) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AdminColors.secondary)),
-                      ]),
-                      Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                      Text('${l.employeeId} • ${l.email}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
-                    ],
+          Checkbox(
+            value: selected,
+            onChanged: (v) => setState(() => v == true ? _selected.add(l.id) : _selected.remove(l.id)),
+            activeColor: AdminColors.primaryContainer,
+          ),
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
+                    child: const Icon(Icons.person, color: AdminColors.primary, size: 18),
                   ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 200,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l.department, style: AdminTypography.titleSm()),
-                Text(l.specialization, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 200,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(courses.isEmpty ? '0 Courses Assigned' : '${courses.length} Active Courses',
-                    style: AdminTypography.labelSm(color: courses.isEmpty ? AdminColors.onSurfaceVariant : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Wrap(spacing: 4, runSpacing: 4, children: courses.map((c) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-                  child: Text(c, style: AdminTypography.labelSm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
-                )).toList()),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 140,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('${l.creditsUsed} / ${l.creditsMax}', style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                  Text('${l.capacityPercent}%', style: AdminTypography.labelSm(color: l.capacityPercent >= 100 ? AdminColors.secondary : AdminColors.onSurfaceVariant)),
-                ]),
-                const SizedBox(height: 4),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(9999),
-                  child: LinearProgressIndicator(
-                    value: l.capacityPercent / 100,
-                    minHeight: 6,
-                    backgroundColor: AdminColors.surfaceContainerHigh,
-                    valueColor: AlwaysStoppedAnimation<Color>(l.capacityPercent >= 100 ? AdminColors.secondary : AdminColors.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(child: Text(l.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                            if (l.accredited) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AdminColors.secondary)),
+                            const SizedBox(width: 2),
+                            InkWell(
+                              onTap: () => _openEditLecturer(l),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.all(2),
+                                child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                        Text('${l.employeeId} • ${l.email}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 120,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: l.status == 'Active' ? AdminColors.surfaceContainerLow : AdminColors.surfaceContainer,
-                borderRadius: BorderRadius.circular(9999),
+                ],
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(width: 6, height: 6, decoration: BoxDecoration(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    l.status,
-                    overflow: TextOverflow.ellipsis,
-                    style: AdminTypography.labelSm(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.department, style: AdminTypography.titleSm()),
+                  Text(l.specialization, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(courses.isEmpty ? '0 Courses Assigned' : '${courses.length} Active Courses',
+                      style: AdminTypography.labelSm(color: courses.isEmpty ? AdminColors.onSurfaceVariant : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Wrap(spacing: 4, runSpacing: 4, children: courses.map((c) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
+                    child: Text(c, style: AdminTypography.labelSm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
+                  )).toList()),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Text('${l.creditsUsed} / ${l.creditsMax}', style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+                    Text('${l.capacityPercent}%', style: AdminTypography.labelSm(color: l.capacityPercent >= 100 ? AdminColors.secondary : AdminColors.onSurfaceVariant)),
+                  ]),
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(9999),
+                    child: LinearProgressIndicator(
+                      value: l.capacityPercent / 100,
+                      minHeight: 6,
+                      backgroundColor: AdminColors.surfaceContainerHigh,
+                      valueColor: AlwaysStoppedAnimation<Color>(l.capacityPercent >= 100 ? AdminColors.secondary : AdminColors.primary),
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: l.status == 'Active' ? AdminColors.surfaceContainerLow : AdminColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(9999),
                 ),
-              ]),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Container(width: 6, height: 6, decoration: BoxDecoration(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      l.status,
+                      overflow: TextOverflow.ellipsis,
+                      style: AdminTypography.labelSm(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ]),
+              ),
             ),
           ),
           SizedBox(
-            width: 130,
+            width: 170,
             child: Align(
               alignment: Alignment.centerRight,
               child: OutlinedButton(
-                onPressed: () => l.manageable
-                    ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LecturerAllocationScreen()))
-                    : _notAvailable(),
+                onPressed: () => _openAssignedCourses(l),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AdminColors.primary,
                   backgroundColor: AdminColors.surfaceContainerLow,
@@ -408,7 +508,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: Text(courses.isEmpty ? 'Assign Load' : 'Manage Courses'),
+                child: const Text('Manage Assigned Courses'),
               ),
             ),
           ),
@@ -516,7 +616,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
         ),
         const SizedBox(width: 8),
         ElevatedButton.icon(
-          onPressed: _notAvailable,
+          onPressed: _openAddLecturer,
           icon: const Icon(Icons.person_add, size: 18),
           label: const Text('Add Lecturer'),
           style: ElevatedButton.styleFrom(
@@ -938,32 +1038,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   }
 
   Widget _mobileCardActionButton(Lecturer l, {required bool isSabbatical}) {
-    void onPressed() => l.manageable
-        ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LecturerAllocationScreen()))
-        : _notAvailable();
-
-    if (isSabbatical) {
-      return ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: const Icon(Icons.assignment_ind, size: 16),
-        label: const Text('Assign Load'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AdminColors.primary,
-          foregroundColor: AdminColors.onPrimary,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          textStyle: AdminTypography.labelMd(),
-        ),
-      );
-    }
     return ElevatedButton.icon(
-      onPressed: onPressed,
+      onPressed: () => _openAssignedCourses(l),
       icon: const Icon(Icons.menu_book, size: 16),
-      label: const Text('Manage Courses'),
+      label: const Text('Manage Assigned Courses'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: AdminColors.surfaceContainerLow,
-        foregroundColor: AdminColors.secondary,
+        backgroundColor: isSabbatical ? AdminColors.primary : AdminColors.surfaceContainerLow,
+        foregroundColor: isSabbatical ? AdminColors.onPrimary : AdminColors.secondary,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

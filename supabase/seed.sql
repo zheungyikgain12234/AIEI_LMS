@@ -13,8 +13,37 @@ truncate table
   lecturer_courses, module_certs, course_tags,
   module_materials, course_modules, courses,
   certifications, tags,
-  lecturers, students, admins
+  lecturers, students, admins,
+  departments, program_tracks, cohorts,
+  lecturer_departments, specializations
 restart identity cascade;
+
+-- ── Master data (student registry dropdowns) ────────────────────────────
+
+insert into departments (name) values
+  ('Operations'), ('Business Intelligence'), ('Treasury Tech'), ('Global Risk'),
+  ('Analytics Platform'), ('Supply Chain'), ('Workplace Safety'),
+  ('Cloud Engineering'), ('Data Architecture');
+
+insert into program_tracks (name) values
+  ('Data Architecture Specialist'), ('AI Engineering Track'), ('Executive Operations'),
+  ('Workplace Safety Track'), ('Cloud & Distributed Systems'), ('AI & Machine Learning'),
+  ('Cloud & Distributed Computing'), ('Data Architecture & Analytics'),
+  ('General Enterprise Track');
+
+insert into cohorts (name) values
+  ('Fall 2025 Cohort'), ('Executive Summer 2025'), ('Spring 2025 Cohort'), ('2025-Q1');
+
+-- ── Master data (lecturer registry dropdowns) ───────────────────────────
+
+insert into lecturer_departments (name) values
+  ('Computer Science & Data'), ('Workplace Safety & EHS'), ('Data Science & AI'),
+  ('Executive Leadership');
+
+insert into specializations (name) values
+  ('Distributed ETL & Python'), ('OSHA Protocol & Site Risk Analysis'),
+  ('Deep Neural Architectures'), ('Org Dynamics & Crisis Management'),
+  ('Distributed Cloud Governance');
 
 -- ── People ──────────────────────────────────────────────────────────────
 

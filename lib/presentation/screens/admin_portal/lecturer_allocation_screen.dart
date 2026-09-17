@@ -8,9 +8,7 @@ import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
-import 'manage_lecturers_screen.dart';
-import 'manage_students_screen.dart';
-import 'course_enrollment_screen.dart';
+import 'widgets/admin_nav.dart';
 
 // ---------------------------------------------------------------------------
 // LecturerAllocationScreen – Stitch "Lecturer Course Allocation" faithful
@@ -94,21 +92,8 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
     return AdminColors.secondary;
   }
 
-  void _handleNav(AdminNavDestination dest) {
-    switch (dest) {
-      case AdminNavDestination.manageLecturers:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageLecturersScreen()));
-        break;
-      case AdminNavDestination.lecturerAllocation:
-        break;
-      case AdminNavDestination.manageStudents:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
-        break;
-      case AdminNavDestination.courseEnrollment:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseEnrollmentScreen()));
-        break;
-    }
-  }
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.lecturerAllocation, dest);
 
   void _notAvailable() {
     ScaffoldMessenger.of(context).showSnackBar(

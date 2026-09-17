@@ -15,10 +15,46 @@ drop table if exists
   student_certifications, student_materials, student_courses,
   lecturer_courses, module_certs, certifications,
   course_tags, tags, module_materials, course_modules, courses,
-  admins, students, lecturers
+  admins, students, lecturers,
+  departments, program_tracks, cohorts,
+  lecturer_departments, specializations
 cascade;
 
 create extension if not exists pgcrypto;
+
+-- ── Master data (admin-managed lookup lists backing the student registry
+-- dropdowns — see Manage Departments / Manage Program Tracks / Manage
+-- Cohorts screens) ─────────────────────────────────────────────────────
+
+create table departments (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table program_tracks (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table cohorts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table lecturer_departments (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table specializations (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
 
 -- ── People ──────────────────────────────────────────────────────────────
 
@@ -28,8 +64,8 @@ create table lecturers (
   title text not null,
   employee_id text not null unique,
   email text not null,
-  department text not null,
-  specialization text not null,
+  department text not null references lecturer_departments(name) on update cascade,
+  specialization text not null references specializations(name) on update cascade,
   credits_used int not null default 0,
   credits_max int not null default 15,
   status text not null default 'Active',
@@ -43,11 +79,11 @@ create table students (
   name text not null,
   student_id text not null unique,
   email text not null,
-  department text not null,
+  department text not null references departments(name) on update cascade,
   title text,
-  program_track text not null default 'General Enterprise Track',
-  cohort text not null default '2025-Q1',
-  gpa numeric(3, 2) not null default 3.50,
+  program_track text not null references program_tracks(name) on update cascade,
+  cohort text not null references cohorts(name) on update cascade,
+  gpa numeric(3, 2) not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -70,6 +106,7 @@ create table courses (
   image_url text,
   schedule_text text not null default 'Self-paced',
   capacity int not null default 40,
+  credits int not null default 3,
   created_at timestamptz not null default now()
 );
 
@@ -224,6 +261,11 @@ create table enrollment_monthly_stats (
 
 -- ── RLS (demo-only, see warning above) ──────────────────────────────────
 
+alter table departments enable row level security;
+alter table program_tracks enable row level security;
+alter table cohorts enable row level security;
+alter table lecturer_departments enable row level security;
+alter table specializations enable row level security;
 alter table lecturers enable row level security;
 alter table students enable row level security;
 alter table admins enable row level security;
@@ -247,6 +289,8 @@ declare
   t text;
 begin
   foreach t in array array[
+    'departments', 'program_tracks', 'cohorts',
+    'lecturer_departments', 'specializations',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'tags', 'course_tags', 'certifications', 'module_certs',
     'lecturer_courses', 'student_courses', 'student_materials',

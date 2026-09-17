@@ -8,7 +8,8 @@ abstract class AdminStudentsRepository {
   Future<Student> getStudentById(String id);
 
   /// Inserts a new student row (the `id` is auto-assigned by the database's
-  /// identity column) and returns it.
+  /// identity column) and returns it. GPA is not settable at registration —
+  /// it defaults to 0 in the database.
   Future<Student> createStudent({
     required String name,
     required String studentId,
@@ -17,9 +18,9 @@ abstract class AdminStudentsRepository {
     String? title,
     required String programTrack,
     required String cohort,
-    required double gpa,
   });
 
+  /// [gpa] is left unchanged when omitted.
   Future<Student> updateStudent(
     String id, {
     required String name,
@@ -29,7 +30,7 @@ abstract class AdminStudentsRepository {
     String? title,
     required String programTrack,
     required String cohort,
-    required double gpa,
+    double? gpa,
   });
 
   /// Course count + credentials earned per student (from `student_courses`

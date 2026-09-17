@@ -2,90 +2,78 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
-import 'package:stitch_aiei_lms/domain/models/student.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 
 // ---------------------------------------------------------------------------
-// StudentFormScreen — shared "Register New Student" / "Edit Student" form.
-// Pass `studentId` to edit an existing row (prefilled from the database by
-// its primary key); omit it to register a new student. Saving pops back to
-// the caller with the created/updated Student so the table can refresh.
-//
-// Department / Program Track / Cohort are selected from the admin-managed
-// master data lists (Manage Departments / Manage Program Tracks / Manage
-// Cohorts) rather than freely typed, so the values always satisfy the
-// `students` table's foreign keys. GPA is not editable here — it defaults
-// to 0 in the database and is updated elsewhere as the student progresses.
+// CourseFormScreen — shared "Add New Course" / "Edit Course" form. Pass
+// `courseId` to edit an existing row (prefilled from the database by its
+// primary key); omit it to create a new course. Saving pops back to the
+// caller with the created/updated AdminCourse so the catalogue can refresh.
 // ---------------------------------------------------------------------------
-class StudentFormScreen extends StatefulWidget {
-  final String? studentId;
+class CourseFormScreen extends StatefulWidget {
+  final String? courseId;
 
-  const StudentFormScreen({super.key, this.studentId});
+  const CourseFormScreen({super.key, this.courseId});
 
-  bool get isEditing => studentId != null;
+  bool get isEditing => courseId != null;
 
   @override
-  State<StudentFormScreen> createState() => _StudentFormScreenState();
+  State<CourseFormScreen> createState() => _CourseFormScreenState();
 }
 
-class _StudentFormScreenState extends State<StudentFormScreen> {
-  final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
-  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+class _CourseFormScreenState extends State<CourseFormScreen> {
+  final _repository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   final _formKey = GlobalKey<FormState>();
 
-  final _nameController = TextEditingController();
-  final _studentIdController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _titleController = TextEditingController();
+  final _courseCodeController = TextEditingController();
+  final _courseTitleController = TextEditingController();
+  final _courseDescriptionController = TextEditingController();
+  final _scheduleTextController = TextEditingController(text: 'Self-paced');
+  final _capacityController = TextEditingController(text: '40');
+  final _creditsController = TextEditingController(text: '3');
+  final _imageUrlController = TextEditingController();
 
-  List<String> _departments = [];
-  List<String> _programTracks = [];
-  List<String> _cohorts = [];
-  String? _selectedDepartment;
-  String? _selectedProgramTrack;
-  String? _selectedCohort;
+  static const _categoryOptions = [
+    ('techData', 'Technical & Data'),
+    ('compliance', 'Compliance'),
+    ('aiTools', 'AI & Tools'),
+    ('productivity', 'Productivity & Soft Skills'),
+  ];
+  String _category = 'techData';
 
-  bool _isLoading = true;
+  bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    if (widget.isEditing) {
+      _load();
+    }
   }
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
-      final departments = await _masterDataRepository.getDepartments();
-      final programTracks = await _masterDataRepository.getProgramTracks();
-      final cohorts = await _masterDataRepository.getCohorts();
-      Student? student;
-      if (widget.isEditing) {
-        student = await _repository.getStudentById(widget.studentId!);
-      }
+      final course = await _repository.getCourseById(widget.courseId!);
       if (!mounted) return;
+      _courseCodeController.text = course.courseCode;
+      _courseTitleController.text = course.courseTitle;
+      _courseDescriptionController.text = course.courseDescription;
+      _scheduleTextController.text = course.scheduleText;
+      _capacityController.text = course.capacity.toString();
+      _creditsController.text = course.credits.toString();
+      _imageUrlController.text = course.imageUrl ?? '';
       setState(() {
-        _departments = [for (final d in departments) d.name];
-        _programTracks = [for (final t in programTracks) t.name];
-        _cohorts = [for (final c in cohorts) c.name];
-        if (student != null) {
-          _nameController.text = student.name;
-          _studentIdController.text = student.studentId;
-          _emailController.text = student.email;
-          _titleController.text = student.title ?? '';
-          _selectedDepartment = _departments.contains(student.department) ? student.department : null;
-          _selectedProgramTrack = _programTracks.contains(student.programTrack) ? student.programTrack : null;
-          _selectedCohort = _cohorts.contains(student.cohort) ? student.cohort : null;
-        }
+        _category = _categoryOptions.any((c) => c.$1 == course.category) ? course.category : 'techData';
         _isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Failed to load form: $e';
+        _errorMessage = 'Failed to load course: $e';
         _isLoading = false;
       });
     }
@@ -93,10 +81,13 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _studentIdController.dispose();
-    _emailController.dispose();
-    _titleController.dispose();
+    _courseCodeController.dispose();
+    _courseTitleController.dispose();
+    _courseDescriptionController.dispose();
+    _scheduleTextController.dispose();
+    _capacityController.dispose();
+    _creditsController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -107,28 +98,32 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
       _errorMessage = null;
     });
     try {
-      final title = _titleController.text.trim();
-      final Student saved;
+      final capacity = int.parse(_capacityController.text.trim());
+      final credits = int.parse(_creditsController.text.trim());
+      final imageUrl = _imageUrlController.text.trim();
+      final AdminCourse saved;
       if (widget.isEditing) {
-        saved = await _repository.updateStudent(
-          widget.studentId!,
-          name: _nameController.text.trim(),
-          studentId: _studentIdController.text.trim(),
-          email: _emailController.text.trim(),
-          department: _selectedDepartment!,
-          title: title.isEmpty ? null : title,
-          programTrack: _selectedProgramTrack!,
-          cohort: _selectedCohort!,
+        saved = await _repository.updateCourse(
+          widget.courseId!,
+          courseCode: _courseCodeController.text.trim(),
+          courseTitle: _courseTitleController.text.trim(),
+          courseDescription: _courseDescriptionController.text.trim(),
+          category: _category,
+          imageUrl: imageUrl.isEmpty ? null : imageUrl,
+          scheduleText: _scheduleTextController.text.trim(),
+          capacity: capacity,
+          credits: credits,
         );
       } else {
-        saved = await _repository.createStudent(
-          name: _nameController.text.trim(),
-          studentId: _studentIdController.text.trim(),
-          email: _emailController.text.trim(),
-          department: _selectedDepartment!,
-          title: title.isEmpty ? null : title,
-          programTrack: _selectedProgramTrack!,
-          cohort: _selectedCohort!,
+        saved = await _repository.createCourse(
+          courseCode: _courseCodeController.text.trim(),
+          courseTitle: _courseTitleController.text.trim(),
+          courseDescription: _courseDescriptionController.text.trim(),
+          category: _category,
+          imageUrl: imageUrl.isEmpty ? null : imageUrl,
+          scheduleText: _scheduleTextController.text.trim(),
+          capacity: capacity,
+          credits: credits,
         );
       }
       if (!mounted) return;
@@ -136,7 +131,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Failed to save student: $e';
+        _errorMessage = 'Failed to save course: $e';
         _isSaving = false;
       });
     }
@@ -144,7 +139,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.isEditing ? 'Edit Student' : 'Register New Student';
+    final title = widget.isEditing ? 'Edit Course' : 'Add New Course';
     return Scaffold(
       backgroundColor: AdminColors.background,
       appBar: AppBar(
@@ -175,8 +170,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                         children: [
                           Text(
                             widget.isEditing
-                                ? 'Update this learner\'s registry information.'
-                                : 'Add a new learner to the institutional registry.',
+                                ? 'Update this course\'s catalogue information.'
+                                : 'Add a new course to the institutional catalogue. Lecturer and section assignment can be done afterward.',
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),
@@ -191,37 +186,50 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                             ),
                             const SizedBox(height: 16),
                           ],
-                          _field(controller: _nameController, label: 'Full Name', hint: 'Alex Chen'),
+                          _field(controller: _courseCodeController, label: 'Course Code', hint: 'PY-402'),
                           const SizedBox(height: 14),
-                          _field(controller: _studentIdController, label: 'Student ID', hint: 'EMP-88219'),
+                          _field(controller: _courseTitleController, label: 'Course Title', hint: 'Python for Enterprise Data Analysis'),
                           const SizedBox(height: 14),
-                          _field(controller: _emailController, label: 'Email', hint: 'alex.chen@enterprise.com', keyboardType: TextInputType.emailAddress),
-                          const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Department',
-                            hint: 'Select a department',
-                            value: _selectedDepartment,
-                            options: _departments,
-                            onChanged: (v) => setState(() => _selectedDepartment = v),
-                          ),
-                          const SizedBox(height: 14),
-                          _field(controller: _titleController, label: 'Title (optional)', hint: 'Product Analyst • Operations', required: false),
+                          _field(controller: _courseDescriptionController, label: 'Description', hint: 'What this course covers...', maxLines: 4),
                           const SizedBox(height: 14),
                           _dropdown(
-                            label: 'Program Track',
-                            hint: 'Select a program track',
-                            value: _selectedProgramTrack,
-                            options: _programTracks,
-                            onChanged: (v) => setState(() => _selectedProgramTrack = v),
+                            label: 'Category',
+                            value: _category,
+                            options: _categoryOptions,
+                            onChanged: (v) => setState(() => _category = v!),
                           ),
                           const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Cohort',
-                            hint: 'Select a cohort',
-                            value: _selectedCohort,
-                            options: _cohorts,
-                            onChanged: (v) => setState(() => _selectedCohort = v),
+                          _field(controller: _scheduleTextController, label: 'Schedule', hint: 'Mon / Wed 18:00–20:30 UTC'),
+                          const SizedBox(height: 14),
+                          _field(
+                            controller: _capacityController,
+                            label: 'Capacity',
+                            hint: '40',
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              final trimmed = value?.trim() ?? '';
+                              if (trimmed.isEmpty) return 'Capacity is required';
+                              final parsed = int.tryParse(trimmed);
+                              if (parsed == null || parsed < 0) return 'Enter a valid whole number';
+                              return null;
+                            },
                           ),
+                          const SizedBox(height: 14),
+                          _field(
+                            controller: _creditsController,
+                            label: 'Credits',
+                            hint: '3',
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              final trimmed = value?.trim() ?? '';
+                              if (trimmed.isEmpty) return 'Credits is required';
+                              final parsed = int.tryParse(trimmed);
+                              if (parsed == null || parsed <= 0) return 'Enter a positive whole number';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          _field(controller: _imageUrlController, label: 'Image URL (optional)', hint: 'https://...', required: false),
                           const SizedBox(height: 24),
                           Row(
                             children: [
@@ -255,7 +263,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                           height: 18,
                                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                         )
-                                      : Text(widget.isEditing ? 'Save Changes' : 'Register Student'),
+                                      : Text(widget.isEditing ? 'Save Changes' : 'Add Course'),
                                 ),
                               ),
                             ],
@@ -276,6 +284,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     required String hint,
     TextInputType? keyboardType,
     bool required = true,
+    int maxLines = 1,
     String? Function(String?)? validator,
   }) {
     return Column(
@@ -286,6 +295,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          maxLines: maxLines,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
@@ -304,9 +314,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
   Widget _dropdown({
     required String label,
-    required String hint,
-    required String? value,
-    required List<String> options,
+    required String value,
+    required List<(String, String)> options,
     required ValueChanged<String?> onChanged,
   }) {
     return Column(
@@ -325,10 +334,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
-          hint: Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline)),
-          items: [for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis))],
+          items: [for (final o in options) DropdownMenuItem(value: o.$1, child: Text(o.$2, overflow: TextOverflow.ellipsis))],
           onChanged: onChanged,
-          validator: (v) => v == null || v.isEmpty ? '$label is required' : null,
         ),
       ],
     );

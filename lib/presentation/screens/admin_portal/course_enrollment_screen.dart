@@ -9,8 +9,8 @@ import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_mobile_bottom_nav.dart';
+import 'widgets/admin_nav.dart';
 import 'manage_lecturers_screen.dart';
-import 'lecturer_allocation_screen.dart';
 import 'manage_students_screen.dart';
 import 'enroll_students_screen.dart';
 
@@ -89,21 +89,8 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
     return '${diff.inDays} days ago';
   }
 
-  void _handleNav(AdminNavDestination dest) {
-    switch (dest) {
-      case AdminNavDestination.manageLecturers:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageLecturersScreen()));
-        break;
-      case AdminNavDestination.lecturerAllocation:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LecturerAllocationScreen()));
-        break;
-      case AdminNavDestination.manageStudents:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ManageStudentsScreen()));
-        break;
-      case AdminNavDestination.courseEnrollment:
-        break;
-    }
-  }
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.courseEnrollment, dest);
 
   void _notAvailable() {
     ScaffoldMessenger.of(context).showSnackBar(

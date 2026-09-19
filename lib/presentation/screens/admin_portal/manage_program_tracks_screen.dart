@@ -15,9 +15,12 @@ class ManageProgramTracksScreen extends StatelessWidget {
       description: 'Academy specialization tracks students can be enrolled into.',
       itemLabel: 'Program Track',
       navDestination: AdminNavDestination.manageProgramTracks,
-      load: () async => [for (final t in await repository.getProgramTracks()) (t.id, t.name)],
-      create: (name) => repository.createProgramTrack(name),
-      update: (id, name) => repository.updateProgramTrack(id, name),
+      load: () async => [
+        for (final t in await repository.getProgramTracks())
+          MasterDataRow(id: t.id, code: t.code, name: t.name, remarks: t.remarks),
+      ],
+      create: (code, name, remarks, year) => repository.createProgramTrack(code, name, remarks),
+      update: (id, code, name, remarks, year) => repository.updateProgramTrack(id, code, name, remarks),
       delete: (ids) => repository.deleteProgramTracks(ids),
     );
   }

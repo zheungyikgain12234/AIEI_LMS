@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badges_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
+import 'widgets/admin_field_label.dart';
 
 // ---------------------------------------------------------------------------
 // BadgeAwardFormScreen — shared "Add Badge Award" / "Edit Badge Award" form
@@ -58,9 +60,9 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
       if (!mounted) return;
       final award = widget.award;
       setState(() {
-        _students = [for (final s in students) (s.id, '${s.name} • ${s.studentId}')];
+        _students = [for (final s in students) (s.id, '${s.name} • ${s.studentCode}')];
         _courses = [for (final c in courses) (c.id, '${c.courseCode} • ${c.courseTitle}')];
-        _badges = badges;
+        _badges = [for (final b in badges) (b.$1, '${b.$2} • ${b.$3}')];
         if (award != null) {
           _selectedStudentId = award.studentId;
           _selectedCourseId = award.courseId;
@@ -118,7 +120,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Failed to save badge award: $e';
+        _errorMessage = friendlyErrorMessage(e);
         _isSaving = false;
       });
     }
@@ -283,7 +285,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        AdminFieldLabel(label),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -314,7 +316,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        AdminFieldLabel(label),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: value,

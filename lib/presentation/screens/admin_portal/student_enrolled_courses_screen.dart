@@ -109,7 +109,7 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(_student?.name ?? '', style: AdminTypography.titleMd()),
-                                  Text(_student?.studentId ?? '', style: AdminTypography.labelSm()),
+                                  Text(_student?.studentCode ?? '', style: AdminTypography.labelSm()),
                                 ],
                               ),
                             ),

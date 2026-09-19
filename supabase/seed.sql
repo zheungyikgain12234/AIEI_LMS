@@ -20,65 +20,68 @@ restart identity cascade;
 
 -- ── Master data (student registry dropdowns) ────────────────────────────
 
-insert into departments (name) values
-  ('Operations'), ('Business Intelligence'), ('Treasury Tech'), ('Global Risk'),
-  ('Analytics Platform'), ('Supply Chain'), ('Workplace Safety'),
-  ('Cloud Engineering'), ('Data Architecture');
+-- Every code below is tenant-prefixed (`TN01-...`) per the app's
+-- multi-tenant code convention — see AppSession / core/session/app_session.dart.
 
-insert into program_tracks (name) values
-  ('Data Architecture Specialist'), ('AI Engineering Track'), ('Executive Operations'),
-  ('Workplace Safety Track'), ('Cloud & Distributed Systems'), ('AI & Machine Learning'),
-  ('Cloud & Distributed Computing'), ('Data Architecture & Analytics'),
-  ('General Enterprise Track');
+insert into departments (code, name) values
+  ('TN01-DEPT-OPS', 'Operations'), ('TN01-DEPT-BI', 'Business Intelligence'), ('TN01-DEPT-TT', 'Treasury Tech'), ('TN01-DEPT-GR', 'Global Risk'),
+  ('TN01-DEPT-AP', 'Analytics Platform'), ('TN01-DEPT-SC', 'Supply Chain'), ('TN01-DEPT-WS', 'Workplace Safety'),
+  ('TN01-DEPT-CE', 'Cloud Engineering'), ('TN01-DEPT-DA', 'Data Architecture');
 
-insert into cohorts (name) values
-  ('Fall 2025 Cohort'), ('Executive Summer 2025'), ('Spring 2025 Cohort'), ('2025-Q1');
+insert into program_tracks (code, name) values
+  ('TN01-TRK-DAS', 'Data Architecture Specialist'), ('TN01-TRK-AIE', 'AI Engineering Track'), ('TN01-TRK-EXO', 'Executive Operations'),
+  ('TN01-TRK-WST', 'Workplace Safety Track'), ('TN01-TRK-CDS', 'Cloud & Distributed Systems'), ('TN01-TRK-AIML', 'AI & Machine Learning'),
+  ('TN01-TRK-CDC', 'Cloud & Distributed Computing'), ('TN01-TRK-DAA', 'Data Architecture & Analytics'),
+  ('TN01-TRK-GEN', 'General Enterprise Track');
+
+insert into cohorts (code, name, year) values
+  ('TN01-COH-F25', 'Fall 2025 Cohort', 2025), ('TN01-COH-ES25', 'Executive Summer 2025', 2025), ('TN01-COH-S25', 'Spring 2025 Cohort', 2025), ('TN01-COH-Q125', '2025-Q1', 2025);
 
 -- Job roles (Role → Course Mapping screen: which courses fit which job).
-insert into roles (id, name) values
-  ('99999999-9999-9999-9999-999999999901', 'IT Support Specialist'),
-  ('99999999-9999-9999-9999-999999999902', 'HVAC / Aircon Installer'),
-  ('99999999-9999-9999-9999-999999999903', 'Data Analyst'),
-  ('99999999-9999-9999-9999-999999999904', 'Cloud Engineer'),
-  ('99999999-9999-9999-9999-999999999905', 'Financial Analyst'),
-  ('99999999-9999-9999-9999-999999999906', 'Compliance Officer'),
-  ('99999999-9999-9999-9999-999999999907', 'Safety Officer'),
-  ('99999999-9999-9999-9999-999999999908', 'Executive Manager');
+insert into roles (id, code, name) values
+  ('99999999-9999-9999-9999-999999999901', 'TN01-ROLE-ITSPEC', 'IT Support Specialist'),
+  ('99999999-9999-9999-9999-999999999902', 'TN01-ROLE-HVAC', 'HVAC / Aircon Installer'),
+  ('99999999-9999-9999-9999-999999999903', 'TN01-ROLE-DA', 'Data Analyst'),
+  ('99999999-9999-9999-9999-999999999904', 'TN01-ROLE-CE', 'Cloud Engineer'),
+  ('99999999-9999-9999-9999-999999999905', 'TN01-ROLE-FA', 'Financial Analyst'),
+  ('99999999-9999-9999-9999-999999999906', 'TN01-ROLE-CO', 'Compliance Officer'),
+  ('99999999-9999-9999-9999-999999999907', 'TN01-ROLE-SO', 'Safety Officer'),
+  ('99999999-9999-9999-9999-999999999908', 'TN01-ROLE-EM', 'Executive Manager');
 
 -- ── Master data (lecturer registry dropdowns) ───────────────────────────
 
-insert into lecturer_departments (name) values
-  ('Computer Science & Data'), ('Workplace Safety & EHS'), ('Data Science & AI'),
-  ('Executive Leadership');
+insert into lecturer_departments (code, name) values
+  ('TN01-LDEPT-CSD', 'Computer Science & Data'), ('TN01-LDEPT-WSE', 'Workplace Safety & EHS'), ('TN01-LDEPT-DSAI', 'Data Science & AI'),
+  ('TN01-LDEPT-EL', 'Executive Leadership');
 
-insert into specializations (name) values
-  ('Distributed ETL & Python'), ('OSHA Protocol & Site Risk Analysis'),
-  ('Deep Neural Architectures'), ('Org Dynamics & Crisis Management'),
-  ('Distributed Cloud Governance');
+insert into specializations (code, name) values
+  ('TN01-SPEC-ETL', 'Distributed ETL & Python'), ('TN01-SPEC-OSHA', 'OSHA Protocol & Site Risk Analysis'),
+  ('TN01-SPEC-DNA', 'Deep Neural Architectures'), ('TN01-SPEC-ODC', 'Org Dynamics & Crisis Management'),
+  ('TN01-SPEC-DCG', 'Distributed Cloud Governance');
 
 -- ── People ──────────────────────────────────────────────────────────────
 
 -- credits_used is not seeded explicitly — it's recomputed by the
 -- `lecturer_courses_recalc_credits` trigger once the lecturer_courses rows
 -- below are inserted (see schema.sql).
-insert into lecturers (id, name, title, employee_id, email, department, specialization, credits_max, status, accredited, manageable) values
-  ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 'Distributed ETL & Python', 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of AI & Machine Learning', 'EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false);
+insert into lecturers (id, name, title, lecturer_code, email, department, specialization, credits_max, status, accredited, manageable) values
+  ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'TN01-EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 'Distributed ETL & Python', 15, 'Active', true, true),
+  ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'TN01-EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 15, 'Active', true, true),
+  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of AI & Machine Learning', 'TN01-EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true),
+  ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'TN01-EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true),
+  ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'TN01-EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false);
 
-insert into students (id, name, student_id, email, department, title, program_track, cohort, role, gpa) overriding system value values
-  (1, 'Alex Chen', 'EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 'Data Analyst', 3.76),
-  (2, 'Maya Patel', 'EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'Fall 2025 Cohort', 'Data Analyst', 3.92),
-  (3, 'Marcus Reed', 'EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Summer 2025', 'Financial Analyst', 2.90),
-  (4, 'Elena Rostova Jr.', 'EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Compliance Officer', 3.40),
-  (5, 'David Kim', 'EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'Fall 2025 Cohort', 'Data Analyst', 3.55),
-  (6, 'Sophia Loren', 'EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'Fall 2025 Cohort', 'Data Analyst', 3.10),
-  (7, 'Jordan Taylor', 'EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Safety Officer', 2.60),
-  (8, 'Sarah Jenkins', 'EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'Fall 2025 Cohort', 'Cloud Engineer', 3.70),
-  (9, 'Liam Nguyen', 'EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'IT Support Specialist', 3.30),
-  (10, 'Chloe Bennett', 'EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'Data Analyst', 3.35);
+insert into students (id, name, student_code, email, department, title, program_track, cohort, role, gpa) overriding system value values
+  (1, 'Alex Chen', 'TN01-EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 'Data Analyst', 3.76),
+  (2, 'Maya Patel', 'TN01-EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'Fall 2025 Cohort', 'Data Analyst', 3.92),
+  (3, 'Marcus Reed', 'TN01-EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Summer 2025', 'Financial Analyst', 2.90),
+  (4, 'Elena Rostova Jr.', 'TN01-EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Compliance Officer', 3.40),
+  (5, 'David Kim', 'TN01-EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'Fall 2025 Cohort', 'Data Analyst', 3.55),
+  (6, 'Sophia Loren', 'TN01-EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'Fall 2025 Cohort', 'Data Analyst', 3.10),
+  (7, 'Jordan Taylor', 'TN01-EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Safety Officer', 2.60),
+  (8, 'Sarah Jenkins', 'TN01-EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'Fall 2025 Cohort', 'Cloud Engineer', 3.70),
+  (9, 'Liam Nguyen', 'TN01-EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'IT Support Specialist', 3.30),
+  (10, 'Chloe Bennett', 'TN01-EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'Data Analyst', 3.35);
 
 -- Keep the identity sequence ahead of the explicit ids inserted above, so
 -- the next `insert into students (name, ...)` (no id given — e.g. Register
@@ -91,24 +94,24 @@ insert into admins (id, name, title, email) values
 -- ── Courses (catalogue courses Alex Chen is enrolled in, codes 1-6; plus
 -- additional courses used by the Faculty/Admin allocation views, 7-17) ──
 
-insert into courses (id, course_code, course_title, course_description, category, image_url, schedule_text, capacity) values
-  ('44444444-4444-4444-4444-444444444401', 'PY-402', 'Python for Enterprise Data Analysis & Automation', 'Data pipeline orchestration, API integration, and automated ETL workflows for enterprise analytics teams.', 'techData', 'https://lh3.googleusercontent.com/aida-public/AB6AXuBkaSQDBQPtWkABa_7PiXVJsRQkHv4xgrG3XiijLhyOTArutGaZK0X05nOVBtjVuJfyRPlFsX9CH0dAMh-kx6LJBba5UjVvkgHx5DOI9Jq8mn98t5FTMg3L8kc9RCcKIG7CvAj6jJG6F1WcCNuMwb1VZ8bFd3wBHxt2crG1xV0Yn7d8UFxNqLPsaE7O7-5zfbPXeU7V1GlQc8GTHdFWmJWqy8fK7RQkfMAqZPyOXl0HpxOWd1hm7qGgiA', 'Mon / Wed 18:00–20:30 UTC', 50),
-  ('44444444-4444-4444-4444-444444444402', 'OSHE-101', 'OSHE Workplace Safety & Compliance 2025', 'Comprehensive occupational health and hazardous-material incident management, site command protocol, and emergency mitigation.', 'compliance', 'https://lh3.googleusercontent.com/aida-public/AB6AXuB2OyYsvS_sX1hJ5qFZkMotA7KvbsvzTYWCF8WfETZtN0WSlfNQVhkrHsE2TUvzXjLriYi6LpI1QlVqk-bwOrvw91ojbYoLwM_Zr1ruloQ8yjzkvpR7-HcehL4qrnDrVs_4iMRN5WxJy9eG3JC6tjt3dVRM0B2lNuBugzLz-hsSE78-Mtrn1GPEA4LaZQxrCS24MIdweDmd2qWKW32UpGdY9ti9Vl7Dt6P7vfqp7Sdl2_U4kIgeIc1PhQ', 'Mon/Wed 11:00–12:30 UTC', 56),
-  ('44444444-4444-4444-4444-444444444403', 'AI-330', 'ChatGPT & Generative AI Prompt Engineering', 'LLM prompt chains, context retrieval architectures, and agentic workflows for enterprise use cases.', 'aiTools', 'https://lh3.googleusercontent.com/aida-public/AB6AXuA4mqWaPlwERSIsIsGlYTZJKCU-zBC91ZVEnzlYmMkcczWZma3JM6Xd_Bxldqi1F87AM_47pV1nWrNbB8_vSI4EgHd-tc9HZTk6oa-8f_DZaUcTrY0U4_TjYRMT3wj1UfvWbLv9Nqo1l7eMPy0V9-fXJakk4e2YAd6AmDfbAMjOTkGMm2YK-zWpw8XIKcFMOPC2lGhe2TLfHCk_j_677br9FSzmugZx2bQc1dk61ey-EtLnrgvHPojdLw', 'Self-paced', 60),
-  ('44444444-4444-4444-4444-444444444404', 'FIN-410', 'Advanced Financial Modeling in Microsoft Excel', 'Forecasting methodologies, capital expenditure modeling, and budget variance analysis for FP&A teams.', 'techData', 'https://lh3.googleusercontent.com/aida-public/AB6AXuAR1qa-PQ_EQITTA9fg1r6hu8Tvtdvs1ekcbF5AZPoioMdMTY50_5YruGcysD0SJ6-8HZaOLG_Qi1RpOlkHkhFcFym36_cBZbIzw4jDEtFbKK7ESumokNXWXZQa9jPJ2O4ZxIX8U6iLHNgQlhgiLKciKZmlz6PPi5p7ZCw7-f3gXnx9lREsaOhXDu8f5Q4C42QheRdnHGkL1PjQ_kaMlv2_fAxXfViXwLZTcxB1OlLDwfONXI1h56Jmag', 'Self-paced', 45),
-  ('44444444-4444-4444-4444-444444444405', 'SEC-410', 'Corporate Cybersecurity & Phishing Defense', 'Phishing vectors, social engineering prevention, and live incident-response drills.', 'compliance', 'https://lh3.googleusercontent.com/aida-public/AB6AXuDXYkMiYXMEX1qK60nUL9gN1pOR3niSrz2k0TccpqxYLosexsrNqafST6KNh4sd_FbxmX-hH9xnHXbRHt13RwK13JgerDi7uZodQ2pDceEI7qvo_-wfHo8dt9ziLjMaEqyFqDr5fKmWhqtY_6q0VBYW0l9fHm_k4wGuXId41QByjT4bpKuozhC1gCtNDrGxyK-cVfV2b8RrGZDXA6ClJmu73mcMOwNQSF_OxxRkT6Lq8q4OOYKGNJkLKg', 'Self-paced', 500),
-  ('44444444-4444-4444-4444-444444444406', 'LEAD-400', 'Effective Executive Communication & Stakeholder Alignment', 'High-stakes boardroom presentation, cross-functional influence, investor messaging, and conflict mediation.', 'productivity', 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcMjKgfoHEa8G_VzTvz5W-lpWL88zl5gWlksr1wM5y1Xty2v2vyzFbfxeqrX4zS0yP5kTUyqnf8-SakPJEFx-Kzlrnm-6JxqKczG3nftxgNbS2pjH7BNOSUt0j7QnD8hzJE_KcL2EXk87-27cu8uHdG1igavFS1cWXoTyByUiEHo8KL9bipIN0eO8qitDVg30oxij7-vnE9uEDXLEdnUbJU07Uvz2EBfaV3x7C4mGS2oySo_Ai59eOyQ', 'Tuesday 18:00–21:00 UTC', 28),
-  ('44444444-4444-4444-4444-444444444407', 'DATA-501', 'Automated ETL & Enterprise Data Pipelines', 'Airflow orchestration, real-time Kafka event streams, schema validation, and SQL warehouse data transformations.', 'techData', null, 'Tue / Thu 13:00–14:45 UTC', 45),
-  ('44444444-4444-4444-4444-444444444408', 'AI-301', 'Applied Machine Learning in Enterprise', 'Supervised models, gradient boosted trees, scikit-learn optimization, and enterprise model governance.', 'aiTools', null, 'Lab Fridays 14:00–17:00 UTC', 35),
-  ('44444444-4444-4444-4444-444444444409', 'SAF-204', 'Industrial Hazard Mitigation', 'Chemical handling, SDS documentation, and industrial hazard mitigation for EHS specialists.', 'compliance', null, 'Thursday 14:00–17:30 UTC', 34),
-  ('44444444-4444-4444-4444-444444444410', 'ML-800', 'Deep Neural Architectures', 'Graduate-level deep learning architectures, transformer models, and distributed training.', 'aiTools', null, 'Monday 14:00–18:00 UTC', 50),
-  ('44444444-4444-4444-4444-444444444411', 'DL-901', 'Generative Enterprise Systems', 'Doctoral seminar on generative model deployment in enterprise production systems.', 'aiTools', null, 'Wednesday 14:00–18:00 UTC', 45),
-  ('44444444-4444-4444-4444-444444444412', 'RL-705', 'Reinforcement Learning in Robotics', 'Advanced lab on reinforcement learning applied to robotics and autonomous systems.', 'aiTools', null, 'Friday 08:30–12:30 UTC', 30),
-  ('44444444-4444-4444-4444-444444444413', 'NLP-620', 'Applied NLP Systems', 'Enterprise natural-language processing systems: entity extraction, summarization, and retrieval.', 'aiTools', null, 'Self-paced', 30),
-  ('44444444-4444-4444-4444-444444444414', 'COMM-102', 'Strategic Corporate Communication', 'Investor messaging, crisis communications, and cross-functional stakeholder alignment.', 'productivity', null, 'Thursday 16:00–19:00 UTC', 40),
-  ('44444444-4444-4444-4444-444444444415', 'CYBER-202', 'Zero Trust Architecture', 'Zero-trust network design, identity-aware proxies, and continuous verification models.', 'compliance', null, 'TBD', 34),
-  ('44444444-4444-4444-4444-444444444416', 'CLOUD-410', 'Kubernetes Infrastructure', 'Production Kubernetes cluster design, autoscaling, and DevOps deployment pipelines.', 'techData', null, 'TBD', 50),
-  ('44444444-4444-4444-4444-444444444417', 'AI-512', 'Multi-Agent Autonomy Lab', 'Multi-agent coordination, autonomy stacks, and agentic system research.', 'aiTools', null, 'TBD', 22);
+insert into courses (id, course_code, course_title, course_description, category, image_url) values
+  ('44444444-4444-4444-4444-444444444401', 'TN01-PY-402', 'Python for Enterprise Data Analysis & Automation', 'Data pipeline orchestration, API integration, and automated ETL workflows for enterprise analytics teams.', 'techData', 'https://lh3.googleusercontent.com/aida-public/AB6AXuBkaSQDBQPtWkABa_7PiXVJsRQkHv4xgrG3XiijLhyOTArutGaZK0X05nOVBtjVuJfyRPlFsX9CH0dAMh-kx6LJBba5UjVvkgHx5DOI9Jq8mn98t5FTMg3L8kc9RCcKIG7CvAj6jJG6F1WcCNuMwb1VZ8bFd3wBHxt2crG1xV0Yn7d8UFxNqLPsaE7O7-5zfbPXeU7V1GlQc8GTHdFWmJWqy8fK7RQkfMAqZPyOXl0HpxOWd1hm7qGgiA'),
+  ('44444444-4444-4444-4444-444444444402', 'TN01-OSHE-101', 'OSHE Workplace Safety & Compliance 2025', 'Comprehensive occupational health and hazardous-material incident management, site command protocol, and emergency mitigation.', 'compliance', 'https://lh3.googleusercontent.com/aida-public/AB6AXuB2OyYsvS_sX1hJ5qFZkMotA7KvbsvzTYWCF8WfETZtN0WSlfNQVhkrHsE2TUvzXjLriYi6LpI1QlVqk-bwOrvw91ojbYoLwM_Zr1ruloQ8yjzkvpR7-HcehL4qrnDrVs_4iMRN5WxJy9eG3JC6tjt3dVRM0B2lNuBugzLz-hsSE78-Mtrn1GPEA4LaZQxrCS24MIdweDmd2qWKW32UpGdY9ti9Vl7Dt6P7vfqp7Sdl2_U4kIgeIc1PhQ'),
+  ('44444444-4444-4444-4444-444444444403', 'TN01-AI-330', 'ChatGPT & Generative AI Prompt Engineering', 'LLM prompt chains, context retrieval architectures, and agentic workflows for enterprise use cases.', 'aiTools', 'https://lh3.googleusercontent.com/aida-public/AB6AXuA4mqWaPlwERSIsIsGlYTZJKCU-zBC91ZVEnzlYmMkcczWZma3JM6Xd_Bxldqi1F87AM_47pV1nWrNbB8_vSI4EgHd-tc9HZTk6oa-8f_DZaUcTrY0U4_TjYRMT3wj1UfvWbLv9Nqo1l7eMPy0V9-fXJakk4e2YAd6AmDfbAMjOTkGMm2YK-zWpw8XIKcFMOPC2lGhe2TLfHCk_j_677br9FSzmugZx2bQc1dk61ey-EtLnrgvHPojdLw'),
+  ('44444444-4444-4444-4444-444444444404', 'TN01-FIN-410', 'Advanced Financial Modeling in Microsoft Excel', 'Forecasting methodologies, capital expenditure modeling, and budget variance analysis for FP&A teams.', 'techData', 'https://lh3.googleusercontent.com/aida-public/AB6AXuAR1qa-PQ_EQITTA9fg1r6hu8Tvtdvs1ekcbF5AZPoioMdMTY50_5YruGcysD0SJ6-8HZaOLG_Qi1RpOlkHkhFcFym36_cBZbIzw4jDEtFbKK7ESumokNXWXZQa9jPJ2O4ZxIX8U6iLHNgQlhgiLKciKZmlz6PPi5p7ZCw7-f3gXnx9lREsaOhXDu8f5Q4C42QheRdnHGkL1PjQ_kaMlv2_fAxXfViXwLZTcxB1OlLDwfONXI1h56Jmag'),
+  ('44444444-4444-4444-4444-444444444405', 'TN01-SEC-410', 'Corporate Cybersecurity & Phishing Defense', 'Phishing vectors, social engineering prevention, and live incident-response drills.', 'compliance', 'https://lh3.googleusercontent.com/aida-public/AB6AXuDXYkMiYXMEX1qK60nUL9gN1pOR3niSrz2k0TccpqxYLosexsrNqafST6KNh4sd_FbxmX-hH9xnHXbRHt13RwK13JgerDi7uZodQ2pDceEI7qvo_-wfHo8dt9ziLjMaEqyFqDr5fKmWhqtY_6q0VBYW0l9fHm_k4wGuXId41QByjT4bpKuozhC1gCtNDrGxyK-cVfV2b8RrGZDXA6ClJmu73mcMOwNQSF_OxxRkT6Lq8q4OOYKGNJkLKg'),
+  ('44444444-4444-4444-4444-444444444406', 'TN01-LEAD-400', 'Effective Executive Communication & Stakeholder Alignment', 'High-stakes boardroom presentation, cross-functional influence, investor messaging, and conflict mediation.', 'productivity', 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcMjKgfoHEa8G_VzTvz5W-lpWL88zl5gWlksr1wM5y1Xty2v2vyzFbfxeqrX4zS0yP5kTUyqnf8-SakPJEFx-Kzlrnm-6JxqKczG3nftxgNbS2pjH7BNOSUt0j7QnD8hzJE_KcL2EXk87-27cu8uHdG1igavFS1cWXoTyByUiEHo8KL9bipIN0eO8qitDVg30oxij7-vnE9uEDXLEdnUbJU07Uvz2EBfaV3x7C4mGS2oySo_Ai59eOyQ'),
+  ('44444444-4444-4444-4444-444444444407', 'TN01-DATA-501', 'Automated ETL & Enterprise Data Pipelines', 'Airflow orchestration, real-time Kafka event streams, schema validation, and SQL warehouse data transformations.', 'techData', null),
+  ('44444444-4444-4444-4444-444444444408', 'TN01-AI-301', 'Applied Machine Learning in Enterprise', 'Supervised models, gradient boosted trees, scikit-learn optimization, and enterprise model governance.', 'aiTools', null),
+  ('44444444-4444-4444-4444-444444444409', 'TN01-SAF-204', 'Industrial Hazard Mitigation', 'Chemical handling, SDS documentation, and industrial hazard mitigation for EHS specialists.', 'compliance', null),
+  ('44444444-4444-4444-4444-444444444410', 'TN01-ML-800', 'Deep Neural Architectures', 'Graduate-level deep learning architectures, transformer models, and distributed training.', 'aiTools', null),
+  ('44444444-4444-4444-4444-444444444411', 'TN01-DL-901', 'Generative Enterprise Systems', 'Doctoral seminar on generative model deployment in enterprise production systems.', 'aiTools', null),
+  ('44444444-4444-4444-4444-444444444412', 'TN01-RL-705', 'Reinforcement Learning in Robotics', 'Advanced lab on reinforcement learning applied to robotics and autonomous systems.', 'aiTools', null),
+  ('44444444-4444-4444-4444-444444444413', 'TN01-NLP-620', 'Applied NLP Systems', 'Enterprise natural-language processing systems: entity extraction, summarization, and retrieval.', 'aiTools', null),
+  ('44444444-4444-4444-4444-444444444414', 'TN01-COMM-102', 'Strategic Corporate Communication', 'Investor messaging, crisis communications, and cross-functional stakeholder alignment.', 'productivity', null),
+  ('44444444-4444-4444-4444-444444444415', 'TN01-CYBER-202', 'Zero Trust Architecture', 'Zero-trust network design, identity-aware proxies, and continuous verification models.', 'compliance', null),
+  ('44444444-4444-4444-4444-444444444416', 'TN01-CLOUD-410', 'Kubernetes Infrastructure', 'Production Kubernetes cluster design, autoscaling, and DevOps deployment pipelines.', 'techData', null),
+  ('44444444-4444-4444-4444-444444444417', 'TN01-AI-512', 'Multi-Agent Autonomy Lab', 'Multi-agent coordination, autonomy stacks, and agentic system research.', 'aiTools', null);
 
 -- ── Course → Lecturer mapping (drives Manage Lecturers course-count chips) ──
 
@@ -171,21 +174,24 @@ insert into role_courses (role_id, course_id) values
 
 -- ── Course sections (lecturer_allocation screen: assigned + unassigned) ──
 
-insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, enrolled_count, status) values
-  ('44444444-4444-4444-4444-444444444401', 'Sec A01', 'Primary Instructor', 'Fall 2025', 'Monday 09:00–10:30 • Innovation Hall 204', 'Monday', '09:00', '10:30', 'Innovation Hall 204', '11111111-1111-1111-1111-111111111101', 50, 42, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444407', 'Sec B02', 'Primary Instructor', 'Fall 2025', 'Tuesday 13:00–14:45 • Data Lab 3B', 'Tuesday', '13:00', '14:45', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 45, 38, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444408', 'Sec C01', 'Co-Lecturer', 'Fall 2025', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111101', 35, 29, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444402', 'Sec A1', 'Lead Instructor', 'Fall 2025', 'Monday 11:00–12:30 • Safety Training Center', 'Monday', '11:00', '12:30', 'Safety Training Center', '11111111-1111-1111-1111-111111111102', 56, 56, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444409', 'Sec H03', 'Lead Instructor', 'Fall 2025', 'Thursday 14:00–17:30 • Hazmat Simulation Hall', 'Thursday', '14:00', '17:30', 'Hazmat Simulation Hall', '11111111-1111-1111-1111-111111111102', 34, 34, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444410', 'Graduate', 'Graduate', 'Fall 2025', 'Monday 14:00–18:00 • Grad Seminar Room 5', 'Monday', '14:00', '18:00', 'Grad Seminar Room 5', '11111111-1111-1111-1111-111111111103', 50, 50, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444411', 'Doctoral Seminar', 'Doctoral Seminar', 'Fall 2025', 'Wednesday 14:00–18:00 • Doctoral Seminar Hall', 'Wednesday', '14:00', '18:00', 'Doctoral Seminar Hall', '11111111-1111-1111-1111-111111111103', 45, 45, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444412', 'Advanced Lab', 'Advanced Lab', 'Fall 2025', 'Friday 08:30–12:30 • Robotics Lab 2', 'Friday', '08:30', '12:30', 'Robotics Lab 2', '11111111-1111-1111-1111-111111111103', 30, 30, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444406', 'Sec E1', 'Section E1', 'Fall 2025', 'Tuesday 18:00–21:00 • Executive Boardroom', 'Tuesday', '18:00', '21:00', 'Executive Boardroom', '11111111-1111-1111-1111-111111111104', 28, 28, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444414', 'Sec C3', 'Section C3', 'Fall 2025', 'Thursday 16:00–19:00 • Communication Studio C', 'Thursday', '16:00', '19:00', 'Communication Studio C', '11111111-1111-1111-1111-111111111104', 40, 40, 'in_progress'),
+-- section_code is the "class code" — manually entered by the admin through
+-- the Manage Assigned Courses screen (lecturer_course_assignment_screen.dart)
+-- rather than auto-generated, and tenant-prefixed like every other code.
+insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, delivery_mode, cohort, enrolled_count, status) values
+  ('44444444-4444-4444-4444-444444444401', 'TN01-CLS-PY402-A01', 'Primary Instructor', 'Fall 2025', 'Monday 09:00–10:30 • Innovation Hall 204', 'Monday', '09:00', '10:30', 'Innovation Hall 204', '11111111-1111-1111-1111-111111111101', 50, 'physical', 'Fall 2025 Cohort', 42, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444407', 'TN01-CLS-DATA501-B02', 'Primary Instructor', 'Fall 2025', 'Tuesday 13:00–14:45 • Data Lab 3B', 'Tuesday', '13:00', '14:45', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 45, 'physical', 'Fall 2025 Cohort', 38, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444408', 'TN01-CLS-AI301-C01', 'Co-Lecturer', 'Fall 2025', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111101', 35, 'online', 'Fall 2025 Cohort', 29, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444402', 'TN01-CLS-OSHE101-A1', 'Lead Instructor', 'Fall 2025', 'Monday 11:00–12:30 • Safety Training Center', 'Monday', '11:00', '12:30', 'Safety Training Center', '11111111-1111-1111-1111-111111111102', 56, 'physical', 'Fall 2025 Cohort', 56, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444409', 'TN01-CLS-SAF204-H03', 'Lead Instructor', 'Fall 2025', 'Thursday 14:00–17:30 • Hazmat Simulation Hall', 'Thursday', '14:00', '17:30', 'Hazmat Simulation Hall', '11111111-1111-1111-1111-111111111102', 34, 'physical', 'Fall 2025 Cohort', 34, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444410', 'TN01-CLS-ML800-GRAD', 'Graduate', 'Fall 2025', 'Monday 14:00–18:00 • Grad Seminar Room 5', 'Monday', '14:00', '18:00', 'Grad Seminar Room 5', '11111111-1111-1111-1111-111111111103', 50, 'physical', 'Fall 2025 Cohort', 50, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444411', 'TN01-CLS-DL901-DOC', 'Doctoral Seminar', 'Fall 2025', 'Wednesday 14:00–18:00 • Doctoral Seminar Hall', 'Wednesday', '14:00', '18:00', 'Doctoral Seminar Hall', '11111111-1111-1111-1111-111111111103', 45, 'physical', 'Fall 2025 Cohort', 45, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444412', 'TN01-CLS-RL705-ADV', 'Advanced Lab', 'Fall 2025', 'Friday 08:30–12:30 • Robotics Lab 2', 'Friday', '08:30', '12:30', 'Robotics Lab 2', '11111111-1111-1111-1111-111111111103', 30, 'physical', 'Fall 2025 Cohort', 30, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444406', 'TN01-CLS-LEAD400-E1', 'Section E1', 'Fall 2025', 'Tuesday 18:00–21:00 • Executive Boardroom', 'Tuesday', '18:00', '21:00', 'Executive Boardroom', '11111111-1111-1111-1111-111111111104', 28, 'physical', 'Executive Summer 2025', 28, 'in_progress'),
+  ('44444444-4444-4444-4444-444444444414', 'TN01-CLS-COMM102-C3', 'Section C3', 'Fall 2025', 'Thursday 16:00–19:00 • Communication Studio C', 'Thursday', '16:00', '19:00', 'Communication Studio C', '11111111-1111-1111-1111-111111111104', 40, 'physical', 'Executive Summer 2025', 40, 'in_progress'),
   -- Unassigned sections needing lecturer allocation:
-  ('44444444-4444-4444-4444-444444444415', 'Sec 02', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 34, 34, 'scheduled'),
-  ('44444444-4444-4444-4444-444444444416', 'Sec 01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 50, 50, 'scheduled'),
-  ('44444444-4444-4444-4444-444444444417', 'Sec 01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 22, 22, 'scheduled');
+  ('44444444-4444-4444-4444-444444444415', 'TN01-CLS-CYBER202-02', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 34, 'physical', 'Fall 2025 Cohort', 34, 'scheduled'),
+  ('44444444-4444-4444-4444-444444444416', 'TN01-CLS-CLOUD410-01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 50, 'online', 'Fall 2025 Cohort', 50, 'scheduled'),
+  ('44444444-4444-4444-4444-444444444417', 'TN01-CLS-AI512-01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 22, 'physical', 'Fall 2025 Cohort', 22, 'scheduled');
 
 -- ── Modules + Materials ─────────────────────────────────────────────────
 -- Python course (PY-402) — full 10-lesson curriculum matching course_info_screen.dart
@@ -367,16 +373,16 @@ insert into course_tags (course_id, tag_id) values
 -- ── Certifications (incl. revoked + executive leadership, matching the
 -- credential_detail screens) ─────────────────────────────────────────────
 
-insert into certifications (id, title, issuing_body, description, badge_icon, competencies, hash, narrative, accrediting_bodies, metrics) values
-  ('88888888-8888-8888-8888-888888888801', 'Python Automation Specialist', 'AIEI Enterprise Learning', 'Data pipeline orchestration, API integration, and automated ETL workflows.', 'military_tech', array['Advanced NumPy & Pandas', 'Capstone: Distributed Web Scraping'], '0x1A2B...9F3C', '', array[]::text[], '{}'::jsonb),
-  ('88888888-8888-8888-8888-888888888802', 'Certified Safety Officer 2025 (CSO-2025)', 'OSHA Accredited Corporate Safety Board & Enterprise EHS Division', 'Comprehensive occupational health and hazardous material incident management, site command protocol, and emergency mitigation.', 'workspace_premium', array['Hazard Identification', 'GHS Rev 8', 'Emergency Evacuation', 'SDS Compliance'], '0x7F2B...C84B (Ledger Status: REVOKED)', '', array['OSHA Accredited Corporate Safety Board', 'Enterprise EHS Division'], '{}'::jsonb),
-  ('88888888-8888-8888-8888-888888888803', 'Certified Cyber Sentinel', 'SecOps Corporate Division', 'Phishing vectors, social engineering prevention, and live drill response.', 'shield', array['Zero-Day Attack Patterns', 'Final Incident Sim Due'], '0x3D9E...A712', '', array[]::text[], '{}'::jsonb),
-  ('88888888-8888-8888-8888-888888888804', 'Executive Leadership Communicator', 'AIEI Executive Leadership Academy & Wharton Executive Education Partner Alliance', 'This credential certifies demonstrated exceptional executive presence, strategic narrative design, and high-impact negotiation in mission-critical corporate settings. Completion required passing four intensive boardroom simulation defenses before an executive panel, managing multi-tier crisis communications scenarios, and synthesizing complex enterprise initiatives into actionable operational roadmaps for C-suite stakeholders.', 'record_voice_over', array['Boardroom Presentations', 'Crisis Communications', 'Cross-Functional Negotiation', 'Executive Presence'], '0x94D1...71E0',
+insert into certifications (id, code, title, issuing_body, description, badge_icon, competencies, hash, narrative, accrediting_bodies, metrics) values
+  ('88888888-8888-8888-8888-888888888801', 'TN01-CERT-PYAUTO', 'Python Automation Specialist', 'AIEI Enterprise Learning', 'Data pipeline orchestration, API integration, and automated ETL workflows.', 'military_tech', array['Advanced NumPy & Pandas', 'Capstone: Distributed Web Scraping'], '0x1A2B...9F3C', '', array[]::text[], '{}'::jsonb),
+  ('88888888-8888-8888-8888-888888888802', 'TN01-CERT-CSO25', 'Certified Safety Officer 2025 (CSO-2025)', 'OSHA Accredited Corporate Safety Board & Enterprise EHS Division', 'Comprehensive occupational health and hazardous material incident management, site command protocol, and emergency mitigation.', 'workspace_premium', array['Hazard Identification', 'GHS Rev 8', 'Emergency Evacuation', 'SDS Compliance'], '0x7F2B...C84B (Ledger Status: REVOKED)', '', array['OSHA Accredited Corporate Safety Board', 'Enterprise EHS Division'], '{}'::jsonb),
+  ('88888888-8888-8888-8888-888888888803', 'TN01-CERT-CYBER', 'Certified Cyber Sentinel', 'SecOps Corporate Division', 'Phishing vectors, social engineering prevention, and live drill response.', 'shield', array['Zero-Day Attack Patterns', 'Final Incident Sim Due'], '0x3D9E...A712', '', array[]::text[], '{}'::jsonb),
+  ('88888888-8888-8888-8888-888888888804', 'TN01-CERT-EXECLEAD', 'Executive Leadership Communicator', 'AIEI Executive Leadership Academy & Wharton Executive Education Partner Alliance', 'This credential certifies demonstrated exceptional executive presence, strategic narrative design, and high-impact negotiation in mission-critical corporate settings. Completion required passing four intensive boardroom simulation defenses before an executive panel, managing multi-tier crisis communications scenarios, and synthesizing complex enterprise initiatives into actionable operational roadmaps for C-suite stakeholders.', 'record_voice_over', array['Boardroom Presentations', 'Crisis Communications', 'Cross-Functional Negotiation', 'Executive Presence'], '0x94D1...71E0',
    'This credential certifies that the recipient has demonstrated exceptional executive presence, strategic narrative design, and high-impact negotiation in mission-critical corporate settings. Completion required passing four intensive boardroom simulation defenses before an executive panel, managing multi-tier crisis communications scenarios, and synthesizing complex enterprise initiatives into actionable operational roadmaps for C-suite stakeholders.',
    array['AIEI Executive Leadership Academy', 'Wharton Executive Education Partner Alliance'],
    '{"percentileLabel": "Top 5%", "scoreLabel": "Score: 98.4 / 100", "panelResultLabel": "Distinction", "panelResultSubtitle": "Unanimous Board Pass", "accreditedHoursLabel": "16.0 Hours", "accreditedHoursSubtitle": "Accredited Units"}'::jsonb),
-  ('88888888-8888-8888-8888-888888888805', 'Enterprise AI & Prompt Engineering', 'AIEI Enterprise Learning', 'LLM prompt chains, context retrieval architectures, and agentic workflows.', 'smart_toy', array['Context Window Design', '6 Lessons Remaining'], '0xB817...2C4D', '', array[]::text[], '{}'::jsonb),
-  ('88888888-8888-8888-8888-888888888806', 'FP&A Certified Financial Analyst', 'AIEI Enterprise Learning', 'Forecasting methodologies, capital expenditure modeling, and budget variance.', 'analytics', array['P&L Mechanics', '8 Lessons Locked'], '0xE203...5A19', '', array[]::text[], '{}'::jsonb);
+  ('88888888-8888-8888-8888-888888888805', 'TN01-CERT-AIPROMPT', 'Enterprise AI & Prompt Engineering', 'AIEI Enterprise Learning', 'LLM prompt chains, context retrieval architectures, and agentic workflows.', 'smart_toy', array['Context Window Design', '6 Lessons Remaining'], '0xB817...2C4D', '', array[]::text[], '{}'::jsonb),
+  ('88888888-8888-8888-8888-888888888806', 'TN01-CERT-FPA', 'FP&A Certified Financial Analyst', 'AIEI Enterprise Learning', 'Forecasting methodologies, capital expenditure modeling, and budget variance.', 'analytics', array['P&L Mechanics', '8 Lessons Locked'], '0xE203...5A19', '', array[]::text[], '{}'::jsonb);
 
 insert into module_certs (module_id, cert_id) values
   ('55555555-5555-5555-5555-555555555503', '88888888-8888-8888-8888-888888888801'),

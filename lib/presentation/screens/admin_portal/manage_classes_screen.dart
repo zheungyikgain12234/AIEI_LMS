@@ -23,6 +23,8 @@ class ManageClassesScreen extends StatefulWidget {
   State<ManageClassesScreen> createState() => _ManageClassesScreenState();
 }
 
+enum _SortColumn { section, course, lecturer, enrolled }
+
 class _ManageClassesScreenState extends State<ManageClassesScreen> {
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
@@ -30,6 +32,38 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
   String _query = '';
+  _SortColumn _sortColumn = _SortColumn.section;
+  bool _sortAscending = true;
+
+  void _toggleSort(_SortColumn column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumn = column;
+        _sortAscending = true;
+      }
+    });
+  }
+
+  Widget _sortHeader(String label, _SortColumn column) {
+    final active = _sortColumn == column;
+    return InkWell(
+      onTap: () => _toggleSort(column),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 2),
+          Icon(
+            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            size: 12,
+            color: active ? AdminColors.onSurface : AdminColors.outline,
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -55,12 +89,29 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
   }
 
   List<CourseSection> get _filtered {
-    if (_query.isEmpty) return _sections;
-    return _sections.where((s) =>
-        s.sectionCode.toLowerCase().contains(_query) ||
-        s.courseCode.toLowerCase().contains(_query) ||
-        s.courseTitle.toLowerCase().contains(_query) ||
-        (s.lecturerName ?? '').toLowerCase().contains(_query)).toList();
+    final sections = _query.isEmpty
+        ? _sections
+        : _sections.where((s) =>
+            s.sectionCode.toLowerCase().contains(_query) ||
+            s.courseCode.toLowerCase().contains(_query) ||
+            s.courseTitle.toLowerCase().contains(_query) ||
+            (s.lecturerName ?? '').toLowerCase().contains(_query)).toList();
+    final sorted = [...sections];
+    sorted.sort((a, b) {
+      final int cmp;
+      switch (_sortColumn) {
+        case _SortColumn.section:
+          cmp = a.sectionCode.toLowerCase().compareTo(b.sectionCode.toLowerCase());
+        case _SortColumn.course:
+          cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
+        case _SortColumn.lecturer:
+          cmp = (a.lecturerName ?? '').toLowerCase().compareTo((b.lecturerName ?? '').toLowerCase());
+        case _SortColumn.enrolled:
+          cmp = a.enrolledCount.compareTo(b.enrolledCount);
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+    return sorted;
   }
 
   void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageClasses, dest);
@@ -296,6 +347,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
                 ],
               ),
             ),
+          if (sections.isNotEmpty) _headerRow(),
           if (sections.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
@@ -310,6 +362,23 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
               child: Text('${sections.length} class${sections.length == 1 ? '' : 'es'}', style: AdminTypography.bodySm()),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      child: Row(
+        children: [
+          const SizedBox(width: 48),
+          Expanded(flex: 3, child: _sortHeader('Section', _SortColumn.section)),
+          Expanded(flex: 4, child: _sortHeader('Course', _SortColumn.course)),
+          Expanded(flex: 3, child: _sortHeader('Lecturer', _SortColumn.lecturer)),
+          const Expanded(flex: 3, child: SizedBox()),
+          Expanded(flex: 2, child: _sortHeader('Enrolled', _SortColumn.enrolled)),
         ],
       ),
     );

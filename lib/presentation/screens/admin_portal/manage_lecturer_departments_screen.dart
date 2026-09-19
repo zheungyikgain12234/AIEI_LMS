@@ -15,9 +15,12 @@ class ManageLecturerDepartmentsScreen extends StatelessWidget {
       description: 'Faculty departments available for lecturer onboarding and allocation.',
       itemLabel: 'Department',
       navDestination: AdminNavDestination.manageLecturerDepartments,
-      load: () async => [for (final d in await repository.getLecturerDepartments()) (d.id, d.name)],
-      create: (name) => repository.createLecturerDepartment(name),
-      update: (id, name) => repository.updateLecturerDepartment(id, name),
+      load: () async => [
+        for (final d in await repository.getLecturerDepartments())
+          MasterDataRow(id: d.id, code: d.code, name: d.name, remarks: d.remarks),
+      ],
+      create: (code, name, remarks, year) => repository.createLecturerDepartment(code, name, remarks),
+      update: (id, code, name, remarks, year) => repository.updateLecturerDepartment(id, code, name, remarks),
       delete: (ids) => repository.deleteLecturerDepartments(ids),
     );
   }

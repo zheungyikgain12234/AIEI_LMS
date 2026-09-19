@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+import 'widgets/admin_field_label.dart';
 
 // ---------------------------------------------------------------------------
 // CourseFormScreen — shared "Add New Course" / "Edit Course" form. Pass
@@ -11,7 +15,7 @@ import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 // primary key); omit it to create a new course. Saving pops back to the
 // caller with the created/updated AdminCourse so the catalogue can refresh.
 // ---------------------------------------------------------------------------
-class CourseFormScreen extends StatefulWidget {
+class CourseFormScreen extends ConsumerStatefulWidget {
   final String? courseId;
 
   const CourseFormScreen({super.key, this.courseId});
@@ -19,18 +23,16 @@ class CourseFormScreen extends StatefulWidget {
   bool get isEditing => courseId != null;
 
   @override
-  State<CourseFormScreen> createState() => _CourseFormScreenState();
+  ConsumerState<CourseFormScreen> createState() => _CourseFormScreenState();
 }
 
-class _CourseFormScreenState extends State<CourseFormScreen> {
+class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   final _repository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   final _formKey = GlobalKey<FormState>();
 
   final _courseCodeController = TextEditingController();
   final _courseTitleController = TextEditingController();
   final _courseDescriptionController = TextEditingController();
-  final _scheduleTextController = TextEditingController(text: 'Self-paced');
-  final _capacityController = TextEditingController(text: '40');
   final _creditsController = TextEditingController(text: '3');
   final _imageUrlController = TextEditingController();
 
@@ -46,6 +48,15 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
   bool _isSaving = false;
   String? _errorMessage;
 
+  /// Every code is stored tenant-prefixed (`TN01-PY-402`) to keep it unique
+  /// across tenants, but the admin only ever types/sees the suffix.
+  String _tenantPrefix() => '${ref.read(appSessionProvider).tenantId}-';
+
+  String _stripTenantPrefix(String code) {
+    final prefix = _tenantPrefix();
+    return code.startsWith(prefix) ? code.substring(prefix.length) : code;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -59,11 +70,9 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
     try {
       final course = await _repository.getCourseById(widget.courseId!);
       if (!mounted) return;
-      _courseCodeController.text = course.courseCode;
+      _courseCodeController.text = _stripTenantPrefix(course.courseCode);
       _courseTitleController.text = course.courseTitle;
       _courseDescriptionController.text = course.courseDescription;
-      _scheduleTextController.text = course.scheduleText;
-      _capacityController.text = course.capacity.toString();
       _creditsController.text = course.credits.toString();
       _imageUrlController.text = course.imageUrl ?? '';
       setState(() {
@@ -84,8 +93,6 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
     _courseCodeController.dispose();
     _courseTitleController.dispose();
     _courseDescriptionController.dispose();
-    _scheduleTextController.dispose();
-    _capacityController.dispose();
     _creditsController.dispose();
     _imageUrlController.dispose();
     super.dispose();
@@ -98,31 +105,26 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
       _errorMessage = null;
     });
     try {
-      final capacity = int.parse(_capacityController.text.trim());
       final credits = int.parse(_creditsController.text.trim());
       final imageUrl = _imageUrlController.text.trim();
       final AdminCourse saved;
       if (widget.isEditing) {
         saved = await _repository.updateCourse(
           widget.courseId!,
-          courseCode: _courseCodeController.text.trim(),
+          courseCode: '${_tenantPrefix()}${_courseCodeController.text.trim().toUpperCase()}',
           courseTitle: _courseTitleController.text.trim(),
           courseDescription: _courseDescriptionController.text.trim(),
           category: _category,
           imageUrl: imageUrl.isEmpty ? null : imageUrl,
-          scheduleText: _scheduleTextController.text.trim(),
-          capacity: capacity,
           credits: credits,
         );
       } else {
         saved = await _repository.createCourse(
-          courseCode: _courseCodeController.text.trim(),
+          courseCode: '${_tenantPrefix()}${_courseCodeController.text.trim().toUpperCase()}',
           courseTitle: _courseTitleController.text.trim(),
           courseDescription: _courseDescriptionController.text.trim(),
           category: _category,
           imageUrl: imageUrl.isEmpty ? null : imageUrl,
-          scheduleText: _scheduleTextController.text.trim(),
-          capacity: capacity,
           credits: credits,
         );
       }
@@ -131,7 +133,7 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Failed to save course: $e';
+        _errorMessage = friendlyErrorMessage(e);
         _isSaving = false;
       });
     }
@@ -197,22 +199,6 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
                             value: _category,
                             options: _categoryOptions,
                             onChanged: (v) => setState(() => _category = v!),
-                          ),
-                          const SizedBox(height: 14),
-                          _field(controller: _scheduleTextController, label: 'Schedule', hint: 'Mon / Wed 18:00–20:30 UTC'),
-                          const SizedBox(height: 14),
-                          _field(
-                            controller: _capacityController,
-                            label: 'Capacity',
-                            hint: '40',
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              final trimmed = value?.trim() ?? '';
-                              if (trimmed.isEmpty) return 'Capacity is required';
-                              final parsed = int.tryParse(trimmed);
-                              if (parsed == null || parsed < 0) return 'Enter a valid whole number';
-                              return null;
-                            },
                           ),
                           const SizedBox(height: 14),
                           _field(
@@ -285,12 +271,13 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
     TextInputType? keyboardType,
     bool required = true,
     int maxLines = 1,
+    String? prefixText,
     String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        AdminFieldLabel(label, required: required),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -303,6 +290,8 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
             fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
             hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+            prefixText: prefixText,
+            prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
@@ -321,7 +310,7 @@ class _CourseFormScreenState extends State<CourseFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        AdminFieldLabel(label),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: value,

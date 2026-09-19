@@ -402,7 +402,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(4)),
-                        child: Text(lecturer.employeeId, style: AdminTypography.labelSm()),
+                        child: Text(lecturer.lecturerCode, style: AdminTypography.labelSm()),
                       ),
                     ]),
                     Text('${lecturer.title} • ${lecturer.department}', style: AdminTypography.bodySm()),
@@ -1266,7 +1266,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
                     const SizedBox(width: 4),
                     Icon(locked ? Icons.lock : Icons.verified, size: 15, color: locked ? AdminColors.error : AdminColors.secondary),
                   ]),
-                  Text('${lecturer.title} • ${lecturer.employeeId}', style: AdminTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text('${lecturer.title} • ${lecturer.lecturerCode}', style: AdminTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),

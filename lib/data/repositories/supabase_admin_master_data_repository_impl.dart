@@ -19,14 +19,15 @@ class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository
   }
 
   @override
-  Future<Department> createDepartment(String name) async {
-    final row = await _client.from('departments').insert({'name': name}).select().single();
+  Future<Department> createDepartment(String code, String name, String remarks) async {
+    final row = await _client.from('departments').insert({'code': code, 'name': name, 'remarks': remarks}).select().single();
     return Department.fromMap(row);
   }
 
   @override
-  Future<Department> updateDepartment(String id, String name) async {
-    final row = await _client.from('departments').update({'name': name}).eq('id', id).select().single();
+  Future<Department> updateDepartment(String id, String code, String name, String remarks) async {
+    final row =
+        await _client.from('departments').update({'code': code, 'name': name, 'remarks': remarks}).eq('id', id).select().single();
     return Department.fromMap(row);
   }
 
@@ -42,14 +43,20 @@ class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository
   }
 
   @override
-  Future<ProgramTrack> createProgramTrack(String name) async {
-    final row = await _client.from('program_tracks').insert({'name': name}).select().single();
+  Future<ProgramTrack> createProgramTrack(String code, String name, String remarks) async {
+    final row =
+        await _client.from('program_tracks').insert({'code': code, 'name': name, 'remarks': remarks}).select().single();
     return ProgramTrack.fromMap(row);
   }
 
   @override
-  Future<ProgramTrack> updateProgramTrack(String id, String name) async {
-    final row = await _client.from('program_tracks').update({'name': name}).eq('id', id).select().single();
+  Future<ProgramTrack> updateProgramTrack(String id, String code, String name, String remarks) async {
+    final row = await _client
+        .from('program_tracks')
+        .update({'code': code, 'name': name, 'remarks': remarks})
+        .eq('id', id)
+        .select()
+        .single();
     return ProgramTrack.fromMap(row);
   }
 
@@ -65,14 +72,20 @@ class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository
   }
 
   @override
-  Future<Cohort> createCohort(String name) async {
-    final row = await _client.from('cohorts').insert({'name': name}).select().single();
+  Future<Cohort> createCohort(String code, String name, int year, String remarks) async {
+    final row =
+        await _client.from('cohorts').insert({'code': code, 'name': name, 'year': year, 'remarks': remarks}).select().single();
     return Cohort.fromMap(row);
   }
 
   @override
-  Future<Cohort> updateCohort(String id, String name) async {
-    final row = await _client.from('cohorts').update({'name': name}).eq('id', id).select().single();
+  Future<Cohort> updateCohort(String id, String code, String name, int year, String remarks) async {
+    final row = await _client
+        .from('cohorts')
+        .update({'code': code, 'name': name, 'year': year, 'remarks': remarks})
+        .eq('id', id)
+        .select()
+        .single();
     return Cohort.fromMap(row);
   }
 
@@ -88,14 +101,23 @@ class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository
   }
 
   @override
-  Future<LecturerDepartment> createLecturerDepartment(String name) async {
-    final row = await _client.from('lecturer_departments').insert({'name': name}).select().single();
+  Future<LecturerDepartment> createLecturerDepartment(String code, String name, String remarks) async {
+    final row = await _client
+        .from('lecturer_departments')
+        .insert({'code': code, 'name': name, 'remarks': remarks})
+        .select()
+        .single();
     return LecturerDepartment.fromMap(row);
   }
 
   @override
-  Future<LecturerDepartment> updateLecturerDepartment(String id, String name) async {
-    final row = await _client.from('lecturer_departments').update({'name': name}).eq('id', id).select().single();
+  Future<LecturerDepartment> updateLecturerDepartment(String id, String code, String name, String remarks) async {
+    final row = await _client
+        .from('lecturer_departments')
+        .update({'code': code, 'name': name, 'remarks': remarks})
+        .eq('id', id)
+        .select()
+        .single();
     return LecturerDepartment.fromMap(row);
   }
 
@@ -111,14 +133,20 @@ class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository
   }
 
   @override
-  Future<Specialization> createSpecialization(String name) async {
-    final row = await _client.from('specializations').insert({'name': name}).select().single();
+  Future<Specialization> createSpecialization(String code, String name, String remarks) async {
+    final row =
+        await _client.from('specializations').insert({'code': code, 'name': name, 'remarks': remarks}).select().single();
     return Specialization.fromMap(row);
   }
 
   @override
-  Future<Specialization> updateSpecialization(String id, String name) async {
-    final row = await _client.from('specializations').update({'name': name}).eq('id', id).select().single();
+  Future<Specialization> updateSpecialization(String id, String code, String name, String remarks) async {
+    final row = await _client
+        .from('specializations')
+        .update({'code': code, 'name': name, 'remarks': remarks})
+        .eq('id', id)
+        .select()
+        .single();
     return Specialization.fromMap(row);
   }
 
@@ -134,14 +162,15 @@ class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository
   }
 
   @override
-  Future<Role> createRole(String name) async {
-    final row = await _client.from('roles').insert({'name': name}).select().single();
+  Future<Role> createRole(String code, String name, String remarks) async {
+    final row = await _client.from('roles').insert({'code': code, 'name': name, 'remarks': remarks}).select().single();
     return Role.fromMap(row);
   }
 
   @override
-  Future<Role> updateRole(String id, String name) async {
-    final row = await _client.from('roles').update({'name': name}).eq('id', id).select().single();
+  Future<Role> updateRole(String id, String code, String name, String remarks) async {
+    final row =
+        await _client.from('roles').update({'code': code, 'name': name, 'remarks': remarks}).eq('id', id).select().single();
     return Role.fromMap(row);
   }
 

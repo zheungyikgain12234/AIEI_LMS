@@ -1,8 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/repositories/admin_badges_repository.dart';
 
-const _selectWithJoins = '*, students(name), courses(course_code, course_title), certifications(title)';
+const _selectWithJoins = '*, students(name), courses(course_code, course_title), certifications(code, title)';
 
 class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
   SupabaseAdminBadgesRepositoryImpl(this._client);
@@ -16,9 +17,9 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
   }
 
   @override
-  Future<List<(String, String)>> getBadgeCatalog() async {
-    final rows = await _client.from('certifications').select('id, title').order('title');
-    return [for (final row in rows as List) (row['id'] as String, row['title'] as String)];
+  Future<List<(String, String, String)>> getBadgeCatalog() async {
+    final rows = await _client.from('certifications').select('id, code, title').order('title');
+    return [for (final row in rows as List) (row['id'] as String, displayCode(row['code'] as String), row['title'] as String)];
   }
 
   @override

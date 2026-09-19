@@ -26,8 +26,6 @@ class SupabaseAdminCoursesRepositoryImpl implements AdminCoursesRepository {
     required String courseDescription,
     required String category,
     String? imageUrl,
-    required String scheduleText,
-    required int capacity,
     required int credits,
   }) async {
     final row = await _client
@@ -38,8 +36,6 @@ class SupabaseAdminCoursesRepositoryImpl implements AdminCoursesRepository {
           'course_description': courseDescription,
           'category': category,
           'image_url': imageUrl,
-          'schedule_text': scheduleText,
-          'capacity': capacity,
           'credits': credits,
         })
         .select()
@@ -55,8 +51,6 @@ class SupabaseAdminCoursesRepositoryImpl implements AdminCoursesRepository {
     required String courseDescription,
     required String category,
     String? imageUrl,
-    required String scheduleText,
-    required int capacity,
     required int credits,
   }) async {
     final row = await _client
@@ -67,8 +61,6 @@ class SupabaseAdminCoursesRepositoryImpl implements AdminCoursesRepository {
           'course_description': courseDescription,
           'category': category,
           'image_url': imageUrl,
-          'schedule_text': scheduleText,
-          'capacity': capacity,
           'credits': credits,
         })
         .eq('id', id)

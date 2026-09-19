@@ -1,3 +1,5 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
+
 /// A class a student is currently enrolled in (Manage Enrolled Courses
 /// screen) — a `student_courses` row joined with its course and, when the
 /// enrollment was made via a specific section, that section's code.
@@ -25,10 +27,10 @@ class EnrolledClass {
     final section = map['course_sections'] as Map<String, dynamic>?;
     return EnrolledClass(
       courseId: map['course_id'] as String,
-      courseCode: course?['course_code'] as String? ?? '',
+      courseCode: displayCode(course?['course_code'] as String? ?? ''),
       courseTitle: course?['course_title'] as String? ?? '',
       sectionId: map['section_id'] as String?,
-      sectionCode: section?['section_code'] as String?,
+      sectionCode: section?['section_code'] == null ? null : displayCode(section!['section_code'] as String),
     );
   }
 }

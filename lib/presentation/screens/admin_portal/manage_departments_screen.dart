@@ -15,9 +15,12 @@ class ManageDepartmentsScreen extends StatelessWidget {
       description: 'Institutional departments available for student registration and reporting.',
       itemLabel: 'Department',
       navDestination: AdminNavDestination.manageDepartments,
-      load: () async => [for (final d in await repository.getDepartments()) (d.id, d.name)],
-      create: (name) => repository.createDepartment(name),
-      update: (id, name) => repository.updateDepartment(id, name),
+      load: () async => [
+        for (final d in await repository.getDepartments())
+          MasterDataRow(id: d.id, code: d.code, name: d.name, remarks: d.remarks),
+      ],
+      create: (code, name, remarks, year) => repository.createDepartment(code, name, remarks),
+      update: (id, code, name, remarks, year) => repository.updateDepartment(id, code, name, remarks),
       delete: (ids) => repository.deleteDepartments(ids),
     );
   }

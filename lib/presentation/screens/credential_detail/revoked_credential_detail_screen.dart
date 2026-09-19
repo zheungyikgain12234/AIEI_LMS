@@ -474,7 +474,7 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
       future: _fetchStudent(),
       builder: (context, snapshot) {
         final student = snapshot.data;
-        final issuedTo = student != null ? '${student.name} (${student.studentId})' : '';
+        final issuedTo = student != null ? '${student.name} (${student.studentCode})' : '';
 
         final entries = [
           ['ISSUED TO', issuedTo, false],

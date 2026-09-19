@@ -25,7 +25,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   @override
   Future<Student> createStudent({
     required String name,
-    required String studentId,
+    required String studentCode,
     required String email,
     required String department,
     String? title,
@@ -37,7 +37,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
         .from('students')
         .insert({
           'name': name,
-          'student_id': studentId,
+          'student_code': studentCode,
           'email': email,
           'department': department,
           'title': title,
@@ -54,7 +54,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   Future<Student> updateStudent(
     String id, {
     required String name,
-    required String studentId,
+    required String studentCode,
     required String email,
     required String department,
     String? title,
@@ -67,7 +67,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
         .from('students')
         .update({
           'name': name,
-          'student_id': studentId,
+          'student_code': studentCode,
           'email': email,
           'department': department,
           'title': title,

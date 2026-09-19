@@ -23,7 +23,7 @@ abstract class LecturersRepository {
   Future<Lecturer> createLecturer({
     required String name,
     required String title,
-    required String employeeId,
+    required String lecturerCode,
     required String email,
     required String department,
     required String specialization,
@@ -36,7 +36,7 @@ abstract class LecturersRepository {
     String id, {
     required String name,
     required String title,
-    required String employeeId,
+    required String lecturerCode,
     required String email,
     required String department,
     required String specialization,
@@ -61,20 +61,22 @@ abstract class LecturersRepository {
   /// `credits_used` is recomputed automatically by a database trigger.
   Future<void> unassignCoursesFromLecturer(String lecturerId, List<String> courseIds);
 
-  /// Creates a new class section for [courseId] taught by [lecturerId], with
-  /// an auto-numbered `section_code` (e.g. `OSHE-101-01`, `OSHE-101-02`, ...
-  /// based on how many sections that course already has). [startTime] and
-  /// [endTime] are `HH:mm` 24-hour strings; [dayOfWeek] is a full day name
-  /// (e.g. `Monday`).
+  /// Creates a new class section for [courseId] taught by [lecturerId].
+  /// [classCode] is the admin-entered, tenant-prefixed unique code for this
+  /// class (e.g. `TN01-CLS-OSHE101-01`) — see the "Class Code" field on the
+  /// Manage Assigned Courses screen. [startTime] and [endTime] are `HH:mm`
+  /// 24-hour strings; [dayOfWeek] is a full day name (e.g. `Monday`).
   Future<CourseSection> createSectionForCourse({
     required String courseId,
-    required String courseCode,
+    required String classCode,
     required String lecturerId,
     required String dayOfWeek,
     required String startTime,
     required String endTime,
     required String location,
     required int capacity,
+    required String deliveryMode,
+    required String cohort,
   });
 
   Future<void> deleteSections(List<String> sectionIds);

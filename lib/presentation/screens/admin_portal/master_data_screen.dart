@@ -1,27 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_mobile_selection_bar.dart';
+import 'widgets/admin_field_label.dart';
 
-/// A single row of master data: (id, display name).
-typedef MasterDataRow = (String id, String name);
+/// A single row of master data: id + tenant-prefixed unique code + display
+/// name + free-text remarks (never shown on the table, only in the edit
+/// form) + an optional year (only used when [MasterDataScreen.showYear]).
+class MasterDataRow {
+  final String id;
+  final String code;
+  final String name;
+  final String remarks;
+  final int? year;
+
+  const MasterDataRow({required this.id, required this.code, required this.name, this.remarks = '', this.year});
+}
+
+enum _SortColumn { code, name, year }
 
 /// Generic CRUD screen for simple admin-managed lookup lists (departments,
 /// program tracks, cohorts, ...) backing the Student Registration dropdowns.
-/// Each row is just an id + a name.
-class MasterDataScreen extends StatefulWidget {
+class MasterDataScreen extends ConsumerStatefulWidget {
   final String title;
   final String description;
   final String itemLabel;
   final AdminNavDestination navDestination;
   final Future<List<MasterDataRow>> Function() load;
-  final Future<void> Function(String name) create;
-  final Future<void> Function(String id, String name) update;
+  final Future<void> Function(String code, String name, String remarks, int? year) create;
+  final Future<void> Function(String id, String code, String name, String remarks, int? year) update;
   final Future<void> Function(List<String> ids) delete;
+
+  /// Adds a required numeric "Year" field to the form and table (Cohort only).
+  final bool showYear;
 
   /// Optional italicized note shown under the description (e.g. a note
   /// about where this list is sourced from).
@@ -37,19 +55,22 @@ class MasterDataScreen extends StatefulWidget {
     required this.create,
     required this.update,
     required this.delete,
+    this.showYear = false,
     this.note,
   });
 
   @override
-  State<MasterDataScreen> createState() => _MasterDataScreenState();
+  ConsumerState<MasterDataScreen> createState() => _MasterDataScreenState();
 }
 
-class _MasterDataScreenState extends State<MasterDataScreen> {
+class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
   bool _isLoading = true;
   List<MasterDataRow> _rows = [];
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
   String _query = '';
+  _SortColumn _sortColumn = _SortColumn.code;
+  bool _sortAscending = true;
 
   @override
   void initState() {
@@ -75,38 +96,174 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
   }
 
   List<MasterDataRow> get _filtered {
-    if (_query.isEmpty) return _rows;
-    return _rows.where((r) => r.$2.toLowerCase().contains(_query)).toList();
+    final rows = _query.isEmpty
+        ? _rows
+        : _rows.where((r) => r.name.toLowerCase().contains(_query) || r.code.toLowerCase().contains(_query)).toList();
+    final sorted = [...rows];
+    sorted.sort((a, b) {
+      final int cmp;
+      switch (_sortColumn) {
+        case _SortColumn.code:
+          cmp = a.code.toLowerCase().compareTo(b.code.toLowerCase());
+        case _SortColumn.name:
+          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case _SortColumn.year:
+          cmp = (a.year ?? 0).compareTo(b.year ?? 0);
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+    return sorted;
+  }
+
+  void _toggleSort(_SortColumn column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumn = column;
+        _sortAscending = true;
+      }
+    });
   }
 
   void _handleNav(AdminNavDestination dest) => handleAdminNav(context, widget.navDestination, dest);
 
-  Future<void> _openForm({String? id, String? name}) async {
-    final controller = TextEditingController(text: name ?? '');
-    final result = await showDialog<String>(
+  /// Every code is stored tenant-prefixed (`TN01-OPS`) and upper-cased to
+  /// keep uniqueness checks case-insensitive; the admin only ever
+  /// types/sees the plain suffix.
+  String _tenantPrefix() => '${ref.read(appSessionProvider).tenantId}-';
+
+  String _stripTenantPrefix(String code) {
+    final prefix = _tenantPrefix();
+    return code.startsWith(prefix) ? code.substring(prefix.length) : code;
+  }
+
+  Future<void> _openForm({String? id, String? code, String? name, String? remarks, int? year}) async {
+    final codeController = TextEditingController(text: code != null ? _stripTenantPrefix(code) : '');
+    final nameController = TextEditingController(text: name ?? '');
+    final remarksController = TextEditingController(text: remarks ?? '');
+    final yearController = TextEditingController(text: (year ?? DateTime.now().year).toString());
+    final formKey = GlobalKey<FormState>();
+    var isSaving = false;
+    String? errorMessage;
+    var saved = false;
+
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(id == null ? 'Add ${widget.itemLabel}' : 'Edit ${widget.itemLabel}'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: widget.itemLabel, border: const OutlineInputBorder()),
-          onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(id == null ? 'Add ${widget.itemLabel}' : 'Edit ${widget.itemLabel}'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (errorMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
+                      child: Text(errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  AdminFieldLabel('${widget.itemLabel} Code'),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: codeController,
+                    autofocus: true,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Code is required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  AdminFieldLabel(widget.itemLabel),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? '${widget.itemLabel} is required' : null,
+                  ),
+                  if (widget.showYear) ...[
+                    const SizedBox(height: 12),
+                    const AdminFieldLabel('Year'),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: yearController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      validator: (v) {
+                        final parsed = int.tryParse(v?.trim() ?? '');
+                        if (parsed == null) return 'Enter a valid year';
+                        return null;
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  const AdminFieldLabel('Remarks', required: false),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: remarksController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() {
+                        isSaving = true;
+                        errorMessage = null;
+                      });
+                      try {
+                        final savedCode = '${_tenantPrefix()}${codeController.text.trim().toUpperCase()}';
+                        final savedName = nameController.text.trim();
+                        final savedRemarks = remarksController.text.trim();
+                        final savedYear = widget.showYear ? int.parse(yearController.text.trim()) : null;
+                        if (id == null) {
+                          await widget.create(savedCode, savedName, savedRemarks, savedYear);
+                        } else {
+                          await widget.update(id, savedCode, savedName, savedRemarks, savedYear);
+                        }
+                        saved = true;
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                      } catch (e) {
+                        setDialogState(() {
+                          isSaving = false;
+                          errorMessage = friendlyErrorMessage(e);
+                        });
+                      }
+                    },
+              child: isSaving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Save'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: const Text('Save')),
-        ],
       ),
     );
-    controller.dispose();
-    if (result == null || result.isEmpty) return;
-    if (id == null) {
-      await widget.create(result);
-    } else {
-      await widget.update(id, result);
-    }
-    await _load();
+    // showDialog's Future resolves as soon as Navigator.pop() is called,
+    // before the dialog's exit transition finishes — the TextFields using
+    // these controllers are still mounted/animating at that point, so
+    // disposing them synchronously here corrupts the element tree. Defer to
+    // next frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      codeController.dispose();
+      nameController.dispose();
+      remarksController.dispose();
+      yearController.dispose();
+    });
+    if (saved) await _load();
   }
 
   Future<void> _confirmAndDelete(List<String> ids) async {
@@ -344,6 +501,7 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
                 ],
               ),
             ),
+          if (rows.isNotEmpty) _headerRow(),
           if (rows.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
@@ -363,9 +521,43 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
     );
   }
 
+  Widget _headerRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      child: Row(
+        children: [
+          const SizedBox(width: 40),
+          Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
+          Expanded(flex: 3, child: _sortHeader(widget.itemLabel, _SortColumn.name)),
+          if (widget.showYear) SizedBox(width: 90, child: _sortHeader('Year', _SortColumn.year)),
+          const SizedBox(width: 88),
+        ],
+      ),
+    );
+  }
+
+  Widget _sortHeader(String label, _SortColumn column) {
+    final active = _sortColumn == column;
+    return InkWell(
+      onTap: () => _toggleSort(column),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 2),
+          Icon(
+            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            size: 12,
+            color: active ? AdminColors.onSurface : AdminColors.outline,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _row(MasterDataRow row) {
-    final (id, name) = row;
-    final selected = _selected.contains(id);
+    final selected = _selected.contains(row.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
@@ -373,19 +565,29 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(id) : _selected.remove(id)),
+            onChanged: (v) => setState(() => v == true ? _selected.add(row.id) : _selected.remove(row.id)),
             activeColor: AdminColors.primaryContainer,
           ),
-          Expanded(child: Text(name, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
-          IconButton(
-            onPressed: () => _openForm(id: id, name: name),
-            icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
-            tooltip: 'Edit',
-          ),
-          IconButton(
-            onPressed: () => _confirmAndDelete([id]),
-            icon: const Icon(Icons.delete_outline, size: 18, color: AdminColors.error),
-            tooltip: 'Delete',
+          Expanded(flex: 2, child: Text(row.code, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          Expanded(flex: 3, child: Text(row.name, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
+          if (widget.showYear) SizedBox(width: 90, child: Text('${row.year}', style: AdminTypography.bodySm())),
+          SizedBox(
+            width: 88,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () => _openForm(id: row.id, code: row.code, name: row.name, remarks: row.remarks, year: row.year),
+                  icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+                  tooltip: 'Edit',
+                ),
+                IconButton(
+                  onPressed: () => _confirmAndDelete([row.id]),
+                  icon: const Icon(Icons.delete_outline, size: 18, color: AdminColors.error),
+                  tooltip: 'Delete',
+                ),
+              ],
+            ),
           ),
         ],
       ),

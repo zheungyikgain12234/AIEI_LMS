@@ -1,12 +1,12 @@
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 
-/// Admin Portal CRUD for `badge_awards` — the Manage Badges screen.
+/// Admin Portal CRUD for `badge_awards` — the Badge Award Management screen.
 abstract class AdminBadgesRepository {
   Future<List<BadgeAward>> getBadgeAwards();
 
-  /// (id, title) for every row in `certifications` — the badge catalog the
-  /// Manage Badges form picks from.
-  Future<List<(String, String)>> getBadgeCatalog();
+  /// (id, code, title) for every row in `certifications` — the badge
+  /// catalog the Badge Award Management form picks from.
+  Future<List<(String, String, String)>> getBadgeCatalog();
 
   Future<BadgeAward> createBadgeAward({
     required String studentId,

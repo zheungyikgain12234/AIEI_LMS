@@ -1,3 +1,5 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
+
 /// A student's enrollment row in one course — powers both the Admin
 /// "Course Enrollment" roster and the Faculty "Student Directory" /
 /// "Course Dashboard" rosters (same underlying `student_courses` join).
@@ -5,7 +7,7 @@ class RosterStudent {
   final String studentId;
   final String name;
   final String? title;
-  final String employeeId;
+  final String studentCode;
   final String email;
   final int progressPercentage;
   final String? grade;
@@ -21,7 +23,7 @@ class RosterStudent {
     required this.studentId,
     required this.name,
     this.title,
-    required this.employeeId,
+    required this.studentCode,
     required this.email,
     required this.progressPercentage,
     this.grade,
@@ -40,7 +42,7 @@ class RosterStudent {
       studentId: (student['id'] as num).toString(),
       name: student['name'] as String,
       title: student['title'] as String?,
-      employeeId: student['student_id'] as String,
+      studentCode: displayCode(student['student_code'] as String),
       email: student['email'] as String,
       progressPercentage: map['progress_percentage'] as int,
       grade: map['grade'] as String?,

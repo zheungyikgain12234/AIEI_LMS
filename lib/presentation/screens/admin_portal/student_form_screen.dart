@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
+import 'widgets/admin_field_label.dart';
 
 // ---------------------------------------------------------------------------
 // StudentFormScreen — shared "Register New Student" / "Edit Student" form.
@@ -18,7 +22,7 @@ import 'package:stitch_aiei_lms/domain/models/student.dart';
 // `students` table's foreign keys. GPA is not editable here — it defaults
 // to 0 in the database and is updated elsewhere as the student progresses.
 // ---------------------------------------------------------------------------
-class StudentFormScreen extends StatefulWidget {
+class StudentFormScreen extends ConsumerStatefulWidget {
   final String? studentId;
 
   const StudentFormScreen({super.key, this.studentId});
@@ -26,16 +30,16 @@ class StudentFormScreen extends StatefulWidget {
   bool get isEditing => studentId != null;
 
   @override
-  State<StudentFormScreen> createState() => _StudentFormScreenState();
+  ConsumerState<StudentFormScreen> createState() => _StudentFormScreenState();
 }
 
-class _StudentFormScreenState extends State<StudentFormScreen> {
+class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
   final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
-  final _studentIdController = TextEditingController();
+  final _studentCodeController = TextEditingController();
   final _emailController = TextEditingController();
   final _titleController = TextEditingController();
 
@@ -51,6 +55,15 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
+
+  /// Every code is stored tenant-prefixed (`TN01-EMP-88219`) to keep it
+  /// unique across tenants, but the admin only ever types/sees the suffix.
+  String _tenantPrefix() => '${ref.read(appSessionProvider).tenantId}-';
+
+  String _stripTenantPrefix(String code) {
+    final prefix = _tenantPrefix();
+    return code.startsWith(prefix) ? code.substring(prefix.length) : code;
+  }
 
   @override
   void initState() {
@@ -77,7 +90,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         _roles = [for (final r in roles) r.name];
         if (student != null) {
           _nameController.text = student.name;
-          _studentIdController.text = student.studentId;
+          _studentCodeController.text = _stripTenantPrefix(student.studentCode);
           _emailController.text = student.email;
           _titleController.text = student.title ?? '';
           _selectedDepartment = _departments.contains(student.department) ? student.department : null;
@@ -99,7 +112,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _studentIdController.dispose();
+    _studentCodeController.dispose();
     _emailController.dispose();
     _titleController.dispose();
     super.dispose();
@@ -118,7 +131,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         saved = await _repository.updateStudent(
           widget.studentId!,
           name: _nameController.text.trim(),
-          studentId: _studentIdController.text.trim(),
+          studentCode: '${_tenantPrefix()}${_studentCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           department: _selectedDepartment!,
           title: title.isEmpty ? null : title,
@@ -129,7 +142,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
       } else {
         saved = await _repository.createStudent(
           name: _nameController.text.trim(),
-          studentId: _studentIdController.text.trim(),
+          studentCode: '${_tenantPrefix()}${_studentCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           department: _selectedDepartment!,
           title: title.isEmpty ? null : title,
@@ -143,7 +156,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Failed to save student: $e';
+        _errorMessage = friendlyErrorMessage(e);
         _isSaving = false;
       });
     }
@@ -200,7 +213,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                           ],
                           _field(controller: _nameController, label: 'Full Name', hint: 'Alex Chen'),
                           const SizedBox(height: 14),
-                          _field(controller: _studentIdController, label: 'Student ID', hint: 'EMP-88219'),
+                          _field(controller: _studentCodeController, label: 'Student Code', hint: 'EMP-88219'),
                           const SizedBox(height: 14),
                           _field(controller: _emailController, label: 'Email', hint: 'alex.chen@enterprise.com', keyboardType: TextInputType.emailAddress),
                           const SizedBox(height: 14),
@@ -291,12 +304,13 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     required String hint,
     TextInputType? keyboardType,
     bool required = true,
+    String? prefixText,
     String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        AdminFieldLabel(label, required: required),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -308,6 +322,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
             fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
             hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+            prefixText: prefixText,
+            prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
@@ -327,7 +343,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        AdminFieldLabel(label),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: value,

@@ -16,9 +16,11 @@ class ManageRolesScreen extends StatelessWidget {
       itemLabel: 'Role',
       note: 'For internal, role list are controlled externally by HRIQ system. For external customers, manage roles here.',
       navDestination: AdminNavDestination.manageRoles,
-      load: () async => [for (final r in await repository.getRoles()) (r.id, r.name)],
-      create: (name) => repository.createRole(name),
-      update: (id, name) => repository.updateRole(id, name),
+      load: () async => [
+        for (final r in await repository.getRoles()) MasterDataRow(id: r.id, code: r.code, name: r.name, remarks: r.remarks),
+      ],
+      create: (code, name, remarks, year) => repository.createRole(code, name, remarks),
+      update: (id, code, name, remarks, year) => repository.updateRole(id, code, name, remarks),
       delete: (ids) => repository.deleteRoles(ids),
     );
   }

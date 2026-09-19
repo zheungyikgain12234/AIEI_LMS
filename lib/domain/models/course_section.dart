@@ -1,3 +1,5 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
+
 class CourseSection {
   final String id;
   final String courseId;
@@ -14,6 +16,8 @@ class CourseSection {
   final String? lecturerId;
   final String? lecturerName;
   final int capacity;
+  final String deliveryMode;
+  final String? cohort;
   final int enrolledCount;
   final String status;
 
@@ -33,6 +37,8 @@ class CourseSection {
     this.lecturerId,
     this.lecturerName,
     required this.capacity,
+    required this.deliveryMode,
+    this.cohort,
     required this.enrolledCount,
     required this.status,
   });
@@ -43,9 +49,9 @@ class CourseSection {
     return CourseSection(
       id: map['id'] as String,
       courseId: map['course_id'] as String,
-      courseCode: course?['course_code'] as String? ?? '',
+      courseCode: displayCode(course?['course_code'] as String? ?? ''),
       courseTitle: course?['course_title'] as String? ?? '',
-      sectionCode: map['section_code'] as String,
+      sectionCode: displayCode(map['section_code'] as String),
       roleLabel: map['role_label'] as String,
       term: map['term'] as String,
       scheduleText: map['schedule_text'] as String,
@@ -56,6 +62,8 @@ class CourseSection {
       lecturerId: map['lecturer_id'] as String?,
       lecturerName: lecturer?['name'] as String?,
       capacity: map['capacity'] as int,
+      deliveryMode: map['delivery_mode'] as String? ?? 'physical',
+      cohort: map['cohort'] as String?,
       enrolledCount: map['enrolled_count'] as int,
       status: map['status'] as String,
     );

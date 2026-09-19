@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+import 'widgets/admin_field_label.dart';
 
 // ---------------------------------------------------------------------------
 // LecturerFormScreen — shared "Add New Lecturer" / "Edit Lecturer" form.
@@ -12,7 +16,7 @@ import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 // its primary key); omit it to onboard a new lecturer. Saving pops back to
 // the caller with the created/updated Lecturer so the directory can refresh.
 // ---------------------------------------------------------------------------
-class LecturerFormScreen extends StatefulWidget {
+class LecturerFormScreen extends ConsumerStatefulWidget {
   final String? lecturerId;
 
   const LecturerFormScreen({super.key, this.lecturerId});
@@ -20,17 +24,17 @@ class LecturerFormScreen extends StatefulWidget {
   bool get isEditing => lecturerId != null;
 
   @override
-  State<LecturerFormScreen> createState() => _LecturerFormScreenState();
+  ConsumerState<LecturerFormScreen> createState() => _LecturerFormScreenState();
 }
 
-class _LecturerFormScreenState extends State<LecturerFormScreen> {
+class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
   final _titleController = TextEditingController();
-  final _employeeIdController = TextEditingController();
+  final _lecturerCodeController = TextEditingController();
   final _emailController = TextEditingController();
   final _creditsMaxController = TextEditingController(text: '15');
 
@@ -46,6 +50,15 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
+
+  /// Every code is stored tenant-prefixed (`TN01-EMP-7721`) to keep it
+  /// unique across tenants, but the admin only ever types/sees the suffix.
+  String _tenantPrefix() => '${ref.read(appSessionProvider).tenantId}-';
+
+  String _stripTenantPrefix(String code) {
+    final prefix = _tenantPrefix();
+    return code.startsWith(prefix) ? code.substring(prefix.length) : code;
+  }
 
   @override
   void initState() {
@@ -69,7 +82,7 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
         if (lecturer != null) {
           _nameController.text = lecturer.name;
           _titleController.text = lecturer.title;
-          _employeeIdController.text = lecturer.employeeId;
+          _lecturerCodeController.text = _stripTenantPrefix(lecturer.lecturerCode);
           _emailController.text = lecturer.email;
           _creditsMaxController.text = lecturer.creditsMax.toString();
           _status = _statusOptions.contains(lecturer.status) ? lecturer.status : 'Active';
@@ -92,7 +105,7 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
   void dispose() {
     _nameController.dispose();
     _titleController.dispose();
-    _employeeIdController.dispose();
+    _lecturerCodeController.dispose();
     _emailController.dispose();
     _creditsMaxController.dispose();
     super.dispose();
@@ -112,7 +125,7 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
           widget.lecturerId!,
           name: _nameController.text.trim(),
           title: _titleController.text.trim(),
-          employeeId: _employeeIdController.text.trim(),
+          lecturerCode: '${_tenantPrefix()}${_lecturerCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           department: _selectedDepartment!,
           specialization: _selectedSpecialization!,
@@ -124,7 +137,7 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
         saved = await _repository.createLecturer(
           name: _nameController.text.trim(),
           title: _titleController.text.trim(),
-          employeeId: _employeeIdController.text.trim(),
+          lecturerCode: '${_tenantPrefix()}${_lecturerCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           department: _selectedDepartment!,
           specialization: _selectedSpecialization!,
@@ -138,7 +151,7 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Failed to save lecturer: $e';
+        _errorMessage = friendlyErrorMessage(e);
         _isSaving = false;
       });
     }
@@ -197,7 +210,7 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
                           const SizedBox(height: 14),
                           _field(controller: _titleController, label: 'Title', hint: 'Lead Data Architect'),
                           const SizedBox(height: 14),
-                          _field(controller: _employeeIdController, label: 'Employee ID', hint: 'EMP-7721'),
+                          _field(controller: _lecturerCodeController, label: 'Lecturer Code', hint: 'EMP-7721'),
                           const SizedBox(height: 14),
                           _field(controller: _emailController, label: 'Email', hint: 'sarah.lin@aiei.edu', keyboardType: TextInputType.emailAddress),
                           const SizedBox(height: 14),
@@ -238,6 +251,7 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
                             value: _status,
                             options: _statusOptions,
                             onChanged: (v) => setState(() => _status = v!),
+                            required: true,
                           ),
                           const SizedBox(height: 14),
                           _checkbox(label: 'Accredited', value: _accredited, onChanged: (v) => setState(() => _accredited = v)),
@@ -294,12 +308,14 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
     required String label,
     required String hint,
     TextInputType? keyboardType,
+    String? prefixText,
+    bool required = true,
     String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        AdminFieldLabel(label, required: required),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -311,10 +327,12 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
             fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
             hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+            prefixText: prefixText,
+            prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
-          validator: validator ?? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null,
+          validator: validator ?? (required ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null : null),
         ),
       ],
     );
@@ -331,7 +349,7 @@ class _LecturerFormScreenState extends State<LecturerFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+        AdminFieldLabel(label, required: required),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: value,

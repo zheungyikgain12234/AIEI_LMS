@@ -22,6 +22,8 @@ class ManageBadgesScreen extends StatefulWidget {
   State<ManageBadgesScreen> createState() => _ManageBadgesScreenState();
 }
 
+enum _SortColumn { student, course, badge, year }
+
 class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
   final _repository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
@@ -29,6 +31,38 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
   String _query = '';
+  _SortColumn _sortColumn = _SortColumn.student;
+  bool _sortAscending = true;
+
+  void _toggleSort(_SortColumn column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumn = column;
+        _sortAscending = true;
+      }
+    });
+  }
+
+  Widget _sortHeader(String label, _SortColumn column) {
+    final active = _sortColumn == column;
+    return InkWell(
+      onTap: () => _toggleSort(column),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 2),
+          Icon(
+            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            size: 12,
+            color: active ? AdminColors.onSurface : AdminColors.outline,
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -54,12 +88,29 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
   }
 
   List<BadgeAward> get _filtered {
-    if (_query.isEmpty) return _awards;
-    return _awards.where((a) =>
-        a.studentName.toLowerCase().contains(_query) ||
-        a.courseCode.toLowerCase().contains(_query) ||
-        a.courseTitle.toLowerCase().contains(_query) ||
-        a.badgeTitle.toLowerCase().contains(_query)).toList();
+    final awards = _query.isEmpty
+        ? _awards
+        : _awards.where((a) =>
+            a.studentName.toLowerCase().contains(_query) ||
+            a.courseCode.toLowerCase().contains(_query) ||
+            a.courseTitle.toLowerCase().contains(_query) ||
+            a.badgeTitle.toLowerCase().contains(_query)).toList();
+    final sorted = [...awards];
+    sorted.sort((a, b) {
+      final int cmp;
+      switch (_sortColumn) {
+        case _SortColumn.student:
+          cmp = a.studentName.toLowerCase().compareTo(b.studentName.toLowerCase());
+        case _SortColumn.course:
+          cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
+        case _SortColumn.badge:
+          cmp = a.badgeTitle.toLowerCase().compareTo(b.badgeTitle.toLowerCase());
+        case _SortColumn.year:
+          cmp = a.issueYear.compareTo(b.issueYear);
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+    return sorted;
   }
 
   void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageBadges, dest);
@@ -134,7 +185,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
     final awards = _filtered;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Manage Badges'),
+      appBar: const AdminMobileTopBar.detail(title: 'Badge Award Management'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -257,7 +308,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Manage Badges', style: AdminTypography.headlineLg()),
+            Text('Badge Award Management', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
@@ -348,6 +399,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
               child: Text('No badge awards found.', style: AdminTypography.bodyMd()),
             )
           else
+            _headerRow(),
             Column(children: [for (final a in awards) _row(a)]),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -356,6 +408,23 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
               child: Text('${awards.length} badge award${awards.length == 1 ? '' : 's'}', style: AdminTypography.bodySm()),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      child: Row(
+        children: [
+          const SizedBox(width: 48),
+          Expanded(flex: 3, child: _sortHeader('Student', _SortColumn.student)),
+          Expanded(flex: 3, child: _sortHeader('Course', _SortColumn.course)),
+          Expanded(flex: 3, child: _sortHeader('Badge', _SortColumn.badge)),
+          Expanded(flex: 1, child: _sortHeader('Year', _SortColumn.year)),
+          const SizedBox(width: 110),
         ],
       ),
     );

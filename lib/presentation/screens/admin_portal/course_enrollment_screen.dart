@@ -329,7 +329,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
   }
 
   Widget _rosterRow(RosterStudent s) {
-    final selected = _selected.contains(s.employeeId);
+    final selected = _selected.contains(s.studentCode);
     final atRisk = _isAtRisk(s.riskStatus);
     final gradeLabel = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(1)}% (${s.grade ?? '—'})' : 'No grade yet';
     return Container(
@@ -338,7 +338,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Checkbox(value: selected, onChanged: (v) => setState(() => v == true ? _selected.add(s.employeeId) : _selected.remove(s.employeeId)), activeColor: AdminColors.primaryContainer),
+          Checkbox(value: selected, onChanged: (v) => setState(() => v == true ? _selected.add(s.studentCode) : _selected.remove(s.studentCode)), activeColor: AdminColors.primaryContainer),
           SizedBox(
             width: 220,
             child: Row(children: [
@@ -346,7 +346,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(s.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                Text(s.employeeId, style: AdminTypography.labelSm()),
+                Text(s.studentCode, style: AdminTypography.labelSm()),
                 Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
               ])),
             ]),
@@ -784,7 +784,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
   }
 
   Widget _mobileStudentCard(RosterStudent s) {
-    final selected = _selected.contains(s.employeeId);
+    final selected = _selected.contains(s.studentCode);
     final atRisk = _isAtRisk(s.riskStatus);
     final gradeLabel = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(0)}%' : '—';
     return Container(
@@ -802,7 +802,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
             children: [
               Checkbox(
                 value: selected,
-                onChanged: (v) => setState(() => v == true ? _selected.add(s.employeeId) : _selected.remove(s.employeeId)),
+                onChanged: (v) => setState(() => v == true ? _selected.add(s.studentCode) : _selected.remove(s.studentCode)),
                 activeColor: AdminColors.primaryContainer,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -823,7 +823,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
                     const SizedBox(height: 2),
                     Row(children: [
                       Flexible(
-                        child: Text(s.employeeId, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                        child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
                       ),
                       const SizedBox(width: 6),
                       Text('•', style: AdminTypography.bodySm()),

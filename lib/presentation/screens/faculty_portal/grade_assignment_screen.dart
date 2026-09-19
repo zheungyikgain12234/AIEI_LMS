@@ -188,7 +188,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
     final title = _material?.name ?? 'Assignment 02: Automated Data Pipelines';
     final benchmark = content['cohortBenchmarkLabel'] as String?;
     final studentName = _student?.name ?? 'Alex Chen';
-    final studentEmployeeId = _student?.studentId ?? 'EMP-88219';
+    final studentEmployeeId = _student?.studentCode ?? 'EMP-88219';
     final submittedAt = _progress?.submissionContent['submittedAt'] as String?;
     final onTime = _progress?.submissionContent['onTime'] as bool? ?? true;
     return Container(
@@ -714,7 +714,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   Widget _buildMobileAssignmentCard() {
     final title = _material?.name ?? 'Assignment 02: Automated Data Pipelines';
     final studentName = _student?.name ?? 'Alex Chen';
-    final studentEmployeeId = _student?.studentId ?? 'EMP-88219';
+    final studentEmployeeId = _student?.studentCode ?? 'EMP-88219';
     final submittedAt = _progress?.submissionContent['submittedAt'] as String?;
     final onTime = _progress?.submissionContent['onTime'] as bool? ?? true;
     return _mobileCard(

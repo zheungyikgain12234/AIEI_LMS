@@ -97,7 +97,7 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
       studentId: s.studentId,
       name: s.name,
       role: s.title ?? 'Enrolled Student',
-      employeeId: s.employeeId,
+      studentCode: s.studentCode,
       progress: s.progressPercentage,
       progressTag: progressTag,
       progressColor: progressColor,
@@ -486,7 +486,7 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
               ],
             ),
           ),
-          Expanded(flex: 2, child: Text(s.employeeId, style: FacultyTypography.bodySm(color: FacultyColors.secondary))),
+          Expanded(flex: 2, child: Text(s.studentCode, style: FacultyTypography.bodySm(color: FacultyColors.secondary))),
           Expanded(
             flex: 2,
             child: Padding(
@@ -1032,7 +1032,7 @@ class _StudentDirectoryScreenState extends State<StudentDirectoryScreen> {
                       ],
                     ),
                     Text(
-                      '${s.employeeId} • ${s.role}',
+                      '${s.studentCode} • ${s.role}',
                       style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1290,7 +1290,7 @@ class _Student {
   final String studentId;
   final String name;
   final String role;
-  final String employeeId;
+  final String studentCode;
   final int progress;
   final String progressTag;
   final Color progressColor;
@@ -1310,7 +1310,7 @@ class _Student {
     required this.studentId,
     required this.name,
     required this.role,
-    required this.employeeId,
+    required this.studentCode,
     required this.progress,
     required this.progressTag,
     required this.progressColor,

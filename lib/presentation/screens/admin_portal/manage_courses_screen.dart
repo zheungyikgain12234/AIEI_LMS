@@ -25,6 +25,8 @@ class ManageCoursesScreen extends StatefulWidget {
   State<ManageCoursesScreen> createState() => _ManageCoursesScreenState();
 }
 
+enum _SortColumn { code, title, category, credits }
+
 class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   final _repository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
@@ -32,6 +34,8 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
   String _query = '';
+  _SortColumn _sortColumn = _SortColumn.code;
+  bool _sortAscending = true;
 
   static const _categoryLabels = {
     'techData': 'Technical & Data',
@@ -64,9 +68,55 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   }
 
   List<AdminCourse> get _filtered {
-    if (_query.isEmpty) return _courses;
-    return _courses.where((c) =>
-        c.courseCode.toLowerCase().contains(_query) || c.courseTitle.toLowerCase().contains(_query)).toList();
+    final courses = _query.isEmpty
+        ? _courses
+        : _courses.where((c) => c.courseCode.toLowerCase().contains(_query) || c.courseTitle.toLowerCase().contains(_query)).toList();
+    final sorted = [...courses];
+    sorted.sort((a, b) {
+      final int cmp;
+      switch (_sortColumn) {
+        case _SortColumn.code:
+          cmp = a.courseCode.toLowerCase().compareTo(b.courseCode.toLowerCase());
+        case _SortColumn.title:
+          cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
+        case _SortColumn.category:
+          cmp = (_categoryLabels[a.category] ?? a.category).toLowerCase().compareTo((_categoryLabels[b.category] ?? b.category).toLowerCase());
+        case _SortColumn.credits:
+          cmp = a.credits.compareTo(b.credits);
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+    return sorted;
+  }
+
+  void _toggleSort(_SortColumn column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumn = column;
+        _sortAscending = true;
+      }
+    });
+  }
+
+  Widget _sortHeader(String label, _SortColumn column) {
+    final active = _sortColumn == column;
+    return InkWell(
+      onTap: () => _toggleSort(column),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 2),
+          Icon(
+            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            size: 12,
+            color: active ? AdminColors.onSurface : AdminColors.outline,
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageCourses, dest);
@@ -255,8 +305,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
                 decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
                 child: Text(_categoryLabels[c.category] ?? c.category, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
               ),
-              Text(c.scheduleText, style: AdminTypography.bodySm()),
-              Text('Capacity ${c.capacity} • ${c.credits} cr', style: AdminTypography.labelSm()),
+              Text('${c.credits} cr', style: AdminTypography.labelSm()),
             ],
           ),
         ],
@@ -359,6 +408,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
                 ],
               ),
             ),
+          if (courses.isNotEmpty) _headerRow(),
           if (courses.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
@@ -373,6 +423,22 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
               child: Text('${courses.length} course${courses.length == 1 ? '' : 's'}', style: AdminTypography.bodySm()),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(width: 40),
+          Expanded(flex: 5, child: _sortHeader('Course', _SortColumn.title)),
+          Expanded(flex: 3, child: _sortHeader('Category', _SortColumn.category)),
+          Expanded(flex: 2, child: _sortHeader('Credits', _SortColumn.credits)),
         ],
       ),
     );
@@ -433,15 +499,8 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
             ),
           ),
           Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Text(c.scheduleText, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-            ),
-          ),
-          Expanded(
             flex: 2,
-            child: Text('Capacity ${c.capacity} • ${c.credits} cr', style: AdminTypography.labelSm()),
+            child: Text('${c.credits} cr', style: AdminTypography.labelSm()),
           ),
         ],
       ),

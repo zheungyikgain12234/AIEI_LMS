@@ -1,8 +1,10 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
+
 class Lecturer {
   final String id;
   final String name;
   final String title;
-  final String employeeId;
+  final String lecturerCode;
   final String email;
   final String department;
   final String specialization;
@@ -16,7 +18,7 @@ class Lecturer {
     required this.id,
     required this.name,
     required this.title,
-    required this.employeeId,
+    required this.lecturerCode,
     required this.email,
     required this.department,
     required this.specialization,
@@ -35,7 +37,7 @@ class Lecturer {
       id: map['id'] as String,
       name: map['name'] as String,
       title: map['title'] as String,
-      employeeId: map['employee_id'] as String,
+      lecturerCode: displayCode(map['lecturer_code'] as String),
       email: map['email'] as String,
       department: map['department'] as String,
       specialization: map['specialization'] as String,

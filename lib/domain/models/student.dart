@@ -1,7 +1,9 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
+
 class Student {
   final String id;
   final String name;
-  final String studentId;
+  final String studentCode;
   final String email;
   final String department;
   final String? title;
@@ -13,7 +15,7 @@ class Student {
   const Student({
     required this.id,
     required this.name,
-    required this.studentId,
+    required this.studentCode,
     required this.email,
     required this.department,
     this.title,
@@ -27,7 +29,7 @@ class Student {
     return Student(
       id: (map['id'] as num).toString(),
       name: map['name'] as String,
-      studentId: map['student_id'] as String,
+      studentCode: displayCode(map['student_code'] as String),
       email: map['email'] as String,
       department: map['department'] as String,
       title: map['title'] as String?,

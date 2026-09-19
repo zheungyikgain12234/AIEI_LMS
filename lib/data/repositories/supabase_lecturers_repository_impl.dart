@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart';
@@ -26,7 +27,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     final result = <String, List<String>>{};
     for (final row in rows as List) {
       final lecturerId = row['lecturer_id'] as String;
-      final code = (row['courses'] as Map<String, dynamic>)['course_code'] as String;
+      final code = displayCode((row['courses'] as Map<String, dynamic>)['course_code'] as String);
       result.putIfAbsent(lecturerId, () => []).add(code);
     }
     return result;
@@ -52,7 +53,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
   Future<Lecturer> createLecturer({
     required String name,
     required String title,
-    required String employeeId,
+    required String lecturerCode,
     required String email,
     required String department,
     required String specialization,
@@ -65,7 +66,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
         .insert({
           'name': name,
           'title': title,
-          'employee_id': employeeId,
+          'lecturer_code': lecturerCode,
           'email': email,
           'department': department,
           'specialization': specialization,
@@ -83,7 +84,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     String id, {
     required String name,
     required String title,
-    required String employeeId,
+    required String lecturerCode,
     required String email,
     required String department,
     required String specialization,
@@ -96,7 +97,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
         .update({
           'name': name,
           'title': title,
-          'employee_id': employeeId,
+          'lecturer_code': lecturerCode,
           'email': email,
           'department': department,
           'specialization': specialization,
@@ -141,23 +142,22 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
   @override
   Future<CourseSection> createSectionForCourse({
     required String courseId,
-    required String courseCode,
+    required String classCode,
     required String lecturerId,
     required String dayOfWeek,
     required String startTime,
     required String endTime,
     required String location,
     required int capacity,
+    required String deliveryMode,
+    required String cohort,
   }) async {
-    final existing = await _client.from('course_sections').select('id').eq('course_id', courseId);
-    final nextNumber = (existing as List).length + 1;
-    final sectionCode = '$courseCode-${nextNumber.toString().padLeft(2, '0')}';
     final dayAbbrev = dayOfWeek.substring(0, 3);
     final row = await _client
         .from('course_sections')
         .insert({
           'course_id': courseId,
-          'section_code': sectionCode,
+          'section_code': classCode,
           'role_label': 'Primary Instructor',
           'term': 'Fall 2025',
           'schedule_text': '$dayAbbrev $startTime–$endTime • $location',
@@ -167,6 +167,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'location': location,
           'lecturer_id': lecturerId,
           'capacity': capacity,
+          'delivery_mode': deliveryMode,
+          'cohort': cohort,
           'enrolled_count': 0,
           'status': 'scheduled',
         })

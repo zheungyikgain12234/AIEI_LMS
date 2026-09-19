@@ -4,6 +4,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import '../manage_classes_screen.dart';
 import '../manage_badges_screen.dart';
 import '../role_course_mapping_screen.dart';
+import '../department_course_mapping_screen.dart';
+import '../track_course_mapping_screen.dart';
 import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
 import '../manage_program_tracks_screen.dart';
@@ -33,8 +35,10 @@ Future<void> showAdminMoreMenu(BuildContext context) {
               decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(9999)),
             ),
             _tile(context, sheetContext, Icons.event_note_outlined, 'Manage Classes', (ctx) => const ManageClassesScreen()),
-            _tile(context, sheetContext, Icons.military_tech_outlined, 'Manage Badges', (ctx) => const ManageBadgesScreen()),
+            _tile(context, sheetContext, Icons.military_tech_outlined, 'Badge Award Management', (ctx) => const ManageBadgesScreen()),
             _tile(context, sheetContext, Icons.swap_horiz_outlined, 'Role ↔ Course Mapping', (ctx) => const RoleCourseMappingScreen()),
+            _tile(context, sheetContext, Icons.account_tree_outlined, 'Department ↔ Course Mapping', (ctx) => const DepartmentCourseMappingScreen()),
+            _tile(context, sheetContext, Icons.alt_route, 'Track ↔ Course Mapping', (ctx) => const TrackCourseMappingScreen()),
             _tile(context, sheetContext, Icons.school_outlined, 'Course Enrollment', (ctx) => const CourseEnrollmentScreen()),
             ExpansionTile(
               leading: const Icon(Icons.dataset_outlined, color: AdminColors.onSurfaceVariant),

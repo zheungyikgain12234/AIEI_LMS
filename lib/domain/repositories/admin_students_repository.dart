@@ -13,7 +13,7 @@ abstract class AdminStudentsRepository {
   /// it defaults to 0 in the database.
   Future<Student> createStudent({
     required String name,
-    required String studentId,
+    required String studentCode,
     required String email,
     required String department,
     String? title,
@@ -26,7 +26,7 @@ abstract class AdminStudentsRepository {
   Future<Student> updateStudent(
     String id, {
     required String name,
-    required String studentId,
+    required String studentCode,
     required String email,
     required String department,
     String? title,

@@ -25,14 +25,67 @@ class ManageLecturersScreen extends StatefulWidget {
   State<ManageLecturersScreen> createState() => _ManageLecturersScreenState();
 }
 
+enum _SortColumn { name, department, workload, status }
+
 class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<Lecturer> _lecturers = [];
   Map<String, List<String>> _courseCodesByLecturer = {};
   final Set<String> _selected = {};
+  _SortColumn _sortColumn = _SortColumn.name;
+  bool _sortAscending = true;
 
   List<String> _coursesFor(Lecturer l) => _courseCodesByLecturer[l.id] ?? const [];
+
+  List<Lecturer> get _sortedLecturers {
+    final sorted = [..._lecturers];
+    sorted.sort((a, b) {
+      final int cmp;
+      switch (_sortColumn) {
+        case _SortColumn.name:
+          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case _SortColumn.department:
+          cmp = a.department.toLowerCase().compareTo(b.department.toLowerCase());
+        case _SortColumn.workload:
+          cmp = a.capacityPercent.compareTo(b.capacityPercent);
+        case _SortColumn.status:
+          cmp = a.status.toLowerCase().compareTo(b.status.toLowerCase());
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+    return sorted;
+  }
+
+  void _toggleSort(_SortColumn column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumn = column;
+        _sortAscending = true;
+      }
+    });
+  }
+
+  Widget _sortHeader(String label, _SortColumn column) {
+    final active = _sortColumn == column;
+    return InkWell(
+      onTap: () => _toggleSort(column),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 2),
+          Icon(
+            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            size: 12,
+            color: active ? AdminColors.onSurface : AdminColors.outline,
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -357,7 +410,8 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                 ],
               ),
             ),
-          Column(children: [for (final l in _lecturers) _lecturerRow(l, _coursesFor(l))]),
+          if (_lecturers.isNotEmpty) _headerRow(),
+          Column(children: [for (final l in _sortedLecturers) _lecturerRow(l, _coursesFor(l))]),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -388,6 +442,24 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(color: active ? AdminColors.surfaceContainerLowest : Colors.transparent, borderRadius: BorderRadius.circular(8)),
       child: Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+    );
+  }
+
+  Widget _headerRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      child: Row(
+        children: [
+          const SizedBox(width: 48),
+          Expanded(flex: 4, child: _sortHeader('Faculty', _SortColumn.name)),
+          Expanded(flex: 3, child: _sortHeader('Department', _SortColumn.department)),
+          const Expanded(flex: 3, child: SizedBox()),
+          Expanded(flex: 2, child: _sortHeader('Workload', _SortColumn.workload)),
+          Expanded(flex: 2, child: _sortHeader('Status', _SortColumn.status)),
+          const SizedBox(width: 170),
+        ],
+      ),
     );
   }
 
@@ -437,7 +509,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                           ],
                         ),
                         Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                        Text('${l.employeeId} • ${l.email}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                        Text('${l.lecturerCode} • ${l.email}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -908,7 +980,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                         decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-                        child: Text(l.employeeId, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+                        child: Text(l.lecturerCode, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
                       ),
                     ]),
                     Text(

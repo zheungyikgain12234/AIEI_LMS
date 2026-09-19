@@ -1,3 +1,5 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
+
 /// A per-course badge award (Manage Badges admin screen) — distinct from the
 /// broader `student_certifications` ledger, which has no course reference.
 class BadgeAward {
@@ -8,6 +10,7 @@ class BadgeAward {
   final String courseCode;
   final String courseTitle;
   final String badgeId;
+  final String badgeCode;
   final String badgeTitle;
   final int issueYear;
   final bool isRevoked;
@@ -20,6 +23,7 @@ class BadgeAward {
     required this.courseCode,
     required this.courseTitle,
     required this.badgeId,
+    required this.badgeCode,
     required this.badgeTitle,
     required this.issueYear,
     required this.isRevoked,
@@ -34,9 +38,10 @@ class BadgeAward {
       studentId: (map['student_id'] as num).toString(),
       studentName: student?['name'] as String? ?? '',
       courseId: map['course_id'] as String,
-      courseCode: course?['course_code'] as String? ?? '',
+      courseCode: displayCode(course?['course_code'] as String? ?? ''),
       courseTitle: course?['course_title'] as String? ?? '',
       badgeId: map['badge_id'] as String,
+      badgeCode: displayCode(badge?['code'] as String? ?? ''),
       badgeTitle: badge?['title'] as String? ?? '',
       issueYear: map['issue_year'] as int,
       isRevoked: map['is_revoked'] as bool,

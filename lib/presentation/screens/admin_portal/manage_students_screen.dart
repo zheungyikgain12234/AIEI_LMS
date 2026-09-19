@@ -29,6 +29,8 @@ class ManageStudentsScreen extends StatefulWidget {
   State<ManageStudentsScreen> createState() => _ManageStudentsScreenState();
 }
 
+enum _SortColumn { name, code, track }
+
 class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
@@ -41,8 +43,57 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   List<(String, int)> _tracks = [];
   List<(String, int)> _trend = [];
   Set<String> _roleMismatchStudentIds = {};
+  _SortColumn _sortColumn = _SortColumn.name;
+  bool _sortAscending = true;
 
   final Set<String> _selected = {};
+
+  List<Student> get _sortedStudents {
+    final sorted = [..._students];
+    sorted.sort((a, b) {
+      final int cmp;
+      switch (_sortColumn) {
+        case _SortColumn.name:
+          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case _SortColumn.code:
+          cmp = a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase());
+        case _SortColumn.track:
+          cmp = a.programTrack.toLowerCase().compareTo(b.programTrack.toLowerCase());
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+    return sorted;
+  }
+
+  void _toggleSort(_SortColumn column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumn = column;
+        _sortAscending = true;
+      }
+    });
+  }
+
+  Widget _sortHeader(String label, _SortColumn column) {
+    final active = _sortColumn == column;
+    return InkWell(
+      onTap: () => _toggleSort(column),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 2),
+          Icon(
+            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            size: 12,
+            color: active ? AdminColors.onSurface : AdminColors.outline,
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -384,7 +435,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 ],
               ),
             ),
-          Column(children: [for (final s in _students) _studentRow(s)]),
+          if (_students.isNotEmpty) _headerRow(),
+          Column(children: [for (final s in _sortedStudents) _studentRow(s)]),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -418,6 +470,23 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         textStyle: AdminTypography.labelSm(),
       );
+
+  Widget _headerRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      child: Row(
+        children: [
+          const SizedBox(width: 48),
+          Expanded(flex: 4, child: _sortHeader('Student', _SortColumn.name)),
+          Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
+          Expanded(flex: 3, child: _sortHeader('Track', _SortColumn.track)),
+          const SizedBox(width: 56),
+          Expanded(flex: 4, child: Text('Badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+        ],
+      ),
+    );
+  }
 
   Widget _studentRow(Student s) {
     final selected = _selected.contains(s.id);
@@ -479,7 +548,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(s.studentId, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+              child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
             ),
           ),
           Expanded(
@@ -1030,7 +1099,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(4)),
-                          child: Text(s.studentId, style: AdminTypography.labelSm()),
+                          child: Text(s.studentCode, style: AdminTypography.labelSm()),
                         ),
                       ],
                     ),

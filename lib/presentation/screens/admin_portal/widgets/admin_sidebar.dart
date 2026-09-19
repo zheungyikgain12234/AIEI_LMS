@@ -10,6 +10,8 @@ enum AdminNavDestination {
   manageClasses,
   manageBadges,
   roleCourseMapping,
+  departmentCourseMapping,
+  trackCourseMapping,
   courseEnrollment,
   manageDepartments,
   manageProgramTracks,
@@ -103,7 +105,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.military_tech_outlined,
-                          label: 'Manage Badges',
+                          label: 'Badge Award Management',
                           isSelected:
                               selected == AdminNavDestination.manageBadges,
                           onTap: () => onDestinationSelected?.call(
@@ -117,6 +119,26 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.roleCourseMapping,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.roleCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.account_tree_outlined,
+                          label: 'Department ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.departmentCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.departmentCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.alt_route,
+                          label: 'Track ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.trackCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.trackCourseMapping,
                           ),
                         ),
                       ],

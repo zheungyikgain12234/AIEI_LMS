@@ -15,9 +15,12 @@ class ManageSpecializationsScreen extends StatelessWidget {
       description: 'Faculty specialization areas assignable to lecturers during onboarding.',
       itemLabel: 'Specialization',
       navDestination: AdminNavDestination.manageSpecializations,
-      load: () async => [for (final s in await repository.getSpecializations()) (s.id, s.name)],
-      create: (name) => repository.createSpecialization(name),
-      update: (id, name) => repository.updateSpecialization(id, name),
+      load: () async => [
+        for (final s in await repository.getSpecializations())
+          MasterDataRow(id: s.id, code: s.code, name: s.name, remarks: s.remarks),
+      ],
+      create: (code, name, remarks, year) => repository.createSpecialization(code, name, remarks),
+      update: (id, code, name, remarks, year) => repository.updateSpecialization(id, code, name, remarks),
       delete: (ids) => repository.deleteSpecializations(ids),
     );
   }

@@ -448,7 +448,7 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
             final narrative = student != null
                 ? credential.narrative.replaceFirst(
                     'the recipient',
-                    '${student.name} (${student.studentId})',
+                    '${student.name} (${student.studentCode})',
                   )
                 : credential.narrative;
             return Text(

@@ -27,8 +27,18 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _course;
   List<RosterStudent> _roster = [];
+  final _searchController = TextEditingController();
+  String _query = '';
 
   final Set<String> _selected = {};
+
+  List<RosterStudent> get _filteredRoster {
+    if (_query.isEmpty) return _roster;
+    return _roster.where((s) =>
+        s.name.toLowerCase().contains(_query) ||
+        s.studentCode.toLowerCase().contains(_query) ||
+        s.email.toLowerCase().contains(_query)).toList();
+  }
 
   String get _courseCode => (_course?['course_code'] as String?) ?? '';
   String get _courseTitle => (_course?['course_title'] as String?) ?? '';
@@ -46,7 +56,14 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -276,6 +293,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 380),
             child: TextField(
+              controller: _searchController,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search enrolled students in $_courseCode...', hintStyle: AdminTypography.bodySm(color: AdminColors.outline), prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
             ),
@@ -308,7 +326,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
         children: [
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SizedBox(width: 1180, child: Column(children: [for (final s in _roster) _rosterRow(s)])),
+            child: SizedBox(width: 1180, child: Column(children: [for (final s in _filteredRoster) _rosterRow(s)])),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -319,7 +337,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
               runSpacing: 8,
               children: [
                 Text('${_selected.length} of $_enrolledCount students selected', style: AdminTypography.bodySm()),
-                Text('Showing 1–$_enrolledCount of $_enrolledCount', style: AdminTypography.bodySm()),
+                Text('Showing ${_filteredRoster.isEmpty ? 0 : 1}–${_filteredRoster.length} of ${_filteredRoster.length}', style: AdminTypography.bodySm()),
               ],
             ),
           ),
@@ -423,7 +441,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
                   const SizedBox(height: 10),
                   _mobileFilterChips(),
                   const SizedBox(height: 16),
-                  for (final s in _roster) ...[
+                  for (final s in _filteredRoster) ...[
                     _mobileStudentCard(s),
                     const SizedBox(height: 12),
                   ],
@@ -736,6 +754,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
 
   Widget _mobileSearchField() {
     return TextField(
+      controller: _searchController,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         isDense: true,

@@ -46,6 +46,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   List<String> _specializations = [];
   String? _selectedDepartment;
   String? _selectedSpecialization;
+  DateTime? _joinDate;
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -89,7 +90,9 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           _accredited = lecturer.accredited;
           _selectedDepartment = _departments.contains(lecturer.department) ? lecturer.department : null;
           _selectedSpecialization = _specializations.contains(lecturer.specialization) ? lecturer.specialization : null;
+          _joinDate = lecturer.joinDate;
         }
+        _joinDate ??= DateTime.now();
         _isLoading = false;
       });
     } catch (e) {
@@ -132,6 +135,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           creditsMax: creditsMax,
           status: _status,
           accredited: _accredited,
+          joinDate: _joinDate!,
         );
       } else {
         saved = await _repository.createLecturer(
@@ -144,6 +148,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           creditsMax: creditsMax,
           status: _status,
           accredited: _accredited,
+          joinDate: _joinDate!,
         );
       }
       if (!mounted) return;
@@ -252,6 +257,12 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                             options: _statusOptions,
                             onChanged: (v) => setState(() => _status = v!),
                             required: true,
+                          ),
+                          const SizedBox(height: 14),
+                          _datePicker(
+                            label: 'Join Date',
+                            value: _joinDate,
+                            onChanged: (v) => setState(() => _joinDate = v),
                           ),
                           const SizedBox(height: 14),
                           _checkbox(label: 'Accredited', value: _accredited, onChanged: (v) => setState(() => _accredited = v)),
@@ -366,6 +377,54 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           items: [for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis))],
           onChanged: onChanged,
           validator: required ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _datePicker({
+    required String label,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AdminFieldLabel(label),
+        const SizedBox(height: 6),
+        FormField<DateTime>(
+          initialValue: value,
+          validator: (v) => v == null ? '$label is required' : null,
+          builder: (state) => InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: value ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null) {
+                onChanged(picked);
+                state.didChange(picked);
+              }
+            },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: AdminColors.surfaceContainerLow,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                errorText: state.errorText,
+                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+              ),
+              child: Text(
+                value == null ? 'Select a date' : '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
+                style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+              ),
+            ),
+          ),
         ),
       ],
     );

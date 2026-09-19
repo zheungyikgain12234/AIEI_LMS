@@ -4,10 +4,12 @@ import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
+import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -38,10 +40,54 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _adminStudentsRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _progressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   List<_CourseRow> _rows = const [];
   List<_Stat> _stats = const [];
+
+  // ── Year / Cohort filter ──────────────────────────────────────────────
+  List<AssignedCourse> _assignedCourses = const [];
+  List<Cohort> _cohorts = const [];
+  int? _selectedYear;
+  String? _selectedCohort;
+
+  // Cached per-row detail data (only ever populated for _kDashboardCourseId
+  // in this demo — see the class-level comment) so the row list can be
+  // rebuilt on filter change without re-fetching from Supabase.
+  int? _moduleCount;
+  int? _assetCount;
+  int? _avgRosterProgress;
+  int? _totalPending;
+  double? _avgCohortScore;
+
+  Map<String, int> get _cohortYearByName => {for (final c in _cohorts) c.name: c.year};
+
+  /// Years the lecturer actually has assigned courses in, sorted ascending.
+  List<int> get _availableYears {
+    final years = <int>{};
+    for (final c in _assignedCourses) {
+      final year = _cohortYearByName[c.cohort];
+      if (year != null) years.add(year);
+    }
+    return years.toList()..sort();
+  }
+
+  /// Cohort names (within [year]) the lecturer has assigned courses in, in
+  /// the same order as the master `cohorts` list (so "first in the list" is
+  /// well-defined).
+  List<String> _cohortNamesForYear(int year) {
+    final assignedNames = _assignedCourses.map((c) => c.cohort).whereType<String>().toSet();
+    return [
+      for (final c in _cohorts)
+        if (c.year == year && assignedNames.contains(c.name)) c.name,
+    ];
+  }
+
+  List<AssignedCourse> get _filteredAssignedCourses {
+    if (_selectedCohort == null) return _assignedCourses;
+    return _assignedCourses.where((c) => c.cohort == _selectedCohort).toList();
+  }
 
   @override
   void initState() {
@@ -52,6 +98,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   Future<void> _load() async {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
     final lecturers = await _lecturersRepository.getLecturers();
+    final cohorts = await _masterDataRepository.getCohorts();
 
     // Only PY-402 (_kDashboardCourseId) has a full seeded roster + graded
     // submissions in this demo, so that's the only course we can compute
@@ -78,23 +125,26 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
         ? null
         : roster.fold<int>(0, (sum, s) => sum + s.progressPercentage) ~/ roster.length;
 
-    final rows = [
-      for (var i = 0; i < assignedCourses.length; i++)
-        _rowFromCourse(
-          assignedCourses[i],
-          i,
-          moduleCount: assignedCourses[i].courseId == _kDashboardCourseId ? modules.length : null,
-          assetCount: assignedCourses[i].courseId == _kDashboardCourseId ? assetCount : null,
-          avgProgress: assignedCourses[i].courseId == _kDashboardCourseId ? avgRosterProgress : null,
-          pendingCount: assignedCourses[i].courseId == _kDashboardCourseId ? totalPending : null,
-          classAvgScore: assignedCourses[i].courseId == _kDashboardCourseId ? avgCohortScore : null,
-        ),
-    ];
-
     final totalEnrolled = assignedCourses.fold<int>(0, (sum, c) => sum + c.enrolledCount);
 
     setState(() {
-      _rows = rows;
+      _assignedCourses = assignedCourses;
+      _cohorts = cohorts;
+      _moduleCount = modules.length;
+      _assetCount = assetCount;
+      _avgRosterProgress = avgRosterProgress;
+      _totalPending = totalPending;
+      _avgCohortScore = avgCohortScore;
+
+      // Default to the current calendar year if the lecturer has courses
+      // there, else fall back to the most recent year they do have.
+      final years = _availableYears;
+      final currentYear = DateTime.now().year;
+      _selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
+      final cohortNames = _selectedYear == null ? const <String>[] : _cohortNamesForYear(_selectedYear!);
+      _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
+
+      _rows = _buildRows();
       _stats = [
         _Stat('Active Courses', '${assignedCourses.length} Courses', '$totalEnrolled Enrolled Learners', Icons.school_outlined,
             FacultyColors.primary, FacultyColors.surfaceContainer),
@@ -111,6 +161,38 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
             Icons.speed, const Color(0xFF4F46E5), const Color(0xFFE0E7FF)),
       ];
       _isLoading = false;
+    });
+  }
+
+  List<_CourseRow> _buildRows() {
+    final courses = _filteredAssignedCourses;
+    return [
+      for (var i = 0; i < courses.length; i++)
+        _rowFromCourse(
+          courses[i],
+          i,
+          moduleCount: courses[i].courseId == _kDashboardCourseId ? _moduleCount : null,
+          assetCount: courses[i].courseId == _kDashboardCourseId ? _assetCount : null,
+          avgProgress: courses[i].courseId == _kDashboardCourseId ? _avgRosterProgress : null,
+          pendingCount: courses[i].courseId == _kDashboardCourseId ? _totalPending : null,
+          classAvgScore: courses[i].courseId == _kDashboardCourseId ? _avgCohortScore : null,
+        ),
+    ];
+  }
+
+  void _onYearChanged(int year) {
+    setState(() {
+      _selectedYear = year;
+      final cohortNames = _cohortNamesForYear(year);
+      _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
+      _rows = _buildRows();
+    });
+  }
+
+  void _onCohortChanged(String cohort) {
+    setState(() {
+      _selectedCohort = cohort;
+      _rows = _buildRows();
     });
   }
 
@@ -313,8 +395,59 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
               ),
             ),
           ),
-          Text('Showing 3 assigned courses', style: FacultyTypography.labelXs()),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            _yearDropdown(),
+            const SizedBox(width: 8),
+            _cohortDropdown(),
+          ]),
+          Text('Showing ${_rows.length} assigned course${_rows.length == 1 ? '' : 's'}', style: FacultyTypography.labelXs()),
         ],
+      ),
+    );
+  }
+
+  Widget _yearDropdown({ValueChanged<int>? onChanged}) {
+    final years = _availableYears;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: years.contains(_selectedYear) ? _selectedYear : null,
+          hint: Text('Year', style: FacultyTypography.bodySm(color: FacultyColors.outline)),
+          isDense: true,
+          icon: const Icon(Icons.expand_more, size: 16, color: FacultyColors.outline),
+          style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+          items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
+          onChanged: (y) {
+            if (y == null) return;
+            _onYearChanged(y);
+            onChanged?.call(y);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _cohortDropdown({ValueChanged<String>? onChanged}) {
+    final cohortNames = _selectedYear == null ? const <String>[] : _cohortNamesForYear(_selectedYear!);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
+          hint: Text('Cohort', style: FacultyTypography.bodySm(color: FacultyColors.outline)),
+          isDense: true,
+          icon: const Icon(Icons.expand_more, size: 16, color: FacultyColors.outline),
+          style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+          items: [for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))],
+          onChanged: (c) {
+            if (c == null) return;
+            _onCohortChanged(c);
+            onChanged?.call(c);
+          },
+        ),
       ),
     );
   }
@@ -811,41 +944,85 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        _mobileFilterChip(label: 'Active Cohorts', bg: FacultyColors.secondary, fg: Colors.white, trailingBadge: '3'),
-        _mobileFilterChip(label: 'Fall 2025', icon: Icons.calendar_month, bg: FacultyColors.surfaceContainerLowest, fg: FacultyColors.onSurfaceVariant),
-        _mobileFilterChip(label: 'Role: All', icon: Icons.tune, bg: FacultyColors.surfaceContainerLowest, fg: FacultyColors.onSurfaceVariant),
+        _mobileFilterChip(
+          label: _selectedYear == null ? 'Year' : '$_selectedYear',
+          icon: Icons.calendar_month,
+          bg: FacultyColors.surfaceContainerLowest,
+          fg: FacultyColors.onSurfaceVariant,
+          onTap: _openMobileYearCohortPicker,
+        ),
+        _mobileFilterChip(
+          label: _selectedCohort ?? 'Cohort',
+          icon: Icons.groups_outlined,
+          bg: FacultyColors.surfaceContainerLowest,
+          fg: FacultyColors.onSurfaceVariant,
+          onTap: _openMobileYearCohortPicker,
+        ),
       ],
     );
   }
 
-  Widget _mobileFilterChip({required String label, required Color bg, required Color fg, IconData? icon, String? trailingBadge}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
+  void _openMobileYearCohortPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: FacultyColors.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Filter by Year & Cohort', style: FacultyTypography.titleSm()),
+              const SizedBox(height: 16),
+              Text('Year', style: FacultyTypography.labelXs()),
+              const SizedBox(height: 6),
+              _yearDropdown(onChanged: (y) => setModalState(() {})),
+              const SizedBox(height: 16),
+              Text('Cohort', style: FacultyTypography.labelXs()),
+              const SizedBox(height: 6),
+              _cohortDropdown(onChanged: (c) => setModalState(() {})),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: FacultyColors.outline),
-            const SizedBox(width: 6),
-          ],
-          Text(label, style: FacultyTypography.labelMd(color: fg)),
-          if (trailingBadge != null) ...[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-              child: Text(
-                trailingBadge,
-                style: FacultyTypography.labelXs(color: fg).copyWith(fontWeight: FontWeight.w700, fontSize: 10),
+    );
+  }
+
+  Widget _mobileFilterChip({required String label, required Color bg, required Color fg, IconData? icon, String? trailingBadge, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: FacultyColors.outline),
+              const SizedBox(width: 6),
+            ],
+            Text(label, style: FacultyTypography.labelMd(color: fg)),
+            if (trailingBadge != null) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+                child: Text(
+                  trailingBadge,
+                  style: FacultyTypography.labelXs(color: fg).copyWith(fontWeight: FontWeight.w700, fontSize: 10),
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

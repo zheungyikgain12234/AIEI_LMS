@@ -20,6 +20,7 @@ abstract class AdminStudentsRepository {
     required String programTrack,
     required String cohort,
     required String role,
+    required DateTime registrationDate,
   });
 
   /// [gpa] is left unchanged when omitted.
@@ -33,6 +34,7 @@ abstract class AdminStudentsRepository {
     required String programTrack,
     required String cohort,
     required String role,
+    required DateTime registrationDate,
     double? gpa,
   });
 
@@ -49,9 +51,6 @@ abstract class AdminStudentsRepository {
   /// (trackName, studentCount) grouped from `students.program_track`.
   Future<List<(String, int)>> getProgramTracks();
 
-  /// (monthLabel, newEnrollments) from `enrollment_monthly_stats`.
-  Future<List<(String, int)>> getEnrollmentTrend();
-
   Future<void> deleteStudents(List<String> ids);
 
   Future<List<RosterStudent>> getCourseRoster(String courseId);
@@ -59,7 +58,8 @@ abstract class AdminStudentsRepository {
 
   /// Enrolls each student into [courseId] via the class [sectionId] (an
   /// upsert — re-enrolling an already-enrolled student just moves them to
-  /// this section), then refreshes that section's `enrolled_count`.
+  /// this section). A section's enrolled count is always derived from
+  /// `student_courses`, never stored, so nothing else needs updating here.
   Future<void> enrollStudentsInSection(
     List<String> studentIds, {
     required String sectionId,
@@ -70,7 +70,12 @@ abstract class AdminStudentsRepository {
   /// Courses screen.
   Future<List<EnrolledClass>> getEnrolledClasses(String studentId);
 
-  /// Removes the student_courses row for (studentId, courseId) and, if it
-  /// was tied to a section, refreshes that section's `enrolled_count`.
+  /// Removes the student_courses row for (studentId, courseId). A section's
+  /// enrolled count is always derived from `student_courses`, never stored.
   Future<void> unenrollStudentFromCourse(String studentId, String courseId);
+
+  /// Students currently enrolled in one class section (from
+  /// `student_courses`, filtered to `sectionId`) — the "Manage Classes"
+  /// detail screen's enrollment checklist.
+  Future<List<RosterStudent>> getSectionRoster(String sectionId);
 }

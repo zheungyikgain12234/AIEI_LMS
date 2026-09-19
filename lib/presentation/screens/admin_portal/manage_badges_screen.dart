@@ -9,6 +9,7 @@ import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_mobile_selection_bar.dart';
+import 'widgets/admin_pagination.dart';
 import 'badge_award_form_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -22,7 +23,9 @@ class ManageBadgesScreen extends StatefulWidget {
   State<ManageBadgesScreen> createState() => _ManageBadgesScreenState();
 }
 
-enum _SortColumn { student, course, badge, year }
+enum _SortColumn { student, course, badge, date }
+
+String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
   final _repository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);
@@ -33,6 +36,8 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
   String _query = '';
   _SortColumn _sortColumn = _SortColumn.student;
   bool _sortAscending = true;
+  int _page = 1;
+  int _pageSize = adminPageSizeOptions.first;
 
   void _toggleSort(_SortColumn column) {
     setState(() {
@@ -105,12 +110,20 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
           cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
         case _SortColumn.badge:
           cmp = a.badgeTitle.toLowerCase().compareTo(b.badgeTitle.toLowerCase());
-        case _SortColumn.year:
-          cmp = a.issueYear.compareTo(b.issueYear);
+        case _SortColumn.date:
+          cmp = a.issueDate.compareTo(b.issueDate);
       }
       return _sortAscending ? cmp : -cmp;
     });
     return sorted;
+  }
+
+  List<BadgeAward> _paged(List<BadgeAward> items) {
+    final pageCount = items.isEmpty ? 1 : (items.length / _pageSize).ceil();
+    if (_page > pageCount) _page = pageCount;
+    final start = ((_page - 1) * _pageSize).clamp(0, items.length);
+    final end = (start + _pageSize).clamp(0, items.length);
+    return items.sublist(start, end);
   }
 
   void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageBadges, dest);
@@ -236,11 +249,23 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
               const SizedBox(height: 16),
               if (awards.isEmpty)
                 Padding(padding: const EdgeInsets.all(24), child: Text('No badge awards found.', style: AdminTypography.bodyMd()))
-              else
-                for (final a in awards) ...[
+              else ...[
+                for (final a in _paged(awards)) ...[
                   _mobileAwardCard(a),
                   const SizedBox(height: 12),
                 ],
+                AdminPagination(
+                  totalItems: awards.length,
+                  page: _page,
+                  pageSize: _pageSize,
+                  itemLabel: 'badge award',
+                  onPageChanged: (p) => setState(() => _page = p),
+                  onPageSizeChanged: (s) => setState(() {
+                    _pageSize = s;
+                    _page = 1;
+                  }),
+                ),
+              ],
             ],
           ),
         ),
@@ -284,7 +309,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
                   ),
                 ]),
                 Text('${a.courseTitle} (${a.courseCode})', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                Text('${a.badgeTitle} • ${a.issueYear}', style: AdminTypography.labelSm()),
+                Text('${a.badgeTitle} • ${_formatDate(a.issueDate)}', style: AdminTypography.labelSm()),
               ],
             ),
           ),
@@ -400,12 +425,19 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
             )
           else
             _headerRow(),
-            Column(children: [for (final a in awards) _row(a)]),
+            Column(children: [for (final a in _paged(awards)) _row(a)]),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('${awards.length} badge award${awards.length == 1 ? '' : 's'}', style: AdminTypography.bodySm()),
+            child: AdminPagination(
+              totalItems: awards.length,
+              page: _page,
+              pageSize: _pageSize,
+              itemLabel: 'badge award',
+              onPageChanged: (p) => setState(() => _page = p),
+              onPageSizeChanged: (s) => setState(() {
+                _pageSize = s;
+                _page = 1;
+              }),
             ),
           ),
         ],
@@ -423,7 +455,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
           Expanded(flex: 3, child: _sortHeader('Student', _SortColumn.student)),
           Expanded(flex: 3, child: _sortHeader('Course', _SortColumn.course)),
           Expanded(flex: 3, child: _sortHeader('Badge', _SortColumn.badge)),
-          Expanded(flex: 1, child: _sortHeader('Year', _SortColumn.year)),
+          Expanded(flex: 2, child: _sortHeader('Issue Date', _SortColumn.date)),
           const SizedBox(width: 110),
         ],
       ),
@@ -488,7 +520,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
           ),
           Expanded(
             flex: 1,
-            child: Text('${a.issueYear}', style: AdminTypography.labelSm()),
+            child: Text(_formatDate(a.issueDate), style: AdminTypography.labelSm()),
           ),
           SizedBox(
             width: 110,

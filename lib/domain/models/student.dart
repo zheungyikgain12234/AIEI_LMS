@@ -11,6 +11,7 @@ class Student {
   final String cohort;
   final String role;
   final double gpa;
+  final DateTime registrationDate;
 
   const Student({
     required this.id,
@@ -23,6 +24,7 @@ class Student {
     required this.cohort,
     required this.role,
     required this.gpa,
+    required this.registrationDate,
   });
 
   factory Student.fromMap(Map<String, dynamic> map) {
@@ -37,6 +39,7 @@ class Student {
       cohort: map['cohort'] as String,
       role: map['role'] as String,
       gpa: (map['gpa'] as num).toDouble(),
+      registrationDate: DateTime.parse(map['registration_date'] as String),
     );
   }
 }

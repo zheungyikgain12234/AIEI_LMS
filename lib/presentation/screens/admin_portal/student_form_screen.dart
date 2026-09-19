@@ -51,6 +51,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
   String? _selectedProgramTrack;
   String? _selectedCohort;
   String? _selectedRole;
+  DateTime? _registrationDate;
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -97,7 +98,9 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           _selectedProgramTrack = _programTracks.contains(student.programTrack) ? student.programTrack : null;
           _selectedCohort = _cohorts.contains(student.cohort) ? student.cohort : null;
           _selectedRole = _roles.contains(student.role) ? student.role : null;
+          _registrationDate = student.registrationDate;
         }
+        _registrationDate ??= DateTime.now();
         _isLoading = false;
       });
     } catch (e) {
@@ -138,6 +141,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           programTrack: _selectedProgramTrack!,
           cohort: _selectedCohort!,
           role: _selectedRole!,
+          registrationDate: _registrationDate!,
         );
       } else {
         saved = await _repository.createStudent(
@@ -149,6 +153,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           programTrack: _selectedProgramTrack!,
           cohort: _selectedCohort!,
           role: _selectedRole!,
+          registrationDate: _registrationDate!,
         );
       }
       if (!mounted) return;
@@ -249,6 +254,12 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                             value: _selectedRole,
                             options: _roles,
                             onChanged: (v) => setState(() => _selectedRole = v),
+                          ),
+                          const SizedBox(height: 14),
+                          _datePicker(
+                            label: 'Registration Date',
+                            value: _registrationDate,
+                            onChanged: (v) => setState(() => _registrationDate = v),
                           ),
                           const SizedBox(height: 24),
                           Row(
@@ -360,6 +371,54 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           items: [for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis))],
           onChanged: onChanged,
           validator: (v) => v == null || v.isEmpty ? '$label is required' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _datePicker({
+    required String label,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AdminFieldLabel(label),
+        const SizedBox(height: 6),
+        FormField<DateTime>(
+          initialValue: value,
+          validator: (v) => v == null ? '$label is required' : null,
+          builder: (state) => InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: value ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null) {
+                onChanged(picked);
+                state.didChange(picked);
+              }
+            },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: AdminColors.surfaceContainerLow,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                errorText: state.errorText,
+                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+              ),
+              child: Text(
+                value == null ? 'Select a date' : '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
+                style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+              ),
+            ),
+          ),
         ),
       ],
     );

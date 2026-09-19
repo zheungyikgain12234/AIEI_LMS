@@ -12,6 +12,7 @@ enum AdminNavDestination {
   roleCourseMapping,
   departmentCourseMapping,
   trackCourseMapping,
+  specializationCourseMapping,
   courseEnrollment,
   manageDepartments,
   manageProgramTracks,
@@ -141,6 +142,16 @@ class AdminSidebar extends StatelessWidget {
                             AdminNavDestination.trackCourseMapping,
                           ),
                         ),
+                        _NavItem(
+                          icon: Icons.psychology_alt_outlined,
+                          label: 'Specialization ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.specializationCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.specializationCourseMapping,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -214,45 +225,6 @@ class AdminSidebar extends StatelessWidget {
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageRoles,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AdminColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.verified,
-                    color: AdminColors.secondary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Academic Year 2024–2025',
-                          style: AdminTypography.labelSm(
-                            color: AdminColors.onSurface,
-                          ),
-                        ),
-                        Text(
-                          'Admin Console Active',
-                          style: AdminTypography.labelSm(),
                         ),
                       ],
                     ),

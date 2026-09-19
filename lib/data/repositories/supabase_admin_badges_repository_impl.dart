@@ -12,7 +12,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
 
   @override
   Future<List<BadgeAward>> getBadgeAwards() async {
-    final rows = await _client.from('badge_awards').select(_selectWithJoins).order('issue_year', ascending: false);
+    final rows = await _client.from('badge_awards').select(_selectWithJoins).order('issue_date', ascending: false);
     return [for (final row in rows as List) BadgeAward.fromMap(row as Map<String, dynamic>)];
   }
 
@@ -27,7 +27,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
     required String studentId,
     required String courseId,
     required String badgeId,
-    required int issueYear,
+    required DateTime issueDate,
     required bool isRevoked,
   }) async {
     final row = await _client
@@ -36,7 +36,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
           'student_id': studentId,
           'course_id': courseId,
           'badge_id': badgeId,
-          'issue_year': issueYear,
+          'issue_date': issueDate.toIso8601String().substring(0, 10),
           'is_revoked': isRevoked,
         })
         .select(_selectWithJoins)
@@ -50,7 +50,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
     required String studentId,
     required String courseId,
     required String badgeId,
-    required int issueYear,
+    required DateTime issueDate,
     required bool isRevoked,
   }) async {
     final row = await _client
@@ -59,7 +59,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
           'student_id': studentId,
           'course_id': courseId,
           'badge_id': badgeId,
-          'issue_year': issueYear,
+          'issue_date': issueDate.toIso8601String().substring(0, 10),
           'is_revoked': isRevoked,
         })
         .eq('id', id)
@@ -72,4 +72,39 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
   Future<void> deleteBadgeAwards(List<String> ids) async {
     await _client.from('badge_awards').delete().inFilter('id', ids);
   }
+
+  @override
+  Future<List<(String, int)>> getMonthlyIssueCounts() async {
+    final now = DateTime.now();
+    final earliest = DateTime(now.year, now.month - 5, 1);
+    final rows = await _client
+        .from('badge_awards')
+        .select('issue_date')
+        .eq('is_revoked', false)
+        .gte('issue_date', earliest.toIso8601String().substring(0, 10));
+    final counts = <String, int>{};
+    for (var i = 0; i < 6; i++) {
+      final month = DateTime(earliest.year, earliest.month + i, 1);
+      counts[_monthKey(month)] = 0;
+    }
+    for (final row in rows as List) {
+      final date = DateTime.parse(row['issue_date'] as String);
+      final key = _monthKey(DateTime(date.year, date.month, 1));
+      if (counts.containsKey(key)) counts[key] = counts[key]! + 1;
+    }
+    return [
+      for (var i = 0; i < 6; i++)
+        (
+          _monthLabel(DateTime(earliest.year, earliest.month + i, 1)),
+          counts[_monthKey(DateTime(earliest.year, earliest.month + i, 1))]!,
+        ),
+    ];
+  }
+
+  static const _monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  String _monthKey(DateTime month) => '${month.year}-${month.month}';
+  String _monthLabel(DateTime month) => _monthNames[month.month - 1];
 }

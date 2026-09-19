@@ -4,11 +4,11 @@
 --
 -- Demo identity used throughout the app (see lib/core/config/demo_identity.dart):
 --   student = Alex Chen  (id 1 — students.id is now a bigint identity column)
---   lecturer = Dr. Sarah Lin (11111111-1111-1111-1111-111111111101)
+--   lecturer = Dr. Emmett Brown (11111111-1111-1111-1111-111111111106)
 --   admin = Marcus Vance (33333333-3333-3333-3333-333333333301)
 
 truncate table
-  enrollment_monthly_stats, enrollment_candidates, course_sections,
+  enrollment_candidates, course_sections,
   badge_awards, student_certifications, student_materials, student_courses,
   role_courses, lecturer_courses, module_certs, course_tags,
   module_materials, course_modules, courses,
@@ -64,24 +64,27 @@ insert into specializations (code, name) values
 -- credits_used is not seeded explicitly — it's recomputed by the
 -- `lecturer_courses_recalc_credits` trigger once the lecturer_courses rows
 -- below are inserted (see schema.sql).
-insert into lecturers (id, name, title, lecturer_code, email, department, specialization, credits_max, status, accredited, manageable) values
-  ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'TN01-EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 'Distributed ETL & Python', 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'TN01-EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of AI & Machine Learning', 'TN01-EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'TN01-EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true),
-  ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'TN01-EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false);
+insert into lecturers (id, name, title, lecturer_code, email, department, specialization, credits_max, status, accredited, manageable, join_date) values
+  ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'TN01-EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 'Distributed ETL & Python', 15, 'Active', true, true, '2021-08-16'),
+  ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'TN01-EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 15, 'Active', true, true, '2019-01-06'),
+  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of AI & Machine Learning', 'TN01-EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2022-09-01'),
+  ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'TN01-EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true, '2020-03-23'),
+  ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'TN01-EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false, '2017-11-13'),
+  -- Dr. Emmett Brown is this demo's active Lecturer Portal identity — see
+  -- lib/core/config/demo_identity.dart's DemoIdentity.lecturerId.
+  ('11111111-1111-1111-1111-111111111106', 'Dr. Emmett Brown', 'Distinguished Research Fellow', 'TN01-EMP-1985', 'e.brown@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2023-02-11');
 
-insert into students (id, name, student_code, email, department, title, program_track, cohort, role, gpa) overriding system value values
-  (1, 'Alex Chen', 'TN01-EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 'Data Analyst', 3.76),
-  (2, 'Maya Patel', 'TN01-EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'Fall 2025 Cohort', 'Data Analyst', 3.92),
-  (3, 'Marcus Reed', 'TN01-EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Summer 2025', 'Financial Analyst', 2.90),
-  (4, 'Elena Rostova Jr.', 'TN01-EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Compliance Officer', 3.40),
-  (5, 'David Kim', 'TN01-EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'Fall 2025 Cohort', 'Data Analyst', 3.55),
-  (6, 'Sophia Loren', 'TN01-EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'Fall 2025 Cohort', 'Data Analyst', 3.10),
-  (7, 'Jordan Taylor', 'TN01-EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Safety Officer', 2.60),
-  (8, 'Sarah Jenkins', 'TN01-EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'Fall 2025 Cohort', 'Cloud Engineer', 3.70),
-  (9, 'Liam Nguyen', 'TN01-EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'IT Support Specialist', 3.30),
-  (10, 'Chloe Bennett', 'TN01-EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'Data Analyst', 3.35);
+insert into students (id, name, student_code, email, department, title, program_track, cohort, role, gpa, registration_date) overriding system value values
+  (1, 'Alex Chen', 'TN01-EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'Fall 2025 Cohort', 'Data Analyst', 3.76, '2025-08-18'),
+  (2, 'Maya Patel', 'TN01-EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'Fall 2025 Cohort', 'Data Analyst', 3.92, '2025-08-19'),
+  (3, 'Marcus Reed', 'TN01-EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Summer 2025', 'Financial Analyst', 2.90, '2025-05-02'),
+  (4, 'Elena Rostova Jr.', 'TN01-EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Compliance Officer', 3.40, '2025-01-13'),
+  (5, 'David Kim', 'TN01-EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'Fall 2025 Cohort', 'Data Analyst', 3.55, '2025-08-20'),
+  (6, 'Sophia Loren', 'TN01-EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'Fall 2025 Cohort', 'Data Analyst', 3.10, '2025-08-21'),
+  (7, 'Jordan Taylor', 'TN01-EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'Spring 2025 Cohort', 'Safety Officer', 2.60, '2025-01-14'),
+  (8, 'Sarah Jenkins', 'TN01-EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'Fall 2025 Cohort', 'Cloud Engineer', 3.70, '2025-08-22'),
+  (9, 'Liam Nguyen', 'TN01-EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'IT Support Specialist', 3.30, '2025-08-23'),
+  (10, 'Chloe Bennett', 'TN01-EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'Fall 2025 Cohort', 'Data Analyst', 3.35, '2025-08-24');
 
 -- Keep the identity sequence ahead of the explicit ids inserted above, so
 -- the next `insert into students (name, ...)` (no id given — e.g. Register
@@ -126,7 +129,9 @@ insert into lecturer_courses (lecturer_id, course_id) values
   ('11111111-1111-1111-1111-111111111103', '44444444-4444-4444-4444-444444444412'), -- Aris Thorne: RL-705
   ('11111111-1111-1111-1111-111111111103', '44444444-4444-4444-4444-444444444413'), -- Aris Thorne: NLP-620 (+1 more)
   ('11111111-1111-1111-1111-111111111104', '44444444-4444-4444-4444-444444444406'), -- Elena Rostova: LEAD-400
-  ('11111111-1111-1111-1111-111111111104', '44444444-4444-4444-4444-444444444414'); -- Elena Rostova: COMM-102
+  ('11111111-1111-1111-1111-111111111104', '44444444-4444-4444-4444-444444444414'), -- Elena Rostova: COMM-102
+  ('11111111-1111-1111-1111-111111111106', '44444444-4444-4444-4444-444444444413'), -- Emmett Brown: NLP-620
+  ('11111111-1111-1111-1111-111111111106', '44444444-4444-4444-4444-444444444417'); -- Emmett Brown: AI-512
 
 -- ── Role → Course mapping (which job roles can study which courses) ─────
 
@@ -172,26 +177,50 @@ insert into role_courses (role_id, course_id) values
   ('99999999-9999-9999-9999-999999999908', '44444444-4444-4444-4444-444444444406'),
   ('99999999-9999-9999-9999-999999999908', '44444444-4444-4444-4444-444444444414');
 
+-- ── Specialization → Course mapping (which courses fit which lecturer
+-- specialization — drives the Specialization ↔ Course Mapping screen and
+-- the "not related to lecturer's specialization" warning on Manage Assigned
+-- Courses). Sarah Lin's AI-301 assignment above is deliberately left out of
+-- her specialization (Distributed ETL & Python) — it falls under Deep
+-- Neural Architectures instead — to demonstrate the mismatch warning. ───
+insert into specialization_courses (specialization_id, course_id) values
+  ((select id from specializations where name = 'Distributed ETL & Python'), '44444444-4444-4444-4444-444444444401'),
+  ((select id from specializations where name = 'Distributed ETL & Python'), '44444444-4444-4444-4444-444444444407'),
+  ((select id from specializations where name = 'OSHA Protocol & Site Risk Analysis'), '44444444-4444-4444-4444-444444444402'),
+  ((select id from specializations where name = 'OSHA Protocol & Site Risk Analysis'), '44444444-4444-4444-4444-444444444409'),
+  ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444408'),
+  ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444410'),
+  ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444411'),
+  ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444412'),
+  ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444413'),
+  ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444417'),
+  ((select id from specializations where name = 'Org Dynamics & Crisis Management'), '44444444-4444-4444-4444-444444444406'),
+  ((select id from specializations where name = 'Org Dynamics & Crisis Management'), '44444444-4444-4444-4444-444444444414'),
+  ((select id from specializations where name = 'Distributed Cloud Governance'), '44444444-4444-4444-4444-444444444416'),
+  ((select id from specializations where name = 'Distributed Cloud Governance'), '44444444-4444-4444-4444-444444444415');
+
 -- ── Course sections (lecturer_allocation screen: assigned + unassigned) ──
 
 -- section_code is the "class code" — manually entered by the admin through
 -- the Manage Assigned Courses screen (lecturer_course_assignment_screen.dart)
 -- rather than auto-generated, and tenant-prefixed like every other code.
-insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, delivery_mode, cohort, enrolled_count, status) values
-  ('44444444-4444-4444-4444-444444444401', 'TN01-CLS-PY402-A01', 'Primary Instructor', 'Fall 2025', 'Monday 09:00–10:30 • Innovation Hall 204', 'Monday', '09:00', '10:30', 'Innovation Hall 204', '11111111-1111-1111-1111-111111111101', 50, 'physical', 'Fall 2025 Cohort', 42, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444407', 'TN01-CLS-DATA501-B02', 'Primary Instructor', 'Fall 2025', 'Tuesday 13:00–14:45 • Data Lab 3B', 'Tuesday', '13:00', '14:45', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 45, 'physical', 'Fall 2025 Cohort', 38, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444408', 'TN01-CLS-AI301-C01', 'Co-Lecturer', 'Fall 2025', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111101', 35, 'online', 'Fall 2025 Cohort', 29, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444402', 'TN01-CLS-OSHE101-A1', 'Lead Instructor', 'Fall 2025', 'Monday 11:00–12:30 • Safety Training Center', 'Monday', '11:00', '12:30', 'Safety Training Center', '11111111-1111-1111-1111-111111111102', 56, 'physical', 'Fall 2025 Cohort', 56, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444409', 'TN01-CLS-SAF204-H03', 'Lead Instructor', 'Fall 2025', 'Thursday 14:00–17:30 • Hazmat Simulation Hall', 'Thursday', '14:00', '17:30', 'Hazmat Simulation Hall', '11111111-1111-1111-1111-111111111102', 34, 'physical', 'Fall 2025 Cohort', 34, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444410', 'TN01-CLS-ML800-GRAD', 'Graduate', 'Fall 2025', 'Monday 14:00–18:00 • Grad Seminar Room 5', 'Monday', '14:00', '18:00', 'Grad Seminar Room 5', '11111111-1111-1111-1111-111111111103', 50, 'physical', 'Fall 2025 Cohort', 50, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444411', 'TN01-CLS-DL901-DOC', 'Doctoral Seminar', 'Fall 2025', 'Wednesday 14:00–18:00 • Doctoral Seminar Hall', 'Wednesday', '14:00', '18:00', 'Doctoral Seminar Hall', '11111111-1111-1111-1111-111111111103', 45, 'physical', 'Fall 2025 Cohort', 45, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444412', 'TN01-CLS-RL705-ADV', 'Advanced Lab', 'Fall 2025', 'Friday 08:30–12:30 • Robotics Lab 2', 'Friday', '08:30', '12:30', 'Robotics Lab 2', '11111111-1111-1111-1111-111111111103', 30, 'physical', 'Fall 2025 Cohort', 30, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444406', 'TN01-CLS-LEAD400-E1', 'Section E1', 'Fall 2025', 'Tuesday 18:00–21:00 • Executive Boardroom', 'Tuesday', '18:00', '21:00', 'Executive Boardroom', '11111111-1111-1111-1111-111111111104', 28, 'physical', 'Executive Summer 2025', 28, 'in_progress'),
-  ('44444444-4444-4444-4444-444444444414', 'TN01-CLS-COMM102-C3', 'Section C3', 'Fall 2025', 'Thursday 16:00–19:00 • Communication Studio C', 'Thursday', '16:00', '19:00', 'Communication Studio C', '11111111-1111-1111-1111-111111111104', 40, 'physical', 'Executive Summer 2025', 40, 'in_progress'),
+insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, delivery_mode, cohort_id, status) values
+  ('44444444-4444-4444-4444-444444444401', 'TN01-CLS-PY402-A01', 'Primary Instructor', 'Fall 2025', 'Monday 09:00–10:30 • Innovation Hall 204', 'Monday', '09:00', '10:30', 'Innovation Hall 204', '11111111-1111-1111-1111-111111111101', 50, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444407', 'TN01-CLS-DATA501-B02', 'Primary Instructor', 'Fall 2025', 'Tuesday 13:00–14:45 • Data Lab 3B', 'Tuesday', '13:00', '14:45', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 45, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444408', 'TN01-CLS-AI301-C01', 'Co-Lecturer', 'Fall 2025', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111101', 35, 'online', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444402', 'TN01-CLS-OSHE101-A1', 'Lead Instructor', 'Fall 2025', 'Monday 11:00–12:30 • Safety Training Center', 'Monday', '11:00', '12:30', 'Safety Training Center', '11111111-1111-1111-1111-111111111102', 56, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444409', 'TN01-CLS-SAF204-H03', 'Lead Instructor', 'Fall 2025', 'Thursday 14:00–17:30 • Hazmat Simulation Hall', 'Thursday', '14:00', '17:30', 'Hazmat Simulation Hall', '11111111-1111-1111-1111-111111111102', 34, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444410', 'TN01-CLS-ML800-GRAD', 'Graduate', 'Fall 2025', 'Monday 14:00–18:00 • Grad Seminar Room 5', 'Monday', '14:00', '18:00', 'Grad Seminar Room 5', '11111111-1111-1111-1111-111111111103', 50, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444411', 'TN01-CLS-DL901-DOC', 'Doctoral Seminar', 'Fall 2025', 'Wednesday 14:00–18:00 • Doctoral Seminar Hall', 'Wednesday', '14:00', '18:00', 'Doctoral Seminar Hall', '11111111-1111-1111-1111-111111111103', 45, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444412', 'TN01-CLS-RL705-ADV', 'Advanced Lab', 'Fall 2025', 'Friday 08:30–12:30 • Robotics Lab 2', 'Friday', '08:30', '12:30', 'Robotics Lab 2', '11111111-1111-1111-1111-111111111103', 30, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444406', 'TN01-CLS-LEAD400-E1', 'Section E1', 'Fall 2025', 'Tuesday 18:00–21:00 • Executive Boardroom', 'Tuesday', '18:00', '21:00', 'Executive Boardroom', '11111111-1111-1111-1111-111111111104', 28, 'physical', (select id from cohorts where name = 'Executive Summer 2025'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444414', 'TN01-CLS-COMM102-C3', 'Section C3', 'Fall 2025', 'Thursday 16:00–19:00 • Communication Studio C', 'Thursday', '16:00', '19:00', 'Communication Studio C', '11111111-1111-1111-1111-111111111104', 40, 'physical', (select id from cohorts where name = 'Executive Summer 2025'), 'in_progress'),
+  -- Dr. Emmett Brown's classes (Lecturer Portal demo identity):
+  ('44444444-4444-4444-4444-444444444413', 'TN01-CLS-NLP620-A01', 'Primary Instructor', 'Fall 2025', 'Wednesday 10:00–12:00 • Language Systems Lab', 'Wednesday', '10:00', '12:00', 'Language Systems Lab', '11111111-1111-1111-1111-111111111106', 30, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444417', 'TN01-CLS-AI512-01', 'Primary Instructor', 'Fall 2025', 'Thursday 13:00–16:00 • Autonomy Systems Lab', 'Thursday', '13:00', '16:00', 'Autonomy Systems Lab', '11111111-1111-1111-1111-111111111106', 22, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
   -- Unassigned sections needing lecturer allocation:
-  ('44444444-4444-4444-4444-444444444415', 'TN01-CLS-CYBER202-02', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 34, 'physical', 'Fall 2025 Cohort', 34, 'scheduled'),
-  ('44444444-4444-4444-4444-444444444416', 'TN01-CLS-CLOUD410-01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 50, 'online', 'Fall 2025 Cohort', 50, 'scheduled'),
-  ('44444444-4444-4444-4444-444444444417', 'TN01-CLS-AI512-01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 22, 'physical', 'Fall 2025 Cohort', 22, 'scheduled');
+  ('44444444-4444-4444-4444-444444444415', 'TN01-CLS-CYBER202-02', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 34, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'scheduled'),
+  ('44444444-4444-4444-4444-444444444416', 'TN01-CLS-CLOUD410-01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 50, 'online', (select id from cohorts where name = 'Fall 2025 Cohort'), 'scheduled');
 
 -- ── Modules + Materials ─────────────────────────────────────────────────
 -- Python course (PY-402) — full 10-lesson curriculum matching course_info_screen.dart
@@ -390,13 +419,13 @@ insert into module_certs (module_id, cert_id) values
 
 -- ── Student enrollment + progress (Alex Chen — drives catalogue + badges) ──
 
-insert into student_courses (student_id, course_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, sponsorship, last_activity_at, is_online_now) values
-  (1, '44444444-4444-4444-4444-444444444401', 70, 'B+', 88.4, 96, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
-  (1, '44444444-4444-4444-4444-444444444402', 38, 'C+', 76.0, 88, 'at_risk', 'Corporate Sponsored', now() - interval '1 day', false),
-  (1, '44444444-4444-4444-4444-444444444403', 40, 'B', 82.0, 92, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', false),
-  (1, '44444444-4444-4444-4444-444444444404', 20, 'B-', 79.5, 90, 'on_track', 'Corporate Sponsored', now() - interval '3 days', false),
-  (1, '44444444-4444-4444-4444-444444444405', 85, 'A-', 91.0, 97, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
-  (1, '44444444-4444-4444-4444-444444444406', 100, 'A', 94.0, 100, 'on_track', 'Corporate Sponsored', now() - interval '10 days', false);
+insert into student_courses (student_id, course_id, section_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, sponsorship, last_activity_at, is_online_now) values
+  (1, '44444444-4444-4444-4444-444444444401', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 70, 'B+', 88.4, 96, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
+  (1, '44444444-4444-4444-4444-444444444402', null, 38, 'C+', 76.0, 88, 'at_risk', 'Corporate Sponsored', now() - interval '1 day', false),
+  (1, '44444444-4444-4444-4444-444444444403', null, 40, 'B', 82.0, 92, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', false),
+  (1, '44444444-4444-4444-4444-444444444404', null, 20, 'B-', 79.5, 90, 'on_track', 'Corporate Sponsored', now() - interval '3 days', false),
+  (1, '44444444-4444-4444-4444-444444444405', null, 85, 'A-', 91.0, 97, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
+  (1, '44444444-4444-4444-4444-444444444406', null, 100, 'A', 94.0, 100, 'on_track', 'Corporate Sponsored', now() - interval '10 days', false);
 
 insert into student_materials (student_id, material_id, status, score, attempts, completed_at) values
   (1, '66666666-6666-6666-6666-666666666601', 'completed', 100, 1, now() - interval '30 days'),
@@ -459,21 +488,35 @@ insert into student_certifications (student_id, cert_id, status, progress_percen
 
 -- ── Manage Badges (per-course badge awards, admin screen) ───────────────
 
-insert into badge_awards (student_id, course_id, badge_id, issue_year, is_revoked) values
-  (1, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', 2025, false),
-  (1, '44444444-4444-4444-4444-444444444402', '88888888-8888-8888-8888-888888888802', 2025, true),
-  (2, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', 2025, false),
-  (4, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', 2025, false);
+-- issue_date values are relative to today so the Manage Students "Monthly
+-- Credential Grant Rate" chart (last 6 months, derived live from this table)
+-- always has recent data to show, regardless of when this seed is run.
+insert into badge_awards (student_id, course_id, badge_id, issue_date, is_revoked) values
+  (1, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '3 days', false),
+  (1, '44444444-4444-4444-4444-444444444402', '88888888-8888-8888-8888-888888888802', current_date - interval '8 months', true),
+  (2, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '3 weeks', false),
+  (4, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '2 months', false);
 
 -- ── Faculty portal: enrollment rosters for Sarah Lin's 3 courses ─────────
 -- (drives student_directory_screen.dart, course_dashboard_screen.dart, my_assigned_courses_screen.dart)
 
-insert into student_courses (student_id, course_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, last_activity_at) values
-  (2, '44444444-4444-4444-4444-444444444401', 92, 'A', 98.0, 98, 'on_track', now() - interval '18 minutes'),
-  (3, '44444444-4444-4444-4444-444444444401', 45, 'D', 68.0, 60, 'critical', now() - interval '6 days'),
-  (4, '44444444-4444-4444-4444-444444444401', 80, 'B+', 88.5, 90, 'on_track', now() - interval '1 day'),
-  (5, '44444444-4444-4444-4444-444444444401', 70, 'A-', 91.0, 94, 'on_track', now() - interval '4 hours'),
-  (6, '44444444-4444-4444-4444-444444444401', 60, 'B', 84.0, 82, 'at_risk', now() - interval '3 days');
+insert into student_courses (student_id, course_id, section_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, last_activity_at) values
+  (2, '44444444-4444-4444-4444-444444444401', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 92, 'A', 98.0, 98, 'on_track', now() - interval '18 minutes'),
+  (3, '44444444-4444-4444-4444-444444444401', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 45, 'D', 68.0, 60, 'critical', now() - interval '6 days'),
+  (4, '44444444-4444-4444-4444-444444444401', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 80, 'B+', 88.5, 90, 'on_track', now() - interval '1 day'),
+  (5, '44444444-4444-4444-4444-444444444401', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 70, 'A-', 91.0, 94, 'on_track', now() - interval '4 hours'),
+  (6, '44444444-4444-4444-4444-444444444401', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 60, 'B', 84.0, 82, 'at_risk', now() - interval '3 days');
+
+-- ── Faculty portal: enrollment rosters for Dr. Emmett Brown's 2 classes ──
+-- (drives student_directory_screen.dart, course_dashboard_screen.dart, my_assigned_courses_screen.dart)
+
+insert into student_courses (student_id, course_id, section_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, last_activity_at) values
+  (1, '44444444-4444-4444-4444-444444444413', (select id from course_sections where section_code = 'TN01-CLS-NLP620-A01'), 55, 'B', 85.0, 92, 'on_track', now() - interval '2 hours'),
+  (3, '44444444-4444-4444-4444-444444444413', (select id from course_sections where section_code = 'TN01-CLS-NLP620-A01'), 30, 'C', 74.5, 68, 'at_risk', now() - interval '5 days'),
+  (7, '44444444-4444-4444-4444-444444444413', (select id from course_sections where section_code = 'TN01-CLS-NLP620-A01'), 65, 'A-', 90.0, 95, 'on_track', now() - interval '1 day'),
+  (5, '44444444-4444-4444-4444-444444444417', (select id from course_sections where section_code = 'TN01-CLS-AI512-01'), 40, 'B+', 87.0, 88, 'on_track', now() - interval '6 hours'),
+  (6, '44444444-4444-4444-4444-444444444417', (select id from course_sections where section_code = 'TN01-CLS-AI512-01'), 20, 'C+', 76.0, 70, 'at_risk', now() - interval '3 days'),
+  (9, '44444444-4444-4444-4444-444444444417', (select id from course_sections where section_code = 'TN01-CLS-AI512-01'), 50, 'A', 93.0, 97, 'on_track', now() - interval '20 minutes');
 
 -- ── Admin: Course Enrollment roster (SEC-410 Cybersecurity course, admin
 -- view — drives course_enrollment_screen.dart; Alex Chen's own SEC-410
@@ -486,8 +529,9 @@ insert into student_courses (student_id, course_id, progress_percentage, grade, 
   (10, '44444444-4444-4444-4444-444444444405', 84, 'B+', 89.0, 93, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', true);
 
 -- ── Admin: Enrollment candidates / waitlist for PY-402 (drives
--- enroll_students_screen.dart — its capacity/enrolled figures come from
--- the PY-402 'Sec A01' course_sections row above: 42/50) ────────────────
+-- enroll_students_screen.dart — its capacity comes from the PY-402
+-- 'Sec A01' course_sections row above; enrolled count is derived live
+-- from the `student_courses` rows enrolled in that section) ─────────────
 
 insert into enrollment_candidates (student_name, student_employee_id, student_email, department, cohort, role, target_course_id, prerequisite_status, prerequisite_detail, standing_detail, sponsorship, queue_tag, needs_review) values
   ('Daniel Ross', 'EMP-61092', 'daniel.ross@enterprise.com', 'Data Architecture', 'Fall 2025 Cohort', 'IT Support Specialist', '44444444-4444-4444-4444-444444444401', 'met', 'CS-101 Met (GPA 3.9)', 'Academic Good Standing', 'Enterprise Full', 'Staged', false),
@@ -498,7 +542,3 @@ insert into enrollment_candidates (student_name, student_employee_id, student_em
   -- Executive Manager's role→course mapping doesn't include PY-402 — demonstrates the role-mismatch flag.
   ('Jason Todd', 'EMP-77182', 'jason.todd@enterprise.com', 'Executive Operations', 'Summer 2025 Cohort', 'Executive Manager', '44444444-4444-4444-4444-444444444401', 'pending', 'Prereq Waiver Required', 'Conditional dean approval', 'Enterprise Full', 'Waitlist #2', true);
 
--- ── Admin: enrollment monthly trend (Manage Students screen) ────────────
-
-insert into enrollment_monthly_stats (month_label, new_enrollments, sort_order) values
-  ('Oct', 48, 0), ('Nov', 64, 1), ('Dec', 82, 2), ('Jan', 96, 3), ('Feb', 110, 4), ('Mar', 132, 5);

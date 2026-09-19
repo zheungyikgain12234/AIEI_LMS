@@ -13,10 +13,22 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
   Future<List<AssignedCourse>> getAssignedCourses(String lecturerId) async {
     final rows = await _client
         .from('course_sections')
-        .select('*, courses(*)')
+        .select('*, courses(*), cohorts(name)')
         .eq('lecturer_id', lecturerId)
         .order('section_code');
-    return [for (final row in rows as List) AssignedCourse.fromMap(row as Map<String, dynamic>)];
+    final sectionIds = [for (final row in rows as List) row['id'] as String];
+    final enrolled = sectionIds.isEmpty
+        ? const []
+        : await _client.from('student_courses').select('section_id').inFilter('section_id', sectionIds);
+    final counts = <String, int>{};
+    for (final row in enrolled as List) {
+      final sectionId = row['section_id'] as String;
+      counts[sectionId] = (counts[sectionId] ?? 0) + 1;
+    }
+    return [
+      for (final row in rows)
+        AssignedCourse.fromMap(row as Map<String, dynamic>, enrolledCount: counts[row['id'] as String] ?? 0),
+    ];
   }
 
   @override

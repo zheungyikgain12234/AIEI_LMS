@@ -32,6 +32,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     required String programTrack,
     required String cohort,
     required String role,
+    required DateTime registrationDate,
   }) async {
     final row = await _client
         .from('students')
@@ -44,6 +45,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'program_track': programTrack,
           'cohort': cohort,
           'role': role,
+          'registration_date': registrationDate.toIso8601String().substring(0, 10),
         })
         .select()
         .single();
@@ -61,6 +63,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     required String programTrack,
     required String cohort,
     required String role,
+    required DateTime registrationDate,
     double? gpa,
   }) async {
     final row = await _client
@@ -74,6 +77,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'program_track': programTrack,
           'cohort': cohort,
           'role': role,
+          'registration_date': registrationDate.toIso8601String().substring(0, 10),
           if (gpa != null) 'gpa': gpa,
         })
         .eq('id', id)
@@ -134,14 +138,6 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
-  Future<List<(String, int)>> getEnrollmentTrend() async {
-    final rows = await _client.from('enrollment_monthly_stats').select().order('sort_order');
-    return [
-      for (final row in rows as List) (row['month_label'] as String, row['new_enrollments'] as int),
-    ];
-  }
-
-  @override
   Future<void> deleteStudents(List<String> ids) async {
     await _client.from('students').delete().inFilter('id', ids);
   }
@@ -181,8 +177,6 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
       ],
       onConflict: 'student_id,course_id',
     );
-    final enrolled = await _client.from('student_courses').select('student_id').eq('section_id', sectionId);
-    await _client.from('course_sections').update({'enrolled_count': (enrolled as List).length}).eq('id', sectionId);
   }
 
   @override
@@ -196,17 +190,16 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
 
   @override
   Future<void> unenrollStudentFromCourse(String studentId, String courseId) async {
-    final row = await _client
-        .from('student_courses')
-        .select('section_id')
-        .eq('student_id', studentId)
-        .eq('course_id', courseId)
-        .maybeSingle();
-    final sectionId = row?['section_id'] as String?;
     await _client.from('student_courses').delete().eq('student_id', studentId).eq('course_id', courseId);
-    if (sectionId != null) {
-      final remaining = await _client.from('student_courses').select('student_id').eq('section_id', sectionId);
-      await _client.from('course_sections').update({'enrolled_count': (remaining as List).length}).eq('id', sectionId);
-    }
+  }
+
+  @override
+  Future<List<RosterStudent>> getSectionRoster(String sectionId) async {
+    final rows = await _client
+        .from('student_courses')
+        .select('*, students(*)')
+        .eq('section_id', sectionId)
+        .order('enrolled_at');
+    return [for (final row in rows as List) RosterStudent.fromMap(row as Map<String, dynamic>)];
   }
 }

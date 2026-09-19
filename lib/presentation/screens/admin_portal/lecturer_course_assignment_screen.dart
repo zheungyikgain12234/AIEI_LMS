@@ -8,16 +8,20 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_specialization_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+import 'package:stitch_aiei_lms/domain/models/cohort.dart';
+import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show LecturerClassSlot;
 import 'widgets/admin_field_label.dart';
 
 // ---------------------------------------------------------------------------
 // LecturerCourseAssignmentScreen — "Manage Assigned Courses" for a single
-// lecturer. Shows the lecturer's info + credit capacity, lists courses not
-// yet assigned to them (searchable, checkbox-selectable), keeps a live
-// credit counter as courses are checked, and blocks assignment once the
-// selection would exceed the lecturer's `credits_max`. Assigning a course
+// lecturer. Shows the lecturer's info + credit capacity, lists courses
+// (searchable, single-select via radio button — one course gets one new
+// class section per assignment), keeps a live credit counter as a course is
+// picked, and blocks assignment once the selection would exceed the
+// lecturer's `credits_max`. Assigning a course
 // creates a new class section identified by an admin-entered, tenant-prefixed
 // unique Class Code (e.g. `TN01-CLS-OSHE101-A01`) taught by this lecturer;
 // already-assigned courses can be unassigned, which frees up their sections.
@@ -35,15 +39,20 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _specializationMappingRepository = SupabaseSpecializationCourseMappingRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _isAssigning = false;
   bool _isUnassigning = false;
   Lecturer? _lecturer;
   List<AdminCourse> _availableCourses = [];
-  List<AdminCourse> _assignedCourses = [];
-  List<String> _cohorts = [];
-  final Set<String> _selectedToAssign = {};
+  List<Cohort> _cohortModels = [];
+  Map<String, int> _creditsByCourseId = {};
+  Map<String, AdminCourse> _courseById = {};
+  Set<String> _specializationCourseIds = {};
+  List<LecturerClassSlot> _assignedSchedules = [];
+  int? _selectedYear;
+  String? _selectedCourseId;
   final Set<String> _selectedToUnassign = {};
   final _searchController = TextEditingController();
   final _locationController = TextEditingController();
@@ -78,20 +87,103 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   Future<void> _load() async {
     setState(() => _isLoading = true);
     final lecturer = await _lecturersRepository.getLecturerById(widget.lecturerId);
-    final assignedIds = (await _lecturersRepository.getAssignedCourseIds(widget.lecturerId)).toSet();
+    final assignedSchedules = await _lecturersRepository.getAssignedSchedules(widget.lecturerId);
     final allCourses = await _coursesRepository.getCourses();
     final cohorts = await _masterDataRepository.getCohorts();
+
+    // Courses "not related to lecturer's specialization" (Specialization ↔
+    // Course Mapping) get a warning tag below — it never blocks assignment.
+    final specializations = await _masterDataRepository.getSpecializations();
+    Set<String> specializationCourseIds = {};
+    for (final s in specializations) {
+      if (s.name == lecturer.specialization) {
+        specializationCourseIds = await _specializationMappingRepository.getCourseIdsForSpecialization(s.id);
+        break;
+      }
+    }
+
     if (!mounted) return;
     setState(() {
       _lecturer = lecturer;
-      _assignedCourses = allCourses.where((c) => assignedIds.contains(c.id)).toList();
-      _availableCourses = allCourses.where((c) => !assignedIds.contains(c.id)).toList();
-      _cohorts = [for (final c in cohorts) c.name];
-      _selectedToAssign.clear();
+      // Every course can be picked for assignment, including ones the
+      // lecturer already teaches — that's how a second class/section is
+      // created for the same course, even for the same cohort. Only a
+      // genuine schedule clash (same course, same cohort, overlapping day
+      // and time) is blocked, in _assign().
+      _availableCourses = allCourses;
+      _cohortModels = cohorts;
+      _creditsByCourseId = {for (final c in allCourses) c.id: c.credits};
+      _courseById = {for (final c in allCourses) c.id: c};
+      _specializationCourseIds = specializationCourseIds;
+      _assignedSchedules = assignedSchedules;
+      // Keep the admin's current Year/Cohort selection across a reload
+      // (e.g. right after assigning a class) instead of resetting it, so
+      // they can keep adding classes to the same cohort in one sitting.
+      final years = _allYears;
+      if (_selectedYear == null || !years.contains(_selectedYear)) {
+        final currentYear = DateTime.now().year;
+        _selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
+      }
+      final cohortNames = _selectedYear == null ? const <String>[] : _cohortNamesForYear(_selectedYear!);
+      if (_selectedCohort == null || !cohortNames.contains(_selectedCohort)) {
+        _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
+      }
+      _selectedCourseId = null;
       _selectedToUnassign.clear();
       _isLoading = false;
     });
   }
+
+  Map<String, int> get _cohortYearByName => {for (final c in _cohortModels) c.name: c.year};
+
+  /// Every year with at least one cohort in the system — the source for the
+  /// Year dropdown at the top of the page (not limited to years this
+  /// lecturer already teaches in, since the admin needs to be able to pick
+  /// any cohort to assign a first class into).
+  List<int> get _allYears {
+    final years = _cohortModels.map((c) => c.year).toSet().toList();
+    years.sort();
+    return years;
+  }
+
+  List<String> _cohortNamesForYear(int year) {
+    final names = _cohortModels.where((c) => c.year == year).map((c) => c.name).toList();
+    return names;
+  }
+
+  void _onYearChanged(int year) {
+    setState(() {
+      _selectedYear = year;
+      final names = _cohortNamesForYear(year);
+      _selectedCohort = names.isEmpty ? null : names.first;
+    });
+  }
+
+  /// Per-cohort workload breakdown (class count + total credits), for
+  /// cohorts in [_selectedYear] only — real teaching load computed from
+  /// this lecturer's actual class sections, since the same course can now
+  /// be assigned to them more than once (different cohorts and/or times).
+  List<({String cohort, int classCount, int credits})> get _cohortWorkloads {
+    final creditsByCohort = <String, int>{};
+    final countByCohort = <String, int>{};
+    for (final s in _assignedSchedules) {
+      final cohort = s.cohort;
+      if (cohort == null) continue;
+      if (_selectedYear != null && _cohortYearByName[cohort] != _selectedYear) continue;
+      final credits = _creditsByCourseId[s.courseId] ?? 0;
+      creditsByCohort[cohort] = (creditsByCohort[cohort] ?? 0) + credits;
+      countByCohort[cohort] = (countByCohort[cohort] ?? 0) + 1;
+    }
+    final names = creditsByCohort.keys.toList()..sort();
+    return [for (final name in names) (cohort: name, classCount: countByCohort[name]!, credits: creditsByCohort[name]!)];
+  }
+
+  /// The lecturer's real total workload across every cohort/section (not
+  /// just [_workloadYear]) — `lecturers.credits_used` is course-deduped (one
+  /// row per (lecturer, course) regardless of how many cohorts/sections),
+  /// so it can no longer be trusted as "credits used" now that a course may
+  /// be assigned to the same lecturer more than once.
+  int get _realCreditsUsed => _assignedSchedules.fold(0, (sum, s) => sum + (_creditsByCourseId[s.courseId] ?? 0));
 
   List<AdminCourse> get _filteredAvailable {
     if (_query.isEmpty) return _availableCourses;
@@ -99,18 +191,43 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         c.courseCode.toLowerCase().contains(_query) || c.courseTitle.toLowerCase().contains(_query)).toList();
   }
 
-  int get _assignCredits => _availableCourses.where((c) => _selectedToAssign.contains(c.id)).fold(0, (sum, c) => sum + c.credits);
+  int get _assignCredits =>
+      _availableCourses.where((c) => c.id == _selectedCourseId).fold(0, (sum, c) => sum + c.credits);
 
-  int get _unassignCredits => _assignedCourses.where((c) => _selectedToUnassign.contains(c.id)).fold(0, (sum, c) => sum + c.credits);
+  /// Unassigning is per section now, so this is just the sum of credits for
+  /// the specific sections selected to unassign.
+  int get _unassignCredits => _assignedSchedules
+      .where((s) => _selectedToUnassign.contains(s.id))
+      .fold(0, (sum, s) => sum + (_creditsByCourseId[s.courseId] ?? 0));
 
-  int get _projectedCreditsUsed => (_lecturer?.creditsUsed ?? 0) + _assignCredits - _unassignCredits;
+  /// Credits already used within [_selectedCohort] specifically —
+  /// `credits_max` is a per-cohort cap, not a global one, so a lecturer at
+  /// capacity in one cohort/term can still take on a full load in another.
+  int get _selectedCohortCreditsUsed {
+    if (_selectedCohort == null) return 0;
+    return _assignedSchedules
+        .where((s) => s.cohort == _selectedCohort)
+        .fold(0, (sum, s) => sum + (_creditsByCourseId[s.courseId] ?? 0));
+  }
 
-  bool get _overCapacity => _lecturer != null && _projectedCreditsUsed > _lecturer!.creditsMax;
+  /// Of the sections selected to unassign, the credits that belong to
+  /// [_selectedCohort] specifically — only those reduce *this* cohort's load.
+  int get _selectedCohortUnassignCredits {
+    if (_selectedCohort == null) return 0;
+    return _assignedSchedules
+        .where((s) => s.cohort == _selectedCohort && _selectedToUnassign.contains(s.id))
+        .fold(0, (sum, s) => sum + (_creditsByCourseId[s.courseId] ?? 0));
+  }
+
+  int get _projectedCohortCreditsUsed => _selectedCohortCreditsUsed + _assignCredits - _selectedCohortUnassignCredits;
+
+  bool get _overCapacity =>
+      _lecturer != null && _selectedCohort != null && _projectedCohortCreditsUsed > _lecturer!.creditsMax;
 
   bool get _timeRangeValid => _startTime != null && _endTime != null && _toMinutes(_endTime!) > _toMinutes(_startTime!);
 
   bool get _canAssign =>
-      _selectedToAssign.isNotEmpty &&
+      _selectedCourseId != null &&
       !_overCapacity &&
       _dayOfWeek != null &&
       _timeRangeValid &&
@@ -143,6 +260,39 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   String _formatTime(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
+  /// Parses a Postgres `time` value (`"09:00:00"` or `"09:00"`) into minutes
+  /// since midnight, for comparison against [_toMinutes].
+  int? _parseMinutes(String? hms) {
+    if (hms == null || hms.length < 5) return null;
+    final hour = int.tryParse(hms.substring(0, 2));
+    final minute = int.tryParse(hms.substring(3, 5));
+    if (hour == null || minute == null) return null;
+    return hour * 60 + minute;
+  }
+
+  String _trimSeconds(String hms) => hms.length >= 5 ? hms.substring(0, 5) : hms;
+
+  /// The lecturer's existing classes for [courseId] and [cohort] whose
+  /// day/time overlaps [dayOfWeek] + [start]–[end] — a genuine schedule
+  /// clash. Same course/cohort at a non-overlapping time is allowed.
+  List<LecturerClassSlot> _clashingSlots({
+    required String courseId,
+    required String cohort,
+    required String dayOfWeek,
+    required TimeOfDay start,
+    required TimeOfDay end,
+  }) {
+    final startMin = _toMinutes(start);
+    final endMin = _toMinutes(end);
+    return _assignedSchedules.where((slot) {
+      if (slot.courseId != courseId || slot.cohort != cohort || slot.dayOfWeek != dayOfWeek) return false;
+      final slotStart = _parseMinutes(slot.startTime);
+      final slotEnd = _parseMinutes(slot.endTime);
+      if (slotStart == null || slotEnd == null) return false;
+      return startMin < slotEnd && slotStart < endMin;
+    }).toList();
+  }
+
   Future<void> _pickTime({required bool isStart}) async {
     final picked = await showTimePicker(
       context: context,
@@ -154,12 +304,37 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   Future<void> _assign() async {
     if (!_canAssign || _lecturer == null) return;
+    final courses = _availableCourses.where((c) => c.id == _selectedCourseId).toList();
+
+    // Same course + same cohort is fine as long as the day/time doesn't
+    // overlap an existing class of this lecturer's — only a genuine
+    // schedule clash is blocked.
+    final clashes = <String>[];
+    for (final course in courses) {
+      final slots = _clashingSlots(
+        courseId: course.id,
+        cohort: _selectedCohort!,
+        dayOfWeek: _dayOfWeek!,
+        start: _startTime!,
+        end: _endTime!,
+      );
+      for (final slot in slots) {
+        clashes.add('${course.courseCode} (${slot.sectionCode} • ${slot.dayOfWeek} ${_trimSeconds(slot.startTime!)}–${_trimSeconds(slot.endTime!)})');
+      }
+    }
+    if (clashes.isNotEmpty) {
+      setState(() {
+        _assignErrorMessage = '${_lecturer!.name} already has an overlapping class at that day/time: ${clashes.join(', ')}. '
+            'Pick a different day or time to add another class for the same course and cohort.';
+      });
+      return;
+    }
+
     setState(() {
       _isAssigning = true;
       _assignErrorMessage = null;
     });
     try {
-      final courses = _availableCourses.where((c) => _selectedToAssign.contains(c.id)).toList();
       final startTime = _formatTime(_startTime!);
       final endTime = _formatTime(_endTime!);
       final location = _locationController.text.trim();
@@ -178,7 +353,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           cohort: _selectedCohort!,
         );
       }
-      await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, _selectedToAssign.toList());
+      await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, [_selectedCourseId!]);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${courses.length} course${courses.length == 1 ? '' : 's'} assigned to ${_lecturer!.name}.')),
@@ -187,7 +362,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _startTime = null;
       _endTime = null;
       _deliveryMode = 'physical';
-      _selectedCohort = null;
       _locationController.clear();
       _classCodeController.clear();
       _capacityController.clear();
@@ -205,16 +379,18 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     setState(() => _isUnassigning = true);
     try {
       final count = _selectedToUnassign.length;
-      await _lecturersRepository.unassignCoursesFromLecturer(widget.lecturerId, _selectedToUnassign.toList());
+      for (final sectionId in _selectedToUnassign) {
+        await _lecturersRepository.unassignSection(sectionId);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$count course${count == 1 ? '' : 's'} unassigned from ${_lecturer!.name}.')),
+        SnackBar(content: Text('$count class${count == 1 ? '' : 'es'} unassigned from ${_lecturer!.name}.')),
       );
       await _load();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to unassign courses: $e'), backgroundColor: AdminColors.error),
+        SnackBar(content: Text('Failed to unassign classes: $e'), backgroundColor: AdminColors.error),
       );
     } finally {
       if (mounted) setState(() => _isUnassigning = false);
@@ -244,7 +420,11 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                     children: [
                       _buildLecturerCard(),
                       const SizedBox(height: 20),
-                      if (_assignedCourses.isNotEmpty) ...[
+                      _buildYearCohortCard(),
+                      const SizedBox(height: 20),
+                      if (_assignedSchedules.isNotEmpty) ...[
+                        _buildWorkloadByCohortCard(),
+                        const SizedBox(height: 20),
                         _buildAssignedCard(),
                         const SizedBox(height: 16),
                         _buildUnassignBar(),
@@ -260,6 +440,89 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildYearCohortCard() {
+    final years = _allYears;
+    final cohortNames = _selectedYear == null ? const <String>[] : _cohortNamesForYear(_selectedYear!);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('1. Select Year & Cohort', style: AdminTypography.titleSm()),
+          const SizedBox(height: 2),
+          Text(
+            'Choose which cohort to assign a class into before picking courses. Credit capacity is checked per cohort.',
+            style: AdminTypography.bodySm(),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 160,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AdminFieldLabel('Year'),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<int>(
+                      initialValue: years.contains(_selectedYear) ? _selectedYear : null,
+                      isExpanded: true,
+                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: AdminColors.surfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                      hint: Text('Select year', style: AdminTypography.bodySm(color: AdminColors.outline)),
+                      items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
+                      onChanged: (y) {
+                        if (y != null) _onYearChanged(y);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                width: 260,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AdminFieldLabel('Cohort'),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
+                      isExpanded: true,
+                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: AdminColors.surfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                      hint: Text('Select cohort', style: AdminTypography.bodySm(color: AdminColors.outline)),
+                      items: [for (final c in cohortNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
+                      onChanged: (c) => setState(() => _selectedCohort = c),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -295,28 +558,123 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            children: _selectedCohort == null
+                ? [
+                    Text('$_realCreditsUsed Credits Used (All Cohorts)', style: AdminTypography.titleMd()),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Cap is ${l.creditsMax} credits per cohort — select a cohort below to check its capacity.',
+                      style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+                      textAlign: TextAlign.end,
+                    ),
+                  ]
+                : [
+                    Text(
+                      '$_projectedCohortCreditsUsed / ${l.creditsMax} Credits',
+                      style: AdminTypography.titleMd(color: _overCapacity ? AdminColors.error : AdminColors.onSurface),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _selectedCohort!,
+                      style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+                    ),
+                    Text(
+                      _selectedCourseId == null && _selectedToUnassign.isEmpty
+                          ? 'Currently used: $_selectedCohortCreditsUsed'
+                          : '$_selectedCohortCreditsUsed used'
+                              '${_assignCredits > 0 ? ' + $_assignCredits selected' : ''}'
+                              '${_selectedCohortUnassignCredits > 0 ? ' − $_selectedCohortUnassignCredits unassigning' : ''}',
+                      style: AdminTypography.labelSm(color: _overCapacity ? AdminColors.error : AdminColors.onSurfaceVariant),
+                    ),
+                    if (_overCapacity) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Exceeds this cohort\'s capacity by ${_projectedCohortCreditsUsed - l.creditsMax}',
+                        style: AdminTypography.labelSm(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkloadByCohortCard() {
+    final workloads = _cohortWorkloads;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(
-                '$_projectedCreditsUsed / ${l.creditsMax} Credits',
-                style: AdminTypography.titleMd(color: _overCapacity ? AdminColors.error : AdminColors.onSurface),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _selectedToAssign.isEmpty && _selectedToUnassign.isEmpty
-                    ? 'Currently used: ${l.creditsUsed}'
-                    : '${l.creditsUsed} used'
-                        '${_assignCredits > 0 ? ' + $_assignCredits selected' : ''}'
-                        '${_unassignCredits > 0 ? ' − $_unassignCredits unassigning' : ''}',
-                style: AdminTypography.labelSm(color: _overCapacity ? AdminColors.error : AdminColors.onSurfaceVariant),
-              ),
-              if (_overCapacity) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Exceeds capacity by ${_projectedCreditsUsed - l.creditsMax}',
-                  style: AdminTypography.labelSm(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700),
+              Expanded(child: Text('Workload by Cohort', style: AdminTypography.titleSm())),
+              if (_selectedYear != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
+                  child: Text('$_selectedYear', style: AdminTypography.labelSm()),
                 ),
-              ],
             ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Real teaching load per cohort — the ${_lecturer?.creditsMax ?? '—'}-credit cap applies separately to each cohort, '
+            'so being at capacity in one cohort doesn\'t block a full load in another.',
+            style: AdminTypography.bodySm(),
+          ),
+          const SizedBox(height: 12),
+          if (workloads.isEmpty)
+            Text('No classes for this year.', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant))
+          else
+            Column(children: [for (final w in workloads) _workloadRow(w)]),
+        ],
+      ),
+    );
+  }
+
+  Widget _workloadRow(({String cohort, int classCount, int credits}) w) {
+    final creditsMax = _lecturer?.creditsMax;
+    final atCapacity = creditsMax != null && w.credits >= creditsMax;
+    final isSelected = w.cohort == _selectedCohort;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      decoration: BoxDecoration(
+        color: isSelected ? AdminColors.primaryContainer.withValues(alpha: 0.08) : null,
+        border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
+      ),
+      child: Row(
+        children: [
+          if (isSelected) ...[
+            const Icon(Icons.arrow_right, size: 16, color: AdminColors.primary),
+            const SizedBox(width: 2),
+          ],
+          Expanded(
+            child: Text(
+              w.cohort,
+              style: AdminTypography.bodyMd(color: AdminColors.onSurface).copyWith(fontWeight: isSelected ? FontWeight.w700 : null),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text('${w.classCount} class${w.classCount == 1 ? '' : 'es'}', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: atCapacity ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+            child: Text(
+              creditsMax == null ? '${w.credits} cr' : '${w.credits} / $creditsMax cr',
+              style: AdminTypography.labelSm(color: atCapacity ? AdminColors.onErrorContainer : AdminColors.onSurface)
+                  .copyWith(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -324,6 +682,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   }
 
   Widget _buildAssignedCard() {
+    final schedules = _assignedSchedulesForSelectedCohort;
     return Container(
       decoration: BoxDecoration(
         color: AdminColors.surfaceContainerLowest,
@@ -337,17 +696,48 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Currently Assigned (${_assignedCourses.length})', style: AdminTypography.titleSm()),
+              child: Text(
+                'Currently Assigned in ${_selectedCohort ?? 'this cohort'} (${schedules.length})',
+                style: AdminTypography.titleSm(),
+              ),
             ),
           ),
-          Column(children: [for (final c in _assignedCourses) _assignedRow(c)]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              'Each class is unassigned individually by its class code — unassigning one class leaves the lecturer\'s '
+              'other classes for the same course (different cohort or section) untouched.',
+              style: AdminTypography.bodySm(),
+            ),
+          ),
+          if (schedules.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text('No classes assigned in this cohort yet.', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+            )
+          else
+            Column(children: [for (final s in schedules) _assignedRow(s)]),
         ],
       ),
     );
   }
 
-  Widget _assignedRow(AdminCourse c) {
-    final selected = _selectedToUnassign.contains(c.id);
+  /// The lecturer's classes for [_selectedCohort] only — the "Currently
+  /// Assigned" list is scoped to the cohort picked at the top of the page,
+  /// so it doesn't clutter the screen with every cohort's classes at once.
+  List<LecturerClassSlot> get _assignedSchedulesForSelectedCohort {
+    final filtered = _assignedSchedules.where((s) => s.cohort == _selectedCohort).toList();
+    filtered.sort((a, b) => a.sectionCode.compareTo(b.sectionCode));
+    return filtered;
+  }
+
+  Widget _assignedRow(LecturerClassSlot s) {
+    final selected = _selectedToUnassign.contains(s.id);
+    final course = _courseById[s.courseId];
+    final credits = _creditsByCourseId[s.courseId] ?? 0;
+    final timeLabel = s.dayOfWeek == null || s.startTime == null || s.endTime == null
+        ? 'Schedule TBD'
+        : '${s.dayOfWeek} ${_trimSeconds(s.startTime!)}–${_trimSeconds(s.endTime!)}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
@@ -355,22 +745,36 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selectedToUnassign.add(c.id) : _selectedToUnassign.remove(c.id)),
+            onChanged: (v) => setState(() => v == true ? _selectedToUnassign.add(s.id) : _selectedToUnassign.remove(s.id)),
             activeColor: AdminColors.error,
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                Text(c.courseCode, style: AdminTypography.labelSm()),
+                Row(children: [
+                  Flexible(
+                    child: Text(
+                      course == null ? s.courseId : '${course.courseCode} • ${course.courseTitle}',
+                      style: AdminTypography.titleSm(),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
+                    child: Text(s.sectionCode, style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+                  ),
+                ]),
+                Text('${s.cohort ?? 'No cohort'} • $timeLabel', style: AdminTypography.labelSm()),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-            child: Text('${c.credits} cr', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+            child: Text('$credits cr', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
           ),
         ],
       ),
@@ -384,8 +788,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         Expanded(
           child: Text(
             _selectedToUnassign.isEmpty
-                ? 'Select assigned courses above to unassign.'
-                : '${_selectedToUnassign.length} course${_selectedToUnassign.length == 1 ? '' : 's'} selected to unassign • $_unassignCredits credits',
+                ? 'Select classes above to unassign.'
+                : '${_selectedToUnassign.length} class${_selectedToUnassign.length == 1 ? '' : 'es'} selected to unassign • $_unassignCredits credits',
             style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
           ),
         ),
@@ -439,10 +843,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           if (courses.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: Text(
-                _availableCourses.isEmpty ? 'All courses are already assigned to this lecturer.' : 'No courses found.',
-                style: AdminTypography.bodyMd(),
-              ),
+              child: Text('No courses found.', style: AdminTypography.bodyMd()),
             )
           else
             Column(children: [for (final c in courses) _courseRow(c)]),
@@ -452,15 +853,17 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   }
 
   Widget _courseRow(AdminCourse c) {
-    final selected = _selectedToAssign.contains(c.id);
+    final specializationMismatch = !_specializationCourseIds.contains(c.id);
+    final existingSlots = _assignedSchedules.where((s) => s.courseId == c.id).toList();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
       child: Row(
         children: [
-          Checkbox(
-            value: selected,
-            onChanged: (v) => setState(() => v == true ? _selectedToAssign.add(c.id) : _selectedToAssign.remove(c.id)),
+          Radio<String>(
+            value: c.id,
+            groupValue: _selectedCourseId,
+            onChanged: (v) => setState(() => _selectedCourseId = v),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
@@ -472,6 +875,41 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               ],
             ),
           ),
+          if (existingSlots.isNotEmpty) ...[
+            Tooltip(
+              message: 'Already assigned to this lecturer:\n'
+                  '${existingSlots.map((s) => '${s.cohort ?? '—'} • ${s.dayOfWeek ?? '—'} ${s.startTime == null ? '' : _trimSeconds(s.startTime!)}–${s.endTime == null ? '' : _trimSeconds(s.endTime!)}').join('\n')}\n'
+                  'Selecting it again is fine as long as the new class is a different cohort or a non-overlapping time.',
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.info_outline, size: 13, color: AdminColors.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Already teaching (${existingSlots.length})',
+                    style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (specializationMismatch) ...[
+            Tooltip(
+              message: "Not related to lecturer's specialization",
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(9999)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.warning_amber_rounded, size: 13, color: Color(0xFF8A6D00)),
+                  const SizedBox(width: 4),
+                  Text('Not specialization', style: AdminTypography.labelSm(color: const Color(0xFF8A6D00))),
+                ]),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
@@ -633,33 +1071,17 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   ],
                 ),
               ),
-              SizedBox(
-                width: 220,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const AdminFieldLabel('Cohort'),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedCohort,
-                      isExpanded: true,
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                      ),
-                      hint: Text('Select cohort', style: AdminTypography.bodySm(color: AdminColors.outline)),
-                      items: [for (final c in _cohorts) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
-                      onChanged: (v) => setState(() => _selectedCohort = v),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
+          const SizedBox(height: 10),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.groups_outlined, size: 14, color: AdminColors.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Text(
+              _selectedCohort == null ? 'No cohort selected above' : 'Assigning into: $_selectedCohort',
+              style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+            ),
+          ]),
           if (_startTime != null && _endTime != null && !_timeRangeValid) ...[
             const SizedBox(height: 8),
             Text('End time must be after start time.', style: AdminTypography.labelSm(color: AdminColors.error)),
@@ -706,21 +1128,21 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       children: [
         Expanded(
           child: Text(
-            _selectedToAssign.isEmpty
-                ? 'Select courses to assign.'
-                : _dayOfWeek == null
-                    ? 'Set a day above.'
-                    : !_timeRangeValid
-                        ? 'Set a valid start/end time above.'
-                        : _locationController.text.trim().isEmpty
-                            ? 'Set a location above.'
-                            : _classCodeController.text.trim().isEmpty
-                                ? 'Set a class code above.'
-                                : _classCapacity == null || _classCapacity! <= 0
-                                    ? 'Set a valid capacity above.'
-                                    : _selectedCohort == null
-                                        ? 'Select a cohort above.'
-                                        : '${_selectedToAssign.length} course${_selectedToAssign.length == 1 ? '' : 's'} selected • $_assignCredits credits',
+            _selectedCohort == null
+                ? 'Select a year and cohort at the top of the page.'
+                : _selectedCourseId == null
+                    ? 'Select a course to assign.'
+                    : _dayOfWeek == null
+                        ? 'Set a day above.'
+                        : !_timeRangeValid
+                            ? 'Set a valid start/end time above.'
+                            : _locationController.text.trim().isEmpty
+                                ? 'Set a location above.'
+                                : _classCodeController.text.trim().isEmpty
+                                    ? 'Set a class code above.'
+                                    : _classCapacity == null || _classCapacity! <= 0
+                                        ? 'Set a valid capacity above.'
+                                        : '1 course selected • $_assignCredits credits',
             style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
           ),
         ),

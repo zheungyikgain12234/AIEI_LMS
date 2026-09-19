@@ -9,12 +9,16 @@ import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_mobile_selection_bar.dart';
+import 'widgets/admin_pagination.dart';
+import 'manage_class_detail_screen.dart';
 
 // ---------------------------------------------------------------------------
 // ManageClassesScreen – lists every class section (course_sections) created
 // when a lecturer is assigned to a course from the Manage Assigned Courses
-// screen, e.g. `OSHE-101-01`. Read/search/bulk-delete only — assignment
-// itself happens from a lecturer's Manage Assigned Courses screen.
+// screen, e.g. `OSHE-101-01`. Search/bulk-delete, plus a per-row "Manage"
+// button that opens ManageClassDetailScreen to view/edit the class's date
+// and other info and manage its enrolled students. New sections are still
+// only created from a lecturer's Manage Assigned Courses screen.
 // ---------------------------------------------------------------------------
 class ManageClassesScreen extends StatefulWidget {
   const ManageClassesScreen({super.key});
@@ -23,7 +27,7 @@ class ManageClassesScreen extends StatefulWidget {
   State<ManageClassesScreen> createState() => _ManageClassesScreenState();
 }
 
-enum _SortColumn { section, course, lecturer, enrolled }
+enum _SortColumn { section, course, lecturer, cohort, year, enrolled }
 
 class _ManageClassesScreenState extends State<ManageClassesScreen> {
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
@@ -34,6 +38,8 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
   String _query = '';
   _SortColumn _sortColumn = _SortColumn.section;
   bool _sortAscending = true;
+  int _page = 1;
+  int _pageSize = adminPageSizeOptions.first;
 
   void _toggleSort(_SortColumn column) {
     setState(() {
@@ -95,7 +101,8 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
             s.sectionCode.toLowerCase().contains(_query) ||
             s.courseCode.toLowerCase().contains(_query) ||
             s.courseTitle.toLowerCase().contains(_query) ||
-            (s.lecturerName ?? '').toLowerCase().contains(_query)).toList();
+            (s.lecturerName ?? '').toLowerCase().contains(_query) ||
+            (s.cohort ?? '').toLowerCase().contains(_query)).toList();
     final sorted = [...sections];
     sorted.sort((a, b) {
       final int cmp;
@@ -106,6 +113,10 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
           cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
         case _SortColumn.lecturer:
           cmp = (a.lecturerName ?? '').toLowerCase().compareTo((b.lecturerName ?? '').toLowerCase());
+        case _SortColumn.cohort:
+          cmp = (a.cohort ?? '').toLowerCase().compareTo((b.cohort ?? '').toLowerCase());
+        case _SortColumn.year:
+          cmp = (a.cohortYear ?? 0).compareTo(b.cohortYear ?? 0);
         case _SortColumn.enrolled:
           cmp = a.enrolledCount.compareTo(b.enrolledCount);
       }
@@ -114,7 +125,22 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
     return sorted;
   }
 
+  List<CourseSection> _paged(List<CourseSection> items) {
+    final pageCount = items.isEmpty ? 1 : (items.length / _pageSize).ceil();
+    if (_page > pageCount) _page = pageCount;
+    final start = ((_page - 1) * _pageSize).clamp(0, items.length);
+    final end = (start + _pageSize).clamp(0, items.length);
+    return items.sublist(start, end);
+  }
+
   void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageClasses, dest);
+
+  Future<void> _openManageClass(CourseSection s) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ManageClassDetailScreen(sectionId: s.id)),
+    );
+    _load();
+  }
 
   Future<void> _deleteSelected() async {
     final count = _selected.length;
@@ -211,11 +237,23 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
               const SizedBox(height: 16),
               if (sections.isEmpty)
                 Padding(padding: const EdgeInsets.all(24), child: Text('No classes found.', style: AdminTypography.bodyMd()))
-              else
-                for (final s in sections) ...[
+              else ...[
+                for (final s in _paged(sections)) ...[
                   _mobileSectionCard(s),
                   const SizedBox(height: 12),
                 ],
+                AdminPagination(
+                  totalItems: sections.length,
+                  page: _page,
+                  pageSize: _pageSize,
+                  itemLabel: 'class',
+                  onPageChanged: (p) => setState(() => _page = p),
+                  onPageSizeChanged: (s) => setState(() {
+                    _pageSize = s;
+                    _page = 1;
+                  }),
+                ),
+              ],
             ],
           ),
         ),
@@ -258,8 +296,26 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
                       style: AdminTypography.labelSm(color: unassigned ? AdminColors.onSurfaceVariant : AdminColors.onSurface),
                     ),
                     Text(s.scheduleText, style: AdminTypography.labelSm()),
+                    if (s.cohort != null)
+                      Text('${s.cohortCode ?? '—'} - ${s.cohort}${s.cohortYear == null ? '' : ' (${s.cohortYear})'}', style: AdminTypography.labelSm()),
                     Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm()),
                   ],
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton(
+                    onPressed: () => _openManageClass(s),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AdminColors.primary,
+                      backgroundColor: AdminColors.surfaceContainerLow,
+                      side: BorderSide.none,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      textStyle: AdminTypography.labelSm(),
+                    ),
+                    child: const Text('Manage'),
+                  ),
                 ),
               ],
             ),
@@ -354,12 +410,19 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
               child: Text('No classes found.', style: AdminTypography.bodyMd()),
             )
           else
-            Column(children: [for (final s in sections) _sectionRow(s)]),
+            Column(children: [for (final s in _paged(sections)) _sectionRow(s)]),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('${sections.length} class${sections.length == 1 ? '' : 'es'}', style: AdminTypography.bodySm()),
+            child: AdminPagination(
+              totalItems: sections.length,
+              page: _page,
+              pageSize: _pageSize,
+              itemLabel: 'class',
+              onPageChanged: (p) => setState(() => _page = p),
+              onPageSizeChanged: (s) => setState(() {
+                _pageSize = s;
+                _page = 1;
+              }),
             ),
           ),
         ],
@@ -378,7 +441,10 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
           Expanded(flex: 4, child: _sortHeader('Course', _SortColumn.course)),
           Expanded(flex: 3, child: _sortHeader('Lecturer', _SortColumn.lecturer)),
           const Expanded(flex: 3, child: SizedBox()),
+          Expanded(flex: 3, child: _sortHeader('Cohort', _SortColumn.cohort)),
+          Expanded(flex: 1, child: _sortHeader('Year', _SortColumn.year)),
           Expanded(flex: 2, child: _sortHeader('Enrolled', _SortColumn.enrolled)),
+          const SizedBox(width: 110),
         ],
       ),
     );
@@ -402,13 +468,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.sectionCode, style: AdminTypography.titleSm()),
-                  Text(s.roleLabel, style: AdminTypography.labelSm()),
-                ],
-              ),
+              child: Text(s.sectionCode, style: AdminTypography.titleSm()),
             ),
           ),
           Expanded(
@@ -441,8 +501,41 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
             ),
           ),
           Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text(
+                s.cohort == null ? '—' : '${s.cohortCode ?? '—'} - ${s.cohort}',
+                style: AdminTypography.bodySm(),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(s.cohortYear == null ? '—' : '${s.cohortYear}', style: AdminTypography.bodySm()),
+          ),
+          Expanded(
             flex: 2,
             child: Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm()),
+          ),
+          SizedBox(
+            width: 110,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton(
+                onPressed: () => _openManageClass(s),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AdminColors.primary,
+                  backgroundColor: AdminColors.surfaceContainerLow,
+                  side: BorderSide.none,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: AdminTypography.labelSm(),
+                ),
+                child: const Text('Manage'),
+              ),
+            ),
           ),
         ],
       ),

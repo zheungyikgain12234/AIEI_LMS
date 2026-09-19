@@ -6,6 +6,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_role_course_mapping_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badges_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'widgets/admin_scaffold.dart';
@@ -15,6 +16,7 @@ import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_more_menu.dart';
 import 'widgets/admin_mobile_selection_bar.dart';
+import 'widgets/admin_pagination.dart';
 import 'student_form_screen.dart';
 import 'student_enrolled_courses_screen.dart';
 
@@ -33,6 +35,7 @@ enum _SortColumn { name, code, track }
 
 class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  final _badgesRepository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
   final _roleCourseMappingRepository = SupabaseRoleCourseMappingRepositoryImpl(Supabase.instance.client);
@@ -45,11 +48,24 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   Set<String> _roleMismatchStudentIds = {};
   _SortColumn _sortColumn = _SortColumn.name;
   bool _sortAscending = true;
+  int _page = 1;
+  int _pageSize = adminPageSizeOptions.first;
+  final _searchController = TextEditingController();
+  String _query = '';
 
   final Set<String> _selected = {};
 
+  List<Student> get _filteredStudents {
+    if (_query.isEmpty) return _students;
+    return _students.where((s) =>
+        s.name.toLowerCase().contains(_query) ||
+        s.studentCode.toLowerCase().contains(_query) ||
+        s.email.toLowerCase().contains(_query) ||
+        s.department.toLowerCase().contains(_query)).toList();
+  }
+
   List<Student> get _sortedStudents {
-    final sorted = [..._students];
+    final sorted = [..._filteredStudents];
     sorted.sort((a, b) {
       final int cmp;
       switch (_sortColumn) {
@@ -63,6 +79,15 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       return _sortAscending ? cmp : -cmp;
     });
     return sorted;
+  }
+
+  List<Student> get _pagedStudents {
+    final sorted = _sortedStudents;
+    final pageCount = sorted.isEmpty ? 1 : (sorted.length / _pageSize).ceil();
+    if (_page > pageCount) _page = pageCount;
+    final start = ((_page - 1) * _pageSize).clamp(0, sorted.length);
+    final end = (start + _pageSize).clamp(0, sorted.length);
+    return sorted.sublist(start, end);
   }
 
   void _toggleSort(_SortColumn column) {
@@ -98,7 +123,17 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() => setState(() {
+          _query = _searchController.text.trim().toLowerCase();
+          _page = 1;
+        }));
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -106,7 +141,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final counts = await _repository.getEnrollmentCounts();
     final credentials = await _repository.getEarnedCredentialTitles();
     final tracks = await _repository.getProgramTracks();
-    final trend = await _repository.getEnrollmentTrend();
+    final trend = await _badgesRepository.getMonthlyIssueCounts();
     final enrolledCourseIds = await _repository.getEnrolledCourseIdsByStudent();
     final roles = await _masterDataRepository.getRoles();
 
@@ -376,6 +411,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
+              controller: _searchController,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -435,26 +471,22 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 ],
               ),
             ),
-          if (_students.isNotEmpty) _headerRow(),
-          Column(children: [for (final s in _sortedStudents) _studentRow(s)]),
+          if (_filteredStudents.isNotEmpty) _headerRow(),
+          if (_students.isNotEmpty && _filteredStudents.isEmpty)
+            Padding(padding: const EdgeInsets.all(32), child: Text('No students found.', style: AdminTypography.bodyMd())),
+          Column(children: [for (final s in _pagedStudents) _studentRow(s)]),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Showing 1 - ${_students.length} of ${_students.length} students', style: AdminTypography.bodySm()),
-                Row(mainAxisSize: MainAxisSize.min, children: [1, 2, 3].map((p) {
-                  final active = p == 1;
-                  return Container(
-                    margin: const EdgeInsets.only(left: 4),
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: active ? AdminColors.primaryContainer : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-                    child: Text('$p', style: AdminTypography.labelSm(color: active ? Colors.white : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                  );
-                }).toList()),
-              ],
+            child: AdminPagination(
+              totalItems: _filteredStudents.length,
+              page: _page,
+              pageSize: _pageSize,
+              itemLabel: 'student',
+              onPageChanged: (p) => setState(() => _page = p),
+              onPageSizeChanged: (s) => setState(() {
+                _pageSize = s;
+                _page = 1;
+              }),
             ),
           ),
         ],
@@ -478,8 +510,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       child: Row(
         children: [
           const SizedBox(width: 48),
-          Expanded(flex: 4, child: _sortHeader('Student', _SortColumn.name)),
           Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
+          Expanded(flex: 4, child: _sortHeader('Student', _SortColumn.name)),
           Expanded(flex: 3, child: _sortHeader('Track', _SortColumn.track)),
           const SizedBox(width: 56),
           Expanded(flex: 4, child: Text('Badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
@@ -508,6 +540,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             value: selected,
             onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
             activeColor: AdminColors.primaryContainer,
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+            ),
           ),
           Expanded(
             flex: 4,
@@ -542,13 +581,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                   Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
                 ],
               ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
             ),
           ),
           Expanded(
@@ -662,7 +694,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(6)),
-              child: Text('2024–2025 Cycle', style: AdminTypography.labelSm()),
+              child: Text('Last 6 Months', style: AdminTypography.labelSm()),
             ),
           ]),
           const SizedBox(height: 4),
@@ -672,57 +704,65 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             height: 170,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: months.map((m) {
-                final isLast = m == months.last;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          height: maxValue == 0 ? 0 : (m.$2 / maxValue) * 140.0,
-                          decoration: BoxDecoration(
-                            color: isLast ? AdminColors.secondaryContainer : AdminColors.surfaceContainerHigh,
-                            borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 26,
+                      height: 140,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          for (final fraction in [1.0, 0.5, 0.0])
+                            Text('${(maxValue * fraction).round()}', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                    // Reserves the same vertical space as the month-label row
+                    // below each bar, so the "0" tick lines up with the bars'
+                    // baseline rather than the month labels underneath them.
+                    const SizedBox(height: 4),
+                    Opacity(opacity: 0, child: Text('0', style: AdminTypography.labelSm())),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: months.map((m) {
+                      final isLast = m == months.last;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Container(
+                                height: maxValue == 0 ? 0 : (m.$2 / maxValue) * 140.0,
+                                decoration: BoxDecoration(
+                                  color: isLast ? AdminColors.secondaryContainer : AdminColors.surfaceContainerHigh,
+                                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(m.$1, style: AdminTypography.labelSm(color: isLast ? AdminColors.secondary : AdminColors.onSurfaceVariant)),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(m.$1, style: AdminTypography.labelSm(color: isLast ? AdminColors.secondary : AdminColors.onSurfaceVariant)),
-                      ],
-                    ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 10,
-              runSpacing: 6,
-              children: [
-                Text('Current Term Peak: $maxValue Badges', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
-                GestureDetector(
-                  onTap: _notAvailable,
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Flexible(
-                      child: Text(
-                        'View Accreditation Audit',
-                        overflow: TextOverflow.ellipsis,
-                        style: AdminTypography.titleSm(color: AdminColors.secondary),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward, size: 14, color: AdminColors.secondary),
-                  ]),
-                ),
-              ],
-            ),
+            child: Text('Current Term Peak: $maxValue Badges', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
           ),
         ],
       ),
@@ -793,12 +833,24 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              for (final s in _students) ...[
+              if (_students.isNotEmpty && _filteredStudents.isEmpty)
+                Padding(padding: const EdgeInsets.all(24), child: Text('No students found.', style: AdminTypography.bodyMd())),
+              for (final s in _pagedStudents) ...[
                 _buildMobileStudentCard(s),
                 const SizedBox(height: 12),
               ],
               const SizedBox(height: 4),
-              _buildMobilePagination(),
+              AdminPagination(
+                totalItems: _filteredStudents.length,
+                page: _page,
+                pageSize: _pageSize,
+                itemLabel: 'student',
+                onPageChanged: (p) => setState(() => _page = p),
+                onPageSizeChanged: (s) => setState(() {
+                  _pageSize = s;
+                  _page = 1;
+                }),
+              ),
               const SizedBox(height: 20),
               _buildTracksCard(),
               const SizedBox(height: 16),
@@ -959,6 +1011,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
 
   Widget _buildMobileSearchBar() {
     return TextField(
+      controller: _searchController,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         isDense: true,
@@ -1205,53 +1258,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
-  Widget _buildMobilePagination() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Showing 1-${_students.length} of ${_students.length} students', style: AdminTypography.bodySm()),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _pageNavButton(Icons.chevron_left),
-            const SizedBox(width: 6),
-            for (final p in [1, 2, 3]) ...[
-              _pageNumberButton(p, active: p == 1),
-              const SizedBox(width: 6),
-            ],
-            _pageNavButton(Icons.chevron_right),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _pageNumberButton(int page, {required bool active}) {
-    return GestureDetector(
-      onTap: _notAvailable,
-      child: Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: active ? AdminColors.secondary : AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8)),
-        child: Text('$page', style: AdminTypography.labelSm(color: active ? AdminColors.onSecondary : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-      ),
-    );
-  }
-
-  Widget _pageNavButton(IconData icon) {
-    return GestureDetector(
-      onTap: _notAvailable,
-      child: Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, size: 18, color: AdminColors.onSurfaceVariant),
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1270,11 +1276,33 @@ class _BulkEnrollDialog extends StatefulWidget {
 }
 
 class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
+  String? _selectedCohort;
   String? _selectedSectionId;
+
+  @override
+  void initState() {
+    super.initState();
+    final cohortNames = _cohortNames;
+    if (cohortNames.isNotEmpty) _selectedCohort = cohortNames.first;
+  }
+
+  List<String> get _cohortNames {
+    final names = widget.sections.map((s) => s.cohort).whereType<String>().toSet().toList();
+    names.sort();
+    return names;
+  }
+
+  List<CourseSection> get _sectionsForSelectedCohort {
+    final sections = widget.sections.where((s) => s.cohort == _selectedCohort).toList();
+    sections.sort((a, b) => a.sectionCode.compareTo(b.sectionCode));
+    return sections;
+  }
 
   @override
   Widget build(BuildContext context) {
     final count = widget.studentCount;
+    final cohortNames = _cohortNames;
+    final sections = _sectionsForSelectedCohort;
     return AlertDialog(
       title: Text('Enroll $count student${count == 1 ? '' : 's'}'),
       content: SizedBox(
@@ -1283,13 +1311,13 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Select a class to enroll ${count == 1 ? 'this student' : 'these students'} into.', style: AdminTypography.bodySm()),
+            Text('Select a cohort, then a class, to enroll ${count == 1 ? 'this student' : 'these students'} into.', style: AdminTypography.bodySm()),
             const SizedBox(height: 14),
             if (widget.sections.isEmpty)
               Text('No classes exist yet. Create one from Manage Assigned Courses first.', style: AdminTypography.bodySm(color: AdminColors.error))
-            else
+            else ...[
               DropdownButtonFormField<String>(
-                initialValue: _selectedSectionId,
+                initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
                 isExpanded: true,
                 decoration: InputDecoration(
                   isDense: true,
@@ -1298,16 +1326,36 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 ),
-                hint: const Text('Select a class'),
+                hint: const Text('Select a cohort'),
+                items: [for (final c in cohortNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
+                onChanged: (v) => setState(() {
+                  _selectedCohort = v;
+                  final matching = widget.sections.where((s) => s.cohort == v).toList();
+                  _selectedSectionId = matching.isEmpty ? null : matching.first.id;
+                }),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: sections.any((s) => s.id == _selectedSectionId) ? _selectedSectionId : null,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: AdminColors.surfaceContainerLow,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+                hint: Text(_selectedCohort == null ? 'Select a cohort first' : 'Select a class'),
                 items: [
-                  for (final s in widget.sections)
+                  for (final s in sections)
                     DropdownMenuItem(
                       value: s.id,
                       child: Text('${s.sectionCode} • ${s.courseTitle}', overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: (v) => setState(() => _selectedSectionId = v),
+                onChanged: sections.isEmpty ? null : (v) => setState(() => _selectedSectionId = v),
               ),
+            ],
           ],
         ),
       ),

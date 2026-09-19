@@ -13,6 +13,7 @@ class Lecturer {
   final String status;
   final bool accredited;
   final bool manageable;
+  final DateTime joinDate;
 
   const Lecturer({
     required this.id,
@@ -27,6 +28,7 @@ class Lecturer {
     required this.status,
     required this.accredited,
     required this.manageable,
+    required this.joinDate,
   });
 
   int get capacityPercent =>
@@ -46,6 +48,7 @@ class Lecturer {
       status: map['status'] as String,
       accredited: map['accredited'] as bool,
       manageable: map['manageable'] as bool,
+      joinDate: DateTime.parse(map['join_date'] as String),
     );
   }
 }

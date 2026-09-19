@@ -10,6 +10,7 @@ class AssignedCourse {
   final String scheduleText;
   final int capacity;
   final int enrolledCount;
+  final String? cohort;
 
   const AssignedCourse({
     required this.courseId,
@@ -21,9 +22,13 @@ class AssignedCourse {
     required this.scheduleText,
     required this.capacity,
     required this.enrolledCount,
+    this.cohort,
   });
 
-  factory AssignedCourse.fromMap(Map<String, dynamic> map) {
+  /// `enrolled_count` is not stored on the `course_sections` row — it's
+  /// always computed by counting `student_courses` rows for this section,
+  /// so callers must pass it in rather than reading it off [map].
+  factory AssignedCourse.fromMap(Map<String, dynamic> map, {required int enrolledCount}) {
     final course = map['courses'] as Map<String, dynamic>;
     return AssignedCourse(
       courseId: course['id'] as String,
@@ -34,7 +39,8 @@ class AssignedCourse {
       sectionCode: displayCode(map['section_code'] as String),
       scheduleText: map['schedule_text'] as String,
       capacity: map['capacity'] as int,
-      enrolledCount: map['enrolled_count'] as int,
+      enrolledCount: enrolledCount,
+      cohort: (map['cohorts'] as Map<String, dynamic>?)?['name'] as String?,
     );
   }
 }

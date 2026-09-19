@@ -11,9 +11,9 @@
 -- set into a real production deployment with real user data.
 
 drop table if exists
-  enrollment_monthly_stats, enrollment_candidates, course_sections,
+  enrollment_candidates, course_sections,
   badge_awards, student_certifications, student_materials, student_courses,
-  track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
+  specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags, module_materials, course_modules, courses,
   admins, students, lecturers,
   departments, program_tracks, cohorts,
@@ -118,6 +118,7 @@ create table lecturers (
   status text not null default 'Active',
   accredited boolean not null default false,
   manageable boolean not null default true,
+  join_date date not null default current_date,
   created_at timestamptz not null default now()
 );
 
@@ -132,6 +133,7 @@ create table students (
   cohort text not null references cohorts(name) on update cascade,
   role text not null references roles(name) on update cascade,
   gpa numeric(3, 2) not null default 0,
+  registration_date date not null default current_date,
   created_at timestamptz not null default now()
 );
 
@@ -249,6 +251,15 @@ create table track_courses (
   primary key (track_id, course_id)
 );
 
+-- Which courses are relevant to which lecturer specialization — drives the
+-- Specialization ↔ Course Mapping screen, and the "not related to lecturer's
+-- specialization" warning tag on the Manage Assigned Courses screen.
+create table specialization_courses (
+  specialization_id uuid not null references specializations(id) on delete cascade,
+  course_id uuid not null references courses(id) on delete cascade,
+  primary key (specialization_id, course_id)
+);
+
 -- `lecturers.credits_used` is derived, not app-maintained: it's recomputed
 -- from `lecturer_courses` (the assignation table) joined against
 -- `courses.credits` any time a row is added to or removed from it.
@@ -272,6 +283,9 @@ create trigger lecturer_courses_recalc_credits
   after insert or delete on lecturer_courses
   for each row execute function recalc_lecturer_credits_used();
 
+-- `enrolled_count` is intentionally not a column here — the app always
+-- derives it by counting `student_courses` rows for a section, so it can
+-- never drift out of sync with actual enrollments.
 create table course_sections (
   id uuid primary key default gen_random_uuid(),
   course_id uuid not null references courses(id) on delete cascade,
@@ -286,8 +300,7 @@ create table course_sections (
   lecturer_id uuid references lecturers(id),
   capacity int not null default 30,
   delivery_mode text not null default 'physical' check (delivery_mode in ('online', 'physical')),
-  cohort text references cohorts(name) on update cascade,
-  enrolled_count int not null default 0,
+  cohort_id uuid references cohorts(id) on update cascade,
   start_date date,
   status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
 );
@@ -345,7 +358,7 @@ create table badge_awards (
   student_id bigint not null references students(id) on delete cascade,
   course_id uuid not null references courses(id) on delete cascade,
   badge_id uuid not null references certifications(id) on delete cascade,
-  issue_year int not null,
+  issue_date date not null default current_date,
   is_revoked boolean not null default false,
   created_at timestamptz not null default now()
 );
@@ -368,13 +381,6 @@ create table enrollment_candidates (
   requested_at timestamptz not null default now()
 );
 
-create table enrollment_monthly_stats (
-  id uuid primary key default gen_random_uuid(),
-  month_label text not null,
-  new_enrollments int not null,
-  sort_order int not null default 0
-);
-
 -- ── RLS (demo-only, see warning above) ──────────────────────────────────
 
 alter table departments enable row level security;
@@ -386,6 +392,7 @@ alter table roles enable row level security;
 alter table role_courses enable row level security;
 alter table department_courses enable row level security;
 alter table track_courses enable row level security;
+alter table specialization_courses enable row level security;
 alter table lecturers enable row level security;
 alter table students enable row level security;
 alter table admins enable row level security;
@@ -403,7 +410,6 @@ alter table student_certifications enable row level security;
 alter table badge_awards enable row level security;
 alter table course_sections enable row level security;
 alter table enrollment_candidates enable row level security;
-alter table enrollment_monthly_stats enable row level security;
 
 do $$
 declare
@@ -414,9 +420,8 @@ begin
     'lecturer_departments', 'specializations', 'roles',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'tags', 'course_tags', 'certifications', 'module_certs',
-    'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'student_courses', 'student_materials',
-    'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates',
-    'enrollment_monthly_stats'
+    'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
+    'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

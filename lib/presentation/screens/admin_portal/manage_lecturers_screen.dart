@@ -11,6 +11,7 @@ import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_more_menu.dart';
 import 'widgets/admin_mobile_selection_bar.dart';
+import 'widgets/admin_pagination.dart';
 import 'lecturer_form_screen.dart';
 import 'lecturer_course_assignment_screen.dart';
 
@@ -25,7 +26,7 @@ class ManageLecturersScreen extends StatefulWidget {
   State<ManageLecturersScreen> createState() => _ManageLecturersScreenState();
 }
 
-enum _SortColumn { name, department, workload, status }
+enum _SortColumn { code, name, department, status }
 
 class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
@@ -35,26 +36,46 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   final Set<String> _selected = {};
   _SortColumn _sortColumn = _SortColumn.name;
   bool _sortAscending = true;
+  int _page = 1;
+  int _pageSize = adminPageSizeOptions.first;
+  final _searchController = TextEditingController();
+  String _query = '';
 
-  List<String> _coursesFor(Lecturer l) => _courseCodesByLecturer[l.id] ?? const [];
+  List<Lecturer> get _filteredLecturers {
+    if (_query.isEmpty) return _lecturers;
+    return _lecturers.where((l) =>
+        l.name.toLowerCase().contains(_query) ||
+        l.lecturerCode.toLowerCase().contains(_query) ||
+        l.email.toLowerCase().contains(_query) ||
+        l.department.toLowerCase().contains(_query)).toList();
+  }
 
   List<Lecturer> get _sortedLecturers {
-    final sorted = [..._lecturers];
+    final sorted = [..._filteredLecturers];
     sorted.sort((a, b) {
       final int cmp;
       switch (_sortColumn) {
+        case _SortColumn.code:
+          cmp = a.lecturerCode.toLowerCase().compareTo(b.lecturerCode.toLowerCase());
         case _SortColumn.name:
           cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
         case _SortColumn.department:
           cmp = a.department.toLowerCase().compareTo(b.department.toLowerCase());
-        case _SortColumn.workload:
-          cmp = a.capacityPercent.compareTo(b.capacityPercent);
         case _SortColumn.status:
           cmp = a.status.toLowerCase().compareTo(b.status.toLowerCase());
       }
       return _sortAscending ? cmp : -cmp;
     });
     return sorted;
+  }
+
+  List<Lecturer> get _pagedLecturers {
+    final sorted = _sortedLecturers;
+    final pageCount = sorted.isEmpty ? 1 : (sorted.length / _pageSize).ceil();
+    if (_page > pageCount) _page = pageCount;
+    final start = ((_page - 1) * _pageSize).clamp(0, sorted.length);
+    final end = (start + _pageSize).clamp(0, sorted.length);
+    return sorted.sublist(start, end);
   }
 
   void _toggleSort(_SortColumn column) {
@@ -90,7 +111,17 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() => setState(() {
+          _query = _searchController.text.trim().toLowerCase();
+          _page = 1;
+        }));
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -198,15 +229,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-                child: Text('Faculty Governance', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
-              ),
-              Text('/ Q3 Academic Term', style: AdminTypography.labelSm()),
-            ]),
-            const SizedBox(height: 4),
             Text('Manage Lecturers', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
             ConstrainedBox(
@@ -262,19 +284,27 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
+  int get _activeFacultyCount => _lecturers.where((l) => l.status == 'Active').length;
+
+  int get _totalAssignedCourses => _courseCodesByLecturer.values.fold(0, (sum, courses) => sum + courses.length);
+
   Widget _buildMetrics() {
     return LayoutBuilder(builder: (context, constraints) {
       final cols = constraints.maxWidth >= 700 ? 2 : 1;
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
+      final total = _lecturers.length;
+      final activeProgress = total == 0 ? 0.0 : _activeFacultyCount / total;
+      final assignedProgress = total == 0 ? 0.0 : (_courseCodesByLecturer.values.where((c) => c.isNotEmpty).length / total);
       final cards = [
-        _metricCard('TOTAL FACULTY', '38 Active', Icons.groups_outlined, '+3', 'vs last quarter onboarding', 0.82),
-        _metricCard('ASSIGNED COURSES', '112 Sections', Icons.menu_book_outlined, null, '94% capacity across 4 schools', 0.94),
+        _metricCard('TOTAL FACULTY', '$_activeFacultyCount Active', Icons.groups_outlined, 'of $total total faculty', activeProgress),
+        _metricCard('ASSIGNED COURSES', '$_totalAssignedCourses Assigned', Icons.menu_book_outlined,
+            '${(assignedProgress * 100).round()}% of faculty have an assignment', assignedProgress),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
   }
 
-  Widget _metricCard(String label, String value, IconData icon, String? delta, String footer, double progress) {
+  Widget _metricCard(String label, String value, IconData icon, String footer, double progress) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -297,11 +327,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           Text(value, style: AdminTypography.dataMetric()),
           const SizedBox(height: 4),
           Row(children: [
-            if (delta != null) ...[
-              Icon(Icons.arrow_upward, size: 13, color: AdminColors.secondary),
-              Text(delta, style: AdminTypography.labelMd(color: AdminColors.secondary)),
-              const SizedBox(width: 4),
-            ],
             Expanded(child: Text(footer, style: AdminTypography.labelSm())),
           ]),
           const SizedBox(height: 10),
@@ -335,6 +360,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 320),
                   child: TextField(
+                    controller: _searchController,
                     style: AdminTypography.bodySm(color: AdminColors.onSurface),
                     decoration: InputDecoration(
                       isDense: true,
@@ -410,26 +436,22 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                 ],
               ),
             ),
-          if (_lecturers.isNotEmpty) _headerRow(),
-          Column(children: [for (final l in _sortedLecturers) _lecturerRow(l, _coursesFor(l))]),
+          if (_filteredLecturers.isNotEmpty) _headerRow(),
+          if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
+            Padding(padding: const EdgeInsets.all(32), child: Text('No faculty found.', style: AdminTypography.bodyMd())),
+          Column(children: [for (final l in _pagedLecturers) _lecturerRow(l)]),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Showing 1 – 5 of 38 faculty members', style: AdminTypography.bodySm()),
-                Row(mainAxisSize: MainAxisSize.min, children: [1, 2, 3].map((p) {
-                  final active = p == 1;
-                  return Container(
-                    margin: const EdgeInsets.only(left: 4),
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: active ? AdminColors.primaryContainer : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-                    child: Text('$p', style: AdminTypography.labelSm(color: active ? Colors.white : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                  );
-                }).toList()),
-              ],
+            child: AdminPagination(
+              totalItems: _filteredLecturers.length,
+              page: _page,
+              pageSize: _pageSize,
+              itemLabel: 'faculty member',
+              onPageChanged: (p) => setState(() => _page = p),
+              onPageSizeChanged: (s) => setState(() {
+                _pageSize = s;
+                _page = 1;
+              }),
             ),
           ),
         ],
@@ -452,10 +474,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
       child: Row(
         children: [
           const SizedBox(width: 48),
+          Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
           Expanded(flex: 4, child: _sortHeader('Faculty', _SortColumn.name)),
           Expanded(flex: 3, child: _sortHeader('Department', _SortColumn.department)),
-          const Expanded(flex: 3, child: SizedBox()),
-          Expanded(flex: 2, child: _sortHeader('Workload', _SortColumn.workload)),
           Expanded(flex: 2, child: _sortHeader('Status', _SortColumn.status)),
           const SizedBox(width: 170),
         ],
@@ -463,7 +484,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _lecturerRow(Lecturer l, List<String> courses) {
+  Widget _lecturerRow(Lecturer l) {
     final selected = _selected.contains(l.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -475,6 +496,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
             value: selected,
             onChanged: (v) => setState(() => v == true ? _selected.add(l.id) : _selected.remove(l.id)),
             activeColor: AdminColors.primaryContainer,
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text(l.lecturerCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+            ),
           ),
           Expanded(
             flex: 4,
@@ -509,7 +537,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                           ],
                         ),
                         Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                        Text('${l.lecturerCode} • ${l.email}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                        Text(l.email, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -526,50 +554,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                 children: [
                   Text(l.department, style: AdminTypography.titleSm()),
                   Text(l.specialization, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(courses.isEmpty ? '0 Courses Assigned' : '${courses.length} Active Courses',
-                      style: AdminTypography.labelSm(color: courses.isEmpty ? AdminColors.onSurfaceVariant : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Wrap(spacing: 4, runSpacing: 4, children: courses.map((c) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-                    child: Text(c, style: AdminTypography.labelSm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
-                  )).toList()),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Text('${l.creditsUsed} / ${l.creditsMax}', style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                    Text('${l.capacityPercent}%', style: AdminTypography.labelSm(color: l.capacityPercent >= 100 ? AdminColors.secondary : AdminColors.onSurfaceVariant)),
-                  ]),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(9999),
-                    child: LinearProgressIndicator(
-                      value: l.capacityPercent / 100,
-                      minHeight: 6,
-                      backgroundColor: AdminColors.surfaceContainerHigh,
-                      valueColor: AlwaysStoppedAnimation<Color>(l.capacityPercent >= 100 ? AdminColors.secondary : AdminColors.primary),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -657,12 +641,24 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              for (final l in _lecturers) ...[
-                _mobileLecturerCard(l, _coursesFor(l)),
+              if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
+                Padding(padding: const EdgeInsets.all(24), child: Text('No faculty found.', style: AdminTypography.bodyMd())),
+              for (final l in _pagedLecturers) ...[
+                _mobileLecturerCard(l),
                 const SizedBox(height: 12),
               ],
               const SizedBox(height: 4),
-              _mobilePaginationFooter(),
+              AdminPagination(
+                totalItems: _filteredLecturers.length,
+                page: _page,
+                pageSize: _pageSize,
+                itemLabel: 'faculty member',
+                onPageChanged: (p) => setState(() => _page = p),
+                onPageSizeChanged: (s) => setState(() {
+                  _pageSize = s;
+                  _page = 1;
+                }),
+              ),
               const SizedBox(height: 12),
               _mobileFooterBanner(),
             ],
@@ -735,6 +731,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   }
 
   Widget _mobileKpiGrid() {
+    final total = _lecturers.length;
+    final activeProgress = total == 0 ? 0.0 : _activeFacultyCount / total;
+    final assignedProgress = total == 0 ? 0.0 : (_courseCodesByLecturer.values.where((c) => c.isNotEmpty).length / total);
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -743,22 +742,22 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
             child: _mobileKpiCard(
               label: 'Active Faculty',
               icon: Icons.groups,
-              value: '38',
-              delta: '+3',
-              footer: 'Onboarded this term',
-              progress: 0.82,
+              value: '$_activeFacultyCount',
+              delta: 'of $total',
+              footer: 'Total faculty on record',
+              progress: activeProgress,
               progressColor: AdminColors.secondary,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _mobileKpiCard(
-              label: 'Sections Open',
+              label: 'Assigned Courses',
               icon: Icons.domain_verification,
-              value: '112',
-              delta: '94%',
-              footer: 'Across 4 colleges',
-              progress: 0.94,
+              value: '$_totalAssignedCourses',
+              delta: '${(assignedProgress * 100).round()}%',
+              footer: 'Faculty with an assignment',
+              progress: assignedProgress,
               progressColor: AdminColors.onTertiaryContainer,
             ),
           ),
@@ -853,6 +852,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
 
   Widget _mobileSearchField() {
     return TextField(
+      controller: _searchController,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         filled: true,
@@ -934,9 +934,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _mobileLecturerCard(Lecturer l, List<String> courses) {
-    final isSabbatical = courses.isEmpty;
-    final isMaxLoad = !isSabbatical && l.capacityPercent >= 100;
+  Widget _mobileLecturerCard(Lecturer l) {
     final selected = _selected.contains(l.id);
 
     return Container(
@@ -1007,86 +1005,12 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(children: [
-                  Expanded(
-                    child: Text(
-                      'WORKLOAD CAPACITY',
-                      style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Flexible(
-                    child: Text(
-                      '${l.creditsUsed} / ${l.creditsMax} Credits',
-                      style: AdminTypography.labelMd(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 2),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    '(${l.capacityPercent}% ${isMaxLoad ? 'Max' : 'Optimal'})',
-                    style: AdminTypography.labelSm(color: AdminColors.onTertiaryContainer).copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(9999),
-                  child: LinearProgressIndicator(
-                    value: l.capacityPercent / 100,
-                    minHeight: 8,
-                    backgroundColor: AdminColors.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      isMaxLoad ? AdminColors.error : AdminColors.secondaryContainer,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (isSabbatical)
-            Text(
-              '0 Assigned • Approved Research Term',
-              style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'ACTIVE COURSES (${courses.length})',
-                  style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: courses
-                      .map((c) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(6)),
-                            child: Text(c, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
-                          ))
-                      .toList(),
-                ),
-              ],
-            ),
-          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Flexible(child: _mobileStatusPill(isSabbatical: isSabbatical, isMaxLoad: isMaxLoad)),
+              Flexible(child: _mobileStatusPill(l)),
               const SizedBox(width: 8),
-              _mobileCardActionButton(l, isSabbatical: isSabbatical),
+              _mobileCardActionButton(l),
             ],
           ),
         ],
@@ -1094,51 +1018,29 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _mobileStatusPill({required bool isSabbatical, required bool isMaxLoad}) {
-    if (isSabbatical) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: AdminColors.onSurfaceVariant, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'Sabbatical',
-              style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ]),
-      );
-    }
-    if (isMaxLoad) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(9999)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.warning_amber_rounded, size: 12, color: AdminColors.onErrorContainer),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'Max Load',
-              style: AdminTypography.labelSm(color: AdminColors.onErrorContainer).copyWith(fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ]),
-      );
-    }
+  Widget _mobileStatusPill(Lecturer l) {
+    final active = l.status == 'Active';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: AdminColors.tertiaryFixed, borderRadius: BorderRadius.circular(9999)),
+      decoration: BoxDecoration(
+        color: active ? AdminColors.tertiaryFixed : AdminColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(9999),
+      ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 6, height: 6, decoration: BoxDecoration(color: AdminColors.onTertiaryContainer, shape: BoxShape.circle)),
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: active ? AdminColors.onTertiaryContainer : AdminColors.onSurfaceVariant,
+            shape: BoxShape.circle,
+          ),
+        ),
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            'Active',
-            style: AdminTypography.labelSm(color: AdminColors.onTertiaryContainer).copyWith(fontWeight: FontWeight.w600),
+            l.status,
+            style: AdminTypography.labelSm(color: active ? AdminColors.onTertiaryContainer : AdminColors.onSurfaceVariant)
+                .copyWith(fontWeight: FontWeight.w600),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -1146,71 +1048,19 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _mobileCardActionButton(Lecturer l, {required bool isSabbatical}) {
+  Widget _mobileCardActionButton(Lecturer l) {
     return ElevatedButton.icon(
       onPressed: () => _openAssignedCourses(l),
       icon: const Icon(Icons.menu_book, size: 16),
       label: const Text('Manage Assigned Courses'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSabbatical ? AdminColors.primary : AdminColors.surfaceContainerLow,
-        foregroundColor: isSabbatical ? AdminColors.onPrimary : AdminColors.secondary,
+        backgroundColor: AdminColors.surfaceContainerLow,
+        foregroundColor: AdminColors.secondary,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: AdminTypography.labelMd(),
       ),
-    );
-  }
-
-  Widget _mobilePaginationFooter() {
-    Widget pageBtn(String label, {bool active = false}) {
-      return Container(
-        margin: const EdgeInsets.only(left: 4),
-        width: 28,
-        height: 28,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: active ? AdminColors.secondary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: AdminTypography.labelSm(color: active ? AdminColors.onPrimary : AdminColors.onSurfaceVariant)
-              .copyWith(fontWeight: FontWeight.w700),
-        ),
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Flexible(
-          child: Text(
-            'Showing 1-${_lecturers.length} of 38 faculty',
-            style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        Row(mainAxisSize: MainAxisSize.min, children: [
-          IconButton(
-            onPressed: _notAvailable,
-            icon: const Icon(Icons.chevron_left, size: 18),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-          ),
-          pageBtn('1', active: true),
-          pageBtn('2'),
-          pageBtn('3'),
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: Text('…', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
-          pageBtn('8'),
-          IconButton(
-            onPressed: _notAvailable,
-            icon: const Icon(Icons.chevron_right, size: 18),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-          ),
-        ]),
-      ],
     );
   }
 

@@ -12,7 +12,7 @@ class BadgeAward {
   final String badgeId;
   final String badgeCode;
   final String badgeTitle;
-  final int issueYear;
+  final DateTime issueDate;
   final bool isRevoked;
 
   const BadgeAward({
@@ -25,7 +25,7 @@ class BadgeAward {
     required this.badgeId,
     required this.badgeCode,
     required this.badgeTitle,
-    required this.issueYear,
+    required this.issueDate,
     required this.isRevoked,
   });
 
@@ -43,7 +43,7 @@ class BadgeAward {
       badgeId: map['badge_id'] as String,
       badgeCode: displayCode(badge?['code'] as String? ?? ''),
       badgeTitle: badge?['title'] as String? ?? '',
-      issueYear: map['issue_year'] as int,
+      issueDate: DateTime.parse(map['issue_date'] as String),
       isRevoked: map['is_revoked'] as bool,
     );
   }

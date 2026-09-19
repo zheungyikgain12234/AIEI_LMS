@@ -26,13 +26,29 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
   bool _isLoading = true;
   List<Lecturer> _lecturers = [];
   List<CourseSection> _sections = [];
+  final _searchController = TextEditingController();
+  String _query = '';
 
   final Set<String> _assigned = {};
+
+  List<Lecturer> get _filteredLecturers {
+    if (_query.isEmpty) return _lecturers;
+    return _lecturers.where((l) =>
+        l.name.toLowerCase().contains(_query) ||
+        _sectionsFor(l).any((s) => s.courseCode.toLowerCase().contains(_query))).toList();
+  }
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -311,6 +327,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
             children: [
               Expanded(
                 child: TextField(
+                  controller: _searchController,
                   style: AdminTypography.bodySm(color: AdminColors.onSurface),
                   decoration: InputDecoration(
                     isDense: true,
@@ -334,7 +351,9 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        for (final l in _lecturers) ...[
+        if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
+          Padding(padding: const EdgeInsets.all(24), child: Text('No faculty found.', style: AdminTypography.bodyMd())),
+        for (final l in _filteredLecturers) ...[
           _facultyCard(l),
           const SizedBox(height: 16),
         ],
@@ -344,7 +363,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Showing 1-${_lecturers.length} of ${_lecturers.length} Faculty Members', style: AdminTypography.bodySm()),
+              Text('Showing ${_filteredLecturers.isEmpty ? 0 : 1}-${_filteredLecturers.length} of ${_filteredLecturers.length} Faculty Members', style: AdminTypography.bodySm()),
               Row(mainAxisSize: MainAxisSize.min, children: [1].map((p) {
                 const active = true;
                 return Container(
@@ -770,7 +789,9 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
               const SizedBox(height: 10),
               _mobileFilterChips(),
               const SizedBox(height: 16),
-              for (final l in _lecturers) ...[
+              if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
+                Padding(padding: const EdgeInsets.all(24), child: Text('No faculty found.', style: AdminTypography.bodyMd())),
+              for (final l in _filteredLecturers) ...[
                 _mobileFacultyCard(l),
                 const SizedBox(height: 12),
               ],
@@ -1055,6 +1076,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
 
   Widget _mobileSearchField() {
     return TextField(
+      controller: _searchController,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         filled: true,

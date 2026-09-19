@@ -11,6 +11,7 @@ import 'widgets/admin_mobile_bottom_nav.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_more_menu.dart';
 import 'widgets/admin_mobile_selection_bar.dart';
+import 'widgets/admin_pagination.dart';
 import 'course_form_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -36,6 +37,8 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   String _query = '';
   _SortColumn _sortColumn = _SortColumn.code;
   bool _sortAscending = true;
+  int _page = 1;
+  int _pageSize = adminPageSizeOptions.first;
 
   static const _categoryLabels = {
     'techData': 'Technical & Data',
@@ -87,6 +90,14 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
       return _sortAscending ? cmp : -cmp;
     });
     return sorted;
+  }
+
+  List<AdminCourse> _paged(List<AdminCourse> items) {
+    final pageCount = items.isEmpty ? 1 : (items.length / _pageSize).ceil();
+    if (_page > pageCount) _page = pageCount;
+    final start = ((_page - 1) * _pageSize).clamp(0, items.length);
+    final end = (start + _pageSize).clamp(0, items.length);
+    return items.sublist(start, end);
   }
 
   void _toggleSort(_SortColumn column) {
@@ -247,11 +258,23 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
               const SizedBox(height: 16),
               if (courses.isEmpty)
                 Padding(padding: const EdgeInsets.all(24), child: Text('No courses found.', style: AdminTypography.bodyMd()))
-              else
-                for (final c in courses) ...[
+              else ...[
+                for (final c in _paged(courses)) ...[
                   _mobileCourseCard(c),
                   const SizedBox(height: 12),
                 ],
+                AdminPagination(
+                  totalItems: courses.length,
+                  page: _page,
+                  pageSize: _pageSize,
+                  itemLabel: 'course',
+                  onPageChanged: (p) => setState(() => _page = p),
+                  onPageSizeChanged: (s) => setState(() {
+                    _pageSize = s;
+                    _page = 1;
+                  }),
+                ),
+              ],
             ],
           ),
         ),
@@ -415,12 +438,19 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
               child: Text('No courses found.', style: AdminTypography.bodyMd()),
             )
           else
-            Column(children: [for (final c in courses) _courseRow(c)]),
+            Column(children: [for (final c in _paged(courses)) _courseRow(c)]),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('${courses.length} course${courses.length == 1 ? '' : 's'}', style: AdminTypography.bodySm()),
+            child: AdminPagination(
+              totalItems: courses.length,
+              page: _page,
+              pageSize: _pageSize,
+              itemLabel: 'course',
+              onPageChanged: (p) => setState(() => _page = p),
+              onPageSizeChanged: (s) => setState(() {
+                _pageSize = s;
+                _page = 1;
+              }),
             ),
           ),
         ],
@@ -436,6 +466,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(width: 40),
+          Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
           Expanded(flex: 5, child: _sortHeader('Course', _SortColumn.title)),
           Expanded(flex: 3, child: _sortHeader('Category', _SortColumn.category)),
           Expanded(flex: 2, child: _sortHeader('Credits', _SortColumn.credits)),
@@ -458,27 +489,28 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text(c.courseCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+            ),
+          ),
+          Expanded(
             flex: 5,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Flexible(child: Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
-                      const SizedBox(width: 4),
-                      InkWell(
-                        onTap: () => _openEditCourse(c),
-                        borderRadius: BorderRadius.circular(6),
-                        child: Padding(
-                          padding: const EdgeInsets.all(2),
-                          child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
-                        ),
-                      ),
-                    ],
+                  Flexible(child: Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: () => _openEditCourse(c),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
+                    ),
                   ),
-                  Text(c.courseCode, style: AdminTypography.labelSm()),
                 ],
               ),
             ),

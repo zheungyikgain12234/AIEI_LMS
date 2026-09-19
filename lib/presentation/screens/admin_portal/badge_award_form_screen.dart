@@ -32,14 +32,13 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
   final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   final _formKey = GlobalKey<FormState>();
 
-  final _issueYearController = TextEditingController(text: DateTime.now().year.toString());
-
   List<(String, String)> _students = [];
   List<(String, String)> _courses = [];
   List<(String, String)> _badges = [];
   String? _selectedStudentId;
   String? _selectedCourseId;
   String? _selectedBadgeId;
+  DateTime? _issueDate;
   bool _isRevoked = false;
 
   bool _isLoading = true;
@@ -67,9 +66,10 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
           _selectedStudentId = award.studentId;
           _selectedCourseId = award.courseId;
           _selectedBadgeId = award.badgeId;
-          _issueYearController.text = award.issueYear.toString();
+          _issueDate = award.issueDate;
           _isRevoked = award.isRevoked;
         }
+        _issueDate ??= DateTime.now();
         _isLoading = false;
       });
     } catch (e) {
@@ -81,12 +81,6 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _issueYearController.dispose();
-    super.dispose();
-  }
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedStudentId == null || _selectedCourseId == null || _selectedBadgeId == null) return;
@@ -95,7 +89,6 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
       _errorMessage = null;
     });
     try {
-      final issueYear = int.parse(_issueYearController.text.trim());
       final BadgeAward saved;
       if (widget.isEditing) {
         saved = await _repository.updateBadgeAward(
@@ -103,7 +96,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
           studentId: _selectedStudentId!,
           courseId: _selectedCourseId!,
           badgeId: _selectedBadgeId!,
-          issueYear: issueYear,
+          issueDate: _issueDate!,
           isRevoked: _isRevoked,
         );
       } else {
@@ -111,7 +104,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
           studentId: _selectedStudentId!,
           courseId: _selectedCourseId!,
           badgeId: _selectedBadgeId!,
-          issueYear: issueYear,
+          issueDate: _issueDate!,
           isRevoked: _isRevoked,
         );
       }
@@ -199,18 +192,10 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
                             onChanged: (v) => setState(() => _selectedBadgeId = v),
                           ),
                           const SizedBox(height: 14),
-                          _field(
-                            controller: _issueYearController,
-                            label: 'Issue Year',
-                            hint: '${DateTime.now().year}',
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              final trimmed = value?.trim() ?? '';
-                              if (trimmed.isEmpty) return 'Issue Year is required';
-                              final parsed = int.tryParse(trimmed);
-                              if (parsed == null || parsed < 2000 || parsed > 2100) return 'Enter a valid year';
-                              return null;
-                            },
+                          _datePicker(
+                            label: 'Issue Date',
+                            value: _issueDate,
+                            onChanged: (v) => setState(() => _issueDate = v),
                           ),
                           const SizedBox(height: 14),
                           InkWell(
@@ -275,32 +260,49 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
     );
   }
 
-  Widget _field({
-    required TextEditingController controller,
+  Widget _datePicker({
     required String label,
-    required String hint,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
-            hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        FormField<DateTime>(
+          initialValue: value,
+          validator: (v) => v == null ? '$label is required' : null,
+          builder: (state) => InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: value ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null) {
+                onChanged(picked);
+                state.didChange(picked);
+              }
+            },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: AdminColors.surfaceContainerLow,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                errorText: state.errorText,
+                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+              ),
+              child: Text(
+                value == null ? 'Select a date' : '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
+                style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+              ),
+            ),
           ),
-          validator: validator ?? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null,
         ),
       ],
     );

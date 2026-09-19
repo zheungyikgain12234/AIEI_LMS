@@ -12,7 +12,7 @@ abstract class AdminBadgesRepository {
     required String studentId,
     required String courseId,
     required String badgeId,
-    required int issueYear,
+    required DateTime issueDate,
     required bool isRevoked,
   });
 
@@ -21,9 +21,14 @@ abstract class AdminBadgesRepository {
     required String studentId,
     required String courseId,
     required String badgeId,
-    required int issueYear,
+    required DateTime issueDate,
     required bool isRevoked,
   });
 
   Future<void> deleteBadgeAwards(List<String> ids);
+
+  /// Count of non-revoked badges issued per calendar month over the last 6
+  /// months (monthLabel, count), oldest first — the Manage Students screen's
+  /// "Monthly Credential Grant Rate" chart.
+  Future<List<(String, int)>> getMonthlyIssueCounts();
 }

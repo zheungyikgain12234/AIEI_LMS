@@ -16,6 +16,7 @@ import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
 import 'student_directory_screen.dart';
+import 'course_syllabus_screen.dart';
 
 /// The course dashboard/roster preview in this app is only wired up for
 /// PY-402's seeded data, so only that course's "Open Dashboard"/"Roster"
@@ -210,6 +211,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     if (initials.length > 3) initials = initials.substring(0, 3);
     final (accent, accentBg) = _kAccentPalette[index % _kAccentPalette.length];
     return _CourseRow(
+      courseId: c.courseId,
       initials: initials,
       accent: accent,
       accentBg: accentBg,
@@ -238,6 +240,12 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('The full submissions queue isn\'t in this preview — open a course dashboard to grade a submission.')),
+    );
+  }
+
+  void _openSyllabus(String courseId, String courseTitle) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => CourseSyllabusScreen(courseId: courseId, courseTitle: courseTitle)),
     );
   }
 
@@ -562,7 +570,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _unavailable,
+                    onPressed: () => _openSyllabus(c.courseId, c.title),
                     icon: const Icon(Icons.menu_book_outlined, size: 14),
                     label: const Text('Syllabus'),
                     style: OutlinedButton.styleFrom(
@@ -1347,7 +1355,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
               : _unavailable(),
         ),
         const SizedBox(width: 8),
-        _mobileIconButton(icon: Icons.description, tooltip: 'Course Syllabus', onTap: _unavailable),
+        _mobileIconButton(icon: Icons.description, tooltip: 'Course Syllabus', onTap: () => _openSyllabus(c.courseId, c.title)),
       ],
     );
   }
@@ -1445,6 +1453,7 @@ class _Stat {
 }
 
 class _CourseRow {
+  final String courseId;
   final String initials;
   final Color accent;
   final Color accentBg;
@@ -1464,6 +1473,7 @@ class _CourseRow {
   final bool dashboardAvailable;
 
   const _CourseRow({
+    required this.courseId,
     required this.initials,
     required this.accent,
     required this.accentBg,

@@ -14,7 +14,7 @@ drop table if exists
   enrollment_candidates, course_sections,
   badge_awards, student_certifications, student_materials, student_courses,
   specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
-  course_tags, tags, module_materials, course_modules, courses,
+  course_tags, tags, content_blocks, sessions, module_materials, course_modules, courses,
   admins, students, lecturers,
   departments, program_tracks, cohorts,
   lecturer_departments, specializations, roles
@@ -181,6 +181,34 @@ create table module_materials (
   is_published boolean not null default true,
   due_at timestamptz,
   attached_files jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+-- ── Syllabus authoring (lecturer-built module → session → content-block
+-- timeline, reached via the "Syllabus" button on My Assigned Courses) — a
+-- separate tree from course_modules/module_materials above, which remains
+-- the existing graded lesson/quiz/assignment system students progress
+-- through. `sessions` hangs off the same `course_modules` table so a
+-- lecturer's syllabus modules and their graded content share one module
+-- list; `content_blocks` lets one session mix several pieces of content
+-- (some text, an embedded video, a file) instead of one type per row. ────
+
+create table sessions (
+  id uuid primary key default gen_random_uuid(),
+  module_id uuid not null references course_modules(id) on delete cascade,
+  session_name text not null,
+  session_description text not null default '',
+  session_sorting int not null default 0,
+  is_published boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table content_blocks (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references sessions(id) on delete cascade,
+  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file')),
+  block_content jsonb not null default '{}'::jsonb,
+  block_sorting int not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -399,6 +427,8 @@ alter table admins enable row level security;
 alter table courses enable row level security;
 alter table course_modules enable row level security;
 alter table module_materials enable row level security;
+alter table sessions enable row level security;
+alter table content_blocks enable row level security;
 alter table tags enable row level security;
 alter table course_tags enable row level security;
 alter table certifications enable row level security;
@@ -419,7 +449,7 @@ begin
     'departments', 'program_tracks', 'cohorts',
     'lecturer_departments', 'specializations', 'roles',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
-    'module_materials', 'tags', 'course_tags', 'certifications', 'module_certs',
+    'module_materials', 'sessions', 'content_blocks', 'tags', 'course_tags', 'certifications', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates'
   ]
@@ -430,3 +460,23 @@ begin
     execute format('create policy "anon delete" on %I for delete using (true)', t);
   end loop;
 end $$;
+
+-- ── Storage (session content uploads — video/image/file blocks) ────────
+-- `storage.buckets`/`storage.objects` are managed by Supabase, not part of
+-- the drop-table list above, so this is written to be safe to re-run:
+-- `on conflict do nothing` for the bucket, `drop policy if exists` for each
+-- policy before recreating it.
+
+insert into storage.buckets (id, name, public)
+values ('course-content', 'course-content', true)
+on conflict (id) do nothing;
+
+drop policy if exists "course-content anon read" on storage.objects;
+drop policy if exists "course-content anon write" on storage.objects;
+drop policy if exists "course-content anon update" on storage.objects;
+drop policy if exists "course-content anon delete" on storage.objects;
+
+create policy "course-content anon read" on storage.objects for select to anon using (bucket_id = 'course-content');
+create policy "course-content anon write" on storage.objects for insert to anon with check (bucket_id = 'course-content');
+create policy "course-content anon update" on storage.objects for update to anon using (bucket_id = 'course-content');
+create policy "course-content anon delete" on storage.objects for delete to anon using (bucket_id = 'course-content');

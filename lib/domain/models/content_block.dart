@@ -6,7 +6,9 @@ enum ContentBlockType {
   video,
   image,
   link,
-  file;
+  file,
+  exam,
+  assignment;
 
   static ContentBlockType fromKey(String key) =>
       ContentBlockType.values.firstWhere((t) => t.name == key, orElse: () => ContentBlockType.text);
@@ -18,6 +20,8 @@ enum ContentBlockType {
 /// - video / image: `{"url": "...", "caption": "..."}`
 /// - link: `{"url": "...", "label": "..."}`
 /// - file: `{"url": "...", "name": "...", "sizeLabel": "..."}`
+/// - exam / assignment: `{"title": "..."}` — a placeholder pointing at the
+///   (not yet built) exam/assignment editor, keyed by [id] once created.
 class ContentBlock {
   final String id;
   final String sessionId;
@@ -45,6 +49,7 @@ class ContentBlock {
   String? get label => content['label'] as String?;
   String? get fileName => content['name'] as String?;
   String? get sizeLabel => content['sizeLabel'] as String?;
+  String? get title => content['title'] as String?;
 
   factory ContentBlock.fromMap(Map<String, dynamic> map) {
     return ContentBlock(

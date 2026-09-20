@@ -8,6 +8,8 @@ import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
 import 'package:stitch_aiei_lms/domain/models/syllabus_template.dart';
+import 'assignment_editor_screen.dart';
+import 'exam_editor_screen.dart';
 import 'widgets/embedded_image.dart';
 import 'widgets/embedded_video_player.dart';
 import 'widgets/faculty_scaffold.dart';
@@ -749,7 +751,25 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         return Icons.link;
       case ContentBlockType.file:
         return Icons.attach_file;
+      case ContentBlockType.exam:
+        return Icons.quiz_outlined;
+      case ContentBlockType.assignment:
+        return Icons.assignment_outlined;
     }
+  }
+
+  void _openExamEditor(ContentBlock b) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ExamEditorScreen(examTitle: b.title?.isNotEmpty == true ? b.title! : 'Exam')),
+    );
+  }
+
+  void _openAssignmentEditor(ContentBlock b) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AssignmentEditorScreen(assignmentTitle: b.title?.isNotEmpty == true ? b.title! : 'Assignment'),
+      ),
+    );
   }
 
   Widget _contentPreview(ContentBlock b) {
@@ -789,6 +809,27 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         );
       case ContentBlockType.file:
         return Text(b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface), overflow: TextOverflow.ellipsis);
+      case ContentBlockType.exam:
+        return Row(
+          children: [
+            Expanded(
+              child: Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+            ),
+            OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Edit Exam')),
+          ],
+        );
+      case ContentBlockType.assignment:
+        return Row(
+          children: [
+            Expanded(
+              child: Text(
+                b.title?.isNotEmpty == true ? b.title! : 'Assignment',
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              ),
+            ),
+            OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Edit Assignment')),
+          ],
+        );
     }
   }
 }
@@ -883,6 +924,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   final _urlController = TextEditingController();
   final _captionController = TextEditingController();
   final _labelController = TextEditingController();
+  final _titleController = TextEditingController();
   String? _uploadedFileName;
   bool _uploading = false;
   String? _error;
@@ -899,6 +941,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     _urlController.dispose();
     _captionController.dispose();
     _labelController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -911,6 +954,9 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.link:
       case ContentBlockType.file:
         return _urlController.text.trim().isNotEmpty;
+      case ContentBlockType.exam:
+      case ContentBlockType.assignment:
+        return _titleController.text.trim().isNotEmpty;
     }
   }
 
@@ -961,6 +1007,9 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           'url': _urlController.text.trim(),
           if (_uploadedFileName != null) 'name': _uploadedFileName,
         };
+      case ContentBlockType.exam:
+      case ContentBlockType.assignment:
+        return {'title': _titleController.text.trim()};
     }
   }
 
@@ -1016,6 +1065,10 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return 'Link';
       case ContentBlockType.file:
         return 'File';
+      case ContentBlockType.exam:
+        return 'Exam';
+      case ContentBlockType.assignment:
+        return 'Assignment';
     }
   }
 
@@ -1080,6 +1133,32 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             const SizedBox(height: 8),
             Text('Selected: $_uploadedFileName', style: const TextStyle(fontSize: 13)),
           ],
+        ];
+      case ContentBlockType.exam:
+        return [
+          TextField(
+            controller: _titleController,
+            decoration: const InputDecoration(labelText: 'Exam name'),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This adds a placeholder — you\'ll build the actual questions from "Edit Exam" afterwards.',
+            style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+          ),
+        ];
+      case ContentBlockType.assignment:
+        return [
+          TextField(
+            controller: _titleController,
+            decoration: const InputDecoration(labelText: 'Assignment name'),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This adds a placeholder — you\'ll build the actual instructions from "Edit Assignment" afterwards.',
+            style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+          ),
         ];
     }
   }

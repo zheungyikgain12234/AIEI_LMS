@@ -131,7 +131,8 @@ insert into lecturer_courses (lecturer_id, course_id) values
   ('11111111-1111-1111-1111-111111111104', '44444444-4444-4444-4444-444444444406'), -- Elena Rostova: LEAD-400
   ('11111111-1111-1111-1111-111111111104', '44444444-4444-4444-4444-444444444414'), -- Elena Rostova: COMM-102
   ('11111111-1111-1111-1111-111111111106', '44444444-4444-4444-4444-444444444413'), -- Emmett Brown: NLP-620
-  ('11111111-1111-1111-1111-111111111106', '44444444-4444-4444-4444-444444444417'); -- Emmett Brown: AI-512
+  ('11111111-1111-1111-1111-111111111106', '44444444-4444-4444-4444-444444444417'), -- Emmett Brown: AI-512
+  ('11111111-1111-1111-1111-111111111106', '44444444-4444-4444-4444-444444444403'); -- Emmett Brown: AI-330
 
 -- ── Role → Course mapping (which job roles can study which courses) ─────
 
@@ -194,6 +195,7 @@ insert into specialization_courses (specialization_id, course_id) values
   ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444412'),
   ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444413'),
   ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444417'),
+  ((select id from specializations where name = 'Deep Neural Architectures'), '44444444-4444-4444-4444-444444444403'),
   ((select id from specializations where name = 'Org Dynamics & Crisis Management'), '44444444-4444-4444-4444-444444444406'),
   ((select id from specializations where name = 'Org Dynamics & Crisis Management'), '44444444-4444-4444-4444-444444444414'),
   ((select id from specializations where name = 'Distributed Cloud Governance'), '44444444-4444-4444-4444-444444444416'),
@@ -218,6 +220,7 @@ insert into course_sections (course_id, section_code, role_label, term, schedule
   -- Dr. Emmett Brown's classes (Lecturer Portal demo identity):
   ('44444444-4444-4444-4444-444444444413', 'TN01-CLS-NLP620-A01', 'Primary Instructor', 'Fall 2025', 'Wednesday 10:00–12:00 • Language Systems Lab', 'Wednesday', '10:00', '12:00', 'Language Systems Lab', '11111111-1111-1111-1111-111111111106', 30, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
   ('44444444-4444-4444-4444-444444444417', 'TN01-CLS-AI512-01', 'Primary Instructor', 'Fall 2025', 'Thursday 13:00–16:00 • Autonomy Systems Lab', 'Thursday', '13:00', '16:00', 'Autonomy Systems Lab', '11111111-1111-1111-1111-111111111106', 22, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444403', 'TN01-CLS-AI330-A01', 'Primary Instructor', 'Fall 2025', 'Tuesday 10:00–12:00 • AI Studio 2', 'Tuesday', '10:00', '12:00', 'AI Studio 2', '11111111-1111-1111-1111-111111111106', 25, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'in_progress'),
   -- Unassigned sections needing lecturer allocation:
   ('44444444-4444-4444-4444-444444444415', 'TN01-CLS-CYBER202-02', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 34, 'physical', (select id from cohorts where name = 'Fall 2025 Cohort'), 'scheduled'),
   ('44444444-4444-4444-4444-444444444416', 'TN01-CLS-CLOUD410-01', 'Unassigned', 'Fall 2025', 'TBD', null, null, null, null, null, 50, 'online', (select id from cohorts where name = 'Fall 2025 Cohort'), 'scheduled');
@@ -382,6 +385,25 @@ insert into module_materials (id, module_id, material_name, material_type, mater
         ], "maxScore": 6}
       ]
     }'::jsonb, 0);
+
+-- ── Syllabus authoring demo content (Dr. Emmett Brown — AI-330 class) ───
+-- Exercises every content-block type (text, image, video, file, link, exam,
+-- assignment placeholder) on the new AI-330 class's syllabus.
+
+insert into course_modules (id, section_id, module_name, module_description, module_sorting) values
+  ('55555555-5555-5555-5555-555555555530', (select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), 'Prompt Engineering Fundamentals', 'Core prompt design patterns and context retrieval basics.', 0);
+
+insert into sessions (id, module_id, session_name, session_description, session_sorting) values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', '55555555-5555-5555-5555-555555555530', 'Kickoff Session', '', 0);
+
+insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', 'exam', '{"title": "em1"}'::jsonb, 0),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', 'assignment', '{"title": "asg11"}'::jsonb, 1),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', 'text', '{"body": "dd", "delta": [{"insert": "dd\n"}]}'::jsonb, 2),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', 'image', '{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/d8490143-f015-4f7f-92a1-d51a0a033904/1789894103088-Screenshot_2026-09-14_at_1.02.43_AM.png"}'::jsonb, 3),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0005', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', 'video', '{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/d8490143-f015-4f7f-92a1-d51a0a033904/1789894247220-Screen_Recording_2026-09-20_at_4.50.16_PM.mov", "caption": "vid"}'::jsonb, 4),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0006', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', 'file', '{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/d8490143-f015-4f7f-92a1-d51a0a033904/1789894268438-langfuse.pptx", "name": "langfuse.pptx"}'::jsonb, 5),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0007', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', 'link', '{"url": "www.google.com", "label": "Search yourself, dun ask"}'::jsonb, 6);
 
 -- ── Tags ────────────────────────────────────────────────────────────────
 

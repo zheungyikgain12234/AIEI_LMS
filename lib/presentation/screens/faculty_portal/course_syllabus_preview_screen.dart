@@ -206,6 +206,10 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
         return Icons.link;
       case ContentBlockType.file:
         return Icons.attach_file;
+      case ContentBlockType.exam:
+        return Icons.quiz_outlined;
+      case ContentBlockType.assignment:
+        return Icons.assignment_outlined;
     }
   }
 
@@ -241,6 +245,13 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
         );
       case ContentBlockType.file:
         return Text(b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
+      case ContentBlockType.exam:
+        return Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
+      case ContentBlockType.assignment:
+        return Text(
+          b.title?.isNotEmpty == true ? b.title! : 'Assignment',
+          style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+        );
     }
   }
 }

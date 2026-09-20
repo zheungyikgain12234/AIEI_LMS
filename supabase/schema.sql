@@ -14,7 +14,9 @@ drop table if exists
   enrollment_candidates, course_sections,
   badge_awards, student_certifications, student_materials, student_courses,
   specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
-  course_tags, tags, content_blocks, sessions, module_materials, course_modules, courses,
+  course_tags, tags,
+  template_content_blocks, template_sessions, template_modules, syllabus_templates,
+  content_blocks, sessions, module_materials, course_modules, courses,
   admins, students, lecturers,
   departments, program_tracks, cohorts,
   lecturer_departments, specializations, roles
@@ -239,6 +241,43 @@ create table content_blocks (
   created_at timestamptz not null default now()
 );
 
+-- A saved, reusable copy of a module → session → content-block tree ("Save
+-- as Template" / "Copy from Template" on the Syllabus screen), independent
+-- of any one class — mirrors course_modules/sessions/content_blocks above
+-- but with no section_id, so it can be copied into any class's syllabus.
+create table syllabus_templates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create table template_modules (
+  id uuid primary key default gen_random_uuid(),
+  template_id uuid not null references syllabus_templates(id) on delete cascade,
+  module_name text not null,
+  module_description text not null default '',
+  module_sorting int not null default 0,
+  is_published boolean not null default true,
+  unlock_at date
+);
+
+create table template_sessions (
+  id uuid primary key default gen_random_uuid(),
+  template_module_id uuid not null references template_modules(id) on delete cascade,
+  session_name text not null,
+  session_description text not null default '',
+  session_sorting int not null default 0,
+  is_published boolean not null default true
+);
+
+create table template_content_blocks (
+  id uuid primary key default gen_random_uuid(),
+  template_session_id uuid not null references template_sessions(id) on delete cascade,
+  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file')),
+  block_content jsonb not null default '{}'::jsonb,
+  block_sorting int not null default 0
+);
+
 -- ── Tags & Certifications ──────────────────────────────────────────────
 
 create table tags (
@@ -434,6 +473,10 @@ alter table course_modules enable row level security;
 alter table module_materials enable row level security;
 alter table sessions enable row level security;
 alter table content_blocks enable row level security;
+alter table syllabus_templates enable row level security;
+alter table template_modules enable row level security;
+alter table template_sessions enable row level security;
+alter table template_content_blocks enable row level security;
 alter table tags enable row level security;
 alter table course_tags enable row level security;
 alter table certifications enable row level security;
@@ -454,7 +497,9 @@ begin
     'departments', 'program_tracks', 'cohorts',
     'lecturer_departments', 'specializations', 'roles',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
-    'module_materials', 'sessions', 'content_blocks', 'tags', 'course_tags', 'certifications', 'module_certs',
+    'module_materials', 'sessions', 'content_blocks',
+    'syllabus_templates', 'template_modules', 'template_sessions', 'template_content_blocks',
+    'tags', 'course_tags', 'certifications', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates'
   ]

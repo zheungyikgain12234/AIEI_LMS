@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_rep
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
+import 'package:stitch_aiei_lms/domain/models/syllabus_template.dart';
 import 'widgets/embedded_image.dart';
 import 'widgets/embedded_video_player.dart';
 import 'widgets/faculty_scaffold.dart';
@@ -297,6 +298,26 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
   }
 
+  Future<void> _saveAsTemplate() async {
+    final name = await showDialog<String>(context: context, builder: (_) => const _SaveAsTemplateDialog());
+    if (name == null || name.trim().isEmpty) return;
+    await _repository.saveAsTemplate(sectionId: widget.sectionId, name: name.trim());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved as template "${name.trim()}".')));
+  }
+
+  Future<void> _copyFromTemplate() async {
+    final template = await showDialog<SyllabusTemplate>(
+      context: context,
+      builder: (_) => _CopyFromTemplateDialog(repository: _repository),
+    );
+    if (template == null) return;
+    await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id);
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Copied from template "${template.name}".')));
+  }
+
   void _handleNav(FacultyNavDestination dest) {
     switch (dest) {
       case FacultyNavDestination.myCourses:
@@ -357,6 +378,14 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               ),
               const SizedBox(height: 16),
               Row(children: [Expanded(child: _viewAsStudentButton()), const SizedBox(width: 10), Expanded(child: _addModuleButton())]),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(child: _saveAsTemplateButton()),
+                  const SizedBox(width: 10),
+                  Expanded(child: _copyFromTemplateButton()),
+                ],
+              ),
               const SizedBox(height: 16),
               _buildModuleList(),
             ],
@@ -391,6 +420,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
             _viewAsStudentButton(),
             const SizedBox(height: 8),
             _addModuleButton(),
+            const SizedBox(height: 8),
+            Row(children: [_saveAsTemplateButton(), const SizedBox(width: 8), _copyFromTemplateButton()]),
           ],
         ),
       ],
@@ -423,6 +454,36 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _saveAsTemplateButton() {
+    return OutlinedButton.icon(
+      onPressed: _saveAsTemplate,
+      icon: const Icon(Icons.save_outlined, size: 16),
+      label: const Text('Save as Template'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: FacultyColors.primary,
+        side: const BorderSide(color: FacultyColors.outlineVariant),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: FacultyTypography.labelMd(),
+      ),
+    );
+  }
+
+  Widget _copyFromTemplateButton() {
+    return OutlinedButton.icon(
+      onPressed: _copyFromTemplate,
+      icon: const Icon(Icons.content_copy_outlined, size: 16),
+      label: const Text('Copy from Template'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: FacultyColors.primary,
+        side: const BorderSide(color: FacultyColors.outlineVariant),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: FacultyTypography.labelMd(),
       ),
     );
   }
@@ -1036,6 +1097,141 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
           : const Icon(Icons.upload_file, size: 16),
       label: Text(label),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _SaveAsTemplateDialog — names the template that "Save as Template" will
+// deep-copy the class's current module → session → content-block tree into.
+// ---------------------------------------------------------------------------
+class _SaveAsTemplateDialog extends StatefulWidget {
+  const _SaveAsTemplateDialog();
+
+  @override
+  State<_SaveAsTemplateDialog> createState() => _SaveAsTemplateDialogState();
+}
+
+class _SaveAsTemplateDialogState extends State<_SaveAsTemplateDialog> {
+  final _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Save as Template'),
+      content: SizedBox(
+        width: 380,
+        child: TextField(
+          controller: _nameController,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Template name'),
+          onChanged: (_) => setState(() {}),
+          onSubmitted: (_) {
+            if (_nameController.text.trim().isNotEmpty) Navigator.of(context).pop(_nameController.text.trim());
+          },
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: _nameController.text.trim().isEmpty ? null : () => Navigator.of(context).pop(_nameController.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _CopyFromTemplateDialog — lists saved templates for "Copy from Template"
+// to pick one to deep-copy into the current class.
+// ---------------------------------------------------------------------------
+class _CopyFromTemplateDialog extends StatefulWidget {
+  final SupabaseLecturerSyllabusRepositoryImpl repository;
+
+  const _CopyFromTemplateDialog({required this.repository});
+
+  @override
+  State<_CopyFromTemplateDialog> createState() => _CopyFromTemplateDialogState();
+}
+
+class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
+  bool _isLoading = true;
+  List<SyllabusTemplate> _templates = [];
+  SyllabusTemplate? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final templates = await widget.repository.getTemplates();
+    if (!mounted) return;
+    setState(() {
+      _templates = templates;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Copy from Template'),
+      content: SizedBox(
+        width: 420,
+        height: 360,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _templates.isEmpty
+                ? Center(
+                    child: Text('No saved templates yet.', style: FacultyTypography.bodyMd(color: FacultyColors.onSurfaceVariant)),
+                  )
+                : ListView.separated(
+                    itemCount: _templates.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      final t = _templates[index];
+                      final selected = _selected?.id == t.id;
+                      return Material(
+                        color: selected ? FacultyColors.secondaryContainer : FacultyColors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(8),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => setState(() => _selected = t),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                                  size: 18,
+                                  color: selected ? FacultyColors.primary : FacultyColors.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(t.name, style: FacultyTypography.bodyMd())),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: _selected == null ? null : () => Navigator.of(context).pop(_selected),
+          child: const Text('Copy'),
+        ),
+      ],
     );
   }
 }

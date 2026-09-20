@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
+import 'package:stitch_aiei_lms/domain/models/syllabus_template.dart';
 
 /// Backs the lecturer-facing "Syllabus" screen (My Assigned Courses →
 /// Syllabus button) — a module → session → content-block authoring tree,
@@ -51,4 +52,15 @@ abstract class LecturerSyllabusRepository {
   /// `sessionId/fileName` and returns its public URL, for `video`/`image`/
   /// `file` blocks that attach a real uploaded file.
   Future<String> uploadContentFile({required String sessionId, required String fileName, required Uint8List bytes});
+
+  /// All saved templates, newest first — for the "Copy from Template" picker.
+  Future<List<SyllabusTemplate>> getTemplates();
+
+  /// Deep-copies the class's current module → session → content-block tree
+  /// into a new named template.
+  Future<void> saveAsTemplate({required String sectionId, required String name});
+
+  /// Deep-copies a template's modules → sessions → content-blocks into the
+  /// class, appended after any modules it already has.
+  Future<void> copyFromTemplate({required String sectionId, required String templateId});
 }

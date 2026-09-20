@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
+import 'package:stitch_aiei_lms/domain/models/syllabus_template.dart';
 import 'package:stitch_aiei_lms/domain/repositories/lecturer_syllabus_repository.dart';
 
 class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusRepository {
@@ -159,4 +160,120 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
   /// "Invalid key") — replace anything else so real-world filenames like
   /// "Lecture Notes (Week 1).pdf" don't fail to upload.
   String _sanitizeStorageKey(String fileName) => fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+
+  @override
+  Future<List<SyllabusTemplate>> getTemplates() async {
+    final rows = await _client.from('syllabus_templates').select().order('created_at', ascending: false);
+    return [for (final row in rows as List) SyllabusTemplate.fromMap(row as Map<String, dynamic>)];
+  }
+
+  @override
+  Future<void> saveAsTemplate({required String sectionId, required String name}) async {
+    final template = await _client.from('syllabus_templates').insert({'name': name}).select().single();
+    final templateId = template['id'] as String;
+
+    final modules = await getModules(sectionId);
+    for (final module in modules) {
+      final newModule = await _client
+          .from('template_modules')
+          .insert({
+            'template_id': templateId,
+            'module_name': module.name,
+            'module_description': module.description,
+            'module_sorting': module.sorting,
+            'is_published': module.isPublished,
+            'unlock_at': module.unlockAt?.toIso8601String(),
+          })
+          .select()
+          .single();
+      final newModuleId = newModule['id'] as String;
+
+      final sessions = await getSessions(module.id);
+      for (final session in sessions) {
+        final newSession = await _client
+            .from('template_sessions')
+            .insert({
+              'template_module_id': newModuleId,
+              'session_name': session.name,
+              'session_description': session.description,
+              'session_sorting': session.sorting,
+              'is_published': session.isPublished,
+            })
+            .select()
+            .single();
+        final newSessionId = newSession['id'] as String;
+
+        final blocks = await getContentBlocks(session.id);
+        for (final block in blocks) {
+          await _client.from('template_content_blocks').insert({
+            'template_session_id': newSessionId,
+            'block_type': block.type.name,
+            'block_content': block.content,
+            'block_sorting': block.sorting,
+          });
+        }
+      }
+    }
+  }
+
+  @override
+  Future<void> copyFromTemplate({required String sectionId, required String templateId}) async {
+    final existingModules = await _client.from('course_modules').select('id').eq('section_id', sectionId);
+    var moduleSorting = (existingModules as List).length;
+
+    final templateModules =
+        await _client.from('template_modules').select().eq('template_id', templateId).order('module_sorting', ascending: true);
+    for (final tm in templateModules as List) {
+      final tmMap = tm as Map<String, dynamic>;
+      final newModule = await _client
+          .from('course_modules')
+          .insert({
+            'section_id': sectionId,
+            'module_name': tmMap['module_name'],
+            'module_description': tmMap['module_description'],
+            'module_sorting': moduleSorting++,
+            'is_published': tmMap['is_published'],
+            'unlock_at': tmMap['unlock_at'],
+          })
+          .select()
+          .single();
+      final newModuleId = newModule['id'] as String;
+
+      final templateSessions = await _client
+          .from('template_sessions')
+          .select()
+          .eq('template_module_id', tmMap['id'])
+          .order('session_sorting', ascending: true);
+      for (final ts in templateSessions as List) {
+        final tsMap = ts as Map<String, dynamic>;
+        final newSession = await _client
+            .from('sessions')
+            .insert({
+              'module_id': newModuleId,
+              'session_name': tsMap['session_name'],
+              'session_description': tsMap['session_description'],
+              'session_sorting': tsMap['session_sorting'],
+              'is_published': tsMap['is_published'],
+            })
+            .select()
+            .single();
+        final newSessionId = newSession['id'] as String;
+
+        final templateBlocks = await _client
+            .from('template_content_blocks')
+            .select()
+            .eq('template_session_id', tsMap['id'])
+            .order('block_sorting', ascending: true);
+        for (final tb in templateBlocks as List) {
+          final tbMap = tb as Map<String, dynamic>;
+          await _client.from('content_blocks').insert({
+            'session_id': newSessionId,
+            'block_type': tbMap['block_type'],
+            'block_content': tbMap['block_content'],
+            'block_sorting': tbMap['block_sorting'],
+          });
+        }
+      }
+    }
+  }
 }

@@ -16,6 +16,7 @@ drop table if exists
   specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags,
   template_content_blocks, template_sessions, template_modules, syllabus_templates,
+  exam_question_options, exam_questions, exam_sections,
   content_blocks, sessions, module_materials, course_modules, courses,
   admins, students, lecturers,
   departments, program_tracks, cohorts,
@@ -278,6 +279,35 @@ create table template_content_blocks (
   block_sorting int not null default 0
 );
 
+-- The "Edit Exam" authoring tree for an `exam` content block — sections,
+-- each holding any number of questions, each optionally holding its answer
+-- choices (single/multi-choice and true/false questions; a free-text
+-- question has no options row at all — it's graded manually).
+create table exam_sections (
+  id uuid primary key default gen_random_uuid(),
+  content_block_id uuid not null references content_blocks(id) on delete cascade,
+  section_name text not null,
+  section_sorting int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table exam_questions (
+  id uuid primary key default gen_random_uuid(),
+  exam_section_id uuid not null references exam_sections(id) on delete cascade,
+  question_text text not null default '',
+  question_type text not null check (question_type in ('single_choice', 'multi_choice', 'boolean', 'text')),
+  question_sorting int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table exam_question_options (
+  id uuid primary key default gen_random_uuid(),
+  question_id uuid not null references exam_questions(id) on delete cascade,
+  option_text text not null default '',
+  is_correct boolean not null default false,
+  option_sorting int not null default 0
+);
+
 -- ── Tags & Certifications ──────────────────────────────────────────────
 
 create table tags (
@@ -477,6 +507,9 @@ alter table syllabus_templates enable row level security;
 alter table template_modules enable row level security;
 alter table template_sessions enable row level security;
 alter table template_content_blocks enable row level security;
+alter table exam_sections enable row level security;
+alter table exam_questions enable row level security;
+alter table exam_question_options enable row level security;
 alter table tags enable row level security;
 alter table course_tags enable row level security;
 alter table certifications enable row level security;
@@ -499,6 +532,7 @@ begin
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'sessions', 'content_blocks',
     'syllabus_templates', 'template_modules', 'template_sessions', 'template_content_blocks',
+    'exam_sections', 'exam_questions', 'exam_question_options',
     'tags', 'course_tags', 'certifications', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates'

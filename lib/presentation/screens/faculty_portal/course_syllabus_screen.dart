@@ -760,7 +760,9 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
 
   void _openExamEditor(ContentBlock b) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ExamEditorScreen(examTitle: b.title?.isNotEmpty == true ? b.title! : 'Exam')),
+      MaterialPageRoute(
+        builder: (_) => ExamEditorScreen(contentBlockId: b.id, examTitle: b.title?.isNotEmpty == true ? b.title! : 'Exam'),
+      ),
     );
   }
 

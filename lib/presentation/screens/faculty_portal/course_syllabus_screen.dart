@@ -28,10 +28,10 @@ import 'course_syllabus_preview_screen.dart';
 // and an attached file rather than being limited to one content type.
 // ---------------------------------------------------------------------------
 class CourseSyllabusScreen extends StatefulWidget {
-  final String courseId;
+  final String sectionId;
   final String courseTitle;
 
-  const CourseSyllabusScreen({super.key, required this.courseId, required this.courseTitle});
+  const CourseSyllabusScreen({super.key, required this.sectionId, required this.courseTitle});
 
   @override
   State<CourseSyllabusScreen> createState() => _CourseSyllabusScreenState();
@@ -57,7 +57,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    final modules = await _repository.getModules(widget.courseId);
+    final modules = await _repository.getModules(widget.sectionId);
     if (!mounted) return;
     setState(() {
       _modules = modules;
@@ -119,7 +119,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       builder: (_) => const _NameDescriptionDialog(dialogTitle: 'Add Module', nameLabel: 'Module name'),
     );
     if (result == null) return;
-    await _repository.createModule(courseId: widget.courseId, name: result.$1, description: result.$2);
+    await _repository.createModule(sectionId: widget.sectionId, name: result.$1, description: result.$2);
     await _load();
   }
 
@@ -158,7 +158,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       _modules.insert(newIndex, m);
     });
     try {
-      await _repository.reorderModules(widget.courseId, [for (final m in _modules) m.id]);
+      await _repository.reorderModules(widget.sectionId, [for (final m in _modules) m.id]);
       _showReorderSaved();
     } catch (e, st) {
       debugPrint('reorderModules failed: $e\n$st');
@@ -292,7 +292,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   void _viewAsStudent() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => CourseSyllabusPreviewScreen(courseId: widget.courseId, courseTitle: widget.courseTitle),
+        builder: (_) => CourseSyllabusPreviewScreen(sectionId: widget.sectionId, courseTitle: widget.courseTitle),
       ),
     );
   }

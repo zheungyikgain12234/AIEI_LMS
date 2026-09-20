@@ -1,6 +1,9 @@
+/// A module list is scoped to a specific class (a `course_sections` row —
+/// its own lecturer/term/schedule), not to the course in the abstract: two
+/// different classes of the same course can have different content.
 class CourseModule {
   final String id;
-  final String courseId;
+  final String sectionId;
   final String name;
   final String description;
   final int sorting;
@@ -9,7 +12,7 @@ class CourseModule {
 
   const CourseModule({
     required this.id,
-    required this.courseId,
+    required this.sectionId,
     required this.name,
     required this.description,
     required this.sorting,
@@ -20,7 +23,7 @@ class CourseModule {
   factory CourseModule.fromMap(Map<String, dynamic> map) {
     return CourseModule(
       id: map['id'] as String,
-      courseId: map['course_id'] as String,
+      sectionId: map['section_id'] as String,
       name: map['module_name'] as String,
       description: map['module_description'] as String? ?? '',
       sorting: map['module_sorting'] as int? ?? 0,

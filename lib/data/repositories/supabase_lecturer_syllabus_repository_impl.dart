@@ -11,18 +11,18 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
   final SupabaseClient _client;
 
   @override
-  Future<List<CourseModule>> getModules(String courseId) async {
-    final rows = await _client.from('course_modules').select().eq('course_id', courseId).order('module_sorting', ascending: true);
+  Future<List<CourseModule>> getModules(String sectionId) async {
+    final rows = await _client.from('course_modules').select().eq('section_id', sectionId).order('module_sorting', ascending: true);
     return [for (final row in rows as List) CourseModule.fromMap(row as Map<String, dynamic>)];
   }
 
   @override
-  Future<CourseModule> createModule({required String courseId, required String name, required String description}) async {
-    final existing = await _client.from('course_modules').select('id').eq('course_id', courseId);
+  Future<CourseModule> createModule({required String sectionId, required String name, required String description}) async {
+    final existing = await _client.from('course_modules').select('id').eq('section_id', sectionId);
     final row = await _client
         .from('course_modules')
         .insert({
-          'course_id': courseId,
+          'section_id': sectionId,
           'module_name': name,
           'module_description': description,
           'module_sorting': (existing as List).length,
@@ -49,7 +49,7 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
   }
 
   @override
-  Future<void> reorderModules(String courseId, List<String> orderedIds) async {
+  Future<void> reorderModules(String sectionId, List<String> orderedIds) async {
     for (var i = 0; i < orderedIds.length; i++) {
       final updated = await _client.from('course_modules').update({'module_sorting': i}).eq('id', orderedIds[i]).select('id');
       if ((updated as List).isEmpty) {

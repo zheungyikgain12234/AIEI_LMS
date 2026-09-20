@@ -10,6 +10,8 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_
 import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
+import 'package:stitch_aiei_lms/domain/models/course_module.dart';
+import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -104,9 +106,14 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     // Only PY-402 (_kDashboardCourseId) has a full seeded roster + graded
     // submissions in this demo, so that's the only course we can compute
     // real grading/progress KPIs for — see DemoIdentity for the material ids.
+    // Module content is class-scoped, so resolve PY-402's class from the
+    // list of classes just fetched above rather than the bare course id.
+    final dashboardSectionId = assignedCourses.where((c) => c.courseId == _kDashboardCourseId).firstOrNull?.sectionId;
     final roster = await _adminStudentsRepository.getCourseRoster(_kDashboardCourseId);
-    final modules = await _facultyRepository.getCourseModules(_kDashboardCourseId);
-    final materials = await _facultyRepository.getCourseMaterials(_kDashboardCourseId);
+    final modules =
+        dashboardSectionId == null ? <CourseModule>[] : await _facultyRepository.getCourseModules(dashboardSectionId);
+    final materials =
+        dashboardSectionId == null ? <ModuleMaterial>[] : await _facultyRepository.getCourseMaterials(dashboardSectionId);
     final assignmentSubs =
         await _progressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id);
     final quizSubs =
@@ -212,6 +219,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     final (accent, accentBg) = _kAccentPalette[index % _kAccentPalette.length];
     return _CourseRow(
       courseId: c.courseId,
+      sectionId: c.sectionId,
       initials: initials,
       accent: accent,
       accentBg: accentBg,
@@ -243,9 +251,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     );
   }
 
-  void _openSyllabus(String courseId, String courseTitle) {
+  void _openSyllabus(String sectionId, String courseTitle) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => CourseSyllabusScreen(courseId: courseId, courseTitle: courseTitle)),
+      MaterialPageRoute(builder: (_) => CourseSyllabusScreen(sectionId: sectionId, courseTitle: courseTitle)),
     );
   }
 
@@ -570,7 +578,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _openSyllabus(c.courseId, c.title),
+                    onPressed: () => _openSyllabus(c.sectionId, c.title),
                     icon: const Icon(Icons.menu_book_outlined, size: 14),
                     label: const Text('Syllabus'),
                     style: OutlinedButton.styleFrom(
@@ -1355,7 +1363,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
               : _unavailable(),
         ),
         const SizedBox(width: 8),
-        _mobileIconButton(icon: Icons.description, tooltip: 'Course Syllabus', onTap: () => _openSyllabus(c.courseId, c.title)),
+        _mobileIconButton(icon: Icons.description, tooltip: 'Course Syllabus', onTap: () => _openSyllabus(c.sectionId, c.title)),
       ],
     );
   }
@@ -1454,6 +1462,7 @@ class _Stat {
 
 class _CourseRow {
   final String courseId;
+  final String sectionId;
   final String initials;
   final Color accent;
   final Color accentBg;
@@ -1474,6 +1483,7 @@ class _CourseRow {
 
   const _CourseRow({
     required this.courseId,
+    required this.sectionId,
     required this.initials,
     required this.accent,
     required this.accentBg,

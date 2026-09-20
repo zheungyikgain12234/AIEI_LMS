@@ -5,19 +5,21 @@ import 'package:stitch_aiei_lms/domain/models/course_session.dart';
 
 /// Backs the lecturer-facing "Syllabus" screen (My Assigned Courses →
 /// Syllabus button) — a module → session → content-block authoring tree,
-/// kept separate from the existing graded module_materials system.
+/// kept separate from the existing graded module_materials system. Scoped
+/// to a class (`section_id`, a `course_sections` row), not a course — two
+/// different classes of the same course can have a different syllabus.
 abstract class LecturerSyllabusRepository {
-  Future<List<CourseModule>> getModules(String courseId);
+  Future<List<CourseModule>> getModules(String sectionId);
 
-  Future<CourseModule> createModule({required String courseId, required String name, required String description});
+  Future<CourseModule> createModule({required String sectionId, required String name, required String description});
 
   Future<CourseModule> updateModule(String id, {required String name, required String description, required bool isPublished});
 
   Future<void> deleteModule(String id);
 
   /// Persists a new module order after a drag-to-reorder — [orderedIds] is
-  /// every module of the course, in its new top-to-bottom order.
-  Future<void> reorderModules(String courseId, List<String> orderedIds);
+  /// every module of the class, in its new top-to-bottom order.
+  Future<void> reorderModules(String sectionId, List<String> orderedIds);
 
   Future<List<CourseSession>> getSessions(String moduleId);
 

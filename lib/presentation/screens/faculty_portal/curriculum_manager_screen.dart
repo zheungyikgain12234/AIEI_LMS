@@ -42,8 +42,11 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
   }
 
   Future<void> _load() async {
-    final modules = await _facultyRepository.getCourseModules(DemoIdentity.coursePyId);
-    final materials = await _facultyRepository.getCourseMaterials(DemoIdentity.coursePyId);
+    // Module content is class-scoped, so resolve one class teaching PY-402
+    // to load its modules/materials from — see getPrimarySectionIdForCourse.
+    final sectionId = await _facultyRepository.getPrimarySectionIdForCourse(DemoIdentity.coursePyId);
+    final modules = sectionId == null ? <CourseModule>[] : await _facultyRepository.getCourseModules(sectionId);
+    final materials = sectionId == null ? <ModuleMaterial>[] : await _facultyRepository.getCourseMaterials(sectionId);
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
     if (!mounted) return;
 

@@ -225,11 +225,11 @@ insert into course_sections (course_id, section_code, role_label, term, schedule
 -- ── Modules + Materials ─────────────────────────────────────────────────
 -- Python course (PY-402) — full 10-lesson curriculum matching course_info_screen.dart
 
-insert into course_modules (id, course_id, module_name, module_description, module_sorting, is_published) values
-  ('55555555-5555-5555-5555-555555555501', '44444444-4444-4444-4444-444444444401', 'Foundations of Enterprise Python', 'Core syntax, environments, and enterprise tooling.', 0, true),
-  ('55555555-5555-5555-5555-555555555502', '44444444-4444-4444-4444-444444444401', 'Data Wrangling with Pandas', 'DataFrames, joins, and cleaning pipelines.', 1, true),
-  ('55555555-5555-5555-5555-555555555503', '44444444-4444-4444-4444-444444444401', 'Building Automated Data Pipelines', 'Scheduling, orchestration, and monitoring ETL jobs.', 2, true),
-  ('55555555-5555-5555-5555-555555555504', '44444444-4444-4444-4444-444444444401', 'Enterprise Database Connectors & Async Tasks', 'Advanced topics in SQLAlchemy 2.0 async sessions, connection pooling under concurrency, and Celery asynchronous task queues.', 3, false);
+insert into course_modules (id, section_id, module_name, module_description, module_sorting, is_published) values
+  ('55555555-5555-5555-5555-555555555501', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 'Foundations of Enterprise Python', 'Core syntax, environments, and enterprise tooling.', 0, true),
+  ('55555555-5555-5555-5555-555555555502', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 'Data Wrangling with Pandas', 'DataFrames, joins, and cleaning pipelines.', 1, true),
+  ('55555555-5555-5555-5555-555555555503', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 'Building Automated Data Pipelines', 'Scheduling, orchestration, and monitoring ETL jobs.', 2, true),
+  ('55555555-5555-5555-5555-555555555504', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 'Enterprise Database Connectors & Async Tasks', 'Advanced topics in SQLAlchemy 2.0 async sessions, connection pooling under concurrency, and Celery asynchronous task queues.', 3, false);
 
 update course_modules set unlock_at = '2025-11-20' where id = '55555555-5555-5555-5555-555555555504';
 
@@ -338,15 +338,15 @@ insert into module_materials (id, module_id, material_name, material_type, mater
     '{"instruction": "Capstone project brief releases to all students once scheduling is finalized.", "notes": "Scheduled release."}'::jsonb, 6, false, '2025-12-01 00:00:00-05');
 
 -- OSHE course (OSHE-101) — 8-module curriculum matching course_info_screen_2.dart
-insert into course_modules (id, course_id, module_name, module_description, module_sorting) values
-  ('55555555-5555-5555-5555-555555555510', '44444444-4444-4444-4444-444444444402', 'Regulatory Framework', 'OSHA / OSHE regulatory foundations.', 0),
-  ('55555555-5555-5555-5555-555555555511', '44444444-4444-4444-4444-444444444402', 'Hazard Identification & PPE', 'Identifying hazards and selecting PPE.', 1),
-  ('55555555-5555-5555-5555-555555555512', '44444444-4444-4444-4444-444444444402', 'Electrical & Lockout/Tagout', 'LOTO procedures and electrical safety.', 2),
-  ('55555555-5555-5555-5555-555555555513', '44444444-4444-4444-4444-444444444402', 'Chemical Handling & SDS', 'Chemical handling, GHS labeling, and SDS documentation.', 3),
-  ('55555555-5555-5555-5555-555555555514', '44444444-4444-4444-4444-444444444402', 'Fire Protection & Suppression', 'Fire protection systems and suppression protocol.', 4),
-  ('55555555-5555-5555-5555-555555555515', '44444444-4444-4444-4444-444444444402', 'Ergonomics & Physical Safety', 'Workplace ergonomics and physical hazard mitigation.', 5),
-  ('55555555-5555-5555-5555-555555555516', '44444444-4444-4444-4444-444444444402', 'Incident Response & Reporting', 'Incident containment, reporting, and regulatory notification.', 6),
-  ('55555555-5555-5555-5555-555555555517', '44444444-4444-4444-4444-444444444402', 'Final Regulatory Audit Exam', 'Comprehensive 50-question regulatory audit exam.', 7);
+insert into course_modules (id, section_id, module_name, module_description, module_sorting) values
+  ('55555555-5555-5555-5555-555555555510', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Regulatory Framework', 'OSHA / OSHE regulatory foundations.', 0),
+  ('55555555-5555-5555-5555-555555555511', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Hazard Identification & PPE', 'Identifying hazards and selecting PPE.', 1),
+  ('55555555-5555-5555-5555-555555555512', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Electrical & Lockout/Tagout', 'LOTO procedures and electrical safety.', 2),
+  ('55555555-5555-5555-5555-555555555513', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Chemical Handling & SDS', 'Chemical handling, GHS labeling, and SDS documentation.', 3),
+  ('55555555-5555-5555-5555-555555555514', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Fire Protection & Suppression', 'Fire protection systems and suppression protocol.', 4),
+  ('55555555-5555-5555-5555-555555555515', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Ergonomics & Physical Safety', 'Workplace ergonomics and physical hazard mitigation.', 5),
+  ('55555555-5555-5555-5555-555555555516', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Incident Response & Reporting', 'Incident containment, reporting, and regulatory notification.', 6),
+  ('55555555-5555-5555-5555-555555555517', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Final Regulatory Audit Exam', 'Comprehensive 50-question regulatory audit exam.', 7);
 
 insert into module_materials (id, module_id, material_name, material_type, material_content, material_sorting) values
   ('66666666-6666-6666-6666-666666666620', '55555555-5555-5555-5555-555555555510', '01. Regulatory Framework', 'video', '{"durationMinutes": 14, "transcript": "29 CFR 1910 regulatory framework overview."}'::jsonb, 0),
@@ -421,7 +421,7 @@ insert into module_certs (module_id, cert_id) values
 
 insert into student_courses (student_id, course_id, section_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, sponsorship, last_activity_at, is_online_now) values
   (1, '44444444-4444-4444-4444-444444444401', (select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), 70, 'B+', 88.4, 96, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),
-  (1, '44444444-4444-4444-4444-444444444402', null, 38, 'C+', 76.0, 88, 'at_risk', 'Corporate Sponsored', now() - interval '1 day', false),
+  (1, '44444444-4444-4444-4444-444444444402', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 38, 'C+', 76.0, 88, 'at_risk', 'Corporate Sponsored', now() - interval '1 day', false),
   (1, '44444444-4444-4444-4444-444444444403', null, 40, 'B', 82.0, 92, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', false),
   (1, '44444444-4444-4444-4444-444444444404', null, 20, 'B-', 79.5, 90, 'on_track', 'Corporate Sponsored', now() - interval '3 days', false),
   (1, '44444444-4444-4444-4444-444444444405', null, 85, 'A-', 91.0, 97, 'on_track', 'Corporate Sponsored', now() - interval '2 hours', true),

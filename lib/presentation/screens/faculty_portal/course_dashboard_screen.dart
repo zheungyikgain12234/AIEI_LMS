@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
 import 'widgets/faculty_scaffold.dart';
@@ -59,8 +60,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   Future<void> _load() async {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
     final students = await _rosterRepository.getCourseRoster(DemoIdentity.coursePyId);
-    final modules = await _facultyRepository.getCourseModules(DemoIdentity.coursePyId);
-    final materials = await _facultyRepository.getCourseMaterials(DemoIdentity.coursePyId);
+    // Module content is class-scoped, so resolve one class teaching PY-402
+    // to load its modules/materials from — see getPrimarySectionIdForCourse.
+    final sectionId = await _facultyRepository.getPrimarySectionIdForCourse(DemoIdentity.coursePyId);
+    final modules = sectionId == null ? <CourseModule>[] : await _facultyRepository.getCourseModules(sectionId);
+    final materials = sectionId == null ? <ModuleMaterial>[] : await _facultyRepository.getCourseMaterials(sectionId);
     final assignmentSubs = await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id);
     final quizSubs = await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialComplianceQuizId);
     if (!mounted) return;

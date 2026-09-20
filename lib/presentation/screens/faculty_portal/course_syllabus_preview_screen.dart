@@ -23,10 +23,10 @@ typedef _PreviewModule = ({CourseModule module, List<({CourseSession session, Li
 // students will actually see.
 // ---------------------------------------------------------------------------
 class CourseSyllabusPreviewScreen extends StatefulWidget {
-  final String courseId;
+  final String sectionId;
   final String courseTitle;
 
-  const CourseSyllabusPreviewScreen({super.key, required this.courseId, required this.courseTitle});
+  const CourseSyllabusPreviewScreen({super.key, required this.sectionId, required this.courseTitle});
 
   @override
   State<CourseSyllabusPreviewScreen> createState() => _CourseSyllabusPreviewScreenState();
@@ -46,7 +46,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    final modules = (await _repository.getModules(widget.courseId)).where((m) => m.isPublished).toList();
+    final modules = (await _repository.getModules(widget.sectionId)).where((m) => m.isPublished).toList();
     final preview = <_PreviewModule>[];
     for (final m in modules) {
       final sessions = (await _repository.getSessions(m.id)).where((s) => s.isPublished).toList();

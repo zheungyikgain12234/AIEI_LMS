@@ -24,22 +24,41 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
   Future<List<EnrolledCourse>> getEnrolledCourses() async {
     final courseRows = await _client.from('courses').select('''
       id, course_title, course_description, category, image_url,
-      course_tags(tags(label, color_hex)),
-      course_modules(id, module_sorting, module_materials(id, material_name, material_sorting))
+      course_tags(tags(label, color_hex))
     ''');
 
     final enrollmentRows = await _client
         .from('student_courses')
-        .select('course_id, progress_percentage')
+        .select('course_id, section_id, progress_percentage')
         .eq('student_id', DemoIdentity.studentId);
     final progressByCourse = <String, int>{
       for (final row in enrollmentRows as List)
         row['course_id'] as String: row['progress_percentage'] as int,
     };
+    // Module content is class-scoped: a student's course content is
+    // whichever class (`section_id`) they're enrolled in for that course,
+    // which may be null if they haven't been assigned to a class yet.
+    final sectionByCourse = <String, String>{
+      for (final row in enrollmentRows)
+        if (row['section_id'] != null) row['course_id'] as String: row['section_id'] as String,
+    };
+
+    final sectionIds = sectionByCourse.values.toSet().toList();
+    final moduleRows = sectionIds.isEmpty
+        ? <dynamic>[]
+        : await _client
+            .from('course_modules')
+            .select('id, section_id, module_sorting, module_materials(id, material_name, material_sorting)')
+            .inFilter('section_id', sectionIds);
+    final modulesBySection = <String, List<Map<String, dynamic>>>{};
+    for (final row in moduleRows) {
+      final module = row as Map<String, dynamic>;
+      modulesBySection.putIfAbsent(module['section_id'] as String, () => []).add(module);
+    }
 
     final materialIds = <String>[
-      for (final course in courseRows as List)
-        for (final module in (course['course_modules'] as List? ?? []))
+      for (final modules in modulesBySection.values)
+        for (final module in modules)
           for (final material in (module['module_materials'] as List? ?? []))
             material['id'] as String,
     ];
@@ -56,15 +75,21 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     };
 
     return [
-      for (final course in courseRows)
+      for (final course in courseRows as List)
         if (progressByCourse.containsKey(course['id']))
-          _mapCourse(course, progressByCourse, completedMaterialIds),
+          _mapCourse(
+            course as Map<String, dynamic>,
+            progressByCourse,
+            modulesBySection[sectionByCourse[course['id']]] ?? const [],
+            completedMaterialIds,
+          ),
     ];
   }
 
   EnrolledCourse _mapCourse(
     Map<String, dynamic> course,
     Map<String, int> progressByCourse,
+    List<Map<String, dynamic>> courseModules,
     Set<String> completedMaterialIds,
   ) {
     final id = course['id'] as String;
@@ -72,7 +97,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     final progress = progressByCourse[id] ?? 0;
     final isCompleted = progress >= 100;
 
-    final modules = (course['course_modules'] as List? ?? [])
+    final modules = List<Map<String, dynamic>>.from(courseModules)
       ..sort((a, b) => (a['module_sorting'] as int).compareTo(b['module_sorting'] as int));
     final materials = <Map<String, dynamic>>[
       for (final module in modules)
@@ -133,10 +158,21 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
 
   @override
   Future<List<(ModuleMaterial, String)>> getCourseLessons(String courseId) async {
+    // Module content is class-scoped, so resolve the demo student's own
+    // class for this course before loading its modules.
+    final enrollment = await _client
+        .from('student_courses')
+        .select('section_id')
+        .eq('student_id', DemoIdentity.studentId)
+        .eq('course_id', courseId)
+        .maybeSingle();
+    final sectionId = enrollment?['section_id'] as String?;
+    if (sectionId == null) return [];
+
     final modules = await _client
         .from('course_modules')
         .select('id, module_sorting')
-        .eq('course_id', courseId)
+        .eq('section_id', sectionId)
         .order('module_sorting');
     final moduleIds = [for (final m in modules as List) m['id'] as String];
     if (moduleIds.isEmpty) return [];

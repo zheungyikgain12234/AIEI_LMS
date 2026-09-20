@@ -32,11 +32,11 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
   }
 
   @override
-  Future<List<ModuleMaterial>> getCourseMaterials(String courseId) async {
+  Future<List<ModuleMaterial>> getCourseMaterials(String sectionId) async {
     final modules = await _client
         .from('course_modules')
         .select('id, module_sorting')
-        .eq('course_id', courseId)
+        .eq('section_id', sectionId)
         .order('module_sorting');
     final moduleIds = [for (final m in modules as List) m['id'] as String];
     if (moduleIds.isEmpty) return [];
@@ -52,12 +52,19 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
   }
 
   @override
-  Future<List<CourseModule>> getCourseModules(String courseId) async {
+  Future<List<CourseModule>> getCourseModules(String sectionId) async {
     final rows = await _client
         .from('course_modules')
         .select()
-        .eq('course_id', courseId)
+        .eq('section_id', sectionId)
         .order('module_sorting');
     return [for (final row in rows as List) CourseModule.fromMap(row as Map<String, dynamic>)];
+  }
+
+  @override
+  Future<String?> getPrimarySectionIdForCourse(String courseId) async {
+    final rows = await _client.from('course_sections').select('id').eq('course_id', courseId).order('section_code').limit(1);
+    final list = rows as List;
+    return list.isEmpty ? null : list.first['id'] as String;
   }
 }

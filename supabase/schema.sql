@@ -160,9 +160,36 @@ create table courses (
   created_at timestamptz not null default now()
 );
 
-create table course_modules (
+-- `enrolled_count` is intentionally not a column here — the app always
+-- derives it by counting `student_courses` rows for a section, so it can
+-- never drift out of sync with actual enrollments.
+create table course_sections (
   id uuid primary key default gen_random_uuid(),
   course_id uuid not null references courses(id) on delete cascade,
+  section_code text not null unique,
+  role_label text not null default 'Primary Instructor',
+  term text not null default 'Fall 2025',
+  schedule_text text not null default 'TBD',
+  day_of_week text check (day_of_week in ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
+  start_time time,
+  end_time time,
+  location text,
+  lecturer_id uuid references lecturers(id),
+  capacity int not null default 30,
+  delivery_mode text not null default 'physical' check (delivery_mode in ('online', 'physical')),
+  cohort_id uuid references cohorts(id) on update cascade,
+  start_date date,
+  status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
+);
+
+-- A module list (and the graded materials / syllabus content hanging off
+-- it) belongs to a specific class — a `course_sections` row, with its own
+-- lecturer/term/schedule — not to the course in the abstract: two different
+-- classes of the same course can teach different content on a different
+-- timeline, so this is keyed on `section_id`, not `course_id`.
+create table course_modules (
+  id uuid primary key default gen_random_uuid(),
+  section_id uuid not null references course_sections(id) on delete cascade,
   module_name text not null,
   module_description text not null default '',
   module_sorting int not null default 0,
@@ -310,28 +337,6 @@ $$ language plpgsql;
 create trigger lecturer_courses_recalc_credits
   after insert or delete on lecturer_courses
   for each row execute function recalc_lecturer_credits_used();
-
--- `enrolled_count` is intentionally not a column here — the app always
--- derives it by counting `student_courses` rows for a section, so it can
--- never drift out of sync with actual enrollments.
-create table course_sections (
-  id uuid primary key default gen_random_uuid(),
-  course_id uuid not null references courses(id) on delete cascade,
-  section_code text not null unique,
-  role_label text not null default 'Primary Instructor',
-  term text not null default 'Fall 2025',
-  schedule_text text not null default 'TBD',
-  day_of_week text check (day_of_week in ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
-  start_time time,
-  end_time time,
-  location text,
-  lecturer_id uuid references lecturers(id),
-  capacity int not null default 30,
-  delivery_mode text not null default 'physical' check (delivery_mode in ('online', 'physical')),
-  cohort_id uuid references cohorts(id) on update cascade,
-  start_date date,
-  status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
-);
 
 create table student_courses (
   student_id bigint not null references students(id) on delete cascade,

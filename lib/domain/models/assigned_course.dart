@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 
 class AssignedCourse {
+  final String sectionId;
   final String courseId;
   final String courseCode;
   final String title;
@@ -13,6 +14,7 @@ class AssignedCourse {
   final String? cohort;
 
   const AssignedCourse({
+    required this.sectionId,
     required this.courseId,
     required this.courseCode,
     required this.title,
@@ -31,6 +33,7 @@ class AssignedCourse {
   factory AssignedCourse.fromMap(Map<String, dynamic> map, {required int enrolledCount}) {
     final course = map['courses'] as Map<String, dynamic>;
     return AssignedCourse(
+      sectionId: map['id'] as String,
       courseId: course['id'] as String,
       courseCode: displayCode(course['course_code'] as String),
       title: course['course_title'] as String,

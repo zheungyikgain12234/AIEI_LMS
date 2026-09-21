@@ -130,10 +130,9 @@ class AdminMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _logo() {
-    return Image.network(
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDCaMBS-U4oFSVROHoDpAiGwvpOy1ivvJGSI_WfY0WX7QoRM-fyACYsDXamVpuy9nPp4DS3CZS5Id-vsuIkd0IFETOltui-g18k3ZBnLHM1PY4o6wE9LeNHbGeuIBBYIVzFUtG1JDowy2iHIYlvr9T8QTrZSotsTanHF_Cc5uzgEJpX3htWp4qlZ2-oqutU_ei1cNZGJhEaiBobBpOspNBtvF96qnHxoXh2QI6_aQoJfzsJW49NLMxIIM7emyAqSTeeWw',
+    return Image.asset(
+      'assets/images/aiei_logo.png',
       height: 24,
-      errorBuilder: (context, error, stackTrace) => Text('AIEI', style: AdminTypography.titleSm(color: AdminColors.primary)),
     );
   }
 }

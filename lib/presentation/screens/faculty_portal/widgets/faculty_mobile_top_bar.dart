@@ -73,11 +73,7 @@ class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget
     return Row(
       children: [
         const SizedBox(width: 4),
-        Image.network(
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDCaMBS-U4oFSVROHoDpAiGwvpOy1ivvJGSI_WfY0WX7QoRM-fyACYsDXamVpuy9nPp4DS3CZS5Id-vsuIkd0IFETOltui-g18k3ZBnLHM1PY4o6wE9LeNHbGeuIBBYIVzFUtG1JDowy2iHIYlvr9T8QTrZSotsTanHF_Cc5uzgEJpX3htWp4qlZ2-oqutU_ei1cNZGJhEaiBobBpOspNBtvF96qnHxoXh2QI6_aQoJfzsJW49NLMxIIM7emyAqSTeeWw',
-          height: 26,
-          errorBuilder: (context, error, stackTrace) => Text('AIEI', style: FacultyTypography.titleSm(color: FacultyColors.primary)),
-        ),
+        Image.asset('assets/images/aiei_logo.png', height: 26),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

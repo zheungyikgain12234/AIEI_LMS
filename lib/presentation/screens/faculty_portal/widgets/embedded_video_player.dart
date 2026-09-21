@@ -21,8 +21,9 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 /// the playback position.
 class EmbeddedVideoPlayer extends StatefulWidget {
   final String url;
+  final String? thumbnailUrl;
 
-  const EmbeddedVideoPlayer({super.key, required this.url});
+  const EmbeddedVideoPlayer({super.key, required this.url, this.thumbnailUrl});
 
   @override
   State<EmbeddedVideoPlayer> createState() => _EmbeddedVideoPlayerState();
@@ -35,30 +36,126 @@ class _EmbeddedVideoPlayerState extends State<EmbeddedVideoPlayer> {
   Widget build(BuildContext context) {
     final videoId = YoutubePlayerController.convertUrlToId(widget.url);
     if (!_started) {
-      return _VideoThumbnail(youtubeVideoId: videoId, onTap: () => setState(() => _started = true));
+      return _VideoThumbnail(
+        youtubeVideoId: videoId,
+        thumbnailUrl: widget.thumbnailUrl,
+        onTap: () => setState(() => _started = true),
+      );
     }
     if (videoId != null) {
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: YoutubePlayer(controller: YoutubePlayerController.fromVideoId(videoId: videoId, autoPlay: true)),
+      return _WithFullscreenButton(
+        onFullscreen: () => _openFullscreen(context, videoId: videoId),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: YoutubePlayer(controller: YoutubePlayerController.fromVideoId(videoId: videoId, autoPlay: true)),
+          ),
         ),
       );
     }
-    return _UnskippableVideoPlayer(url: widget.url);
+    return _WithFullscreenButton(
+      onFullscreen: () => _openFullscreen(context, fileUrl: widget.url),
+      child: _UnskippableVideoPlayer(url: widget.url),
+    );
+  }
+
+  void _openFullscreen(BuildContext context, {String? videoId, String? fileUrl}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _FullscreenVideoPage(videoId: videoId, fileUrl: fileUrl),
+      ),
+    );
+  }
+}
+
+/// Overlays a small "fullscreen" icon button on the top-right corner of a
+/// playing video, so it can be opened larger without leaving the page.
+class _WithFullscreenButton extends StatelessWidget {
+  final Widget child;
+  final VoidCallback onFullscreen;
+
+  const _WithFullscreenButton({required this.child, required this.onFullscreen});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          top: 6,
+          right: 6,
+          child: Material(
+            color: Colors.black54,
+            shape: const CircleBorder(),
+            child: IconButton(
+              onPressed: onFullscreen,
+              icon: const Icon(Icons.fullscreen, color: Colors.white, size: 20),
+              tooltip: 'Fullscreen',
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Full-screen page opened by the fullscreen button — plays the same
+/// YouTube video or file URL larger, with a close button to return.
+class _FullscreenVideoPage extends StatelessWidget {
+  final String? videoId;
+  final String? fileUrl;
+
+  const _FullscreenVideoPage({this.videoId, this.fileUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: videoId != null
+                    ? YoutubePlayer(controller: YoutubePlayerController.fromVideoId(videoId: videoId!, autoPlay: true))
+                    : _UnskippableVideoPlayer(url: fileUrl!),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Colors.black54,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  tooltip: 'Close',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
 class _VideoThumbnail extends StatelessWidget {
   final String? youtubeVideoId;
+  final String? thumbnailUrl;
   final VoidCallback onTap;
 
-  const _VideoThumbnail({required this.youtubeVideoId, required this.onTap});
+  const _VideoThumbnail({required this.youtubeVideoId, required this.thumbnailUrl, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final videoId = youtubeVideoId;
+    final customThumbnail = thumbnailUrl;
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: ClipRRect(
@@ -74,6 +171,12 @@ class _VideoThumbnail extends StatelessWidget {
                 if (videoId != null)
                   Image.network(
                     'https://img.youtube.com/vi/$videoId/hqdefault.jpg',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  )
+                else if (customThumbnail != null && customThumbnail.isNotEmpty)
+                  Image.network(
+                    customThumbnail,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                   ),

@@ -134,6 +134,12 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
   }
 
   @override
+  Future<ContentBlock> updateContentBlock(String id, {required Map<String, dynamic> content}) async {
+    final row = await _client.from('content_blocks').update({'block_content': content}).eq('id', id).select().single();
+    return ContentBlock.fromMap(row);
+  }
+
+  @override
   Future<void> deleteContentBlock(String id) async {
     await _client.from('content_blocks').delete().eq('id', id);
   }

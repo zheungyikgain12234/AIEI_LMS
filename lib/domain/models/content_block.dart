@@ -17,11 +17,16 @@ enum ContentBlockType {
 /// One piece of content inside a session (`content_blocks` table).
 /// `content` shape depends on [type]:
 /// - text: `{"delta": [...quill ops...], "body": "plain-text fallback"}`
-/// - video / image: `{"url": "...", "caption": "..."}`
+/// - video: `{"url": "...", "caption": "...", "thumbnailUrl": "..."}`
+/// - image: `{"url": "...", "caption": "..."}`
 /// - link: `{"url": "...", "label": "..."}`
 /// - file: `{"url": "...", "name": "...", "sizeLabel": "..."}`
-/// - exam / assignment: `{"title": "..."}` — a placeholder pointing at the
-///   (not yet built) exam/assignment editor, keyed by [id] once created.
+/// - exam: `{"title": "...", "description": "...", "instructions": "...",
+///   "dueDate": "ISO 8601 string", "mode": "normal|open_book|take_home"}` —
+///   points at the exam editor's section/question tree, keyed by [id].
+/// - assignment: `{"title": "...", "description": "...", "instructions":
+///   "...", "dueDate": "ISO 8601 string"}` — points at the assignment
+///   editor, keyed by [id].
 class ContentBlock {
   final String id;
   final String sessionId;
@@ -46,10 +51,20 @@ class ContentBlock {
 
   String get url => content['url'] as String? ?? '';
   String? get caption => content['caption'] as String?;
+  String? get thumbnailUrl => content['thumbnailUrl'] as String?;
   String? get label => content['label'] as String?;
   String? get fileName => content['name'] as String?;
   String? get sizeLabel => content['sizeLabel'] as String?;
   String? get title => content['title'] as String?;
+  String? get description => content['description'] as String?;
+  String? get instructions => content['instructions'] as String?;
+  String? get mode => content['mode'] as String?;
+
+  DateTime? get dueDate {
+    final raw = content['dueDate'] as String?;
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
 
   factory ContentBlock.fromMap(Map<String, dynamic> map) {
     return ContentBlock(

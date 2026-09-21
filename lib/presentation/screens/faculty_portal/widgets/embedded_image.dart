@@ -8,18 +8,23 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 /// can't decode SVG at all and would otherwise always fail for it). Shows a
 /// spinner while loading and a clear "couldn't load" state instead of
 /// silently falling back to plain link text.
+///
+/// Tapping the thumbnail opens it full-size in a dismissible popup (unless
+/// [enableTapToExpand] is false, e.g. for the live preview inside the "Add
+/// Content" form, where a popup on top of the dialog would be confusing).
 class EmbeddedImage extends StatelessWidget {
   final String url;
   final double height;
   final double? width;
+  final bool enableTapToExpand;
 
-  const EmbeddedImage({super.key, required this.url, required this.height, this.width});
+  const EmbeddedImage({super.key, required this.url, required this.height, this.width, this.enableTapToExpand = true});
 
   bool get _isSvg => Uri.tryParse(url)?.path.toLowerCase().endsWith('.svg') ?? false;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    final thumbnail = ClipRRect(
       borderRadius: BorderRadius.circular(6),
       child: _isSvg
           ? SvgPicture.network(
@@ -38,6 +43,45 @@ class EmbeddedImage extends StatelessWidget {
               loadingBuilder: (context, child, progress) => progress == null ? child : _loading(),
               errorBuilder: (context, error, stackTrace) => _error(),
             ),
+    );
+    if (!enableTapToExpand) return thumbnail;
+    return GestureDetector(
+      onTap: () => _showFullScreen(context),
+      child: MouseRegion(cursor: SystemMouseCursors.click, child: thumbnail),
+    );
+  }
+
+  void _showFullScreen(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              maxScale: 4,
+              child: Center(
+                child: _isSvg
+                    ? SvgPicture.network(url, fit: BoxFit.contain)
+                    : Image.network(
+                        url,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => _error(),
+                      ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              icon: const Icon(Icons.close, color: Colors.white),
+              style: IconButton.styleFrom(backgroundColor: Colors.black54),
+              tooltip: 'Close',
+            ),
+          ],
+        ),
+      ),
     );
   }
 

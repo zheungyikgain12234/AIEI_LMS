@@ -189,11 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-      child: Image.network(
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuC4U1rOihgxAXZmk2W54YjqF3NHX0mjQU0Jl4ssvgGsJ2OkSN-1blmM6erHEi5koI8r8sslzy97G-AfN2Bh8MF6SKZ0Zg28VsqhwFxqntwBPnyAURZDdIupL3pJJqG5Uf_TdA0uhivCni6kVDVGSe-Tmycur2nXmYWgbKe3J3DUXekGSJ4geC8z76MGeLWN_Wjw6qw0hnEiTWId58WF7dV_GTg6QvE42meLlwC_p1JrIsTdKpaexZy8WVjCyqo_pxrJxg',
-        height: height,
-        errorBuilder: (context, error, stackTrace) => Text('AIEI', style: _text(size: 14, weight: FontWeight.w800, color: _LoginColors.slate900)),
-      ),
+      child: Image.asset('assets/images/aiei_logo.png', height: height),
     );
   }
 

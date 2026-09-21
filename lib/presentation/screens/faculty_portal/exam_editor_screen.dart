@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
@@ -16,8 +17,20 @@ import 'widgets/faculty_mobile_top_bar.dart';
 class ExamEditorScreen extends StatefulWidget {
   final String contentBlockId;
   final String examTitle;
+  final String? description;
+  final String? instructions;
+  final DateTime? dueDate;
+  final String? mode;
 
-  const ExamEditorScreen({super.key, required this.contentBlockId, required this.examTitle});
+  const ExamEditorScreen({
+    super.key,
+    required this.contentBlockId,
+    required this.examTitle,
+    this.description,
+    this.instructions,
+    this.dueDate,
+    this.mode,
+  });
 
   @override
   State<ExamEditorScreen> createState() => _ExamEditorScreenState();
@@ -197,6 +210,8 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _examInfoCard(),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -228,6 +243,74 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
         ),
       ),
     );
+  }
+
+  Widget _examInfoCard() {
+    final hasAnyInfo = (widget.description?.isNotEmpty ?? false) ||
+        (widget.instructions?.isNotEmpty ?? false) ||
+        widget.dueDate != null ||
+        (widget.mode?.isNotEmpty ?? false);
+    if (!hasAnyInfo) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (widget.mode?.isNotEmpty ?? false) _infoChip(Icons.rule_folder_outlined, _modeLabel(widget.mode!)),
+              if (widget.dueDate != null) _infoChip(Icons.event_outlined, 'Due ${formatDueDate(widget.dueDate!)}'),
+            ],
+          ),
+          if (widget.description?.isNotEmpty ?? false) ...[
+            const SizedBox(height: 12),
+            Text('Description', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+            const SizedBox(height: 4),
+            Text(widget.description!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+          ],
+          if (widget.instructions?.isNotEmpty ?? false) ...[
+            const SizedBox(height: 12),
+            Text('Instructions', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+            const SizedBox(height: 4),
+            Text(widget.instructions!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _infoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: FacultyColors.onSecondaryContainer),
+          const SizedBox(width: 6),
+          Text(label, style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer)),
+        ],
+      ),
+    );
+  }
+
+  String _modeLabel(String mode) {
+    switch (mode) {
+      case 'open_book':
+        return 'Open-book';
+      case 'take_home':
+        return 'Take-home test';
+      case 'normal':
+      default:
+        return 'Normal';
+    }
   }
 
   Widget _buildSectionList() {

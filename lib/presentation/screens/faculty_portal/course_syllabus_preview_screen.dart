@@ -6,6 +6,8 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_rep
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
+import 'widgets/clickable_link.dart';
+import 'widgets/downloadable_file.dart';
 import 'widgets/embedded_image.dart';
 import 'widgets/embedded_video_player.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -232,7 +234,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
           children: [
             if (b.caption != null && b.caption!.isNotEmpty) Text(b.caption!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
             const SizedBox(height: 4),
-            EmbeddedVideoPlayer(url: b.url),
+            EmbeddedVideoPlayer(url: b.url, thumbnailUrl: b.thumbnailUrl),
           ],
         );
       case ContentBlockType.link:
@@ -240,11 +242,11 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(b.label?.isNotEmpty == true ? b.label! : 'Link', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-            Text(b.url, style: FacultyTypography.bodySm(color: FacultyColors.primary)),
+            ClickableLink(url: b.url, style: FacultyTypography.bodySm(color: FacultyColors.primary)),
           ],
         );
       case ContentBlockType.file:
-        return Text(b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
+        return DownloadableFile(url: b.url, label: b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.exam:
         return Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.assignment:

@@ -42,6 +42,10 @@ abstract class LecturerSyllabusRepository {
     required Map<String, dynamic> content,
   });
 
+  /// Replaces a content block's `content` payload wholesale, e.g. after
+  /// editing it from the pen icon on the Syllabus screen.
+  Future<ContentBlock> updateContentBlock(String id, {required Map<String, dynamic> content});
+
   Future<void> deleteContentBlock(String id);
 
   /// Persists a new content-block order after a drag-to-reorder —

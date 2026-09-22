@@ -1,23 +1,21 @@
-import 'package:flutter/material.dart' hide MaterialType;
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
-import 'package:stitch_aiei_lms/domain/models/material_progress.dart';
-import 'package:stitch_aiei_lms/domain/models/module_material.dart';
-import 'package:stitch_aiei_lms/presentation/screens/course_info/course_content_screen.dart';
+import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
+import 'widgets/announcements_panel.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/student_roster_panel.dart';
 import 'my_assigned_courses_screen.dart';
 import 'course_syllabus_screen.dart';
 import 'grade_assignment_screen.dart';
-import 'grade_quiz_screen.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 
 // ---------------------------------------------------------------------------
@@ -38,15 +36,18 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   final _client = Supabase.instance.client;
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
-  final _materialProgressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
   final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
+  final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _showAnnouncementForm = false;
+  bool _postingAnnouncement = false;
+  final _announcementTitleController = TextEditingController();
+  final _announcementBodyController = TextEditingController();
 
   String _courseTitle = 'Course';
   String _courseCode = '';
-  int? _capacity;
+  String _classCode = '';
   int _enrolledCount = 0;
   int _avgProgress = 0;
   int _assignmentsToGrade = 0;
@@ -57,8 +58,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _moduleCount = 0;
   int _materialCount = 0;
   int _totalAssignmentBlocks = 0;
-  List<_DeadlineItem> _deadlines = const [];
   List<RosterRow> _rosterRows = const [];
+  List<CourseAnnouncement> _announcements = const [];
 
   @override
   void initState() {
@@ -66,28 +67,19 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _announcementTitleController.dispose();
+    _announcementBodyController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
     final students = await _rosterRepository.getCourseRoster(widget.courseId);
     final modules = await _facultyRepository.getCourseModules(widget.sectionId);
     final materials = await _facultyRepository.getCourseMaterials(widget.sectionId);
-
-    // The Deadlines & Schedule card below still reads the old
-    // module_materials due-date list, and its submitted-count is only
-    // wired up for the two demo materials this preview seeds submissions
-    // for — see DemoIdentity. That card is unrelated to the KPI/roster
-    // numbers below, which are computed for real from every exam/assignment
-    // content block in this class's actual syllabus tree.
-    final hasAssignmentMaterial = materials.any((m) => m.id == DemoIdentity.materialAssignment02Id);
-    final hasQuizMaterial = materials.any((m) => m.id == DemoIdentity.materialComplianceQuizId);
-    final assignmentSubs = hasAssignmentMaterial
-        ? await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id)
-        : const <MaterialProgress>[];
-    final quizSubs = hasQuizMaterial
-        ? await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialComplianceQuizId)
-        : const <MaterialProgress>[];
-    final assignmentSubmittedCount = assignmentSubs.where((p) => p.status == 'completed').length;
-    final quizSubmittedCount = quizSubs.where((p) => p.status == 'completed').length;
+    final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
 
     // ── Real class-wide assessment coverage (course_modules -> sessions ->
     // content_blocks, filtered to exam/assignment) plus every submission
@@ -138,7 +130,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     }
     if (!mounted) return;
 
-    final course = assignedCourses.where((c) => c.courseId == widget.courseId).firstOrNull;
+    final course = assignedCourses.where((c) => c.sectionId == widget.sectionId).firstOrNull;
 
     var assignmentsToGrade = 0;
     var quizzesToGrade = 0;
@@ -191,25 +183,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
 
-    final deadlineMaterials = materials.where((m) => m.dueAt != null).toList()
-      ..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
-
-    final deadlines = [
-      for (final m in deadlineMaterials)
-        _DeadlineItem(
-          material: m,
-          submittedCount: m.id == DemoIdentity.materialAssignment02Id
-              ? assignmentSubmittedCount
-              : m.id == DemoIdentity.materialComplianceQuizId
-                  ? quizSubmittedCount
-                  : null,
-        ),
-    ];
-
     setState(() {
       _courseTitle = course?.title ?? 'Course';
       _courseCode = course?.courseCode ?? _courseCode;
-      _capacity = course?.capacity;
+      _classCode = course?.sectionCode ?? _classCode;
       _enrolledCount = students.length;
       _avgProgress = avgProgress;
       _assignmentsToGrade = assignmentsToGrade;
@@ -220,9 +197,31 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _moduleCount = modules.length;
       _materialCount = materials.length;
       _totalAssignmentBlocks = totalAssignmentBlocks;
-      _deadlines = deadlines;
       _rosterRows = rosterRows;
+      _announcements = announcements;
       _isLoading = false;
+    });
+  }
+
+  Future<void> _postAnnouncement() async {
+    final title = _announcementTitleController.text.trim();
+    final body = _announcementBodyController.text.trim();
+    if (title.isEmpty) return;
+    setState(() => _postingAnnouncement = true);
+    await _announcementsRepository.postAnnouncement(
+      sectionId: widget.sectionId,
+      lecturerId: DemoIdentity.lecturerId,
+      title: title,
+      body: body,
+    );
+    final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
+    if (!mounted) return;
+    _announcementTitleController.clear();
+    _announcementBodyController.clear();
+    setState(() {
+      _announcements = announcements;
+      _showAnnouncementForm = false;
+      _postingAnnouncement = false;
     });
   }
 
@@ -253,62 +252,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     );
   }
 
-  void _previewAsStudent() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => CourseContentScreen(sectionId: widget.sectionId, courseTitle: _courseTitle)),
-    );
-  }
-
-  void _notAvailable() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Not wired up in this preview.')),
-    );
-  }
-
-  // ---------------------------------------------------------------------
-  // Deadline CTA wiring — only the assignment/quiz materials this demo is
-  // hard-wired to have a real grading screen; other due materials fall
-  // back to a generic "not available" action.
-  // ---------------------------------------------------------------------
-
-  IconData _iconForMaterial(ModuleMaterial m) {
-    switch (m.type) {
-      case MaterialType.assignment:
-        return Icons.terminal;
-      case MaterialType.quiz:
-        return Icons.rule_outlined;
-      case MaterialType.video:
-        return Icons.play_circle_outline;
-      case MaterialType.lesson:
-        return Icons.menu_book_outlined;
-    }
-  }
-
-  (String, IconData?, bool) _ctaForMaterial(ModuleMaterial m) {
-    if (m.id == DemoIdentity.materialAssignment02Id) {
-      return ('Grade Submissions', Icons.arrow_forward, true);
-    }
-    if (m.id == DemoIdentity.materialComplianceQuizId) {
-      return ('Review Answers', Icons.checklist, false);
-    }
-    return ('View Details', null, false);
-  }
-
-  VoidCallback _onTapForMaterial(ModuleMaterial m) {
-    if (m.id == DemoIdentity.materialAssignment02Id) {
-      return () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));
-    }
-    if (m.id == DemoIdentity.materialComplianceQuizId) {
-      return () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeQuizScreen()));
-    }
-    return _notAvailable;
-  }
-
-  String _formatDue(DateTime dt) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return 'Due ${months[dt.month - 1]} ${dt.day}, ${dt.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -329,29 +272,15 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
           const SizedBox(height: 24),
           LayoutBuilder(builder: (context, constraints) {
             final wide = constraints.maxWidth >= 1000;
-            final left = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDeadlinesCard(),
-                const SizedBox(height: 24),
-                _buildQuickSettingsCard(),
-              ],
-            );
-            final right = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildQuickAccessHub(),
-                const SizedBox(height: 24),
-                _buildAnnouncementsCard(),
-              ],
-            );
+            final left = _buildQuickAccessHub();
+            final right = _buildAnnouncementsCard();
             if (wide) {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 7, child: left),
+                  Expanded(flex: 5, child: left),
                   const SizedBox(width: 24),
-                  Expanded(flex: 5, child: right),
+                  Expanded(flex: 7, child: right),
                 ],
               );
             }
@@ -395,40 +324,9 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               spacing: 8,
               runSpacing: 6,
               children: [
-                _tag('ACTIVE COHORT', FacultyColors.tertiaryContainer, Colors.white, dot: true),
-                _tag('TERM: FALL 2025', FacultyColors.surfaceContainer, FacultyColors.onSurfaceVariant),
                 _tag('COURSE ID: $_courseCode', FacultyColors.surfaceContainerHigh, FacultyColors.onSurface),
+                _tag('CLASS: $_classCode', FacultyColors.surfaceContainer, FacultyColors.onSurfaceVariant),
               ],
-            ),
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OutlinedButton.icon(
-              onPressed: _previewAsStudent,
-              icon: const Icon(Icons.visibility_outlined, size: 18, color: FacultyColors.secondary),
-              label: const Text('Preview as Student'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: FacultyColors.onSurface,
-                backgroundColor: FacultyColors.surfaceContainerLowest,
-                side: BorderSide.none,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(width: 10),
-            ElevatedButton.icon(
-              onPressed: _notAvailable,
-              icon: const Icon(Icons.settings_outlined, size: 18),
-              label: const Text('Course Settings'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: FacultyColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
             ),
           ],
         ),
@@ -455,7 +353,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
 
   Widget _buildKpiRow() {
     return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
+      final cols = constraints.maxWidth >= 1100 ? 5 : (constraints.maxWidth >= 900 ? 3 : (constraints.maxWidth >= 500 ? 2 : 1));
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
         _kpiCard('ENROLLED STUDENTS', '$_enrolledCount', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
@@ -466,6 +364,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             footer: '$_quizNonSubmissions non-submissions'),
         _kpiCard('AVG. COHORT PROGRESS', '$_avgProgress%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
             progress: _avgProgress / 100),
+        _kpiCard('PASSING CRITERIA', '80%', Icons.flag_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
+            footer: 'Weighted total grade'),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -536,253 +436,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 ),
               ],
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDeadlinesCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            color: FacultyColors.surfaceContainerLow,
-            child: Row(
-              children: [
-                const Icon(Icons.event_note_outlined, color: FacultyColors.primary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Upcoming Deadlines & Schedule', style: FacultyTypography.headlineMd())),
-                Text('${_deadlines.length} items queued', style: FacultyTypography.labelXs()),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: _deadlines.isEmpty
-                ? Text('No upcoming deadlines for this course.', style: FacultyTypography.bodySm())
-                : Column(
-                    children: [
-                      for (var i = 0; i < _deadlines.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 12),
-                        _deadlineRowFor(_deadlines[i]),
-                      ],
-                    ],
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _deadlineRowFor(_DeadlineItem item) {
-    final m = item.material;
-    final overdue = m.dueAt!.isBefore(DateTime.now());
-    final (ctaLabel, ctaIcon, ctaPrimary) = _ctaForMaterial(m);
-    return _deadlineRow(
-      icon: _iconForMaterial(m),
-      title: m.name,
-      dueText: _formatDue(m.dueAt!),
-      dueColor: overdue ? FacultyColors.error : FacultyColors.onSurfaceVariant,
-      meta: item.submittedCount != null ? '${item.submittedCount} submitted / $_enrolledCount total' : null,
-      ctaLabel: ctaLabel,
-      ctaIcon: ctaIcon,
-      ctaPrimary: ctaPrimary,
-      onTap: _onTapForMaterial(m),
-    );
-  }
-
-  Widget _deadlineRow({
-    required IconData icon,
-    required String title,
-    required String dueText,
-    required Color dueColor,
-    String? meta,
-    String? badge,
-    required String ctaLabel,
-    IconData? ctaIcon,
-    required bool ctaPrimary,
-    bool muted = false,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: muted ? FacultyColors.surfaceContainerLow : FacultyColors.surfaceBright,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 16,
-        runSpacing: 12,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: muted ? FacultyColors.surfaceContainerHigh : FacultyColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: muted ? FacultyColors.secondary : FacultyColors.primary, size: 20),
-              ),
-              const SizedBox(width: 12),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 340),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(child: Text(title, style: FacultyTypography.titleSm(), overflow: TextOverflow.ellipsis)),
-                        if (badge != null) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(4)),
-                            child: Text(badge, style: FacultyTypography.labelXs(color: FacultyColors.secondary)),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      children: [
-                        Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.event, size: 13, color: dueColor),
-                          const SizedBox(width: 3),
-                          Text(dueText, style: FacultyTypography.bodySm(color: dueColor).copyWith(fontWeight: FontWeight.w500)),
-                        ]),
-                        if (meta != null) ...[
-                          Text('•', style: FacultyTypography.bodySm()),
-                          Text(meta, style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w500)),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (ctaIcon != null)
-            ElevatedButton.icon(
-              onPressed: onTap,
-              icon: Icon(ctaIcon, size: 16),
-              label: Text(ctaLabel),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ctaPrimary ? FacultyColors.primary : FacultyColors.surfaceContainerLowest,
-                foregroundColor: ctaPrimary ? Colors.white : FacultyColors.onSurface,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                textStyle: FacultyTypography.labelXs(),
-              ),
-            )
-          else
-            OutlinedButton(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: FacultyColors.onSurface,
-                backgroundColor: FacultyColors.surfaceContainer,
-                side: BorderSide.none,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                textStyle: FacultyTypography.labelXs(),
-              ),
-              child: Text(ctaLabel),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickSettingsCard() {
-    final capacityText = _capacity != null ? '$_enrolledCount / $_capacity' : '$_enrolledCount';
-    final seatsRemaining = _capacity != null ? '${(_capacity! - _enrolledCount).clamp(0, _capacity!)} seats remaining' : 'Live roster count';
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.info_outline, color: FacultyColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Text('Course Quick Settings & Info', style: FacultyTypography.headlineMd())),
-              TextButton(
-                onPressed: _notAvailable,
-                child: Text('Edit Details', style: FacultyTypography.labelMd(color: FacultyColors.primary)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: FacultyColors.surfaceBright, borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('SYLLABUS OVERVIEW', style: FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(
-                  'Equips modern engineering students with hands-on techniques to architect robust ETL extraction pipelines, operationalize pandas for large datasets, and execute automated reporting workflows directly inside institutional networks.',
-                  style: FacultyTypography.bodyMd(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(builder: (context, constraints) {
-            final cols = constraints.maxWidth >= 560 ? 3 : 1;
-            final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
-            final items = [
-              _infoTile('Passing Criteria', '80%', 'Weighted total grade'),
-              _infoTile('Enrollment Capacity', capacityText, seatsRemaining),
-              _infoTile('Granted Credential', 'Enterprise Python Specialist', 'Accredited', badge: true),
-            ];
-            return Wrap(spacing: 16, runSpacing: 16, children: items.map((i) => SizedBox(width: width, child: i)).toList());
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoTile(String label, String value, String footnote, {bool badge = false}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: FacultyTypography.labelXs()),
-          const SizedBox(height: 4),
-          Text(value, style: badge ? FacultyTypography.titleSm() : FacultyTypography.headlineMd()),
-          const SizedBox(height: 4),
-          badge
-              ? Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.verified, size: 13, color: FacultyColors.tertiary),
-                  const SizedBox(width: 3),
-                  Text(footnote, style: FacultyTypography.labelXs(color: FacultyColors.tertiary)),
-                ])
-              : Text(footnote, style: FacultyTypography.labelXs()),
         ],
       ),
     );
@@ -995,11 +648,13 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          _announcement('Office hours moved to Thursday 3 PM', 'Yesterday',
-              'Due to the departmental curriculum council meeting, our usual Wednesday slot is moved. Room 402 or via Zoom bridge.'),
-          const SizedBox(height: 8),
-          _announcement('Starter repo updated for Assignment 02', 'Nov 08',
-              'A patch was pushed to address the dataset schema parser warning in Python 3.11. Please run git pull before continuing.'),
+          if (_announcements.isEmpty && !_showAnnouncementForm)
+            const AnnouncementsEmptyState()
+          else
+            for (var i = 0; i < _announcements.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              AnnouncementCard(announcement: _announcements[i]),
+            ],
           if (_showAnnouncementForm) ...[
             const SizedBox(height: 16),
             Container(
@@ -1011,6 +666,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                   Text('Draft Quick Broadcast', style: FacultyTypography.labelMd()),
                   const SizedBox(height: 8),
                   TextField(
+                    controller: _announcementTitleController,
                     decoration: InputDecoration(
                       isDense: true,
                       filled: true,
@@ -1021,6 +677,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
+                    controller: _announcementBodyController,
                     maxLines: 2,
                     decoration: InputDecoration(
                       filled: true,
@@ -1034,18 +691,13 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => setState(() => _showAnnouncementForm = false),
+                        onPressed: _postingAnnouncement ? null : () => setState(() => _showAnnouncementForm = false),
                         child: const Text('Cancel'),
                       ),
                       ElevatedButton(
-                        onPressed: () {
-                          setState(() => _showAnnouncementForm = false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Announcement published.'), backgroundColor: FacultyColors.primary),
-                          );
-                        },
+                        onPressed: _postingAnnouncement ? null : _postAnnouncement,
                         style: ElevatedButton.styleFrom(backgroundColor: FacultyColors.primary, foregroundColor: Colors.white, elevation: 0),
-                        child: const Text('Publish'),
+                        child: Text(_postingAnnouncement ? 'Publishing...' : 'Publish'),
                       ),
                     ],
                   ),
@@ -1053,27 +705,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _announcement(String title, String time, String body) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: FacultyColors.surfaceBright, borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(title, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600))),
-              Text(time, style: FacultyTypography.labelXs()),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(body, style: FacultyTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -1101,15 +732,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               const SizedBox(height: 16),
               _mobileKpiGrid(),
               const SizedBox(height: 20),
-              _mobileGradingQueueSection(),
-              const SizedBox(height: 20),
               _mobileQuickAccessSection(),
-              const SizedBox(height: 20),
-              _mobileStudentRosterSection(),
               const SizedBox(height: 20),
               _mobileAnnouncementsCard(),
               const SizedBox(height: 20),
-              _mobileGovernanceCard(),
+              _mobileStudentRosterSection(),
             ],
           ),
         ),
@@ -1118,75 +745,24 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   }
 
   Widget _mobileActionBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: InkWell(
-            onTap: () => Navigator.of(context).pop(),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.arrow_back, size: 18, color: FacultyColors.secondary),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      'Back to My Courses',
-                      style: FacultyTypography.labelMd(color: FacultyColors.secondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _mobileIconSquareButton(icon: Icons.settings, onTap: _notAvailable),
-        const SizedBox(width: 8),
-        _mobilePreviewButton(),
-      ],
-    );
-  }
-
-  Widget _mobileIconSquareButton({required IconData icon, required VoidCallback onTap}) {
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: FacultyColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
-        ),
-        child: Icon(icon, size: 20, color: FacultyColors.onSurfaceVariant),
-      ),
-    );
-  }
-
-  Widget _mobilePreviewButton() {
-    return InkWell(
-      onTap: _previewAsStudent,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: FacultyColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
-        ),
+      onTap: () => Navigator.of(context).pop(),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.visibility_outlined, size: 18, color: FacultyColors.secondary),
+            const Icon(Icons.arrow_back, size: 18, color: FacultyColors.secondary),
             const SizedBox(width: 4),
-            Text('Preview', style: FacultyTypography.labelMd(color: FacultyColors.secondary)),
+            Flexible(
+              child: Text(
+                'Back to My Courses',
+                style: FacultyTypography.labelMd(color: FacultyColors.secondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
@@ -1208,9 +784,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             spacing: 6,
             runSpacing: 6,
             children: [
-              _tag('ACTIVE COHORT', FacultyColors.tertiaryContainer, Colors.white, dot: true),
-              _tag('TERM: FALL 2025', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
-              _tag(_courseCode, FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
+              _tag('COURSE ID: $_courseCode', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
+              _tag('CLASS: $_classCode', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
             ],
           ),
           const SizedBox(height: 8),
@@ -1312,6 +887,23 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _mobileStatCard(
+                icon: Icons.flag_outlined,
+                iconBg: FacultyColors.surfaceContainer,
+                iconColor: FacultyColors.secondary,
+                cornerBadge: const SizedBox.shrink(),
+                value: '80%',
+                label: 'Passing Criteria',
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: SizedBox.shrink()),
+          ],
+        ),
       ],
     );
   }
@@ -1367,203 +959,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             style: FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileGradingQueueSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.pending_actions, size: 20, color: FacultyColors.secondary),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text('Grading Queue & Deadlines', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
-            ),
-            const SizedBox(width: 6),
-            _mobileBadgePill('${_deadlines.length} Active', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant, bold: true),
-          ],
-        ),
-        const SizedBox(height: 10),
-        if (_deadlines.isEmpty)
-          Text('No upcoming deadlines for this course.', style: FacultyTypography.bodySm())
-        else
-          for (var i = 0; i < _deadlines.length; i++) ...[
-            if (i > 0) const SizedBox(height: 10),
-            _mobileDeadlineCardFor(_deadlines[i]),
-          ],
-      ],
-    );
-  }
-
-  Widget _mobileDeadlineCardFor(_DeadlineItem item) {
-    final m = item.material;
-    final (ctaLabel, ctaIcon, ctaPrimary) = _ctaForMaterial(m);
-    if (item.submittedCount != null) {
-      final ratio = _enrolledCount == 0 ? 0.0 : item.submittedCount! / _enrolledCount;
-      return _mobileQueueCard(
-        badgeText: m.type == MaterialType.assignment ? 'High Priority' : 'Evaluation',
-        badgeBg: m.type == MaterialType.assignment
-            ? FacultyColors.errorContainer.withValues(alpha: 0.4)
-            : FacultyColors.surfaceContainer,
-        badgeFg: m.type == MaterialType.assignment ? FacultyColors.error : FacultyColors.secondary,
-        title: m.name,
-        subtitle: '${_formatDue(m.dueAt!)} • ${item.submittedCount} / $_enrolledCount Students Submitted',
-        progressLabel: 'Submission Status',
-        progressValueText: '${(ratio * 100).toStringAsFixed(0)}% turned in',
-        progressValue: ratio,
-        buttonLabel: '$ctaLabel${m.type == MaterialType.assignment ? ' ($_assignmentsToGrade)' : ' ($_quizzesToGrade)'}',
-        buttonIcon: ctaIcon ?? Icons.arrow_forward,
-        buttonBg: ctaPrimary ? FacultyColors.secondary : FacultyColors.surfaceContainer,
-        buttonFg: ctaPrimary ? Colors.white : FacultyColors.secondary,
-        onTap: _onTapForMaterial(m),
-      );
-    }
-    return _mobileUpcomingCardFor(item);
-  }
-
-  Widget _mobileQueueCard({
-    required String badgeText,
-    required Color badgeBg,
-    required Color badgeFg,
-    required String title,
-    required String subtitle,
-    required String progressLabel,
-    required String progressValueText,
-    required double progressValue,
-    required String buttonLabel,
-    required IconData buttonIcon,
-    required Color buttonBg,
-    required Color buttonFg,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(4)),
-              child: Text(
-                badgeText.toUpperCase(),
-                style: FacultyTypography.labelXs(color: badgeFg).copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(title, style: FacultyTypography.titleSm(color: FacultyColors.primary), maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(subtitle, style: FacultyTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(progressLabel, style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis)),
-                    Text(
-                      progressValueText,
-                      style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(9999),
-                  child: LinearProgressIndicator(
-                    value: progressValue,
-                    minHeight: 8,
-                    backgroundColor: FacultyColors.surfaceContainerHighest,
-                    valueColor: const AlwaysStoppedAnimation<Color>(FacultyColors.secondary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton.icon(
-              onPressed: onTap,
-              icon: Icon(buttonIcon, size: 18),
-              label: Text(buttonLabel, overflow: TextOverflow.ellipsis),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: buttonBg,
-                foregroundColor: buttonFg,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                textStyle: FacultyTypography.labelMd(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileUpcomingCardFor(_DeadlineItem item) {
-    final m = item.material;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _mobileBadgePill('Upcoming', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant, bold: true),
-                    Text(_formatDue(m.dueAt!), style: FacultyTypography.bodySm()),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(m.name, style: FacultyTypography.titleSm(color: FacultyColors.primary), maxLines: 2, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          InkWell(
-            onTap: _notAvailable,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.edit_calendar, size: 16, color: FacultyColors.onSurface),
-                  const SizedBox(width: 4),
-                  Text('Edit', style: FacultyTypography.labelMd()),
-                ],
-              ),
-            ),
           ),
         ],
       ),
@@ -1773,17 +1168,13 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          _mobileAnnouncementItem(
-            'Office hours moved to Thursday 3 PM',
-            'Yesterday',
-            'Live architectural consultation for data lake pipeline patterns will be conducted via Telemetry Room B.',
-          ),
-          const SizedBox(height: 8),
-          _mobileAnnouncementItem(
-            'Starter repo updated for Assignment 02',
-            'Nov 08',
-            'New pytest mocks for parquet stream validation are pushed to the main enterprise template.',
-          ),
+          if (_announcements.isEmpty && !_showAnnouncementForm)
+            const AnnouncementsEmptyState()
+          else
+            for (var i = 0; i < _announcements.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              AnnouncementCard(announcement: _announcements[i]),
+            ],
           if (_showAnnouncementForm) ...[
             const SizedBox(height: 12),
             Container(
@@ -1795,6 +1186,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                   Text('Draft Quick Broadcast', style: FacultyTypography.labelMd()),
                   const SizedBox(height: 8),
                   TextField(
+                    controller: _announcementTitleController,
                     decoration: InputDecoration(
                       isDense: true,
                       filled: true,
@@ -1805,6 +1197,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
+                    controller: _announcementBodyController,
                     maxLines: 2,
                     decoration: InputDecoration(
                       filled: true,
@@ -1818,18 +1211,13 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => setState(() => _showAnnouncementForm = false),
+                        onPressed: _postingAnnouncement ? null : () => setState(() => _showAnnouncementForm = false),
                         child: const Text('Cancel'),
                       ),
                       ElevatedButton(
-                        onPressed: () {
-                          setState(() => _showAnnouncementForm = false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Announcement published.'), backgroundColor: FacultyColors.primary),
-                          );
-                        },
+                        onPressed: _postingAnnouncement ? null : _postAnnouncement,
                         style: ElevatedButton.styleFrom(backgroundColor: FacultyColors.primary, foregroundColor: Colors.white, elevation: 0),
-                        child: const Text('Publish'),
+                        child: Text(_postingAnnouncement ? 'Publishing...' : 'Publish'),
                       ),
                     ],
                   ),
@@ -1841,93 +1229,4 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       ),
     );
   }
-
-  Widget _mobileAnnouncementItem(String title, String time, String body) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: FacultyTypography.labelMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(time, style: FacultyTypography.labelXs()),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(body, style: FacultyTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileGovernanceCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.fact_check, size: 20, color: FacultyColors.secondary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text('Course Governance & Syllabus', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _mobileGovernanceTile('Passing Benchmark', '80% Aggregate', 'Inclusive of capstone audit'),
-          const SizedBox(height: 8),
-          _mobileGovernanceTile(
-            'Cohort Capacity',
-            _capacity != null ? '$_enrolledCount / $_capacity Enrolled' : '$_enrolledCount Enrolled',
-            _capacity != null ? '${(_capacity! - _enrolledCount).clamp(0, _capacity!)} enterprise seats remaining' : 'Live roster count',
-          ),
-          const SizedBox(height: 8),
-          _mobileGovernanceTile('Target Credential', 'Enterprise Python Specialist', 'AIEI Industry Accreditation'),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileGovernanceTile(String label, String value, String footnote) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label.toUpperCase(), style: FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 2),
-          Text(value, style: FacultyTypography.headlineMd(color: FacultyColors.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(footnote, style: FacultyTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
-        ],
-      ),
-    );
-  }
-}
-
-class _DeadlineItem {
-  final ModuleMaterial material;
-  final int? submittedCount;
-
-  const _DeadlineItem({required this.material, this.submittedCount});
 }

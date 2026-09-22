@@ -11,7 +11,7 @@
 -- set into a real production deployment with real user data.
 
 drop table if exists
-  enrollment_candidates, course_sections,
+  enrollment_candidates, course_announcements, course_sections,
   badge_awards, student_certifications, student_materials, student_courses,
   specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags,
@@ -499,6 +499,19 @@ create table badge_awards (
   created_at timestamptz not null default now()
 );
 
+-- Posted by the lecturer assigned to a class (`course_sections.lecturer_id`)
+-- — the Faculty Portal's Course Dashboard "Course Announcements" card reads
+-- and writes these; students see them read-only in the right sidebar of
+-- Course Content (course_info/course_content_screen.dart).
+create table course_announcements (
+  id uuid primary key default gen_random_uuid(),
+  section_id uuid not null references course_sections(id) on delete cascade,
+  lecturer_id uuid not null references lecturers(id),
+  title text not null,
+  body text not null default '',
+  created_at timestamptz not null default now()
+);
+
 create table enrollment_candidates (
   id uuid primary key default gen_random_uuid(),
   student_name text not null,
@@ -557,6 +570,7 @@ alter table student_certifications enable row level security;
 alter table badge_awards enable row level security;
 alter table course_sections enable row level security;
 alter table enrollment_candidates enable row level security;
+alter table course_announcements enable row level security;
 
 do $$
 declare
@@ -572,7 +586,7 @@ begin
     'assignment_criteria', 'content_block_submissions',
     'tags', 'course_tags', 'certifications', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
-    'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates'
+    'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates', 'course_announcements'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

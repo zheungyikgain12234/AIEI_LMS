@@ -3,12 +3,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
+import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
 import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/quiz_answering/quiz_answering_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/announcements_panel.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/clickable_link.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/downloadable_file.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/embedded_image.dart';
@@ -41,6 +44,7 @@ class CourseContentScreen extends StatefulWidget {
 
 class _CourseContentScreenState extends State<CourseContentScreen> {
   final _repository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
+  final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
   final _scrollController = ScrollController();
   final Map<String, GlobalKey> _moduleKeys = {};
   final Map<String, GlobalKey> _sessionKeys = {};
@@ -48,6 +52,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
 
   bool _isLoading = true;
   List<_ContentModule> _modules = [];
+  List<CourseAnnouncement> _announcements = const [];
   String? _activeId;
 
   @override
@@ -75,9 +80,11 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
       }
       content.add((module: m, sessions: withBlocks));
     }
+    final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
     if (!mounted) return;
     setState(() {
       _modules = content;
+      _announcements = announcements;
       _expandedModuleIds
         ..clear()
         ..addAll(content.map((m) => m.module.id));
@@ -129,14 +136,56 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
     );
   }
 
-  // ── Desktop: navigation tree sidebar + one continuous content scroll ────
+  // ── Desktop: navigation tree sidebar + content + announcements sidebar ──
   Widget _buildDesktopBody() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildSidebar(),
         Expanded(child: _buildCenterContent()),
+        _buildAnnouncementsSidebar(),
       ],
+    );
+  }
+
+  Widget _buildAnnouncementsSidebar() {
+    return Container(
+      width: 300,
+      decoration: const BoxDecoration(
+        color: FacultyColors.surfaceContainerLow,
+        border: Border(left: BorderSide(color: FacultyColors.surfaceContainerHigh)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 14),
+            child: Row(
+              children: [
+                const Icon(Icons.campaign_outlined, size: 17, color: FacultyColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'ANNOUNCEMENTS',
+                  style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.6),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: FacultyColors.surfaceContainerHigh),
+          Expanded(
+            child: _announcements.isEmpty
+                ? const Padding(padding: EdgeInsets.all(20), child: AnnouncementsEmptyState())
+                : ListView.builder(
+                    padding: const EdgeInsets.all(14),
+                    itemCount: _announcements.length,
+                    itemBuilder: (context, i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: AnnouncementCard(announcement: _announcements[i]),
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -298,33 +347,103 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
     );
   }
 
-  // ── Mobile: a "Course Contents" bar that opens the tree in a sheet ──────
+  // ── Mobile: a "Course Contents" bar that opens the tree in a sheet, plus
+  // an "Announcements" bar that opens the announcements list in a sheet ───
   Widget _buildMobileBody() {
     return Column(
       children: [
-        InkWell(
-          onTap: _openContentsSheet,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-            decoration: const BoxDecoration(
-              color: FacultyColors.surfaceContainerLow,
-              border: Border(bottom: BorderSide(color: FacultyColors.surfaceContainerHigh)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.view_list_outlined, size: 18, color: FacultyColors.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('Course Contents', style: FacultyTypography.labelMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+        Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: _openContentsSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+                  decoration: const BoxDecoration(
+                    color: FacultyColors.surfaceContainerLow,
+                    border: Border(
+                      bottom: BorderSide(color: FacultyColors.surfaceContainerHigh),
+                      right: BorderSide(color: FacultyColors.surfaceContainerHigh),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.view_list_outlined, size: 18, color: FacultyColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('Course Contents', style: FacultyTypography.labelMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                      ),
+                      const Icon(Icons.unfold_more, size: 18, color: FacultyColors.onSurfaceVariant),
+                    ],
+                  ),
                 ),
-                const Icon(Icons.unfold_more, size: 18, color: FacultyColors.onSurfaceVariant),
-              ],
+              ),
             ),
-          ),
+            Expanded(
+              child: InkWell(
+                onTap: _openAnnouncementsSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+                  decoration: const BoxDecoration(
+                    color: FacultyColors.surfaceContainerLow,
+                    border: Border(bottom: BorderSide(color: FacultyColors.surfaceContainerHigh)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.campaign_outlined, size: 18, color: FacultyColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('Announcements', style: FacultyTypography.labelMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                      ),
+                      const Icon(Icons.unfold_more, size: 18, color: FacultyColors.onSurfaceVariant),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         Expanded(child: _buildCenterContent()),
       ],
+    );
+  }
+
+  void _openAnnouncementsSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: FacultyColors.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(2))),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                child: Row(
+                  children: [Text('Announcements', style: FacultyTypography.titleSm())],
+                ),
+              ),
+              const Divider(height: 1, color: FacultyColors.surfaceContainer),
+              Expanded(
+                child: _announcements.isEmpty
+                    ? const Padding(padding: EdgeInsets.all(20), child: AnnouncementsEmptyState())
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(14),
+                        itemCount: _announcements.length,
+                        itemBuilder: (context, i) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: AnnouncementCard(announcement: _announcements[i]),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

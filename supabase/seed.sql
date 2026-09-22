@@ -1511,3 +1511,10 @@ insert into content_blocks (id, session_id, block_type, block_content, block_sor
   ('f3333333-3333-3333-3333-000000000190', 'f2222222-2222-2222-2222-000000000095', 'link', '{"url": "https://example.com/reading/dbt-transformation-layers", "label": "Suggested Reading: dbt Layered Architecture Best Practices"}'::jsonb, 1),
   ('f3333333-3333-3333-3333-000000000191', 'f2222222-2222-2222-2222-000000000096', 'assignment', '{"title": "dbt Project Critique", "description": "Review the provided dbt project structure and flag any staging models that contain business logic that should live in the intermediate layer.", "instructions": "Submit your critique plus a proposed refactor for one flagged model.", "dueDate": "2026-01-20T23:59:00.000", "weightage": 20}'::jsonb, 2),
   ('f3333333-3333-3333-3333-000000000192', 'f2222222-2222-2222-2222-000000000096', 'file', '{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/sample_dbt_project_structure.pdf", "name": "sample_dbt_project_structure.pdf"}'::jsonb, 3);
+
+-- ── Course announcements (Faculty Portal Course Dashboard "Course
+-- Announcements" card, mirrored read-only in the student Course Content
+-- right sidebar) — seeded for PY-402's class so the demo isn't empty. ─────
+insert into course_announcements (section_id, lecturer_id, title, body, created_at) values
+  ((select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), '11111111-1111-1111-1111-111111111106', 'Office hours moved to Thursday 3 PM', 'Due to the departmental curriculum council meeting, our usual Wednesday slot is moved. Room 402 or via Zoom bridge.', now() - interval '1 day'),
+  ((select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), '11111111-1111-1111-1111-111111111106', 'Starter repo updated for Assignment 02', 'A patch was pushed to address the dataset schema parser warning in Python 3.11. Please run git pull before continuing.', now() - interval '8 days');

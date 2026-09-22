@@ -82,6 +82,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
             progressByCourse,
             modulesBySection[sectionByCourse[course['id']]] ?? const [],
             completedMaterialIds,
+            sectionByCourse[course['id']],
           ),
     ];
   }
@@ -91,6 +92,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     Map<String, int> progressByCourse,
     List<Map<String, dynamic>> courseModules,
     Set<String> completedMaterialIds,
+    String? sectionId,
   ) {
     final id = course['id'] as String;
     final category = CourseCategory.fromKey(course['category'] as String);
@@ -135,6 +137,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       id: id,
       title: course['course_title'] as String,
       category: category,
+      sectionId: sectionId,
       instructorOrBoard: 'AIEI Faculty',
       instructorIcon: categoryIcon,
       instructorIconColor: AppColors.secondary,
@@ -151,7 +154,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       unlockBadgeTitle: 'Unlocks: Course Completion Badge',
       unlockBadgeIcon: Icons.military_tech_outlined,
       deadlineDays: 30,
-      ctaButtonText: isCompleted ? 'Review Course / View Badge' : 'Continue Course',
+      ctaButtonText: isCompleted ? 'Review Course / View Badge' : 'View Course',
       isCompleted: isCompleted,
     );
   }

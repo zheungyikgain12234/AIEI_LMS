@@ -114,6 +114,12 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
   }
 
   @override
+  Future<ContentBlock?> getContentBlock(String id) async {
+    final row = await _client.from('content_blocks').select().eq('id', id).maybeSingle();
+    return row == null ? null : ContentBlock.fromMap(row);
+  }
+
+  @override
   Future<ContentBlock> addContentBlock({
     required String sessionId,
     required ContentBlockType type,

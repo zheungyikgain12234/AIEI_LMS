@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
+import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/quiz_answering/quiz_answering_screen.dart';
 import 'widgets/clickable_link.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/embedded_image.dart';
@@ -248,12 +251,43 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
       case ContentBlockType.file:
         return DownloadableFile(url: b.url, label: b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.exam:
-        return Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
+        return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Exam', onTap: () => _openExam(b));
       case ContentBlockType.assignment:
-        return Text(
-          b.title?.isNotEmpty == true ? b.title! : 'Assignment',
-          style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-        );
+        return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Assignment', onTap: () => _openAssignment(b));
     }
+  }
+
+  Widget _linkRow(String label, {required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: FacultyTypography.bodySm(color: FacultyColors.primary).copyWith(decoration: TextDecoration.underline, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const Icon(Icons.chevron_right, size: 16, color: FacultyColors.primary),
+        ],
+      ),
+    );
+  }
+
+  void _openExam(ContentBlock b) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuizAnsweringScreen(contentBlockId: b.id, sectionId: widget.sectionId, studentId: DemoIdentity.studentId),
+      ),
+    );
+  }
+
+  void _openAssignment(ContentBlock b) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AssignmentSubmissionScreen(contentBlockId: b.id, sectionId: widget.sectionId, studentId: DemoIdentity.studentId),
+      ),
+    );
   }
 }

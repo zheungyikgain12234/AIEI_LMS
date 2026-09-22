@@ -5,8 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
 import 'package:stitch_aiei_lms/domain/models/urgent_notice.dart';
-import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
-import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen_2.dart';
+import 'package:stitch_aiei_lms/presentation/screens/course_info/course_content_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
 import 'controllers/courses_controller.dart';
 import 'controllers/courses_state.dart';
@@ -110,15 +109,7 @@ class _EnrolledCoursesCatalogueScreenState
                             // Section 3: Course Grid (Interactive Cards)
                             CourseGrid(
                               courses: state.filteredAndSortedCourses,
-                              onCourseAction: (course) {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => course.id == 'c2-oshe'
-                                        ? CourseInfoScreen2(course: course)
-                                        : CourseInfoScreen(course: course),
-                                  ),
-                                );
-                              },
+                              onCourseAction: (course) => _openCourse(context, course),
                             ),
 
                             const SizedBox(height: 48),
@@ -133,14 +124,16 @@ class _EnrolledCoursesCatalogueScreenState
     );
   }
 
-  // ── Mobile layout ─────────────────────────────────────────────────────────
   void _openCourse(BuildContext context, EnrolledCourse course) {
+    final sectionId = course.sectionId;
+    if (sectionId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You haven\'t been assigned to a class for this course yet.')),
+      );
+      return;
+    }
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => course.id == 'c2-oshe'
-            ? CourseInfoScreen2(course: course)
-            : CourseInfoScreen(course: course),
-      ),
+      MaterialPageRoute(builder: (_) => CourseContentScreen(sectionId: sectionId, courseTitle: course.title)),
     );
   }
 

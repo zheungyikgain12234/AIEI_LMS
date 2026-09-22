@@ -36,6 +36,12 @@ abstract class LecturerSyllabusRepository {
 
   Future<List<ContentBlock>> getContentBlocks(String sessionId);
 
+  /// A single content block by id — for a screen that only knows the
+  /// block id (e.g. a student's "View Exam"/"View Assignment" deep link),
+  /// without needing its whole session's block list. Null if it's been
+  /// deleted.
+  Future<ContentBlock?> getContentBlock(String id);
+
   Future<ContentBlock> addContentBlock({
     required String sessionId,
     required ContentBlockType type,

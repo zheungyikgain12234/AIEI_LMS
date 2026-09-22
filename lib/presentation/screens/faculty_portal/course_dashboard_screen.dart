@@ -4,12 +4,11 @@ import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/material_progress.dart';
 import 'package:stitch_aiei_lms/domain/models/module_material.dart';
-import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/course_info/course_content_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/student_roster_panel.dart';
@@ -37,7 +36,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _materialProgressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
-  final _coursesRepository = SupabaseCoursesRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _showAnnouncementForm = false;
@@ -172,15 +170,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     );
   }
 
-  Future<void> _previewAsStudent() async {
-    final courses = await _coursesRepository.getEnrolledCourses();
-    final course = courses.where((c) => c.id == widget.courseId).firstOrNull;
-    if (!mounted) return;
-    if (course == null) {
-      _notAvailable();
-      return;
-    }
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => CourseInfoScreen(course: course)));
+  void _previewAsStudent() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => CourseContentScreen(sectionId: widget.sectionId, courseTitle: _courseTitle)),
+    );
   }
 
   void _notAvailable() {

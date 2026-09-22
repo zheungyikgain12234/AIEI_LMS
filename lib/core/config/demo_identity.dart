@@ -8,13 +8,15 @@ class DemoIdentity {
   // tables) — David Kim is seeded as row 5. We're now starting on the
   // student portal, so the "signed-in" demo student was switched from Alex
   // Chen (row 1) to David Kim to test with a student who hasn't submitted
-  // everything yet. NOTE: the assignment/quiz/exam material ids below only
-  // have real submission/progress rows seeded for Alex Chen (see
-  // supabase/seed.sql) — screens hard-wired to those specific material ids
-  // (assignment_submission_screen.dart, compliance_quiz_screen.dart, and
-  // the faculty grade_assignment_screen.dart/grade_quiz_screen.dart) will
-  // show empty/not-started state for David Kim until matching seed rows
-  // are added for him too.
+  // everything yet. NOTE: the materialAssignment02Id/materialComplianceQuizId/
+  // materialOsheFinalExamId ids below only have real submission/progress
+  // rows seeded for Alex Chen (see supabase/seed.sql) — the faculty
+  // grade_assignment_screen.dart/grade_quiz_screen.dart, still hard-wired to
+  // those specific material ids, will show empty/not-started state for
+  // David Kim until matching seed rows are added for him too.
+  // AssignmentSubmissionScreen/QuizAnsweringScreen (the real student
+  // submission pages) don't use these constants — they're keyed by
+  // contentBlockId/sectionId/studentId instead.
   static const String studentId = '5';
   static const String lecturerId = '11111111-1111-1111-1111-111111111106'; // Dr. Emmett Brown
   static const String adminId = '33333333-3333-3333-3333-333333333301';

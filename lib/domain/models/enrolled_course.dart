@@ -37,6 +37,12 @@ class EnrolledCourse {
   final String id;
   final String title;
   final CourseCategory category;
+
+  /// The class (`course_sections` row) this student is enrolled in for this
+  /// course — module/session/content-block syllabus is class-scoped, so
+  /// this is what "View Course" needs to load the right content. Null if
+  /// the student hasn't been assigned to a class yet.
+  final String? sectionId;
   final String instructorOrBoard;
   final IconData instructorIcon;
   final Color instructorIconColor;
@@ -60,6 +66,7 @@ class EnrolledCourse {
     required this.id,
     required this.title,
     required this.category,
+    this.sectionId,
     required this.instructorOrBoard,
     required this.instructorIcon,
     required this.instructorIconColor,

@@ -26,6 +26,24 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
   }
 
   @override
+  Future<void> submitAnswer({
+    required String contentBlockId,
+    required String studentId,
+    required Map<String, dynamic> submission,
+  }) async {
+    await _client.from('content_block_submissions').upsert(
+      {
+        'content_block_id': contentBlockId,
+        'student_id': studentId,
+        'status': 'submitted',
+        'submission': submission,
+        'submitted_at': DateTime.now().toIso8601String(),
+      },
+      onConflict: 'content_block_id,student_id',
+    );
+  }
+
+  @override
   Future<void> saveGrade({
     required String contentBlockId,
     required String studentId,

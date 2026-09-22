@@ -4,16 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:stitch_aiei_lms/data/datasources/mock_courses_data_source.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/data/repositories/mock_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/controllers/courses_controller.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
-import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
-import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen_2.dart';
 import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/credential_detail/revoked_credential_detail_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/credential_detail/executive_leadership_detail_screen.dart';
-import 'package:stitch_aiei_lms/presentation/screens/compliance_quiz/compliance_quiz_screen.dart';
+import 'package:stitch_aiei_lms/presentation/screens/quiz_answering/quiz_answering_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
 
 void main() {
@@ -45,66 +43,6 @@ void main() {
         expect(find.text('Certifications & Badges'), findsOneWidget);
 
         await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
-        await tester.pump();
-        expect(tester.takeException(), isNull);
-      }, createHttpClient: (context) => _FakeHttpClient());
-    });
-
-    testWidgets('CourseInfoScreen mobile layout', (WidgetTester tester) async {
-      await HttpOverrides.runZoned(() async {
-        tester.view.physicalSize = const Size(390, 844);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        final course = MockCoursesDataSource.courses.firstWhere((c) => c.id == 'c1-python');
-
-        await tester.pumpWidget(
-          MaterialApp(home: CourseInfoScreen(course: course)),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 500));
-
-        expect(tester.takeException(), isNull);
-        expect(find.text('Course Details'), findsOneWidget);
-        expect(find.text('Back to Courses'), findsOneWidget);
-        expect(find.textContaining('Curriculum Syllabus'), findsOneWidget);
-
-        await tester.ensureVisible(find.text('External Links & Repos'));
-        await tester.pump();
-        await tester.tap(find.text('External Links & Repos'), warnIfMissed: false);
-        await tester.pump();
-        expect(tester.takeException(), isNull);
-
-        await tester.ensureVisible(find.text('Ask a Question'));
-        await tester.pump();
-        await tester.tap(find.text('Ask a Question'), warnIfMissed: false);
-        await tester.pump();
-        expect(tester.takeException(), isNull);
-      }, createHttpClient: (context) => _FakeHttpClient());
-    });
-
-    testWidgets('CourseInfoScreen2 (OSHE) mobile layout',
-        (WidgetTester tester) async {
-      await HttpOverrides.runZoned(() async {
-        tester.view.physicalSize = const Size(390, 844);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        final course = MockCoursesDataSource.courses.firstWhere((c) => c.id == 'c2-oshe');
-
-        await tester.pumpWidget(
-          MaterialApp(home: CourseInfoScreen2(course: course)),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 500));
-
-        expect(tester.takeException(), isNull);
-        expect(find.text('Course Details'), findsOneWidget);
-        expect(find.text('Take Lesson 4 Compliance Quiz'), findsOneWidget);
-
-        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -800));
         await tester.pump();
         expect(tester.takeException(), isNull);
       }, createHttpClient: (context) => _FakeHttpClient());
@@ -170,7 +108,7 @@ void main() {
       }, createHttpClient: (context) => _FakeHttpClient());
     });
 
-    testWidgets('ComplianceQuizScreen mobile layout',
+    testWidgets('QuizAnsweringScreen mobile layout',
         (WidgetTester tester) async {
       await HttpOverrides.runZoned(() async {
         tester.view.physicalSize = const Size(390, 844);
@@ -179,13 +117,18 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
 
         await tester.pumpWidget(
-          const MaterialApp(home: ComplianceQuizScreen()),
+          const MaterialApp(
+            home: QuizAnsweringScreen(
+              contentBlockId: '22222222-2222-2222-2222-222222220002',
+              sectionId: DemoIdentity.coursePyId,
+              studentId: DemoIdentity.studentId,
+            ),
+          ),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
 
         expect(tester.takeException(), isNull);
-        expect(find.text('Compliance Quiz'), findsOneWidget);
 
         await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -800));
         await tester.pump();
@@ -204,13 +147,19 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
 
         await tester.pumpWidget(
-          const MaterialApp(home: AssignmentSubmissionScreen()),
+          const MaterialApp(
+            home: AssignmentSubmissionScreen(
+              contentBlockId: '00000000-0000-0000-0000-000000000002',
+              sectionId: DemoIdentity.coursePyId,
+              studentId: DemoIdentity.studentId,
+            ),
+          ),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
 
         expect(tester.takeException(), isNull);
-        expect(find.text('Assignment Submission'), findsOneWidget);
+        expect(find.text('Submit Assignment'), findsOneWidget);
 
         await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -800));
         await tester.pump();

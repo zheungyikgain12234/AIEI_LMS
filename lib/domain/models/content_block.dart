@@ -60,6 +60,11 @@ class ContentBlock {
   String? get instructions => content['instructions'] as String?;
   String? get mode => content['mode'] as String?;
 
+  /// Percentage (0–100) this exam/assignment counts toward the class's
+  /// final grade. Only meaningful for [ContentBlockType.exam]/
+  /// [ContentBlockType.assignment] blocks — null if unset.
+  double? get weightage => (content['weightage'] as num?)?.toDouble();
+
   DateTime? get dueDate {
     final raw = content['dueDate'] as String?;
     if (raw == null || raw.isEmpty) return null;

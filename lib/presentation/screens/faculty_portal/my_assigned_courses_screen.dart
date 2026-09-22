@@ -17,12 +17,12 @@ import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
-import 'student_directory_screen.dart';
-import 'course_syllabus_screen.dart';
 
-/// The course dashboard/roster preview in this app is only wired up for
-/// PY-402's seeded data, so only that course's "Open Dashboard"/"Roster"
-/// actions are enabled — mirrors the old hardcoded `dashboardAvailable`.
+/// PY-402 is the only course with a full seeded roster + graded
+/// submissions in this demo, so this row's own KPI columns (modules,
+/// avg progress, pending grading, class avg) only compute for it — other
+/// rows show placeholders there. "Open Dashboard"/"Roster" still work for
+/// every course; they navigate with that course's real ids.
 const _kDashboardCourseId = '44444444-4444-4444-4444-444444444401';
 
 const _kAccentPalette = [
@@ -236,30 +236,19 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       pendingLabel: 'Review Items',
       classAvg: classAvgScore == null ? '—' : '${classAvgScore.toStringAsFixed(1)}%',
       classAvgTag: classAvgScore == null ? 'On Track' : (classAvgScore >= 80 ? 'On Track' : 'Needs Attention'),
-      dashboardAvailable: c.courseId == _kDashboardCourseId,
     );
   }
 
   void _handleNav(FacultyNavDestination dest) {
     if (dest == FacultyNavDestination.myCourses) return;
-    if (dest == FacultyNavDestination.studentDirectory) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen()));
-      return;
-    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('The full submissions queue isn\'t in this preview — open a course dashboard to grade a submission.')),
     );
   }
 
-  void _openSyllabus(String sectionId, String courseTitle) {
+  void _openDashboard(_CourseRow c) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => CourseSyllabusScreen(sectionId: sectionId, courseTitle: courseTitle)),
-    );
-  }
-
-  void _unavailable() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Detailed dashboard data isn\'t available for this course in the preview.')),
+      MaterialPageRoute(builder: (_) => CourseDashboardScreen(sectionId: c.sectionId, courseId: c.courseId)),
     );
   }
 
@@ -542,56 +531,16 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ElevatedButton.icon(
-              onPressed: () => c.dashboardAvailable
-                  ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseDashboardScreen()))
-                  : _unavailable(),
+              onPressed: () => _openDashboard(c),
               icon: const Icon(Icons.speed, size: 16),
               label: const Text('Open Dashboard'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: c.dashboardAvailable ? FacultyColors.primary : FacultyColors.onSurface,
+                backgroundColor: FacultyColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => c.dashboardAvailable
-                        ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen()))
-                        : _unavailable(),
-                    icon: const Icon(Icons.group_outlined, size: 14),
-                    label: const Text('Roster'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: FacultyColors.onSurfaceVariant,
-                      backgroundColor: FacultyColors.surfaceContainerLow,
-                      side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      textStyle: FacultyTypography.labelXs(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _openSyllabus(c.sectionId, c.title),
-                    icon: const Icon(Icons.menu_book_outlined, size: 14),
-                    label: const Text('Syllabus'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: FacultyColors.onSurfaceVariant,
-                      backgroundColor: FacultyColors.surfaceContainerLow,
-                      side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      textStyle: FacultyTypography.labelXs(),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         );
@@ -1326,9 +1275,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       children: [
         Expanded(
           child: ElevatedButton(
-            onPressed: () => c.dashboardAvailable
-                ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CourseDashboardScreen()))
-                : _unavailable(),
+            onPressed: () => _openDashboard(c),
             style: ElevatedButton.styleFrom(
               backgroundColor: FacultyColors.secondary,
               foregroundColor: Colors.white,
@@ -1354,36 +1301,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        _mobileIconButton(
-          icon: Icons.group,
-          tooltip: 'Course Roster',
-          onTap: () => c.dashboardAvailable
-              ? Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen()))
-              : _unavailable(),
-        ),
-        const SizedBox(width: 8),
-        _mobileIconButton(icon: Icons.description, tooltip: 'Course Syllabus', onTap: () => _openSyllabus(c.sectionId, c.title)),
       ],
-    );
-  }
-
-  Widget _mobileIconButton({required IconData icon, required String tooltip, required VoidCallback onTap}) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: FacultyColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icon, size: 20, color: FacultyColors.secondary),
-          ),
-        ),
-      ),
     );
   }
 
@@ -1479,7 +1397,6 @@ class _CourseRow {
   final String pendingLabel;
   final String classAvg;
   final String classAvgTag;
-  final bool dashboardAvailable;
 
   const _CourseRow({
     required this.courseId,
@@ -1500,6 +1417,5 @@ class _CourseRow {
     required this.pendingLabel,
     required this.classAvg,
     required this.classAvgTag,
-    required this.dashboardAvailable,
   });
 }

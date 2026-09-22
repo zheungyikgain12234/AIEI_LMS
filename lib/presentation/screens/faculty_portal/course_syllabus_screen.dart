@@ -10,6 +10,8 @@ import 'package:stitch_aiei_lms/domain/models/course_session.dart';
 import 'package:stitch_aiei_lms/domain/models/syllabus_template.dart';
 import 'assignment_editor_screen.dart';
 import 'exam_editor_screen.dart';
+import 'mark_assignment_screen.dart';
+import 'mark_exam_screen.dart';
 import 'widgets/clickable_link.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/embedded_image.dart';
@@ -20,7 +22,6 @@ import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/rich_text_field.dart';
 import 'widgets/rich_text_viewer.dart';
 import 'my_assigned_courses_screen.dart';
-import 'student_directory_screen.dart';
 import 'grade_assignment_screen.dart';
 import 'course_syllabus_preview_screen.dart';
 
@@ -246,7 +247,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _addContentBlock(String sessionId) async {
     final result = await showDialog<({ContentBlockType type, Map<String, dynamic> content})>(
       context: context,
-      builder: (_) => _AddContentBlockDialog(repository: _repository, sessionId: sessionId),
+      builder: (_) => _AddContentBlockDialog(repository: _repository, sessionId: sessionId, sectionId: widget.sectionId),
     );
     if (result == null) return;
     await _repository.addContentBlock(sessionId: sessionId, type: result.type, content: result.content);
@@ -256,7 +257,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _editContentBlock(String sessionId, ContentBlock b) async {
     final result = await showDialog<({ContentBlockType type, Map<String, dynamic> content})>(
       context: context,
-      builder: (_) => _AddContentBlockDialog(repository: _repository, sessionId: sessionId, existing: b),
+      builder: (_) => _AddContentBlockDialog(repository: _repository, sessionId: sessionId, sectionId: widget.sectionId, existing: b),
     );
     if (result == null) return;
     await _repository.updateContentBlock(b.id, content: result.content);
@@ -336,8 +337,6 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     switch (dest) {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
-      case FacultyNavDestination.studentDirectory:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen()));
       case FacultyNavDestination.gradingAndSubmissions:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));
     }
@@ -778,6 +777,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
   }
 
+  String _formatWeightage(double weightage) => weightage.toStringAsFixed(weightage.truncateToDouble() == weightage ? 0 : 1);
+
   IconData _iconFor(ContentBlockType type) {
     switch (type) {
       case ContentBlockType.text:
@@ -816,10 +817,35 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AssignmentEditorScreen(
+          contentBlockId: b.id,
           assignmentTitle: b.title?.isNotEmpty == true ? b.title! : 'Assignment',
           description: b.description,
           instructions: b.instructions,
           dueDate: b.dueDate,
+        ),
+      ),
+    );
+  }
+
+  void _openMarkExam(ContentBlock b) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MarkExamScreen(
+          contentBlockId: b.id,
+          sectionId: widget.sectionId,
+          title: b.title?.isNotEmpty == true ? b.title! : 'Exam',
+        ),
+      ),
+    );
+  }
+
+  void _openMarkAssignment(ContentBlock b) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MarkAssignmentScreen(
+          contentBlockId: b.id,
+          sectionId: widget.sectionId,
+          title: b.title?.isNotEmpty == true ? b.title! : 'Assignment',
         ),
       ),
     );
@@ -869,8 +895,19 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         return Row(
           children: [
             Expanded(
-              child: Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+                  if (b.weightage != null) ...[
+                    const SizedBox(height: 2),
+                    Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+                  ],
+                ],
+              ),
             ),
+            OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
+            const SizedBox(width: 6),
             OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Edit Exam')),
           ],
         );
@@ -878,11 +915,22 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         return Row(
           children: [
             Expanded(
-              child: Text(
-                b.title?.isNotEmpty == true ? b.title! : 'Assignment',
-                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    b.title?.isNotEmpty == true ? b.title! : 'Assignment',
+                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                  ),
+                  if (b.weightage != null) ...[
+                    const SizedBox(height: 2),
+                    Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+                  ],
+                ],
               ),
             ),
+            OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
+            const SizedBox(width: 6),
             OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Edit Assignment')),
           ],
         );
@@ -967,9 +1015,10 @@ class _NameDescriptionDialogState extends State<_NameDescriptionDialog> {
 class _AddContentBlockDialog extends StatefulWidget {
   final SupabaseLecturerSyllabusRepositoryImpl repository;
   final String sessionId;
+  final String sectionId;
   final ContentBlock? existing;
 
-  const _AddContentBlockDialog({required this.repository, required this.sessionId, this.existing});
+  const _AddContentBlockDialog({required this.repository, required this.sessionId, required this.sectionId, this.existing});
 
   @override
   State<_AddContentBlockDialog> createState() => _AddContentBlockDialogState();
@@ -985,11 +1034,14 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   late final _titleController = TextEditingController(text: widget.existing?.title ?? '');
   late final _descriptionController = TextEditingController(text: widget.existing?.description ?? '');
   late final _instructionsController = TextEditingController(text: widget.existing?.instructions ?? '');
+  late final _weightageController = TextEditingController(text: widget.existing?.weightage?.toString() ?? '');
   late String _mode = widget.existing?.mode ?? 'normal';
   DateTime? _dueDate;
   String? _uploadedFileName;
   bool _uploading = false;
   bool _uploadingThumbnail = false;
+  bool _loadingWeightage = true;
+  double _otherWeightageTotal = 0;
   String? _error;
 
   bool get _isEditing => widget.existing != null;
@@ -1000,6 +1052,16 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     _richTextController.addListener(() => setState(() {}));
     _dueDate = widget.existing?.dueDate;
     _uploadedFileName = widget.existing?.fileName;
+    _loadWeightageBudget();
+  }
+
+  Future<void> _loadWeightageBudget() async {
+    final total = await widget.repository.getTotalWeightage(widget.sectionId, excludeContentBlockId: widget.existing?.id);
+    if (!mounted) return;
+    setState(() {
+      _otherWeightageTotal = total;
+      _loadingWeightage = false;
+    });
   }
 
   @override
@@ -1012,7 +1074,24 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     _titleController.dispose();
     _descriptionController.dispose();
     _instructionsController.dispose();
+    _weightageController.dispose();
     super.dispose();
+  }
+
+  double? get _parsedWeightage => double.tryParse(_weightageController.text.trim());
+
+  /// How much weightage is still available for this block — the class's
+  /// 100% budget minus every *other* exam/assignment's weightage.
+  double get _weightageBudget => (100 - _otherWeightageTotal).clamp(0, 100);
+
+  String? get _weightageError {
+    final w = _parsedWeightage;
+    if (w == null) return null;
+    if (w < 0 || w > 100) return 'Weightage must be between 0 and 100.';
+    if (w > _weightageBudget + 0.001) {
+      return 'Only ${_weightageBudget.toStringAsFixed(_weightageBudget.truncateToDouble() == _weightageBudget ? 0 : 1)}% is available for this class — the total across every assignment/exam cannot exceed 100%.';
+    }
+    return null;
   }
 
   Future<void> _pickDueDate() async {
@@ -1050,7 +1129,10 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return _urlController.text.trim().isNotEmpty;
       case ContentBlockType.exam:
       case ContentBlockType.assignment:
-        return _titleController.text.trim().isNotEmpty;
+        return _titleController.text.trim().isNotEmpty &&
+            !_loadingWeightage &&
+            _parsedWeightage != null &&
+            _weightageError == null;
     }
   }
 
@@ -1139,6 +1221,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           if (_instructionsController.text.trim().isNotEmpty) 'instructions': _instructionsController.text.trim(),
           if (_dueDate != null) 'dueDate': _dueDate!.toIso8601String(),
           'mode': _mode,
+          if (_parsedWeightage != null) 'weightage': _parsedWeightage,
         };
       case ContentBlockType.assignment:
         return {
@@ -1146,6 +1229,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           if (_descriptionController.text.trim().isNotEmpty) 'description': _descriptionController.text.trim(),
           if (_instructionsController.text.trim().isNotEmpty) 'instructions': _instructionsController.text.trim(),
           if (_dueDate != null) 'dueDate': _dueDate!.toIso8601String(),
+          if (_parsedWeightage != null) 'weightage': _parsedWeightage,
         };
     }
   }
@@ -1323,6 +1407,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           ),
           const SizedBox(height: 12),
           _dueDateTimeRow(),
+          const SizedBox(height: 12),
+          _weightageField(),
           const SizedBox(height: 8),
           Text(
             'This adds a placeholder — you\'ll build the actual questions from "Edit Exam" afterwards.',
@@ -1350,6 +1436,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           ),
           const SizedBox(height: 12),
           _dueDateTimeRow(),
+          const SizedBox(height: 12),
+          _weightageField(),
           const SizedBox(height: 8),
           Text(
             'This adds a placeholder — you\'ll build the actual rubric from "Edit Assignment" afterwards.',
@@ -1357,6 +1445,27 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           ),
         ];
     }
+  }
+
+  Widget _weightageField() {
+    if (_loadingWeightage) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: SizedBox(height: 14, width: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+    final budgetLabel = _weightageBudget.toStringAsFixed(_weightageBudget.truncateToDouble() == _weightageBudget ? 0 : 1);
+    return TextField(
+      controller: _weightageController,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: 'Weightage (%)',
+        suffixText: '%',
+        helperText: '$budgetLabel% available for this class\'s syllabus',
+        errorText: _weightageError,
+      ),
+      onChanged: (_) => setState(() {}),
+    );
   }
 
   Widget _dueDateTimeRow() {

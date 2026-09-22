@@ -67,4 +67,11 @@ abstract class LecturerSyllabusRepository {
   /// Deep-copies a template's modules → sessions → content-blocks into the
   /// class, appended after any modules it already has.
   Future<void> copyFromTemplate({required String sectionId, required String templateId});
+
+  /// Sum of `weightage` across every exam/assignment content block in this
+  /// class's whole syllabus (every module/session, not just loaded ones) —
+  /// used to enforce the "must not exceed 100%" rule when a lecturer sets a
+  /// block's weightage. Pass [excludeContentBlockId] (the block being
+  /// edited) so its own current weightage isn't double-counted.
+  Future<double> getTotalWeightage(String sectionId, {String? excludeContentBlockId});
 }

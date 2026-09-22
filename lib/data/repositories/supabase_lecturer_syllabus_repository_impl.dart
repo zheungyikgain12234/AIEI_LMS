@@ -282,4 +282,30 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
       }
     }
   }
+
+  @override
+  Future<double> getTotalWeightage(String sectionId, {String? excludeContentBlockId}) async {
+    final moduleRows = await _client.from('course_modules').select('id').eq('section_id', sectionId);
+    final moduleIds = [for (final row in moduleRows as List) row['id'] as String];
+    if (moduleIds.isEmpty) return 0;
+
+    final sessionRows = await _client.from('sessions').select('id').inFilter('module_id', moduleIds);
+    final sessionIds = [for (final row in sessionRows as List) row['id'] as String];
+    if (sessionIds.isEmpty) return 0;
+
+    final blockRows = await _client
+        .from('content_blocks')
+        .select('id, block_content')
+        .inFilter('session_id', sessionIds)
+        .inFilter('block_type', ['exam', 'assignment']);
+
+    var total = 0.0;
+    for (final row in blockRows as List) {
+      final map = row as Map<String, dynamic>;
+      if (excludeContentBlockId != null && map['id'] == excludeContentBlockId) continue;
+      final content = Map<String, dynamic>.from(map['block_content'] as Map? ?? {});
+      total += (content['weightage'] as num?)?.toDouble() ?? 0;
+    }
+    return total;
+  }
 }

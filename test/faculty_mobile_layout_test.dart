@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/course_dashboard_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/curriculum_manager_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/grade_assignment_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/grade_quiz_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/my_assigned_courses_screen.dart';
-import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/student_directory_screen.dart';
 
 Future<void> _pumpMobile(WidgetTester tester, Widget screen) async {
   await HttpOverrides.runZoned(() async {
@@ -32,7 +32,10 @@ Future<void> _pumpMobile(WidgetTester tester, Widget screen) async {
 void main() {
   group('Faculty Portal mobile (< 700px) layouts render without overflow', () {
     testWidgets('CourseDashboardScreen mobile layout', (tester) async {
-      await _pumpMobile(tester, const CourseDashboardScreen());
+      await _pumpMobile(
+        tester,
+        const CourseDashboardScreen(sectionId: DemoIdentity.coursePyId, courseId: DemoIdentity.coursePyId),
+      );
     });
 
     testWidgets('CurriculumManagerScreen mobile layout', (tester) async {
@@ -49,10 +52,6 @@ void main() {
 
     testWidgets('MyAssignedCoursesScreen mobile layout', (tester) async {
       await _pumpMobile(tester, const MyAssignedCoursesScreen());
-    });
-
-    testWidgets('StudentDirectoryScreen mobile layout', (tester) async {
-      await _pumpMobile(tester, const StudentDirectoryScreen());
     });
   });
 }

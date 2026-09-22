@@ -9,7 +9,6 @@ import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'my_assigned_courses_screen.dart';
-import 'student_directory_screen.dart';
 
 // ---------------------------------------------------------------------------
 // GradeQuizScreen – Stitch "Grade Quiz Assessment: Alex Chen" faithful
@@ -110,9 +109,6 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
     switch (dest) {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
-        break;
-      case FacultyNavDestination.studentDirectory:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen()));
         break;
       case FacultyNavDestination.gradingAndSubmissions:
         break;

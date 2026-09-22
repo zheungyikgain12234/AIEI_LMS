@@ -7,14 +7,14 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
-import 'package:stitch_aiei_lms/domain/models/course_module.dart';
+import 'package:stitch_aiei_lms/domain/models/material_progress.dart';
 import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_info_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
+import 'widgets/student_roster_panel.dart';
 import 'my_assigned_courses_screen.dart';
-import 'student_directory_screen.dart';
-import 'curriculum_manager_screen.dart';
+import 'course_syllabus_screen.dart';
 import 'grade_assignment_screen.dart';
 import 'grade_quiz_screen.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -24,7 +24,10 @@ import 'widgets/faculty_mobile_top_bar.dart';
 // faithful Flutter conversion.
 // ---------------------------------------------------------------------------
 class CourseDashboardScreen extends StatefulWidget {
-  const CourseDashboardScreen({super.key});
+  final String sectionId;
+  final String courseId;
+
+  const CourseDashboardScreen({super.key, required this.sectionId, required this.courseId});
 
   @override
   State<CourseDashboardScreen> createState() => _CourseDashboardScreenState();
@@ -40,7 +43,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   bool _showAnnouncementForm = false;
 
   String _courseTitle = 'Course';
-  String _courseCode = 'PY-402';
+  String _courseCode = '';
   int? _capacity;
   int _enrolledCount = 0;
   int _avgProgress = 0;
@@ -50,6 +53,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _moduleCount = 0;
   int _materialCount = 0;
   List<_DeadlineItem> _deadlines = const [];
+  List<RosterRow> _rosterRows = const [];
 
   @override
   void initState() {
@@ -59,17 +63,42 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
 
   Future<void> _load() async {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
-    final students = await _rosterRepository.getCourseRoster(DemoIdentity.coursePyId);
-    // Module content is class-scoped, so resolve one class teaching PY-402
-    // to load its modules/materials from — see getPrimarySectionIdForCourse.
-    final sectionId = await _facultyRepository.getPrimarySectionIdForCourse(DemoIdentity.coursePyId);
-    final modules = sectionId == null ? <CourseModule>[] : await _facultyRepository.getCourseModules(sectionId);
-    final materials = sectionId == null ? <ModuleMaterial>[] : await _facultyRepository.getCourseMaterials(sectionId);
-    final assignmentSubs = await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id);
-    final quizSubs = await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialComplianceQuizId);
+    final students = await _rosterRepository.getCourseRoster(widget.courseId);
+    final modules = await _facultyRepository.getCourseModules(widget.sectionId);
+    final materials = await _facultyRepository.getCourseMaterials(widget.sectionId);
+
+    // The assignment/quiz grading queue and per-student submission columns
+    // are only wired up for the two demo materials this preview seeds
+    // submissions for — see DemoIdentity. Other classes' materials don't
+    // have graded submission data, so those KPIs/columns stay empty.
+    final hasAssignmentMaterial = materials.any((m) => m.id == DemoIdentity.materialAssignment02Id);
+    final hasQuizMaterial = materials.any((m) => m.id == DemoIdentity.materialComplianceQuizId);
+    final assignmentSubs = hasAssignmentMaterial
+        ? await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id)
+        : const <MaterialProgress>[];
+    final quizSubs = hasQuizMaterial
+        ? await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialComplianceQuizId)
+        : const <MaterialProgress>[];
+
+    final assignmentProgress = <String, MaterialProgress?>{};
+    final quizProgress = <String, MaterialProgress?>{};
+    if (hasAssignmentMaterial || hasQuizMaterial) {
+      await Future.wait([
+        for (final s in students) ...[
+          if (hasAssignmentMaterial)
+            _materialProgressRepository
+                .getProgress(s.studentId, DemoIdentity.materialAssignment02Id)
+                .then((p) => assignmentProgress[s.studentId] = p),
+          if (hasQuizMaterial)
+            _materialProgressRepository
+                .getProgress(s.studentId, DemoIdentity.materialComplianceQuizId)
+                .then((p) => quizProgress[s.studentId] = p),
+        ],
+      ]);
+    }
     if (!mounted) return;
 
-    final course = assignedCourses.where((c) => c.courseId == DemoIdentity.coursePyId).firstOrNull;
+    final course = assignedCourses.where((c) => c.courseId == widget.courseId).firstOrNull;
 
     final avgProgress = students.isEmpty
         ? 0
@@ -95,6 +124,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         ),
     ];
 
+    final rosterRows = [
+      for (final s in students) RosterRow.fromRoster(s, assignmentProgress[s.studentId], quizProgress[s.studentId]),
+    ];
+
     setState(() {
       _courseTitle = course?.title ?? 'Course';
       _courseCode = course?.courseCode ?? _courseCode;
@@ -107,6 +140,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _moduleCount = modules.length;
       _materialCount = materials.length;
       _deadlines = deadlines;
+      _rosterRows = rosterRows;
       _isLoading = false;
     });
   }
@@ -116,18 +150,31 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
         break;
-      case FacultyNavDestination.studentDirectory:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen()));
-        break;
       case FacultyNavDestination.gradingAndSubmissions:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));
         break;
     }
   }
 
+  void _openSyllabusEditor() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => CourseSyllabusScreen(sectionId: widget.sectionId, courseTitle: _courseTitle)),
+    );
+  }
+
+  void _rosterRowAction(RosterRow s, String action) {
+    if (action == 'submissions' && s.hasSubmission) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No ${action == 'submissions' ? 'submission' : action} data for ${s.name} in this preview.')),
+    );
+  }
+
   Future<void> _previewAsStudent() async {
     final courses = await _coursesRepository.getEnrolledCourses();
-    final course = courses.where((c) => c.id == DemoIdentity.coursePyId).firstOrNull;
+    final course = courses.where((c) => c.id == widget.courseId).firstOrNull;
     if (!mounted) return;
     if (course == null) {
       _notAvailable();
@@ -234,6 +281,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             }
             return Column(children: [left, const SizedBox(height: 24), right]);
           }),
+          const SizedBox(height: 24),
+          _buildStudentRosterCard(),
         ],
       ),
     );
@@ -684,20 +733,100 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             iconColor: Colors.white,
             title: 'Curriculum & Materials',
             subtitle: '$_moduleCount core modules • $_materialCount assets uploaded',
-            ctaLabel: 'Manage',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CurriculumManagerScreen())),
+            ctaLabel: 'Edit Syllabus',
+            onTap: _openSyllabusEditor,
           ),
-          const SizedBox(height: 12),
-          _hubRow(
-            icon: Icons.badge_outlined,
-            iconBg: FacultyColors.surfaceContainerHigh,
-            iconColor: FacultyColors.primary,
-            title: 'Student Directory',
-            subtitle: '$_enrolledCount active learners',
-            trailingBadge: _flaggedCount > 0 ? '$_flaggedCount flagged' : null,
-            ctaLabel: 'View',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen())),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentRosterCard() {
+    final total = _rosterRows.length;
+    final avgProgress = total == 0 ? 0 : (_rosterRows.fold<int>(0, (sum, s) => sum + s.progress) / total).round();
+    final scored = _rosterRows.where((s) => s.quizAvg != '—').toList();
+    final avgQuiz = scored.isEmpty
+        ? null
+        : scored.fold<double>(0, (sum, s) => sum + double.parse(s.quizAvg.replaceAll('%', ''))) / scored.length;
+    final assignmentDone = _rosterRows.fold<int>(0, (sum, s) => sum + int.parse(s.assignments.split('/').first));
+    final assignmentCompletionPct = total == 0 ? 0.0 : assignmentDone / (total * 2);
+    final onPace = _rosterRows.where((s) => s.status != 'Needs Review').length;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            color: FacultyColors.surfaceContainerLow,
+            child: Row(
+              children: [
+                const Icon(Icons.badge_outlined, color: FacultyColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Student Directory', style: FacultyTypography.headlineMd())),
+                Text('$total enrolled', style: FacultyTypography.labelXs()),
+                if (_flaggedCount > 0) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: FacultyColors.errorContainer, borderRadius: BorderRadius.circular(4)),
+                    child: Text('$_flaggedCount flagged', style: FacultyTypography.labelXs(color: FacultyColors.error).copyWith(fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ],
+            ),
           ),
+          if (_rosterRows.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text('No students enrolled in this class yet.', style: FacultyTypography.bodySm()),
+            )
+          else ...[
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: LayoutBuilder(builder: (context, constraints) {
+                final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
+                final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
+                final cards = [
+                  _kpiCard('COHORT CAPACITY', '$total', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
+                      footer: '$avgProgress% Avg Progress'),
+                  _kpiCard('AVG. QUIZ PERFORMANCE', avgQuiz != null ? '${avgQuiz.toStringAsFixed(1)}%' : '—', Icons.quiz_outlined,
+                      FacultyColors.primary, FacultyColors.surfaceContainer,
+                      progress: avgQuiz != null ? avgQuiz / 100 : null),
+                  _kpiCard('ASSIGNMENT COMPLETION', '${(assignmentCompletionPct * 100).toStringAsFixed(0)}%', Icons.task_alt_outlined,
+                      FacultyColors.primary, FacultyColors.surfaceContainer,
+                      footer: '$onPace of $total on pace'),
+                  _kpiCard('REQUIRES INTERVENTION', '$_flaggedCount Students', Icons.warning_amber_outlined, FacultyColors.error,
+                      FacultyColors.errorContainer,
+                      footer: 'Flagged for review', footerColor: FacultyColors.error),
+                ];
+                return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
+              }),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: TextField(
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: FacultyColors.surfaceContainerLow,
+                  hintText: 'Search by student name, email, employee ID...',
+                  hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: FacultyColors.outline),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            StudentRosterTable(rows: _rosterRows, onAction: _rosterRowAction),
+          ],
         ],
       ),
     );
@@ -898,6 +1027,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               _mobileGradingQueueSection(),
               const SizedBox(height: 20),
               _mobileQuickAccessSection(),
+              const SizedBox(height: 20),
+              _mobileStudentRosterSection(),
               const SizedBox(height: 20),
               _mobileAnnouncementsCard(),
               const SizedBox(height: 20),
@@ -1382,22 +1513,66 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
           iconColor: FacultyColors.secondary,
           title: 'Curriculum & Materials',
           subtitle: '$_moduleCount core modules • $_materialCount assets uploaded',
-          buttonLabel: 'Manage',
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CurriculumManagerScreen())),
+          buttonLabel: 'Edit Syllabus',
+          onTap: _openSyllabusEditor,
         ),
         const SizedBox(height: 10),
-        _mobileHubItem(
-          icon: Icons.badge,
-          iconBg: FacultyColors.surfaceContainerLow,
-          iconColor: FacultyColors.primary,
-          badgeCount: _flaggedCount > 0 ? '$_flaggedCount' : null,
-          title: 'Student Directory',
-          subtitle: _flaggedCount > 0
-              ? '$_enrolledCount active learners • $_flaggedCount flagged for follow-up'
-              : '$_enrolledCount active learners',
-          buttonLabel: 'View Roster',
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen())),
+      ],
+    );
+  }
+
+  Widget _mobileStudentRosterSection() {
+    final total = _rosterRows.length;
+    final avgProgress = total == 0 ? 0 : (_rosterRows.fold<int>(0, (sum, s) => sum + s.progress) / total).round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.badge, size: 20, color: FacultyColors.secondary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text('Student Directory', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
+            ),
+            if (_flaggedCount > 0) _mobileBadgePill('$_flaggedCount flagged', FacultyColors.errorContainer, FacultyColors.error, bold: true),
+          ],
         ),
+        const SizedBox(height: 10),
+        if (_rosterRows.isEmpty)
+          Text('No students enrolled in this class yet.', style: FacultyTypography.bodySm())
+        else ...[
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _mobileStatCard(
+                    icon: Icons.groups_outlined,
+                    iconBg: FacultyColors.surfaceContainer,
+                    iconColor: FacultyColors.secondary,
+                    cornerBadge: _mobileBadgePill('$avgProgress% avg', FacultyColors.surfaceContainerLow, FacultyColors.tertiary),
+                    value: '$total',
+                    label: 'Enrolled Students',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _mobileStatCard(
+                    icon: Icons.warning_amber_outlined,
+                    iconBg: FacultyColors.errorContainer.withValues(alpha: 0.4),
+                    iconColor: FacultyColors.error,
+                    cornerBadge: _mobileBadgePill(_flaggedCount > 0 ? 'Action req.' : 'Clear', FacultyColors.errorContainer, FacultyColors.onErrorContainer, bold: true),
+                    value: '$_flaggedCount',
+                    label: 'Requires Intervention',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          StudentRosterMobileList(rows: _rosterRows, onAction: _rosterRowAction),
+        ],
       ],
     );
   }

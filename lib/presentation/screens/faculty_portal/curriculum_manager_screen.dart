@@ -10,7 +10,6 @@ import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'my_assigned_courses_screen.dart';
-import 'student_directory_screen.dart';
 import 'grade_assignment_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -200,9 +199,6 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
     switch (dest) {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
-        break;
-      case FacultyNavDestination.studentDirectory:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentDirectoryScreen()));
         break;
       case FacultyNavDestination.gradingAndSubmissions:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));

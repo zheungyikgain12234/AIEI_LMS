@@ -45,13 +45,6 @@ class FacultyMobileBottomNav extends StatelessWidget {
                 badge: pendingCount,
               ),
             ),
-            Expanded(
-              child: _item(
-                icon: Icons.group_outlined,
-                label: 'Students',
-                dest: FacultyNavDestination.studentDirectory,
-              ),
-            ),
           ],
         ),
       ),

@@ -16,6 +16,7 @@ drop table if exists
   specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags,
   template_content_blocks, template_sessions, template_modules, syllabus_templates,
+  content_block_submissions, assignment_criteria,
   exam_question_options, exam_questions, exam_sections,
   content_blocks, sessions, module_materials, course_modules, courses,
   admins, students, lecturers,
@@ -296,6 +297,7 @@ create table exam_questions (
   exam_section_id uuid not null references exam_sections(id) on delete cascade,
   question_text text not null default '',
   question_type text not null check (question_type in ('single_choice', 'multi_choice', 'boolean', 'text')),
+  marks numeric not null default 1,
   question_sorting int not null default 0,
   created_at timestamptz not null default now()
 );
@@ -306,6 +308,38 @@ create table exam_question_options (
   option_text text not null default '',
   is_correct boolean not null default false,
   option_sorting int not null default 0
+);
+
+-- Lecturer-defined grading criteria for an `assignment` content block — a
+-- flat rubric list (label + the marks it's worth), set up from "Edit
+-- Assignment" alongside the assignment's info.
+create table assignment_criteria (
+  id uuid primary key default gen_random_uuid(),
+  content_block_id uuid not null references content_blocks(id) on delete cascade,
+  criterion_label text not null,
+  max_marks numeric not null default 0,
+  criterion_sorting int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+-- One row per (student, exam/assignment content block) — unifies the
+-- student's submitted answers/writeup and the lecturer's grading result,
+-- the same way `student_materials` does for the older module_materials
+-- system. Backs the "Mark Assignment"/"Mark Exam" screens.
+create table content_block_submissions (
+  id uuid primary key default gen_random_uuid(),
+  content_block_id uuid not null references content_blocks(id) on delete cascade,
+  student_id bigint not null references students(id) on delete cascade,
+  status text not null default 'not_started' check (status in ('not_started', 'submitted', 'graded')),
+  submission jsonb not null default '{}'::jsonb,
+  marks jsonb not null default '{}'::jsonb,
+  total_score numeric,
+  feedback text,
+  submitted_at timestamptz,
+  graded_by uuid references lecturers(id),
+  graded_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (content_block_id, student_id)
 );
 
 -- ── Tags & Certifications ──────────────────────────────────────────────
@@ -510,6 +544,8 @@ alter table template_content_blocks enable row level security;
 alter table exam_sections enable row level security;
 alter table exam_questions enable row level security;
 alter table exam_question_options enable row level security;
+alter table assignment_criteria enable row level security;
+alter table content_block_submissions enable row level security;
 alter table tags enable row level security;
 alter table course_tags enable row level security;
 alter table certifications enable row level security;
@@ -533,6 +569,7 @@ begin
     'module_materials', 'sessions', 'content_blocks',
     'syllabus_templates', 'template_modules', 'template_sessions', 'template_content_blocks',
     'exam_sections', 'exam_questions', 'exam_question_options',
+    'assignment_criteria', 'content_block_submissions',
     'tags', 'course_tags', 'certifications', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates'

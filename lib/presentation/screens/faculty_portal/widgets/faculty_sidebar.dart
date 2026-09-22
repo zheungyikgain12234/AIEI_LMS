@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 
-enum FacultyNavDestination { myCourses, gradingAndSubmissions, studentDirectory }
+enum FacultyNavDestination { myCourses, gradingAndSubmissions }
 
 class FacultySidebar extends StatelessWidget {
   final FacultyNavDestination selected;
@@ -46,13 +46,6 @@ class FacultySidebar extends StatelessWidget {
                   isSelected: selected == FacultyNavDestination.gradingAndSubmissions,
                   trailing: pendingCount,
                   onTap: () => onDestinationSelected?.call(FacultyNavDestination.gradingAndSubmissions),
-                ),
-                const SizedBox(height: 4),
-                _NavItem(
-                  icon: Icons.group_outlined,
-                  label: 'Student Directory',
-                  isSelected: selected == FacultyNavDestination.studentDirectory,
-                  onTap: () => onDestinationSelected?.call(FacultyNavDestination.studentDirectory),
                 ),
               ],
             ),

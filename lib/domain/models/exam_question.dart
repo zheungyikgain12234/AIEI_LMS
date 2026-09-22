@@ -44,6 +44,7 @@ class ExamQuestion {
   final String sectionId;
   final String text;
   final ExamQuestionType type;
+  final double marks;
   final int sorting;
   final List<ExamQuestionOption> options;
 
@@ -52,6 +53,7 @@ class ExamQuestion {
     required this.sectionId,
     required this.text,
     required this.type,
+    required this.marks,
     required this.sorting,
     this.options = const [],
   });
@@ -62,6 +64,7 @@ class ExamQuestion {
       sectionId: map['exam_section_id'] as String,
       text: map['question_text'] as String? ?? '',
       type: ExamQuestionType.fromKey(map['question_type'] as String),
+      marks: (map['marks'] as num?)?.toDouble() ?? 1,
       sorting: map['question_sorting'] as int? ?? 0,
       options: options,
     );

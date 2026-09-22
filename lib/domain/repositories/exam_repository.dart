@@ -22,21 +22,24 @@ abstract class ExamRepository {
   Future<List<ExamQuestion>> getQuestions(String sectionId);
 
   /// Creates a question and its answer choices (if [type] has any) in one
-  /// call — [options] is ignored for [ExamQuestionType.text].
+  /// call — [options] is ignored for [ExamQuestionType.text]. [marks] is how
+  /// much this question is worth toward the exam's total.
   Future<ExamQuestion> createQuestion({
     required String sectionId,
     required String text,
     required ExamQuestionType type,
+    required double marks,
     List<({String text, bool isCorrect})> options,
   });
 
-  /// Replaces a question's text/type/choices wholesale — simpler and safer
-  /// than diffing individual option edits, since a type change (e.g.
+  /// Replaces a question's text/type/marks/choices wholesale — simpler and
+  /// safer than diffing individual option edits, since a type change (e.g.
   /// single-choice → boolean) invalidates the old choice set anyway.
   Future<ExamQuestion> updateQuestion(
     String id, {
     required String text,
     required ExamQuestionType type,
+    required double marks,
     List<({String text, bool isCorrect})> options,
   });
 
@@ -45,4 +48,9 @@ abstract class ExamRepository {
   /// Persists a new question order after a drag-to-reorder — [orderedIds]
   /// is every question of the section, in its new top-to-bottom order.
   Future<void> reorderQuestions(String sectionId, List<String> orderedIds);
+
+  /// Sum of every question's [ExamQuestion.marks] across every section of
+  /// this exam — the denominator shown next to a lecturer's per-question
+  /// marks and on the "Mark Exam" grading screen.
+  Future<double> getTotalMarks(String contentBlockId);
 }

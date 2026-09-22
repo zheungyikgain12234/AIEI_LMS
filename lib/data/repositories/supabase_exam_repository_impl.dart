@@ -85,6 +85,7 @@ class SupabaseExamRepositoryImpl implements ExamRepository {
     required String sectionId,
     required String text,
     required ExamQuestionType type,
+    required double marks,
     List<({String text, bool isCorrect})> options = const [],
   }) async {
     final existing = await _client.from('exam_questions').select('id').eq('exam_section_id', sectionId);
@@ -94,6 +95,7 @@ class SupabaseExamRepositoryImpl implements ExamRepository {
           'exam_section_id': sectionId,
           'question_text': text,
           'question_type': type.key,
+          'marks': marks,
           'question_sorting': (existing as List).length,
         })
         .select()
@@ -108,11 +110,12 @@ class SupabaseExamRepositoryImpl implements ExamRepository {
     String id, {
     required String text,
     required ExamQuestionType type,
+    required double marks,
     List<({String text, bool isCorrect})> options = const [],
   }) async {
     final row = await _client
         .from('exam_questions')
-        .update({'question_text': text, 'question_type': type.key})
+        .update({'question_text': text, 'question_type': type.key, 'marks': marks})
         .eq('id', id)
         .select()
         .single();
@@ -156,5 +159,18 @@ class SupabaseExamRepositoryImpl implements ExamRepository {
         throw StateError('No question matched id ${orderedIds[i]} — it may have been deleted elsewhere.');
       }
     }
+  }
+
+  @override
+  Future<double> getTotalMarks(String contentBlockId) async {
+    final sectionRows = await _client.from('exam_sections').select('id').eq('content_block_id', contentBlockId);
+    final sectionIds = [for (final row in sectionRows as List) row['id'] as String];
+    if (sectionIds.isEmpty) return 0;
+    final questionRows = await _client.from('exam_questions').select('marks').inFilter('exam_section_id', sectionIds);
+    var total = 0.0;
+    for (final row in questionRows as List) {
+      total += ((row as Map<String, dynamic>)['marks'] as num?)?.toDouble() ?? 0;
+    }
+    return total;
   }
 }

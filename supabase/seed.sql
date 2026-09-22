@@ -564,3 +564,122 @@ insert into enrollment_candidates (student_name, student_employee_id, student_em
   -- Executive Manager's role→course mapping doesn't include PY-402 — demonstrates the role-mismatch flag.
   ('Jason Todd', 'EMP-77182', 'jason.todd@enterprise.com', 'Executive Operations', 'Summer 2025 Cohort', 'Executive Manager', '44444444-4444-4444-4444-444444444401', 'pending', 'Prereq Waiver Required', 'Conditional dean approval', 'Enterprise Full', 'Waitlist #2', true);
 
+-- ── Syllabus authoring tree — PY-402 example (drives course_syllabus_screen,
+-- exam_editor_screen, assignment_editor_screen, and the "Mark
+-- Assignment"/"Mark Exam" screens). Two sessions under PY-402's existing
+-- "Foundations of Enterprise Python" module: one holding a weighted
+-- assignment with lecturer-defined criteria, one holding a weighted exam
+-- with per-question marks — together 50% of the class's 100% weightage
+-- budget, leaving room to add more without tripping the cap. ─────────────
+
+insert into sessions (id, module_id, session_name, session_description, session_sorting) values
+  ('cccccccc-cccc-cccc-cccc-cccccccccc01', '55555555-5555-5555-5555-555555555501', 'Week 3 — ETL Capstone', 'Applied assignment covering pipeline design.', 4),
+  ('cccccccc-cccc-cccc-cccc-cccccccccc02', '55555555-5555-5555-5555-555555555501', 'Week 4 — Checkpoint Assessment', 'Graded checkpoint exam on core syntax and pandas fundamentals.', 5);
+
+insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
+  ('dddddddd-dddd-dddd-dddd-dddddddddd01', 'cccccccc-cccc-cccc-cccc-cccccccccc01', 'assignment',
+    '{"title": "ETL Pipeline Capstone Assignment", "description": "Build an automated ETL pipeline against the enterprise sample dataset.", "instructions": "Submit your pipeline script plus a short write-up covering your design decisions and how you handled schema drift.", "dueDate": "2025-11-24T23:59:00.000", "weightage": 30}'::jsonb, 0),
+  ('dddddddd-dddd-dddd-dddd-dddddddddd02', 'cccccccc-cccc-cccc-cccc-cccccccccc02', 'exam',
+    '{"title": "Python Fundamentals Checkpoint Exam", "description": "Checkpoint covering core syntax and pandas fundamentals.", "instructions": "Answer every question. No external resources for the multiple-choice/true-false section.", "dueDate": "2025-12-01T23:59:00.000", "mode": "normal", "weightage": 20}'::jsonb, 0);
+
+insert into assignment_criteria (id, content_block_id, criterion_label, max_marks, criterion_sorting) values
+  ('dddddddd-dddd-dddd-dddd-dddddddddd11', 'dddddddd-dddd-dddd-dddd-dddddddddd01', 'Code Correctness', 40, 0),
+  ('dddddddd-dddd-dddd-dddd-dddddddddd12', 'dddddddd-dddd-dddd-dddd-dddddddddd01', 'Pipeline Design & Architecture', 30, 1),
+  ('dddddddd-dddd-dddd-dddd-dddddddddd13', 'dddddddd-dddd-dddd-dddd-dddddddddd01', 'Documentation & Write-up', 30, 2);
+
+insert into exam_sections (id, content_block_id, section_name, section_sorting) values
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01', 'dddddddd-dddd-dddd-dddd-dddddddddd02', 'Section A — Core Concepts', 0);
+
+insert into exam_questions (id, exam_section_id, question_text, question_type, marks, question_sorting) values
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01', 'Which keyword defines a function in Python?', 'single_choice', 5, 0),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01', 'Which pandas method removes duplicate rows from a DataFrame?', 'single_choice', 5, 1),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee13', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01', 'Python virtual environments isolate package dependencies per project.', 'boolean', 5, 2),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee14', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01', 'Briefly explain the difference between a Python list and a tuple.', 'text', 10, 3);
+
+insert into exam_question_options (id, question_id, option_text, is_correct, option_sorting) values
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee31', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11', 'def', true, 0),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee32', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11', 'func', false, 1),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee33', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11', 'function', false, 2),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee34', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11', 'lambda', false, 3),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee35', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12', 'drop_duplicates()', true, 0),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee36', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12', 'dedupe()', false, 1),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee37', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12', 'unique_rows()', false, 2),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee38', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12', 'remove_dupes()', false, 3),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee39', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee13', 'True', true, 0),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee40', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee13', 'False', false, 1);
+
+-- Mock submissions: Alex Chen (1) has submitted both but isn't graded yet;
+-- Maya Patel (2) and Elena Rostova Jr. (4) are already graded — so the
+-- "Mark Assignment"/"Mark Exam" roster shows all three states (not
+-- submitted, submitted, graded); the other PY-402 roster students have no
+-- row here at all, which reads as "not submitted".
+insert into content_block_submissions (id, content_block_id, student_id, status, submission, marks, total_score, feedback, submitted_at, graded_by, graded_at) values
+  ('ffffffff-ffff-ffff-ffff-ffffffffff01', 'dddddddd-dddd-dddd-dddd-dddddddddd01', 1, 'submitted',
+    '{"writeup": "Implemented a 3-stage ETL pipeline using pandas and SQLAlchemy 2.0 async sessions, with a Celery-scheduled nightly run. Schema drift is handled by validating incoming columns against a versioned schema registry before load.", "files": [{"name": "etl_pipeline.py", "sizeLabel": "18 KB"}, {"name": "design_notes.pdf", "sizeLabel": "212 KB"}]}'::jsonb,
+    '{}'::jsonb, null, null, now() - interval '2 days', null, null),
+  ('ffffffff-ffff-ffff-ffff-ffffffffff02', 'dddddddd-dddd-dddd-dddd-dddddddddd01', 2, 'graded',
+    '{"writeup": "Built a modular extract/transform/load pipeline with retry-safe API calls and a pytest suite covering the transform layer.", "files": [{"name": "pipeline_maya.py", "sizeLabel": "22 KB"}]}'::jsonb,
+    '{"dddddddd-dddd-dddd-dddd-dddddddddd11": 38, "dddddddd-dddd-dddd-dddd-dddddddddd12": 27, "dddddddd-dddd-dddd-dddd-dddddddddd13": 26}'::jsonb,
+    91, 'Solid pipeline implementation with clear documentation — minor deduction for missing an edge-case test on empty source files.', now() - interval '5 days', '11111111-1111-1111-1111-111111111101', now() - interval '3 days'),
+  ('ffffffff-ffff-ffff-ffff-ffffffffff03', 'dddddddd-dddd-dddd-dddd-dddddddddd02', 1, 'submitted',
+    '{"answers": [{"questionId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11", "selectedOptionIds": ["eeeeeeee-eeee-eeee-eeee-eeeeeeeeee31"]}, {"questionId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12", "selectedOptionIds": ["eeeeeeee-eeee-eeee-eeee-eeeeeeeeee37"]}, {"questionId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee13", "selectedOptionIds": ["eeeeeeee-eeee-eeee-eeee-eeeeeeeeee39"]}, {"questionId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee14", "textAnswer": "A list is mutable and ordered, so items can be changed after creation; a tuple is immutable, so once created its contents cannot change."}]}'::jsonb,
+    '{}'::jsonb, null, null, now() - interval '1 day', null, null),
+  ('ffffffff-ffff-ffff-ffff-ffffffffff04', 'dddddddd-dddd-dddd-dddd-dddddddddd02', 4, 'graded',
+    '{"answers": [{"questionId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11", "selectedOptionIds": ["eeeeeeee-eeee-eeee-eeee-eeeeeeeeee31"]}, {"questionId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12", "selectedOptionIds": ["eeeeeeee-eeee-eeee-eeee-eeeeeeeeee35"]}, {"questionId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee13", "selectedOptionIds": ["eeeeeeee-eeee-eeee-eeee-eeeeeeeeee39"]}, {"questionId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee14", "textAnswer": "A list is mutable and can grow or shrink; a tuple is fixed-size and immutable, which makes it hashable and usable as a dict key."}]}'::jsonb,
+    '{"eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11": 5, "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12": 5, "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee13": 5, "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee14": 8}'::jsonb,
+    23, 'Strong grasp of core concepts; minor clarity issue explaining tuple hashability.', now() - interval '4 days', '11111111-1111-1111-1111-111111111101', now() - interval '2 days');
+
+-- ── Syllabus authoring tree — AI-330 example ("Quiz 1"), for exercising the
+-- "Mark Exam" grading flow on a second class/lecturer (Dr. Emmett Brown).
+-- Enrolls 5 students into TN01-CLS-AI330-A01 (student 1/Alex Chen is
+-- already enrolled in AI-330 from the catalogue seed above, without a
+-- section — left as-is), adds a 4-question quiz with per-question marks,
+-- and seeds one ungraded + one already-graded submission so both roster
+-- states show up on "Mark Exam". ─────────────────────────────────────────
+
+insert into student_courses (student_id, course_id, section_id, progress_percentage, grade, overall_score, attendance_percentage, risk_status, last_activity_at) values
+  (2, '44444444-4444-4444-4444-444444444403', (select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), 35, 'B+', 87.0, 94, 'on_track', now() - interval '3 hours'),
+  (3, '44444444-4444-4444-4444-444444444403', (select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), 15, 'C', 71.0, 58, 'at_risk', now() - interval '7 days'),
+  (5, '44444444-4444-4444-4444-444444444403', (select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), 40, 'A-', 91.0, 96, 'on_track', now() - interval '1 hour'),
+  (6, '44444444-4444-4444-4444-444444444403', (select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), 25, 'B', 83.0, 85, 'on_track', now() - interval '2 days'),
+  (8, '44444444-4444-4444-4444-444444444403', (select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), 30, 'B+', 88.0, 90, 'on_track', now() - interval '5 hours');
+
+insert into sessions (id, module_id, session_name, session_description, session_sorting) values
+  ('22222222-2222-2222-2222-222222220001', '55555555-5555-5555-5555-555555555530', 'Week 1 — Prompt Engineering Quiz', 'Graded checkpoint on core prompting concepts.', 1);
+
+insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
+  ('22222222-2222-2222-2222-222222220002', '22222222-2222-2222-2222-222222220001', 'exam',
+    '{"title": "Quiz 1", "description": "Checkpoint quiz on prompt engineering fundamentals.", "instructions": "Answer every question. No external resources for the multiple-choice/true-false section.", "dueDate": "2025-12-05T23:59:00.000", "mode": "normal", "weightage": 15}'::jsonb, 0);
+
+insert into exam_sections (id, content_block_id, section_name, section_sorting) values
+  ('22222222-2222-2222-2222-222222220003', '22222222-2222-2222-2222-222222220002', 'Section A', 0);
+
+insert into exam_questions (id, exam_section_id, question_text, question_type, marks, question_sorting) values
+  ('22222222-2222-2222-2222-222222220011', '22222222-2222-2222-2222-222222220003', 'What is prompt engineering primarily concerned with?', 'single_choice', 5, 0),
+  ('22222222-2222-2222-2222-222222220012', '22222222-2222-2222-2222-222222220003', 'Larger context windows always guarantee better response accuracy.', 'boolean', 5, 1),
+  ('22222222-2222-2222-2222-222222220013', '22222222-2222-2222-2222-222222220003', 'Which of the following are common prompting techniques? (select all that apply)', 'multi_choice', 5, 2),
+  ('22222222-2222-2222-2222-222222220014', '22222222-2222-2222-2222-222222220003', 'Explain the difference between zero-shot and few-shot prompting.', 'text', 10, 3);
+
+insert into exam_question_options (id, question_id, option_text, is_correct, option_sorting) values
+  ('22222222-2222-2222-2222-222222220021', '22222222-2222-2222-2222-222222220011', 'Designing inputs that reliably elicit desired model outputs', true, 0),
+  ('22222222-2222-2222-2222-222222220022', '22222222-2222-2222-2222-222222220011', 'Training a model from scratch on labeled data', false, 1),
+  ('22222222-2222-2222-2222-222222220023', '22222222-2222-2222-2222-222222220011', 'Compressing model weights for edge deployment', false, 2),
+  ('22222222-2222-2222-2222-222222220024', '22222222-2222-2222-2222-222222220011', 'Writing unit tests for a REST API', false, 3),
+  ('22222222-2222-2222-2222-222222220025', '22222222-2222-2222-2222-222222220012', 'True', false, 0),
+  ('22222222-2222-2222-2222-222222220026', '22222222-2222-2222-2222-222222220012', 'False', true, 1),
+  ('22222222-2222-2222-2222-222222220027', '22222222-2222-2222-2222-222222220013', 'Few-shot prompting', true, 0),
+  ('22222222-2222-2222-2222-222222220028', '22222222-2222-2222-2222-222222220013', 'Chain-of-thought prompting', true, 1),
+  ('22222222-2222-2222-2222-222222220029', '22222222-2222-2222-2222-222222220013', 'Random token injection', false, 2),
+  ('22222222-2222-2222-2222-222222220030', '22222222-2222-2222-2222-222222220013', 'Gradient descent fine-tuning', false, 3);
+
+-- Maya Patel (2): submitted, not yet graded — exercises the "needs grading"
+-- state. David Kim (5): already graded — exercises the "graded" state.
+insert into content_block_submissions (id, content_block_id, student_id, status, submission, marks, total_score, feedback, submitted_at, graded_by, graded_at) values
+  ('22222222-2222-2222-2222-222222220041', '22222222-2222-2222-2222-222222220002', 2, 'submitted',
+    '{"answers": [{"questionId": "22222222-2222-2222-2222-222222220011", "selectedOptionIds": ["22222222-2222-2222-2222-222222220021"]}, {"questionId": "22222222-2222-2222-2222-222222220012", "selectedOptionIds": ["22222222-2222-2222-2222-222222220025"]}, {"questionId": "22222222-2222-2222-2222-222222220013", "selectedOptionIds": ["22222222-2222-2222-2222-222222220027"]}, {"questionId": "22222222-2222-2222-2222-222222220014", "textAnswer": "Zero-shot prompting asks the model to perform a task with no examples, relying on its pretrained knowledge; few-shot prompting includes a handful of example input/output pairs in the prompt to steer the model toward the desired pattern."}]}'::jsonb,
+    '{}'::jsonb, null, null, now() - interval '1 day', null, null),
+  ('22222222-2222-2222-2222-222222220042', '22222222-2222-2222-2222-222222220002', 5, 'graded',
+    '{"answers": [{"questionId": "22222222-2222-2222-2222-222222220011", "selectedOptionIds": ["22222222-2222-2222-2222-222222220021"]}, {"questionId": "22222222-2222-2222-2222-222222220012", "selectedOptionIds": ["22222222-2222-2222-2222-222222220026"]}, {"questionId": "22222222-2222-2222-2222-222222220013", "selectedOptionIds": ["22222222-2222-2222-2222-222222220027", "22222222-2222-2222-2222-222222220028"]}, {"questionId": "22222222-2222-2222-2222-222222220014", "textAnswer": "Zero-shot prompting gives the model only an instruction with no examples; few-shot prompting adds a small number of worked examples in the prompt so the model can infer the expected format and reasoning pattern before answering."}]}'::jsonb,
+    '{"22222222-2222-2222-2222-222222220011": 5, "22222222-2222-2222-2222-222222220012": 5, "22222222-2222-2222-2222-222222220013": 5, "22222222-2222-2222-2222-222222220014": 9}'::jsonb,
+    24, 'Excellent — precise definitions and a clear example-driven explanation.', now() - interval '3 days', '11111111-1111-1111-1111-111111111106', now() - interval '1 day');
+

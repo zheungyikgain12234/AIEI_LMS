@@ -44,6 +44,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   final Map<String, List<ExamQuestion>> _questionsBySection = {};
   final Set<String> _expandedSections = {};
   final Set<String> _loadingSections = {};
+  double _totalMarks = 0;
 
   @override
   void initState() {
@@ -54,11 +55,19 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     final sections = await _repository.getSections(widget.contentBlockId);
+    final totalMarks = await _repository.getTotalMarks(widget.contentBlockId);
     if (!mounted) return;
     setState(() {
       _sections = sections;
+      _totalMarks = totalMarks;
       _isLoading = false;
     });
+  }
+
+  Future<void> _refreshTotalMarks() async {
+    final totalMarks = await _repository.getTotalMarks(widget.contentBlockId);
+    if (!mounted) return;
+    setState(() => _totalMarks = totalMarks);
   }
 
   Future<void> _toggleSection(String sectionId) async {
@@ -136,15 +145,18 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   Future<void> _addQuestion(String sectionId) async {
     final result = await showDialog<_QuestionFormResult>(context: context, builder: (_) => const _QuestionDialog());
     if (result == null) return;
-    await _repository.createQuestion(sectionId: sectionId, text: result.text, type: result.type, options: result.options);
+    await _repository.createQuestion(
+        sectionId: sectionId, text: result.text, type: result.type, marks: result.marks, options: result.options);
     await _refreshQuestionsFor(sectionId);
+    await _refreshTotalMarks();
   }
 
   Future<void> _editQuestion(String sectionId, ExamQuestion q) async {
     final result = await showDialog<_QuestionFormResult>(context: context, builder: (_) => _QuestionDialog(existing: q));
     if (result == null) return;
-    await _repository.updateQuestion(q.id, text: result.text, type: result.type, options: result.options);
+    await _repository.updateQuestion(q.id, text: result.text, type: result.type, marks: result.marks, options: result.options);
     await _refreshQuestionsFor(sectionId);
+    await _refreshTotalMarks();
   }
 
   Future<void> _deleteQuestion(String sectionId, ExamQuestion q) async {
@@ -152,6 +164,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     if (confirmed != true) return;
     await _repository.deleteQuestion(q.id);
     await _refreshQuestionsFor(sectionId);
+    await _refreshTotalMarks();
   }
 
   Future<void> _reorderQuestions(String sectionId, int oldIndex, int newIndex) async {
@@ -211,6 +224,20 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _examInfoCard(),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(8)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.grading_outlined, size: 14, color: FacultyColors.onSecondaryContainer),
+                        const SizedBox(width: 6),
+                        Text('Total marks: ${_totalMarks.toStringAsFixed(_totalMarks.truncateToDouble() == _totalMarks ? 0 : 1)}',
+                            style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer)),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -448,6 +475,16 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                 Row(
                   children: [
                     Expanded(child: Text(q.text.isEmpty ? '(empty question)' : q.text, style: FacultyTypography.bodyMd())),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: FacultyColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(6)),
+                      child: Text(
+                        '${q.marks.toStringAsFixed(q.marks.truncateToDouble() == q.marks ? 0 : 1)} marks',
+                        style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(6)),
@@ -572,7 +609,7 @@ class _SectionNameDialogState extends State<_SectionNameDialog> {
 // single/multi-choice + true/false) its answer choices with a
 // radio/checkbox next to each to mark the expected answer(s).
 // ---------------------------------------------------------------------------
-typedef _QuestionFormResult = ({String text, ExamQuestionType type, List<({String text, bool isCorrect})> options});
+typedef _QuestionFormResult = ({String text, ExamQuestionType type, double marks, List<({String text, bool isCorrect})> options});
 
 class _QuestionDialog extends StatefulWidget {
   final ExamQuestion? existing;
@@ -593,6 +630,7 @@ class _ChoiceDraft {
 
 class _QuestionDialogState extends State<_QuestionDialog> {
   late final _textController = TextEditingController(text: widget.existing?.text ?? '');
+  late final _marksController = TextEditingController(text: (widget.existing?.marks ?? 1).toString());
   late ExamQuestionType _type = widget.existing?.type ?? ExamQuestionType.singleChoice;
   late List<_ChoiceDraft> _choices = _initialChoices();
 
@@ -610,6 +648,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
   @override
   void dispose() {
     _textController.dispose();
+    _marksController.dispose();
     for (final c in _choices) {
       c._controller.dispose();
     }
@@ -646,8 +685,12 @@ class _QuestionDialogState extends State<_QuestionDialog> {
         }
       });
 
+  double? get _parsedMarks => double.tryParse(_marksController.text.trim());
+
   bool get _canSave {
     if (_textController.text.trim().isEmpty) return false;
+    final marks = _parsedMarks;
+    if (marks == null || marks <= 0) return false;
     if (!_type.hasOptions) return true;
     final filled = _choices.where((c) => c._controller.text.trim().isNotEmpty).toList();
     return filled.length >= 2 && filled.any((c) => c.isCorrect);
@@ -658,7 +701,8 @@ class _QuestionDialogState extends State<_QuestionDialog> {
       for (final c in _choices)
         if (c._controller.text.trim().isNotEmpty) (text: c._controller.text.trim(), isCorrect: c.isCorrect),
     ];
-    Navigator.of(context).pop<_QuestionFormResult>((text: _textController.text.trim(), type: _type, options: options));
+    Navigator.of(context)
+        .pop<_QuestionFormResult>((text: _textController.text.trim(), type: _type, marks: _parsedMarks ?? 1, options: options));
   }
 
   @override
@@ -676,6 +720,13 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                 controller: _textController,
                 decoration: const InputDecoration(labelText: 'Question'),
                 maxLines: 3,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _marksController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Marks this question is worth'),
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 14),

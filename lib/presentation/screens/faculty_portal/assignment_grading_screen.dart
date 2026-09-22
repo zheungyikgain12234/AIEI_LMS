@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
@@ -191,25 +192,56 @@ class _AssignmentGradingScreenState extends State<AssignmentGradingScreen> {
           ],
           if (files.isNotEmpty) ...[
             const SizedBox(height: 12),
-            for (final f in files)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.attach_file, size: 16, color: FacultyColors.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Text('${f['name']}', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-                    if (f['sizeLabel'] != null) ...[
-                      const SizedBox(width: 6),
-                      Text('(${f['sizeLabel']})', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                    ],
-                  ],
-                ),
-              ),
+            for (final f in files) _fileRow(f),
           ],
         ],
       ),
     );
+  }
+
+  Widget _fileRow(Map<String, dynamic> f) {
+    final url = f['url'] as String?;
+    final name = f['name'] as String? ?? 'Attachment';
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: InkWell(
+          onTap: () => _openFile(url, name),
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                const Icon(Icons.download_outlined, size: 16, color: FacultyColors.primary),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    name,
+                    style: FacultyTypography.bodySm(color: FacultyColors.primary)
+                        .copyWith(decoration: TextDecoration.underline),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (f['sizeLabel'] != null) ...[
+                  const SizedBox(width: 6),
+                  Text('(${f['sizeLabel']})', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openFile(String? url, String name) async {
+    final uri = url == null ? null : Uri.tryParse(url);
+    if (uri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No file preview available for "$name" in this preview.')));
+      return;
+    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Widget _criterionRow(AssignmentCriterion c) {

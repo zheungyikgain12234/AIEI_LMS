@@ -65,6 +65,12 @@ class ContentBlock {
   /// [ContentBlockType.assignment] blocks — null if unset.
   double? get weightage => (content['weightage'] as num?)?.toDouble();
 
+  /// Files the lecturer attached alongside the instructions — each
+  /// `{"url": "...", "name": "..."}`. Only meaningful for
+  /// [ContentBlockType.exam]/[ContentBlockType.assignment] blocks.
+  List<Map<String, dynamic>> get instructionFiles =>
+      (content['instructionFiles'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
   DateTime? get dueDate {
     final raw = content['dueDate'] as String?;
     if (raw == null || raw.isEmpty) return null;

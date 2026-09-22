@@ -1,6 +1,6 @@
 import 'package:stitch_aiei_lms/domain/models/assignment_criterion.dart';
 
-/// Backs the "Edit Assignment" screen reached from an `assignment` content
+/// Backs the "Manage Contents" (assignment) screen reached from an `assignment` content
 /// block on the Syllabus screen — a flat list of grading criteria (each
 /// worth a lecturer-defined number of marks), scoped to that one assignment
 /// block. Scored per-student on the "Mark Assignment" screen.
@@ -22,7 +22,7 @@ abstract class AssignmentRepository {
   Future<void> reorderCriteria(String contentBlockId, List<String> orderedIds);
 
   /// Sum of every criterion's [AssignmentCriterion.maxMarks] — the
-  /// denominator shown on "Edit Assignment" and the "Mark Assignment"
+  /// denominator shown on "Manage Contents" and the "Mark Assignment"
   /// grading screen.
   Future<double> getTotalMarks(String contentBlockId);
 }

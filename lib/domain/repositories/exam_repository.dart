@@ -1,7 +1,7 @@
 import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_section.dart';
 
-/// Backs the "Edit Exam" screen reached from an `exam` content block on the
+/// Backs the "Manage Contents" (exam) screen reached from an `exam` content block on the
 /// Syllabus screen — a section → question (→ answer choices) authoring tree,
 /// scoped to that one exam block.
 abstract class ExamRepository {

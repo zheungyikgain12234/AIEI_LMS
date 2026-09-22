@@ -578,7 +578,7 @@ insert into sessions (id, module_id, session_name, session_description, session_
 
 insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
   ('dddddddd-dddd-dddd-dddd-dddddddddd01', 'cccccccc-cccc-cccc-cccc-cccccccccc01', 'assignment',
-    '{"title": "ETL Pipeline Capstone Assignment", "description": "Build an automated ETL pipeline against the enterprise sample dataset.", "instructions": "Submit your pipeline script plus a short write-up covering your design decisions and how you handled schema drift.", "dueDate": "2025-11-24T23:59:00.000", "weightage": 30}'::jsonb, 0),
+    '{"title": "ETL Pipeline Capstone Assignment", "description": "Build an automated ETL pipeline against the enterprise sample dataset.", "instructions": "Submit your pipeline script plus a short write-up covering your design decisions and how you handled schema drift.", "dueDate": "2025-11-24T23:59:00.000", "weightage": 30, "instructionFiles": [{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/grading_rubric.pdf", "name": "grading_rubric.pdf"}]}'::jsonb, 0),
   ('dddddddd-dddd-dddd-dddd-dddddddddd02', 'cccccccc-cccc-cccc-cccc-cccccccccc02', 'exam',
     '{"title": "Python Fundamentals Checkpoint Exam", "description": "Checkpoint covering core syntax and pandas fundamentals.", "instructions": "Answer every question. No external resources for the multiple-choice/true-false section.", "dueDate": "2025-12-01T23:59:00.000", "mode": "normal", "weightage": 20}'::jsonb, 0);
 
@@ -615,10 +615,10 @@ insert into exam_question_options (id, question_id, option_text, is_correct, opt
 -- row here at all, which reads as "not submitted".
 insert into content_block_submissions (id, content_block_id, student_id, status, submission, marks, total_score, feedback, submitted_at, graded_by, graded_at) values
   ('ffffffff-ffff-ffff-ffff-ffffffffff01', 'dddddddd-dddd-dddd-dddd-dddddddddd01', 1, 'submitted',
-    '{"writeup": "Implemented a 3-stage ETL pipeline using pandas and SQLAlchemy 2.0 async sessions, with a Celery-scheduled nightly run. Schema drift is handled by validating incoming columns against a versioned schema registry before load.", "files": [{"name": "etl_pipeline.py", "sizeLabel": "18 KB"}, {"name": "design_notes.pdf", "sizeLabel": "212 KB"}]}'::jsonb,
+    '{"writeup": "Implemented a 3-stage ETL pipeline using pandas and SQLAlchemy 2.0 async sessions, with a Celery-scheduled nightly run. Schema drift is handled by validating incoming columns against a versioned schema registry before load.", "files": [{"name": "etl_pipeline.py", "sizeLabel": "18 KB", "url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/etl_pipeline.py"}, {"name": "design_notes.pdf", "sizeLabel": "212 KB", "url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/design_notes.pdf"}]}'::jsonb,
     '{}'::jsonb, null, null, now() - interval '2 days', null, null),
   ('ffffffff-ffff-ffff-ffff-ffffffffff02', 'dddddddd-dddd-dddd-dddd-dddddddddd01', 2, 'graded',
-    '{"writeup": "Built a modular extract/transform/load pipeline with retry-safe API calls and a pytest suite covering the transform layer.", "files": [{"name": "pipeline_maya.py", "sizeLabel": "22 KB"}]}'::jsonb,
+    '{"writeup": "Built a modular extract/transform/load pipeline with retry-safe API calls and a pytest suite covering the transform layer.", "files": [{"name": "pipeline_maya.py", "sizeLabel": "22 KB", "url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/pipeline_maya.py"}]}'::jsonb,
     '{"dddddddd-dddd-dddd-dddd-dddddddddd11": 38, "dddddddd-dddd-dddd-dddd-dddddddddd12": 27, "dddddddd-dddd-dddd-dddd-dddddddddd13": 26}'::jsonb,
     91, 'Solid pipeline implementation with clear documentation — minor deduction for missing an edge-case test on empty source files.', now() - interval '5 days', '11111111-1111-1111-1111-111111111101', now() - interval '3 days'),
   ('ffffffff-ffff-ffff-ffff-ffffffffff03', 'dddddddd-dddd-dddd-dddd-dddddddddd02', 1, 'submitted',
@@ -649,7 +649,7 @@ insert into sessions (id, module_id, session_name, session_description, session_
 
 insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
   ('22222222-2222-2222-2222-222222220002', '22222222-2222-2222-2222-222222220001', 'exam',
-    '{"title": "Quiz 1", "description": "Checkpoint quiz on prompt engineering fundamentals.", "instructions": "Answer every question. No external resources for the multiple-choice/true-false section.", "dueDate": "2025-12-05T23:59:00.000", "mode": "normal", "weightage": 15}'::jsonb, 0);
+    '{"title": "Quiz 1", "description": "Checkpoint quiz on prompt engineering fundamentals.", "instructions": "Answer every question. No external resources for the multiple-choice/true-false section.", "dueDate": "2025-12-05T23:59:00.000", "mode": "normal", "weightage": 15, "instructionFiles": [{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/quiz_1_reference_sheet.pdf", "name": "quiz_1_reference_sheet.pdf"}]}'::jsonb, 0);
 
 insert into exam_sections (id, content_block_id, section_name, section_sorting) values
   ('22222222-2222-2222-2222-222222220003', '22222222-2222-2222-2222-222222220002', 'Section A', 0);
@@ -658,7 +658,8 @@ insert into exam_questions (id, exam_section_id, question_text, question_type, m
   ('22222222-2222-2222-2222-222222220011', '22222222-2222-2222-2222-222222220003', 'What is prompt engineering primarily concerned with?', 'single_choice', 5, 0),
   ('22222222-2222-2222-2222-222222220012', '22222222-2222-2222-2222-222222220003', 'Larger context windows always guarantee better response accuracy.', 'boolean', 5, 1),
   ('22222222-2222-2222-2222-222222220013', '22222222-2222-2222-2222-222222220003', 'Which of the following are common prompting techniques? (select all that apply)', 'multi_choice', 5, 2),
-  ('22222222-2222-2222-2222-222222220014', '22222222-2222-2222-2222-222222220003', 'Explain the difference between zero-shot and few-shot prompting.', 'text', 10, 3);
+  ('22222222-2222-2222-2222-222222220014', '22222222-2222-2222-2222-222222220003', 'Explain the difference between zero-shot and few-shot prompting.', 'text', 10, 3),
+  ('22222222-2222-2222-2222-222222220015', '22222222-2222-2222-2222-222222220003', 'Upload your annotated prompt-chain diagram (PDF or image).', 'file_upload', 5, 4);
 
 insert into exam_question_options (id, question_id, option_text, is_correct, option_sorting) values
   ('22222222-2222-2222-2222-222222220021', '22222222-2222-2222-2222-222222220011', 'Designing inputs that reliably elicit desired model outputs', true, 0),
@@ -676,10 +677,40 @@ insert into exam_question_options (id, question_id, option_text, is_correct, opt
 -- state. David Kim (5): already graded — exercises the "graded" state.
 insert into content_block_submissions (id, content_block_id, student_id, status, submission, marks, total_score, feedback, submitted_at, graded_by, graded_at) values
   ('22222222-2222-2222-2222-222222220041', '22222222-2222-2222-2222-222222220002', 2, 'submitted',
-    '{"answers": [{"questionId": "22222222-2222-2222-2222-222222220011", "selectedOptionIds": ["22222222-2222-2222-2222-222222220021"]}, {"questionId": "22222222-2222-2222-2222-222222220012", "selectedOptionIds": ["22222222-2222-2222-2222-222222220025"]}, {"questionId": "22222222-2222-2222-2222-222222220013", "selectedOptionIds": ["22222222-2222-2222-2222-222222220027"]}, {"questionId": "22222222-2222-2222-2222-222222220014", "textAnswer": "Zero-shot prompting asks the model to perform a task with no examples, relying on its pretrained knowledge; few-shot prompting includes a handful of example input/output pairs in the prompt to steer the model toward the desired pattern."}]}'::jsonb,
+    '{"answers": [{"questionId": "22222222-2222-2222-2222-222222220011", "selectedOptionIds": ["22222222-2222-2222-2222-222222220021"]}, {"questionId": "22222222-2222-2222-2222-222222220012", "selectedOptionIds": ["22222222-2222-2222-2222-222222220025"]}, {"questionId": "22222222-2222-2222-2222-222222220013", "selectedOptionIds": ["22222222-2222-2222-2222-222222220027"]}, {"questionId": "22222222-2222-2222-2222-222222220014", "textAnswer": "Zero-shot prompting asks the model to perform a task with no examples, relying on its pretrained knowledge; few-shot prompting includes a handful of example input/output pairs in the prompt to steer the model toward the desired pattern."}, {"questionId": "22222222-2222-2222-2222-222222220015", "fileUrls": [{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/maya_prompt_chain_diagram.pdf", "name": "maya_prompt_chain_diagram.pdf"}]}]}'::jsonb,
     '{}'::jsonb, null, null, now() - interval '1 day', null, null),
   ('22222222-2222-2222-2222-222222220042', '22222222-2222-2222-2222-222222220002', 5, 'graded',
-    '{"answers": [{"questionId": "22222222-2222-2222-2222-222222220011", "selectedOptionIds": ["22222222-2222-2222-2222-222222220021"]}, {"questionId": "22222222-2222-2222-2222-222222220012", "selectedOptionIds": ["22222222-2222-2222-2222-222222220026"]}, {"questionId": "22222222-2222-2222-2222-222222220013", "selectedOptionIds": ["22222222-2222-2222-2222-222222220027", "22222222-2222-2222-2222-222222220028"]}, {"questionId": "22222222-2222-2222-2222-222222220014", "textAnswer": "Zero-shot prompting gives the model only an instruction with no examples; few-shot prompting adds a small number of worked examples in the prompt so the model can infer the expected format and reasoning pattern before answering."}]}'::jsonb,
-    '{"22222222-2222-2222-2222-222222220011": 5, "22222222-2222-2222-2222-222222220012": 5, "22222222-2222-2222-2222-222222220013": 5, "22222222-2222-2222-2222-222222220014": 9}'::jsonb,
-    24, 'Excellent — precise definitions and a clear example-driven explanation.', now() - interval '3 days', '11111111-1111-1111-1111-111111111106', now() - interval '1 day');
+    '{"answers": [{"questionId": "22222222-2222-2222-2222-222222220011", "selectedOptionIds": ["22222222-2222-2222-2222-222222220021"]}, {"questionId": "22222222-2222-2222-2222-222222220012", "selectedOptionIds": ["22222222-2222-2222-2222-222222220026"]}, {"questionId": "22222222-2222-2222-2222-222222220013", "selectedOptionIds": ["22222222-2222-2222-2222-222222220027", "22222222-2222-2222-2222-222222220028"]}, {"questionId": "22222222-2222-2222-2222-222222220014", "textAnswer": "Zero-shot prompting gives the model only an instruction with no examples; few-shot prompting adds a small number of worked examples in the prompt so the model can infer the expected format and reasoning pattern before answering."}, {"questionId": "22222222-2222-2222-2222-222222220015", "fileUrls": [{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/david_prompt_chain_diagram.pdf", "name": "david_prompt_chain_diagram.pdf"}]}]}'::jsonb,
+    '{"22222222-2222-2222-2222-222222220011": 5, "22222222-2222-2222-2222-222222220012": 5, "22222222-2222-2222-2222-222222220013": 5, "22222222-2222-2222-2222-222222220014": 9, "22222222-2222-2222-2222-222222220015": 4}'::jsonb,
+    28, 'Excellent — precise definitions, a clear example-driven explanation, and a well-annotated diagram (minor labeling gap on the retrieval step).', now() - interval '3 days', '11111111-1111-1111-1111-111111111106', now() - interval '1 day');
+
+-- ── Syllabus authoring tree — AI-330 example ("Prompt Library Assignment"),
+-- for exercising the "Mark Assignment" grading flow with a file-upload-only
+-- submission (no writeup, just attached files) on a second class. Reuses
+-- the same 5-student AI-330 roster seeded above. ────────────────────────
+
+insert into sessions (id, module_id, session_name, session_description, session_sorting) values
+  ('00000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555530', 'Week 2 — Prompt Library Assignment', 'Applied assignment building a reusable prompt library.', 2);
+
+insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
+  ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'assignment',
+    '{"title": "Prompt Library Submission", "description": "Build a reusable library of at least 6 prompts covering 3 different enterprise use cases.", "instructions": "Submit your prompt library as a document plus a short test-results log. No writeup required — file upload only.", "dueDate": "2025-12-10T23:59:00.000", "weightage": 25, "instructionFiles": [{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/prompt_library_template.docx", "name": "prompt_library_template.docx"}]}'::jsonb, 0);
+
+insert into assignment_criteria (id, content_block_id, criterion_label, max_marks, criterion_sorting) values
+  ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000002', 'Prompt Variety & Coverage', 25, 0),
+  ('00000000-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000002', 'Clarity & Structure', 25, 1),
+  ('00000000-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000002', 'Effectiveness (Test Results)', 30, 2),
+  ('00000000-0000-0000-0000-000000000014', '00000000-0000-0000-0000-000000000002', 'Documentation', 20, 3);
+
+-- Marcus Reed (3): submitted via file upload only (no writeup), not yet
+-- graded — exercises the "needs grading" state for a file-only submission.
+-- Sophia Loren (6): already graded — exercises the "graded" state.
+insert into content_block_submissions (id, content_block_id, student_id, status, submission, marks, total_score, feedback, submitted_at, graded_by, graded_at) values
+  ('00000000-0000-0000-0000-000000000041', '00000000-0000-0000-0000-000000000002', 3, 'submitted',
+    '{"files": [{"name": "marcus_prompt_library.docx", "sizeLabel": "64 KB", "url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/marcus_prompt_library.docx"}, {"name": "marcus_test_results.xlsx", "sizeLabel": "31 KB", "url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/marcus_test_results.xlsx"}]}'::jsonb,
+    '{}'::jsonb, null, null, now() - interval '2 days', null, null),
+  ('00000000-0000-0000-0000-000000000042', '00000000-0000-0000-0000-000000000002', 6, 'graded',
+    '{"files": [{"name": "sophia_prompt_library.pdf", "sizeLabel": "88 KB", "url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/sophia_prompt_library.pdf"}, {"name": "sophia_test_results.xlsx", "sizeLabel": "28 KB", "url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/sophia_test_results.xlsx"}, {"name": "sophia_demo_screenshots.zip", "sizeLabel": "1.4 MB", "url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/sophia_demo_screenshots.zip"}]}'::jsonb,
+    '{"00000000-0000-0000-0000-000000000011": 22, "00000000-0000-0000-0000-000000000012": 23, "00000000-0000-0000-0000-000000000013": 27, "00000000-0000-0000-0000-000000000014": 18}'::jsonb,
+    90, 'Excellent coverage across all three use cases with strong test-result evidence; documentation could be slightly more detailed on edge cases.', now() - interval '4 days', '11111111-1111-1111-1111-111111111106', now() - interval '2 days');
 

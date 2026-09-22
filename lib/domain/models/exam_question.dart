@@ -3,7 +3,8 @@ enum ExamQuestionType {
   singleChoice('single_choice'),
   multiChoice('multi_choice'),
   boolean('boolean'),
-  text('text');
+  text('text'),
+  fileUpload('file_upload');
 
   final String key;
   const ExamQuestionType(this.key);
@@ -12,11 +13,15 @@ enum ExamQuestionType {
       ExamQuestionType.values.firstWhere((t) => t.key == key, orElse: () => ExamQuestionType.text);
 
   /// Whether this type has answer choices ([ExamQuestionOption]s) at all —
-  /// `text` questions are free-response and graded manually.
-  bool get hasOptions => this != ExamQuestionType.text;
+  /// `text`/`file_upload` questions are free-response and graded manually.
+  bool get hasOptions => this == ExamQuestionType.singleChoice || this == ExamQuestionType.multiChoice || this == ExamQuestionType.boolean;
 
   /// Whether more than one choice can be marked correct.
   bool get allowsMultipleCorrect => this == ExamQuestionType.multiChoice;
+
+  /// Whether this question is graded manually rather than auto-marked
+  /// against a correct option.
+  bool get isManuallyGraded => this == ExamQuestionType.text || this == ExamQuestionType.fileUpload;
 }
 
 /// One answer choice for a single/multi-choice or true/false [ExamQuestion].

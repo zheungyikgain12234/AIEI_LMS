@@ -5,8 +5,17 @@ class DemoIdentity {
   DemoIdentity._();
 
   // students.id is a bigint identity column (not a uuid like the other
-  // tables) — Alex Chen is seeded as row 1.
-  static const String studentId = '1';
+  // tables) — David Kim is seeded as row 5. We're now starting on the
+  // student portal, so the "signed-in" demo student was switched from Alex
+  // Chen (row 1) to David Kim to test with a student who hasn't submitted
+  // everything yet. NOTE: the assignment/quiz/exam material ids below only
+  // have real submission/progress rows seeded for Alex Chen (see
+  // supabase/seed.sql) — screens hard-wired to those specific material ids
+  // (assignment_submission_screen.dart, compliance_quiz_screen.dart, and
+  // the faculty grade_assignment_screen.dart/grade_quiz_screen.dart) will
+  // show empty/not-started state for David Kim until matching seed rows
+  // are added for him too.
+  static const String studentId = '5';
   static const String lecturerId = '11111111-1111-1111-1111-111111111106'; // Dr. Emmett Brown
   static const String adminId = '33333333-3333-3333-3333-333333333301';
 
@@ -16,8 +25,9 @@ class DemoIdentity {
   static const String courseSecId = '44444444-4444-4444-4444-444444444405'; // SEC-410
 
   // ── Specific module_materials this demo's student-facing submission /
-  // faculty-facing grading screens are hard-wired to (see comments beside
-  // the matching rows in supabase/seed.sql). ──────────────────────────────
+  // faculty-facing grading screens are hard-wired to — only Alex Chen (row
+  // 1) has seeded submission/progress rows against these (see comments
+  // beside the matching rows in supabase/seed.sql). ───────────────────────
   static const String materialAssignment02Id = '66666666-6666-6666-6666-666666666611';
   static const String materialComplianceQuizId = '66666666-6666-6666-6666-666666666612';
   static const String materialOsheFinalExamId = '66666666-6666-6666-6666-666666666627';

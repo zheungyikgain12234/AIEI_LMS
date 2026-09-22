@@ -296,7 +296,7 @@ create table exam_questions (
   id uuid primary key default gen_random_uuid(),
   exam_section_id uuid not null references exam_sections(id) on delete cascade,
   question_text text not null default '',
-  question_type text not null check (question_type in ('single_choice', 'multi_choice', 'boolean', 'text')),
+  question_type text not null check (question_type in ('single_choice', 'multi_choice', 'boolean', 'text', 'file_upload')),
   marks numeric not null default 1,
   question_sorting int not null default 0,
   created_at timestamptz not null default now()

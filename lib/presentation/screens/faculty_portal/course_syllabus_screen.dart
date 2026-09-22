@@ -19,6 +19,7 @@ import 'widgets/embedded_video_player.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
+import 'widgets/required_field_label.dart';
 import 'widgets/rich_text_field.dart';
 import 'widgets/rich_text_viewer.dart';
 import 'my_assigned_courses_screen.dart';
@@ -808,6 +809,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           instructions: b.instructions,
           dueDate: b.dueDate,
           mode: b.mode,
+          instructionFiles: b.instructionFiles,
         ),
       ),
     );
@@ -822,6 +824,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           description: b.description,
           instructions: b.instructions,
           dueDate: b.dueDate,
+          instructionFiles: b.instructionFiles,
         ),
       ),
     );
@@ -908,7 +911,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
             ),
             OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
             const SizedBox(width: 6),
-            OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Edit Exam')),
+            OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Manage Contents')),
           ],
         );
       case ContentBlockType.assignment:
@@ -931,7 +934,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
             ),
             OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
             const SizedBox(width: 6),
-            OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Edit Assignment')),
+            OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
           ],
         );
     }
@@ -983,7 +986,7 @@ class _NameDescriptionDialogState extends State<_NameDescriptionDialog> {
             TextField(
               controller: _nameController,
               autofocus: true,
-              decoration: InputDecoration(labelText: widget.nameLabel),
+              decoration: InputDecoration(label: requiredLabel(widget.nameLabel)),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
@@ -1040,8 +1043,10 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   String? _uploadedFileName;
   bool _uploading = false;
   bool _uploadingThumbnail = false;
+  bool _uploadingInstructionFile = false;
   bool _loadingWeightage = true;
   double _otherWeightageTotal = 0;
+  late List<Map<String, dynamic>> _instructionFiles = List.from(widget.existing?.instructionFiles ?? const []);
   String? _error;
 
   bool get _isEditing => widget.existing != null;
@@ -1130,6 +1135,9 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.exam:
       case ContentBlockType.assignment:
         return _titleController.text.trim().isNotEmpty &&
+            _descriptionController.text.trim().isNotEmpty &&
+            _instructionsController.text.trim().isNotEmpty &&
+            _dueDate != null &&
             !_loadingWeightage &&
             _parsedWeightage != null &&
             _weightageError == null;
@@ -1189,6 +1197,36 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     }
   }
 
+  Future<void> _pickAndUploadInstructionFile() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.single;
+    final bytes = file.bytes;
+    if (bytes == null) return;
+    setState(() {
+      _uploadingInstructionFile = true;
+      _error = null;
+    });
+    try {
+      final url = await widget.repository.uploadContentFile(sessionId: widget.sessionId, fileName: file.name, bytes: bytes);
+      if (!mounted) return;
+      setState(() {
+        _instructionFiles = [..._instructionFiles, {'url': url, 'name': file.name}];
+        _uploadingInstructionFile = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'File attachment failed: $e';
+        _uploadingInstructionFile = false;
+      });
+    }
+  }
+
+  void _removeInstructionFile(int index) {
+    setState(() => _instructionFiles = [..._instructionFiles]..removeAt(index));
+  }
+
   Map<String, dynamic> _buildContent() {
     switch (_type) {
       case ContentBlockType.text:
@@ -1217,19 +1255,21 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.exam:
         return {
           'title': _titleController.text.trim(),
-          if (_descriptionController.text.trim().isNotEmpty) 'description': _descriptionController.text.trim(),
-          if (_instructionsController.text.trim().isNotEmpty) 'instructions': _instructionsController.text.trim(),
-          if (_dueDate != null) 'dueDate': _dueDate!.toIso8601String(),
+          'description': _descriptionController.text.trim(),
+          'instructions': _instructionsController.text.trim(),
+          'dueDate': _dueDate!.toIso8601String(),
           'mode': _mode,
-          if (_parsedWeightage != null) 'weightage': _parsedWeightage,
+          'weightage': _parsedWeightage,
+          'instructionFiles': _instructionFiles,
         };
       case ContentBlockType.assignment:
         return {
           'title': _titleController.text.trim(),
-          if (_descriptionController.text.trim().isNotEmpty) 'description': _descriptionController.text.trim(),
-          if (_instructionsController.text.trim().isNotEmpty) 'instructions': _instructionsController.text.trim(),
-          if (_dueDate != null) 'dueDate': _dueDate!.toIso8601String(),
-          if (_parsedWeightage != null) 'weightage': _parsedWeightage,
+          'description': _descriptionController.text.trim(),
+          'instructions': _instructionsController.text.trim(),
+          'dueDate': _dueDate!.toIso8601String(),
+          'weightage': _parsedWeightage,
+          'instructionFiles': _instructionFiles,
         };
     }
   }
@@ -1247,7 +1287,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             children: [
               DropdownButtonFormField<ContentBlockType>(
                 initialValue: _type,
-                decoration: const InputDecoration(labelText: 'Content type'),
+                decoration: InputDecoration(label: requiredLabel('Content type')),
                 items: [for (final t in ContentBlockType.values) DropdownMenuItem(value: t, child: Text(_labelFor(t)))],
                 onChanged: _isEditing
                     ? null
@@ -1303,8 +1343,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return [
           TextField(
             controller: _urlController,
-            decoration: const InputDecoration(
-              labelText: 'Video URL',
+            decoration: InputDecoration(
+              label: requiredLabel('Video URL'),
               helperText: 'A YouTube link, or a direct video file link (.mp4/.webm) for an unskippable player',
               helperMaxLines: 2,
             ),
@@ -1343,7 +1383,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return [
           TextField(
             controller: _urlController,
-            decoration: const InputDecoration(labelText: 'Image URL'),
+            decoration: InputDecoration(label: requiredLabel('Image URL')),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 8),
@@ -1361,7 +1401,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return [
           TextField(
             controller: _urlController,
-            decoration: const InputDecoration(labelText: 'URL'),
+            decoration: InputDecoration(label: requiredLabel('URL')),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
@@ -1379,25 +1419,27 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return [
           TextField(
             controller: _titleController,
-            decoration: const InputDecoration(labelText: 'Exam name'),
+            decoration: InputDecoration(label: requiredLabel('Exam name')),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
-            decoration: const InputDecoration(labelText: 'Description (optional)'),
+            decoration: InputDecoration(label: requiredLabel('Description')),
             maxLines: 2,
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _instructionsController,
-            decoration: const InputDecoration(labelText: 'Instructions (optional)'),
+            decoration: InputDecoration(label: requiredLabel('Instructions')),
             maxLines: 3,
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _mode,
-            decoration: const InputDecoration(labelText: 'Mode'),
+            decoration: InputDecoration(label: requiredLabel('Mode')),
             items: const [
               DropdownMenuItem(value: 'normal', child: Text('Normal')),
               DropdownMenuItem(value: 'open_book', child: Text('Open-book')),
@@ -1409,9 +1451,11 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           _dueDateTimeRow(),
           const SizedBox(height: 12),
           _weightageField(),
+          const SizedBox(height: 12),
+          _instructionFilesField(),
           const SizedBox(height: 8),
           Text(
-            'This adds a placeholder — you\'ll build the actual questions from "Edit Exam" afterwards.',
+            'This adds a placeholder — you\'ll build the actual questions from "Manage Contents" afterwards.',
             style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
           ),
         ];
@@ -1419,28 +1463,32 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return [
           TextField(
             controller: _titleController,
-            decoration: const InputDecoration(labelText: 'Assignment name'),
+            decoration: InputDecoration(label: requiredLabel('Assignment name')),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
-            decoration: const InputDecoration(labelText: 'Description (optional)'),
+            decoration: InputDecoration(label: requiredLabel('Description')),
             maxLines: 2,
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _instructionsController,
-            decoration: const InputDecoration(labelText: 'Instructions (optional)'),
+            decoration: InputDecoration(label: requiredLabel('Instructions')),
             maxLines: 3,
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
           _dueDateTimeRow(),
           const SizedBox(height: 12),
           _weightageField(),
+          const SizedBox(height: 12),
+          _instructionFilesField(),
           const SizedBox(height: 8),
           Text(
-            'This adds a placeholder — you\'ll build the actual rubric from "Edit Assignment" afterwards.',
+            'This adds a placeholder — you\'ll build the actual rubric from "Manage Contents" afterwards.',
             style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
           ),
         ];
@@ -1459,7 +1507,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       controller: _weightageController,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: InputDecoration(
-        labelText: 'Weightage (%)',
+        label: requiredLabel('Weightage (%)'),
         suffixText: '%',
         helperText: '$budgetLabel% available for this class\'s syllabus',
         errorText: _weightageError,
@@ -1477,7 +1525,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           child: OutlinedButton.icon(
             onPressed: _pickDueDate,
             icon: const Icon(Icons.event_outlined, size: 16),
-            label: Text(due == null ? 'Due date (optional)' : '${due.year}-${due.month.toString().padLeft(2, '0')}-${due.day.toString().padLeft(2, '0')}'),
+            label: Text(due == null ? 'Due date *' : '${due.year}-${due.month.toString().padLeft(2, '0')}-${due.day.toString().padLeft(2, '0')}'),
           ),
         ),
         const SizedBox(width: 8),
@@ -1495,6 +1543,46 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             tooltip: 'Clear due date',
             visualDensity: VisualDensity.compact,
           ),
+      ],
+    );
+  }
+
+  Widget _instructionFilesField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Attached Files (optional)', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+        const SizedBox(height: 6),
+        for (var i = 0; i < _instructionFiles.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                const Icon(Icons.attach_file, size: 16, color: FacultyColors.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _instructionFiles[i]['name'] as String? ?? 'Attachment',
+                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _removeInstructionFile(i),
+                  icon: const Icon(Icons.close, size: 16, color: FacultyColors.onSurfaceVariant),
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Remove',
+                ),
+              ],
+            ),
+          ),
+        OutlinedButton.icon(
+          onPressed: _uploadingInstructionFile ? null : _pickAndUploadInstructionFile,
+          icon: _uploadingInstructionFile
+              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.upload_file, size: 16),
+          label: const Text('Attach a file'),
+        ),
       ],
     );
   }
@@ -1545,7 +1633,7 @@ class _SaveAsTemplateDialogState extends State<_SaveAsTemplateDialog> {
         child: TextField(
           controller: _nameController,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Template name'),
+          decoration: InputDecoration(label: requiredLabel('Template name')),
           onChanged: (_) => setState(() {}),
           onSubmitted: (_) {
             if (_nameController.text.trim().isNotEmpty) Navigator.of(context).pop(_nameController.text.trim());

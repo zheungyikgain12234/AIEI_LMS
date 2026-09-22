@@ -5,10 +5,12 @@ import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/assignment_criterion.dart';
+import 'widgets/downloadable_file.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
+import 'widgets/required_field_label.dart';
 
 // ---------------------------------------------------------------------------
-// AssignmentEditorScreen — reached via "Edit Assignment" on an assignment
+// AssignmentEditorScreen — reached via "Manage Contents" on an assignment
 // content block in the Syllabus editor. Shows the assignment's info
 // (description, instructions, due date) set from the "Add Content" form,
 // plus the lecturer-defined grading criteria (each worth a number of
@@ -20,6 +22,7 @@ class AssignmentEditorScreen extends StatefulWidget {
   final String? description;
   final String? instructions;
   final DateTime? dueDate;
+  final List<Map<String, dynamic>> instructionFiles;
 
   const AssignmentEditorScreen({
     super.key,
@@ -28,6 +31,7 @@ class AssignmentEditorScreen extends StatefulWidget {
     this.description,
     this.instructions,
     this.dueDate,
+    this.instructionFiles = const [],
   });
 
   @override
@@ -179,7 +183,10 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
   String _formatMarks(double marks) => marks.toStringAsFixed(marks.truncateToDouble() == marks ? 0 : 1);
 
   Widget _infoCard() {
-    final hasAnyInfo = (widget.description?.isNotEmpty ?? false) || (widget.instructions?.isNotEmpty ?? false) || widget.dueDate != null;
+    final hasAnyInfo = (widget.description?.isNotEmpty ?? false) ||
+        (widget.instructions?.isNotEmpty ?? false) ||
+        widget.dueDate != null ||
+        widget.instructionFiles.isNotEmpty;
     if (!hasAnyInfo) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(16),
@@ -215,6 +222,20 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
             Text('Instructions', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
             const SizedBox(height: 4),
             Text(widget.instructions!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+          ],
+          if (widget.instructionFiles.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('Attached Files', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+            const SizedBox(height: 4),
+            for (final f in widget.instructionFiles)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: DownloadableFile(
+                  url: f['url'] as String? ?? '',
+                  label: f['name'] as String? ?? f['url'] as String? ?? 'Attachment',
+                  style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                ),
+              ),
           ],
         ],
       ),
@@ -332,14 +353,14 @@ class _CriterionDialogState extends State<_CriterionDialog> {
             TextField(
               controller: _labelController,
               autofocus: true,
-              decoration: const InputDecoration(labelText: 'Criterion (e.g. "Code Correctness")'),
+              decoration: InputDecoration(label: requiredLabel('Criterion (e.g. "Code Correctness")')),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _marksController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Marks this criterion is worth'),
+              decoration: InputDecoration(label: requiredLabel('Marks this criterion is worth')),
               onChanged: (_) => setState(() {}),
             ),
           ],

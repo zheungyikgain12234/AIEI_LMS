@@ -6,10 +6,12 @@ import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_section.dart';
+import 'widgets/downloadable_file.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
+import 'widgets/required_field_label.dart';
 
 // ---------------------------------------------------------------------------
-// ExamEditorScreen — reached via "Edit Exam" on an exam content block in the
+// ExamEditorScreen — reached via "Manage Contents" on an exam content block in the
 // Syllabus editor. Mirrors that screen's shape: sections (like modules),
 // each holding any number of questions, each optionally holding its answer
 // choices (single/multi-choice and true/false; free-text has none).
@@ -21,6 +23,7 @@ class ExamEditorScreen extends StatefulWidget {
   final String? instructions;
   final DateTime? dueDate;
   final String? mode;
+  final List<Map<String, dynamic>> instructionFiles;
 
   const ExamEditorScreen({
     super.key,
@@ -30,6 +33,7 @@ class ExamEditorScreen extends StatefulWidget {
     this.instructions,
     this.dueDate,
     this.mode,
+    this.instructionFiles = const [],
   });
 
   @override
@@ -276,7 +280,8 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     final hasAnyInfo = (widget.description?.isNotEmpty ?? false) ||
         (widget.instructions?.isNotEmpty ?? false) ||
         widget.dueDate != null ||
-        (widget.mode?.isNotEmpty ?? false);
+        (widget.mode?.isNotEmpty ?? false) ||
+        widget.instructionFiles.isNotEmpty;
     if (!hasAnyInfo) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(16),
@@ -307,6 +312,20 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
             Text('Instructions', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
             const SizedBox(height: 4),
             Text(widget.instructions!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+          ],
+          if (widget.instructionFiles.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('Attached Files', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+            const SizedBox(height: 4),
+            for (final f in widget.instructionFiles)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: DownloadableFile(
+                  url: f['url'] as String? ?? '',
+                  label: f['name'] as String? ?? f['url'] as String? ?? 'Attachment',
+                  style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                ),
+              ),
           ],
         ],
       ),
@@ -541,6 +560,8 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
         return Icons.rule;
       case ExamQuestionType.text:
         return Icons.short_text;
+      case ExamQuestionType.fileUpload:
+        return Icons.upload_file_outlined;
     }
   }
 
@@ -554,6 +575,8 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
         return 'True / False';
       case ExamQuestionType.text:
         return 'Text input';
+      case ExamQuestionType.fileUpload:
+        return 'File upload';
     }
   }
 }
@@ -589,7 +612,7 @@ class _SectionNameDialogState extends State<_SectionNameDialog> {
         child: TextField(
           controller: _nameController,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Section name'),
+          decoration: InputDecoration(label: requiredLabel('Section name')),
           onChanged: (_) => setState(() {}),
         ),
       ),
@@ -718,7 +741,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
             children: [
               TextField(
                 controller: _textController,
-                decoration: const InputDecoration(labelText: 'Question'),
+                decoration: InputDecoration(label: requiredLabel('Question')),
                 maxLines: 3,
                 onChanged: (_) => setState(() {}),
               ),
@@ -726,18 +749,19 @@ class _QuestionDialogState extends State<_QuestionDialog> {
               TextField(
                 controller: _marksController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Marks this question is worth'),
+                decoration: InputDecoration(label: requiredLabel('Marks this question is worth')),
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<ExamQuestionType>(
                 initialValue: _type,
-                decoration: const InputDecoration(labelText: 'Question style'),
+                decoration: InputDecoration(label: requiredLabel('Question style')),
                 items: const [
                   DropdownMenuItem(value: ExamQuestionType.singleChoice, child: Text('Single-select MCQ')),
                   DropdownMenuItem(value: ExamQuestionType.multiChoice, child: Text('Multi-select MCQ')),
                   DropdownMenuItem(value: ExamQuestionType.boolean, child: Text('True / False')),
                   DropdownMenuItem(value: ExamQuestionType.text, child: Text('Text input')),
+                  DropdownMenuItem(value: ExamQuestionType.fileUpload, child: Text('File upload')),
                 ],
                 onChanged: _onTypeChanged,
               ),
@@ -761,6 +785,13 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                     ),
                   ),
                 ],
+              ],
+              if (_type == ExamQuestionType.fileUpload) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'Students will attach one or more files as their answer — graded manually, like a text question.',
+                  style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+                ),
               ],
             ],
           ),

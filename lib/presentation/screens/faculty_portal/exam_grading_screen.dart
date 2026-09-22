@@ -7,14 +7,15 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.
 import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
+import 'widgets/downloadable_file.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 
 // ---------------------------------------------------------------------------
 // ExamGradingScreen — one student's exam answers, opened from the roster on
 // MarkExamScreen. Single/multi-choice and true/false questions are
-// auto-marked against the correct option(s) and shown read-only; text
-// questions get a manual marks input. Ends in a live running total and
-// Save Marks.
+// auto-marked against the correct option(s) and shown read-only; text and
+// file-upload questions get a manual marks input. Ends in a live running
+// total and Save Marks.
 // ---------------------------------------------------------------------------
 class ExamGradingScreen extends StatefulWidget {
   final String contentBlockId;
@@ -30,7 +31,8 @@ class ExamGradingScreen extends StatefulWidget {
 class _StudentAnswer {
   final Set<String> selectedOptionIds;
   final String? textAnswer;
-  const _StudentAnswer({this.selectedOptionIds = const {}, this.textAnswer});
+  final List<Map<String, dynamic>> fileUrls;
+  const _StudentAnswer({this.selectedOptionIds = const {}, this.textAnswer, this.fileUrls = const []});
 }
 
 class _ExamGradingScreenState extends State<ExamGradingScreen> {
@@ -75,6 +77,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
         a['questionId'] as String: _StudentAnswer(
           selectedOptionIds: {for (final id in (a['selectedOptionIds'] as List?) ?? const []) id as String},
           textAnswer: a['textAnswer'] as String?,
+          fileUrls: (a['fileUrls'] as List?)?.cast<Map<String, dynamic>>() ?? const [],
         ),
     };
 
@@ -84,7 +87,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
       _answersByQuestion
         ..clear()
         ..addAll(answersByQuestion);
-      for (final q in questions.where((q) => q.type == ExamQuestionType.text)) {
+      for (final q in questions.where((q) => q.type.isManuallyGraded)) {
         final existingMark = submission?.marks[q.id];
         _textMarksControllers[q.id] = TextEditingController(text: existingMark?.toString() ?? '');
       }
@@ -110,7 +113,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
   double get _total {
     var total = 0.0;
     for (final q in _questions) {
-      if (q.type == ExamQuestionType.text) {
+      if (q.type.isManuallyGraded) {
         total += (_parsedTextMarksFor(q) ?? 0).clamp(0, q.marks);
       } else {
         total += _autoScoreFor(q);
@@ -123,7 +126,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
 
   bool get _canSave {
     if (_questions.isEmpty) return false;
-    for (final q in _questions.where((q) => q.type == ExamQuestionType.text)) {
+    for (final q in _questions.where((q) => q.type.isManuallyGraded)) {
       final marks = _parsedTextMarksFor(q);
       if (marks == null || marks < 0 || marks > q.marks) return false;
     }
@@ -135,7 +138,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
     setState(() => _saving = true);
     final marks = {
       for (final q in _questions)
-        q.id: q.type == ExamQuestionType.text ? _parsedTextMarksFor(q)! : _autoScoreFor(q),
+        q.id: q.type.isManuallyGraded ? _parsedTextMarksFor(q)! : _autoScoreFor(q),
     };
     await _gradingRepository.saveGrade(
       contentBlockId: widget.contentBlockId,
@@ -234,15 +237,32 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            if (q.type == ExamQuestionType.text) ...[
+            if (q.type.isManuallyGraded) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-                child: Text(
-                  answer?.textAnswer?.isNotEmpty == true ? answer!.textAnswer! : 'No answer submitted.',
-                  style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-                ),
+                child: q.type == ExamQuestionType.fileUpload
+                    ? (answer?.fileUrls.isNotEmpty == true
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final f in answer!.fileUrls)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: DownloadableFile(
+                                    url: f['url'] as String? ?? '',
+                                    label: f['name'] as String? ?? f['url'] as String? ?? 'Attachment',
+                                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                                  ),
+                                ),
+                            ],
+                          )
+                        : Text('No file submitted.', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)))
+                    : Text(
+                        answer?.textAnswer?.isNotEmpty == true ? answer!.textAnswer! : 'No answer submitted.',
+                        style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                      ),
               ),
               const SizedBox(height: 10),
               Row(

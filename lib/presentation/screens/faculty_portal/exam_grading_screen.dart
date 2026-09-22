@@ -10,19 +10,36 @@ import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 
+/// One roster entry in the grading queue an [ExamGradingScreen] was opened
+/// from — lets "Save and Mark the Next Student" step forward through the
+/// same sorted/paginated order the lecturer was looking at on
+/// [MarkExamScreen] without returning to that screen first.
+typedef GradingQueueEntry = ({String studentId, String studentName});
+
 // ---------------------------------------------------------------------------
 // ExamGradingScreen — one student's exam answers, opened from the roster on
 // MarkExamScreen. Single/multi-choice and true/false questions are
 // auto-marked against the correct option(s) and shown read-only; text and
 // file-upload questions get a manual marks input. Ends in a live running
-// total and Save Marks.
+// total and two save actions: "Save Marks and Exit" (back to the roster)
+// and "Save and Mark the Next Student" (straight to the next student in
+// [orderedStudents]).
 // ---------------------------------------------------------------------------
 class ExamGradingScreen extends StatefulWidget {
   final String contentBlockId;
   final String studentId;
   final String studentName;
+  final List<GradingQueueEntry>? orderedStudents;
+  final int? currentIndex;
 
-  const ExamGradingScreen({super.key, required this.contentBlockId, required this.studentId, required this.studentName});
+  const ExamGradingScreen({
+    super.key,
+    required this.contentBlockId,
+    required this.studentId,
+    required this.studentName,
+    this.orderedStudents,
+    this.currentIndex,
+  });
 
   @override
   State<ExamGradingScreen> createState() => _ExamGradingScreenState();
@@ -133,7 +150,14 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
     return true;
   }
 
-  Future<void> _saveMarks() async {
+  bool get _hasNextStudent {
+    final ordered = widget.orderedStudents;
+    final index = widget.currentIndex;
+    if (ordered == null || index == null) return false;
+    return index + 1 < ordered.length;
+  }
+
+  Future<void> _saveMarks({required bool andExit}) async {
     if (!_canSave) return;
     setState(() => _saving = true);
     final marks = {
@@ -150,7 +174,24 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marks saved.')));
-    Navigator.of(context).pop();
+    if (andExit || !_hasNextStudent) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final ordered = widget.orderedStudents!;
+    final nextIndex = widget.currentIndex! + 1;
+    final next = ordered[nextIndex];
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => ExamGradingScreen(
+          contentBlockId: widget.contentBlockId,
+          studentId: next.studentId,
+          studentName: next.studentName,
+          orderedStudents: ordered,
+          currentIndex: nextIndex,
+        ),
+      ),
+    );
   }
 
   String _formatMarks(double marks) => marks.toStringAsFixed(marks.truncateToDouble() == marks ? 0 : 1);
@@ -323,27 +364,46 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Text(
-              'Total: ${_formatMarks(_total)} / ${_formatMarks(_maxTotal)}',
-              style: FacultyTypography.headlineMd(color: FacultyColors.primary),
-            ),
+          Text(
+            'Total: ${_formatMarks(_total)} / ${_formatMarks(_maxTotal)}',
+            style: FacultyTypography.headlineMd(color: FacultyColors.primary),
           ),
-          ElevatedButton.icon(
-            onPressed: !_canSave || _saving ? null : _saveMarks,
-            icon: _saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.save_outlined, size: 18),
-            label: const Text('Save Marks'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: FacultyColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+          const SizedBox(height: 12),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              OutlinedButton.icon(
+                onPressed: !_canSave || _saving ? null : () => _saveMarks(andExit: true),
+                icon: _saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.logout, size: 18),
+                label: const Text('Save Marks and Exit'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: FacultyColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: !_canSave || _saving || !_hasNextStudent ? null : () => _saveMarks(andExit: false),
+                icon: _saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.navigate_next, size: 18),
+                label: Text(_submission == null ? 'Next' : 'Save and Mark the Next Student'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: FacultyColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
           ),
         ],
       ),

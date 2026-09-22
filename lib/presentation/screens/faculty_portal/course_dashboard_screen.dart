@@ -4,8 +4,10 @@ import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/material_progress.dart';
 import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_content_screen.dart';
@@ -33,9 +35,11 @@ class CourseDashboardScreen extends StatefulWidget {
 }
 
 class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
+  final _client = Supabase.instance.client;
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _materialProgressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
+  final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _showAnnouncementForm = false;
@@ -50,6 +54,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _flaggedCount = 0;
   int _moduleCount = 0;
   int _materialCount = 0;
+  int _totalAssignmentBlocks = 0;
   List<_DeadlineItem> _deadlines = const [];
   List<RosterRow> _rosterRows = const [];
 
@@ -65,10 +70,12 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     final modules = await _facultyRepository.getCourseModules(widget.sectionId);
     final materials = await _facultyRepository.getCourseMaterials(widget.sectionId);
 
-    // The assignment/quiz grading queue and per-student submission columns
-    // are only wired up for the two demo materials this preview seeds
-    // submissions for — see DemoIdentity. Other classes' materials don't
-    // have graded submission data, so those KPIs/columns stay empty.
+    // The Deadlines & Schedule card below still reads the old
+    // module_materials due-date list, and its submitted-count is only
+    // wired up for the two demo materials this preview seeds submissions
+    // for — see DemoIdentity. That card is unrelated to the KPI/roster
+    // numbers below, which are computed for real from every exam/assignment
+    // content block in this class's actual syllabus tree.
     final hasAssignmentMaterial = materials.any((m) => m.id == DemoIdentity.materialAssignment02Id);
     final hasQuizMaterial = materials.any((m) => m.id == DemoIdentity.materialComplianceQuizId);
     final assignmentSubs = hasAssignmentMaterial
@@ -77,35 +84,89 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     final quizSubs = hasQuizMaterial
         ? await _materialProgressRepository.getSubmissionsForMaterial(DemoIdentity.materialComplianceQuizId)
         : const <MaterialProgress>[];
+    final assignmentSubmittedCount = assignmentSubs.where((p) => p.status == 'completed').length;
+    final quizSubmittedCount = quizSubs.where((p) => p.status == 'completed').length;
 
-    final assignmentProgress = <String, MaterialProgress?>{};
-    final quizProgress = <String, MaterialProgress?>{};
-    if (hasAssignmentMaterial || hasQuizMaterial) {
-      await Future.wait([
-        for (final s in students) ...[
-          if (hasAssignmentMaterial)
-            _materialProgressRepository
-                .getProgress(s.studentId, DemoIdentity.materialAssignment02Id)
-                .then((p) => assignmentProgress[s.studentId] = p),
-          if (hasQuizMaterial)
-            _materialProgressRepository
-                .getProgress(s.studentId, DemoIdentity.materialComplianceQuizId)
-                .then((p) => quizProgress[s.studentId] = p),
-        ],
-      ]);
+    // ── Real class-wide assessment coverage (course_modules -> sessions ->
+    // content_blocks, filtered to exam/assignment) plus every submission
+    // against those blocks — this is what backs the KPI row and the
+    // Student Directory's progress/assignment/quiz columns below. ────────
+    final moduleRows = await _client.from('course_modules').select('id').eq('section_id', widget.sectionId);
+    final moduleIds = [for (final row in moduleRows as List) row['id'] as String];
+    final sessionRows = moduleIds.isEmpty
+        ? const <dynamic>[]
+        : await _client.from('sessions').select('id').inFilter('module_id', moduleIds);
+    final sessionIds = [for (final row in sessionRows) row['id'] as String];
+    final assessmentRows = sessionIds.isEmpty
+        ? const <dynamic>[]
+        : await _client
+            .from('content_blocks')
+            .select('id, block_type')
+            .inFilter('session_id', sessionIds)
+            .inFilter('block_type', ['exam', 'assignment']);
+    final assessmentBlocks = [
+      for (final row in assessmentRows) (id: row['id'] as String, type: row['block_type'] as String),
+    ];
+    final typeByBlock = {for (final b in assessmentBlocks) b.id: b.type};
+    final totalAssessments = assessmentBlocks.length;
+    final totalAssignmentBlocks = assessmentBlocks.where((b) => b.type == 'assignment').length;
+    final examBlockIds = [for (final b in assessmentBlocks) if (b.type == 'exam') b.id];
+
+    final examMaxMarks = <String, double>{};
+    for (final id in examBlockIds) {
+      examMaxMarks[id] = await _examRepository.getTotalMarks(id);
+    }
+
+    final blockIds = [for (final b in assessmentBlocks) b.id];
+    final submissionRows = blockIds.isEmpty
+        ? const <dynamic>[]
+        : await _client.from('content_block_submissions').select().inFilter('content_block_id', blockIds);
+    final submissionsByStudent = <String, List<ContentBlockSubmission>>{};
+    for (final row in submissionRows) {
+      final sub = ContentBlockSubmission.fromMap(row as Map<String, dynamic>);
+      submissionsByStudent.putIfAbsent(sub.studentId, () => []).add(sub);
     }
     if (!mounted) return;
 
     final course = assignedCourses.where((c) => c.courseId == widget.courseId).firstOrNull;
-
-    final avgProgress = students.isEmpty
-        ? 0
-        : (students.fold<int>(0, (sum, s) => sum + s.progressPercentage) / students.length).round();
-    final assignmentsToGrade = assignmentSubs.where((p) => p.status == 'completed' && p.score == null).length;
-    final quizzesToGrade = quizSubs.where((p) => p.status == 'completed' && p.score == null).length;
-    final assignmentSubmittedCount = assignmentSubs.where((p) => p.status == 'completed').length;
-    final quizSubmittedCount = quizSubs.where((p) => p.status == 'completed').length;
     final flaggedCount = students.where((s) => s.riskStatus == 'critical').length;
+
+    var assignmentsToGrade = 0;
+    var quizzesToGrade = 0;
+    var progressSum = 0;
+    final rosterRows = <RosterRow>[];
+    for (final s in students) {
+      final subs = submissionsByStudent[s.studentId] ?? const <ContentBlockSubmission>[];
+      final graded = subs.where((sub) => sub.status == 'graded').toList();
+      final pending = subs.where((sub) => sub.status == 'submitted').toList();
+      final gradedAssignments = graded.where((sub) => typeByBlock[sub.contentBlockId] == 'assignment').length;
+      final gradedExams = graded.where((sub) => typeByBlock[sub.contentBlockId] == 'exam').toList();
+
+      assignmentsToGrade += pending.where((sub) => typeByBlock[sub.contentBlockId] == 'assignment').length;
+      quizzesToGrade += pending.where((sub) => typeByBlock[sub.contentBlockId] == 'exam').length;
+
+      final progress = totalAssessments == 0 ? 0 : ((graded.length / totalAssessments) * 100).round();
+      progressSum += progress;
+
+      double? quizAvgPercent;
+      if (gradedExams.isNotEmpty) {
+        final pcts = <double>[
+          for (final sub in gradedExams)
+            if ((examMaxMarks[sub.contentBlockId] ?? 0) > 0) (sub.totalScore ?? 0) / examMaxMarks[sub.contentBlockId]! * 100,
+        ];
+        if (pcts.isNotEmpty) quizAvgPercent = pcts.reduce((a, b) => a + b) / pcts.length;
+      }
+
+      rosterRows.add(RosterRow.fromRoster(
+        s,
+        progress: progress,
+        totalAssignments: totalAssignmentBlocks,
+        gradedAssignments: gradedAssignments,
+        quizAvgPercent: quizAvgPercent,
+        hasPendingSubmission: pending.isNotEmpty,
+      ));
+    }
+    final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
 
     final deadlineMaterials = materials.where((m) => m.dueAt != null).toList()
       ..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
@@ -122,10 +183,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         ),
     ];
 
-    final rosterRows = [
-      for (final s in students) RosterRow.fromRoster(s, assignmentProgress[s.studentId], quizProgress[s.studentId]),
-    ];
-
     setState(() {
       _courseTitle = course?.title ?? 'Course';
       _courseCode = course?.courseCode ?? _courseCode;
@@ -137,6 +194,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _flaggedCount = flaggedCount;
       _moduleCount = modules.length;
       _materialCount = materials.length;
+      _totalAssignmentBlocks = totalAssignmentBlocks;
       _deadlines = deadlines;
       _rosterRows = rosterRows;
       _isLoading = false;
@@ -742,7 +800,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         ? null
         : scored.fold<double>(0, (sum, s) => sum + double.parse(s.quizAvg.replaceAll('%', ''))) / scored.length;
     final assignmentDone = _rosterRows.fold<int>(0, (sum, s) => sum + int.parse(s.assignments.split('/').first));
-    final assignmentCompletionPct = total == 0 ? 0.0 : assignmentDone / (total * 2);
+    final assignmentCompletionPct =
+        total == 0 || _totalAssignmentBlocks == 0 ? 0.0 : assignmentDone / (total * _totalAssignmentBlocks);
     final onPace = _rosterRows.where((s) => s.status != 'Needs Review').length;
 
     return Container(

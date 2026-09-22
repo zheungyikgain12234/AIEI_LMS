@@ -82,11 +82,7 @@ class _CourseCardState extends State<CourseCard> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        c.instructorOrBoard.contains('Dr.') ||
-                                c.instructorOrBoard.contains('Marcus') ||
-                                c.instructorOrBoard.contains('Elena')
-                            ? 'Instructor: ${c.instructorOrBoard}'
-                            : c.instructorOrBoard,
+                        'Instructor: ${c.instructorOrBoard}',
                         style: AppTypography.bodySm(
                           color: AppColors.onSurfaceVariant,
                         ),

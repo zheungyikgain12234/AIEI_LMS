@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
-import 'package:stitch_aiei_lms/domain/models/material_progress.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 
 /// A single roster line, shared by [StudentRosterTable] (desktop) and
 /// [StudentRosterMobileList] (mobile) — built from a [RosterStudent] plus
-/// that student's progress on whichever two materials the caller cares
-/// about grading (assignment/quiz, if any are wired up for the class).
+/// that student's real graded-submission coverage against every
+/// exam/assignment content block in the class (see
+/// [RosterRow.fromRoster]).
 class RosterRow {
   final String studentId;
   final String name;
@@ -48,22 +48,36 @@ class RosterRow {
     this.hasSubmission = false,
   });
 
-  factory RosterRow.fromRoster(RosterStudent s, MaterialProgress? assignment, MaterialProgress? quiz) {
+  /// [progress] is the student's graded-submission coverage across every
+  /// exam/assignment content block in the class (graded / total, as a
+  /// percentage) — computed by the caller from `content_block_submissions`.
+  /// [totalAssignments]/[gradedAssignments] are the assignment-only subset
+  /// of that same count; [quizAvgPercent] is the average score (as a
+  /// percentage of each exam's total marks) across the student's graded
+  /// exam submissions, or null if none are graded yet.
+  factory RosterRow.fromRoster(
+    RosterStudent s, {
+    required int progress,
+    required int totalAssignments,
+    required int gradedAssignments,
+    required double? quizAvgPercent,
+    required bool hasPendingSubmission,
+  }) {
     final (progressTag, progressColor) = _paceFor(s.riskStatus);
     final (status, statusBg) = _standingFor(s.riskStatus);
 
-    final doneCount = [assignment, quiz].where((p) => p?.status == 'completed').length;
-    final hasSubmission = assignment != null && assignment.status == 'completed' && assignment.score == null;
-
     String assignmentsTag;
     Color assignmentsTagBg;
-    if (hasSubmission) {
+    if (hasPendingSubmission) {
       assignmentsTag = 'Pending Review';
       assignmentsTagBg = FacultyColors.surfaceContainerHigh;
-    } else if (doneCount == 2) {
-      assignmentsTag = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(0)}% Graded' : 'Graded';
+    } else if (totalAssignments == 0) {
+      assignmentsTag = 'No Assignments';
       assignmentsTagBg = FacultyColors.surfaceContainer;
-    } else if (doneCount == 1) {
+    } else if (gradedAssignments == totalAssignments) {
+      assignmentsTag = 'Graded';
+      assignmentsTagBg = FacultyColors.surfaceContainer;
+    } else if (gradedAssignments > 0) {
       assignmentsTag = 'In Progress';
       assignmentsTagBg = FacultyColors.surfaceContainerHigh;
     } else if (s.riskStatus == 'critical') {
@@ -79,18 +93,18 @@ class RosterRow {
       name: s.name,
       role: s.title ?? 'Enrolled Student',
       studentCode: s.studentCode,
-      progress: s.progressPercentage,
+      progress: progress,
       progressTag: progressTag,
       progressColor: progressColor,
-      assignments: '$doneCount/2',
+      assignments: '$gradedAssignments/$totalAssignments',
       assignmentsTag: assignmentsTag,
       assignmentsTagBg: assignmentsTagBg,
-      quizAvg: s.overallScore != null ? '${s.overallScore!.toStringAsFixed(1)}%' : '—',
+      quizAvg: quizAvgPercent != null ? '${quizAvgPercent.toStringAsFixed(1)}%' : '—',
       lastActive: _formatLastActive(s.lastActivityAt),
       status: status,
       statusBg: statusBg,
       flagged: s.riskStatus == 'critical',
-      hasSubmission: hasSubmission,
+      hasSubmission: hasPendingSubmission,
     );
   }
 

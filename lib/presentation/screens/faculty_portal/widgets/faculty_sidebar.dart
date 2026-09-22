@@ -51,32 +51,6 @@ class FacultySidebar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: FacultyColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.verified, color: FacultyColors.primary, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Term 2024-Q3', overflow: TextOverflow.ellipsis, style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                        Text('Active Academic Session', overflow: TextOverflow.ellipsis, style: FacultyTypography.labelXs()),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

@@ -44,6 +44,17 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     };
 
     final sectionIds = sectionByCourse.values.toSet().toList();
+    final sectionRows = sectionIds.isEmpty
+        ? <dynamic>[]
+        : await _client
+            .from('course_sections')
+            .select('id, lecturers(name)')
+            .inFilter('id', sectionIds);
+    final lecturerNameBySection = <String, String>{
+      for (final row in sectionRows)
+        if (row['lecturers'] != null) row['id'] as String: row['lecturers']['name'] as String,
+    };
+
     final moduleRows = sectionIds.isEmpty
         ? <dynamic>[]
         : await _client
@@ -83,6 +94,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
             modulesBySection[sectionByCourse[course['id']]] ?? const [],
             completedMaterialIds,
             sectionByCourse[course['id']],
+            lecturerNameBySection[sectionByCourse[course['id']]],
           ),
     ];
   }
@@ -93,6 +105,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     List<Map<String, dynamic>> courseModules,
     Set<String> completedMaterialIds,
     String? sectionId,
+    String? lecturerName,
   ) {
     final id = course['id'] as String;
     final category = CourseCategory.fromKey(course['category'] as String);
@@ -138,7 +151,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       title: course['course_title'] as String,
       category: category,
       sectionId: sectionId,
-      instructorOrBoard: 'AIEI Faculty',
+      instructorOrBoard: lecturerName ?? 'AIEI Faculty',
       instructorIcon: categoryIcon,
       instructorIconColor: AppColors.secondary,
       imageUrl: course['image_url'] as String? ?? '',

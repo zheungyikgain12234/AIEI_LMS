@@ -172,7 +172,7 @@ create table course_sections (
   course_id uuid not null references courses(id) on delete cascade,
   section_code text not null unique,
   role_label text not null default 'Primary Instructor',
-  term text not null default 'Fall 2025',
+  term text not null default 'AY2025 Term 2',
   schedule_text text not null default 'TBD',
   day_of_week text check (day_of_week in ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
   start_time time,

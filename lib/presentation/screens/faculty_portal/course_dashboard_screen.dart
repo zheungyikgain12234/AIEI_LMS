@@ -51,6 +51,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _avgProgress = 0;
   int _assignmentsToGrade = 0;
   int _quizzesToGrade = 0;
+  int _assignmentNonSubmissions = 0;
+  int _quizNonSubmissions = 0;
   int _flaggedCount = 0;
   int _moduleCount = 0;
   int _materialCount = 0;
@@ -101,16 +103,24 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         ? const <dynamic>[]
         : await _client
             .from('content_blocks')
-            .select('id, block_type')
+            .select('id, block_type, block_content')
             .inFilter('session_id', sessionIds)
             .inFilter('block_type', ['exam', 'assignment']);
     final assessmentBlocks = [
-      for (final row in assessmentRows) (id: row['id'] as String, type: row['block_type'] as String),
+      for (final row in assessmentRows)
+        (
+          id: row['id'] as String,
+          type: row['block_type'] as String,
+          dueDate: DateTime.tryParse((row['block_content'] as Map<String, dynamic>?)?['dueDate'] as String? ?? ''),
+        ),
     ];
     final typeByBlock = {for (final b in assessmentBlocks) b.id: b.type};
     final totalAssessments = assessmentBlocks.length;
     final totalAssignmentBlocks = assessmentBlocks.where((b) => b.type == 'assignment').length;
+    final totalExamBlocks = assessmentBlocks.where((b) => b.type == 'exam').length;
     final examBlockIds = [for (final b in assessmentBlocks) if (b.type == 'exam') b.id];
+    final now = DateTime.now();
+    final overdueBlockIds = {for (final b in assessmentBlocks) if (b.dueDate != null && b.dueDate!.isBefore(now)) b.id};
 
     final examMaxMarks = <String, double>{};
     for (final id in examBlockIds) {
@@ -129,21 +139,33 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     if (!mounted) return;
 
     final course = assignedCourses.where((c) => c.courseId == widget.courseId).firstOrNull;
-    final flaggedCount = students.where((s) => s.riskStatus == 'critical').length;
 
     var assignmentsToGrade = 0;
     var quizzesToGrade = 0;
+    var assignmentNonSubmissions = 0;
+    var quizNonSubmissions = 0;
+    var flaggedCount = 0;
     var progressSum = 0;
     final rosterRows = <RosterRow>[];
     for (final s in students) {
       final subs = submissionsByStudent[s.studentId] ?? const <ContentBlockSubmission>[];
+      final submittedBlockIds = {for (final sub in subs) sub.contentBlockId};
       final graded = subs.where((sub) => sub.status == 'graded').toList();
       final pending = subs.where((sub) => sub.status == 'submitted').toList();
       final gradedAssignments = graded.where((sub) => typeByBlock[sub.contentBlockId] == 'assignment').length;
       final gradedExams = graded.where((sub) => typeByBlock[sub.contentBlockId] == 'exam').toList();
+      final presentAssignments = subs.where((sub) => typeByBlock[sub.contentBlockId] == 'assignment').length;
+      final presentExams = subs.where((sub) => typeByBlock[sub.contentBlockId] == 'exam').length;
 
       assignmentsToGrade += pending.where((sub) => typeByBlock[sub.contentBlockId] == 'assignment').length;
       quizzesToGrade += pending.where((sub) => typeByBlock[sub.contentBlockId] == 'exam').length;
+      assignmentNonSubmissions += totalAssignmentBlocks - presentAssignments;
+      quizNonSubmissions += totalExamBlocks - presentExams;
+
+      // Behind schedule = at least one exam/assignment whose due date has
+      // passed with no submission recorded for this student at all.
+      final hasOverdue = overdueBlockIds.any((id) => !submittedBlockIds.contains(id));
+      if (hasOverdue) flaggedCount++;
 
       final progress = totalAssessments == 0 ? 0 : ((graded.length / totalAssessments) * 100).round();
       progressSum += progress;
@@ -164,6 +186,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         gradedAssignments: gradedAssignments,
         quizAvgPercent: quizAvgPercent,
         hasPendingSubmission: pending.isNotEmpty,
+        hasOverdueSubmission: hasOverdue,
       ));
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
@@ -191,6 +214,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _avgProgress = avgProgress;
       _assignmentsToGrade = assignmentsToGrade;
       _quizzesToGrade = quizzesToGrade;
+      _assignmentNonSubmissions = assignmentNonSubmissions;
+      _quizNonSubmissions = quizNonSubmissions;
       _flaggedCount = flaggedCount;
       _moduleCount = modules.length;
       _materialCount = materials.length;
@@ -436,9 +461,9 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         _kpiCard('ENROLLED STUDENTS', '$_enrolledCount', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
             footer: 'Live roster count'),
         _kpiCard('ASSIGNMENTS TO GRADE', '$_assignmentsToGrade', Icons.assignment_turned_in_outlined, FacultyColors.onSecondaryFixedVariant, FacultyColors.secondaryContainer,
-            footer: '$_assignmentsToGrade pending submissions', footerColor: FacultyColors.onSecondaryFixedVariant, pillFooter: true),
+            footer: '$_assignmentNonSubmissions non-submissions', footerColor: FacultyColors.onSecondaryFixedVariant, pillFooter: true),
         _kpiCard('QUIZZES TO GRADE', '$_quizzesToGrade', Icons.quiz_outlined, FacultyColors.primary, FacultyColors.surfaceContainerHigh,
-            footer: '$_quizzesToGrade open-ended manual checks'),
+            footer: '$_quizNonSubmissions non-submissions'),
         _kpiCard('AVG. COHORT PROGRESS', '$_avgProgress%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
             progress: _avgProgress / 100),
       ];

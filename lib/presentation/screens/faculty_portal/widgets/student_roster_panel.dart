@@ -26,8 +26,7 @@ class RosterRow {
   final bool flagged;
   final bool hasSubmission;
 
-  Color get statusColor =>
-      status == 'Needs Review' ? FacultyColors.onErrorContainer : (status == 'Top Performer' ? FacultyColors.primary : FacultyColors.tertiary);
+  Color get statusColor => flagged ? FacultyColors.error : (status == 'Top Performer' ? FacultyColors.primary : FacultyColors.tertiary);
 
   const RosterRow({
     required this.studentId,
@@ -54,7 +53,10 @@ class RosterRow {
   /// [totalAssignments]/[gradedAssignments] are the assignment-only subset
   /// of that same count; [quizAvgPercent] is the average score (as a
   /// percentage of each exam's total marks) across the student's graded
-  /// exam submissions, or null if none are graded yet.
+  /// exam submissions, or null if none are graded yet. [hasOverdueSubmission]
+  /// is true when the student has at least one exam/assignment past its due
+  /// date with no submission recorded — the sole driver of pace/status/
+  /// flagged below, computed live rather than read from a stored column.
   factory RosterRow.fromRoster(
     RosterStudent s, {
     required int progress,
@@ -62,9 +64,10 @@ class RosterRow {
     required int gradedAssignments,
     required double? quizAvgPercent,
     required bool hasPendingSubmission,
+    required bool hasOverdueSubmission,
   }) {
-    final (progressTag, progressColor) = _paceFor(s.riskStatus);
-    final (status, statusBg) = _standingFor(s.riskStatus);
+    final (progressTag, progressColor) = _paceFor(hasOverdueSubmission);
+    final (status, statusBg) = _standingFor(hasOverdueSubmission);
 
     String assignmentsTag;
     Color assignmentsTagBg;
@@ -80,7 +83,7 @@ class RosterRow {
     } else if (gradedAssignments > 0) {
       assignmentsTag = 'In Progress';
       assignmentsTagBg = FacultyColors.surfaceContainerHigh;
-    } else if (s.riskStatus == 'critical') {
+    } else if (hasOverdueSubmission) {
       assignmentsTag = 'Assignment Late';
       assignmentsTagBg = FacultyColors.errorContainer;
     } else {
@@ -103,32 +106,16 @@ class RosterRow {
       lastActive: _formatLastActive(s.lastActivityAt),
       status: status,
       statusBg: statusBg,
-      flagged: s.riskStatus == 'critical',
+      flagged: hasOverdueSubmission,
       hasSubmission: hasPendingSubmission,
     );
   }
 
-  static (String, Color) _paceFor(String riskStatus) {
-    switch (riskStatus) {
-      case 'critical':
-        return ('Stalled', FacultyColors.error);
-      case 'at_risk':
-        return ('Behind', FacultyColors.secondary);
-      default:
-        return ('On Pace', FacultyColors.tertiary);
-    }
-  }
+  static (String, Color) _paceFor(bool behind) =>
+      behind ? ('Behind', FacultyColors.error) : ('On Pace', FacultyColors.tertiary);
 
-  static (String, Color) _standingFor(String riskStatus) {
-    switch (riskStatus) {
-      case 'critical':
-        return ('Needs Review', FacultyColors.errorContainer);
-      case 'at_risk':
-        return ('Behind Schedule', FacultyColors.surfaceContainer);
-      default:
-        return ('On Track', FacultyColors.surfaceContainer);
-    }
-  }
+  static (String, Color) _standingFor(bool behind) =>
+      behind ? ('Behind Schedule', FacultyColors.errorContainer) : ('On Track', FacultyColors.surfaceContainer);
 
   static String _formatLastActive(DateTime dt) {
     final diff = DateTime.now().difference(dt);

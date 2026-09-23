@@ -27,11 +27,11 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     required String name,
     required String studentCode,
     required String email,
-    required String department,
+    required StudentType studentType,
+    String? department,
     String? title,
-    required String programTrack,
-    required String cohort,
-    required String role,
+    String? programTrack,
+    String? role,
     required DateTime registrationDate,
   }) async {
     final row = await _client
@@ -40,10 +40,10 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'name': name,
           'student_code': studentCode,
           'email': email,
+          'student_type': studentType.label,
           'department': department,
           'title': title,
           'program_track': programTrack,
-          'cohort': cohort,
           'role': role,
           'registration_date': registrationDate.toIso8601String().substring(0, 10),
         })
@@ -58,11 +58,11 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     required String name,
     required String studentCode,
     required String email,
-    required String department,
+    required StudentType studentType,
+    String? department,
     String? title,
-    required String programTrack,
-    required String cohort,
-    required String role,
+    String? programTrack,
+    String? role,
     required DateTime registrationDate,
     double? gpa,
   }) async {
@@ -72,10 +72,10 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'name': name,
           'student_code': studentCode,
           'email': email,
+          'student_type': studentType.label,
           'department': department,
           'title': title,
           'program_track': programTrack,
-          'cohort': cohort,
           'role': role,
           'registration_date': registrationDate.toIso8601String().substring(0, 10),
           if (gpa != null) 'gpa': gpa,
@@ -110,15 +110,18 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
 
   @override
   Future<Map<String, List<String>>> getEarnedCredentialTitles() async {
-    final rows = await _client
-        .from('student_certifications')
-        .select('student_id, status, certifications(title)')
-        .inFilter('status', ['earned', 'revoked']);
+    // `badge_awards` is the live ledger of course-completion badges — the
+    // same table the "Manage Badges" screen grants/revokes against and the
+    // one auto-populated when a student finishes a course — so this must
+    // read from it rather than the older, disconnected
+    // `student_certifications` compliance-cert table, or a badge granted
+    // (manually or automatically) elsewhere would never show up here.
+    final rows = await _client.from('badge_awards').select('student_id, is_revoked, certifications(title)');
     final result = <String, List<String>>{};
     for (final row in rows as List) {
       final id = (row['student_id'] as num).toString();
       final title = (row['certifications'] as Map<String, dynamic>)['title'] as String;
-      final label = row['status'] == 'revoked' ? '$title (Revoked)' : title;
+      final label = row['is_revoked'] == true ? '$title (Revoked)' : title;
       result.putIfAbsent(id, () => []).add(label);
     }
     return result;
@@ -129,7 +132,10 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     final rows = await _client.from('students').select('program_track');
     final counts = <String, int>{};
     for (final row in rows as List) {
-      final track = row['program_track'] as String;
+      // Internal students have no program_track (they're tracked by
+      // department/role instead) — skip them rather than crash.
+      final track = row['program_track'] as String?;
+      if (track == null) continue;
       counts[track] = (counts[track] ?? 0) + 1;
     }
     return [

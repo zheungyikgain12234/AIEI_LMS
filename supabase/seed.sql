@@ -78,17 +78,20 @@ insert into lecturers (id, name, title, lecturer_code, email, department, specia
   -- lib/core/config/demo_identity.dart's DemoIdentity.lecturerId.
   ('11111111-1111-1111-1111-111111111106', 'Dr. Emmett Brown', 'Distinguished Research Fellow', 'TN01-EMP-1985', 'e.brown@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2023-02-11');
 
-insert into students (id, name, student_code, email, department, title, program_track, cohort, role, gpa, registration_date) overriding system value values
-  (1, 'Alex Chen', 'TN01-EMP-88219', 'alex.chen@enterprise.com', 'Operations', 'Product Analyst • Operations', 'Data Architecture Specialist', 'January 2025 Intake', 'Data Analyst', 3.76, '2025-08-18'),
-  (2, 'Maya Patel', 'TN01-EMP-74102', 'maya.patel@enterprise.com', 'Business Intelligence', 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'January 2025 Intake', 'Data Analyst', 3.92, '2025-08-19'),
-  (3, 'Marcus Reed', 'TN01-EMP-91024', 'marcus.reed@enterprise.com', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', 'Executive Operations', 'Executive Cohort 2025', 'Financial Analyst', 2.90, '2025-05-02'),
-  (4, 'Elena Rostova Jr.', 'TN01-EMP-60211', 'e.rostovajr@enterprise.com', 'Global Risk', 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'May 2025 Intake', 'Compliance Officer', 3.40, '2025-01-13'),
-  (5, 'David Kim', 'TN01-EMP-43890', 'david.kim@enterprise.com', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', 'Cloud & Distributed Systems', 'January 2025 Intake', 'Data Analyst', 3.55, '2025-08-20'),
-  (6, 'Sophia Loren', 'TN01-EMP-55198', 's.loren@enterprise.com', 'Supply Chain', 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'January 2025 Intake', 'Data Analyst', 3.10, '2025-08-21'),
-  (7, 'Jordan Taylor', 'TN01-EMP-99214', 'jordan.taylor@enterprise.com', 'Workplace Safety', 'Safety Compliance Associate', 'Workplace Safety Track', 'May 2025 Intake', 'Safety Officer', 2.60, '2025-01-14'),
-  (8, 'Sarah Jenkins', 'TN01-EMP-33109', 'sarah.jenkins@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'January 2025 Intake', 'Cloud Engineer', 3.70, '2025-08-22'),
-  (9, 'Liam Nguyen', 'TN01-EMP-66381', 'liam.nguyen@enterprise.com', 'Data Architecture', 'Data Architecture Associate', 'Data Architecture & Analytics', 'January 2025 Intake', 'IT Support Specialist', 3.30, '2025-08-23'),
-  (10, 'Chloe Bennett', 'TN01-EMP-44820', 'chloe.bennett@enterprise.com', 'Data Architecture', 'Junior Data Analyst', 'Data Architecture & Analytics', 'January 2025 Intake', 'Data Analyst', 3.35, '2025-08-24');
+-- Alternating Internal (department + role, no track) / External (track, no
+-- department/role) so both the registration form and the Role/Dept-vs-Track
+-- enrollment-mismatch flagging have real mixed data to exercise.
+insert into students (id, name, student_code, email, student_type, department, title, program_track, cohort, role, gpa, registration_date) overriding system value values
+  (1, 'Alex Chen', 'TN01-EMP-88219', 'alex.chen@enterprise.com', 'Internal', 'Operations', 'Product Analyst • Operations', null, 'January 2025 Intake', 'Data Analyst', 3.76, '2025-08-18'),
+  (2, 'Maya Patel', 'TN01-EMP-74102', 'maya.patel@enterprise.com', 'External', null, 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'January 2025 Intake', null, 3.92, '2025-08-19'),
+  (3, 'Marcus Reed', 'TN01-EMP-91024', 'marcus.reed@enterprise.com', 'Internal', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', null, 'Executive Cohort 2025', 'Financial Analyst', 2.90, '2025-05-02'),
+  (4, 'Elena Rostova Jr.', 'TN01-EMP-60211', 'e.rostovajr@enterprise.com', 'External', null, 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'May 2025 Intake', null, 3.40, '2025-01-13'),
+  (5, 'David Kim', 'TN01-EMP-43890', 'david.kim@enterprise.com', 'Internal', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', null, 'January 2025 Intake', 'Data Analyst', 3.55, '2025-08-20'),
+  (6, 'Sophia Loren', 'TN01-EMP-55198', 's.loren@enterprise.com', 'External', null, 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'January 2025 Intake', null, 3.10, '2025-08-21'),
+  (7, 'Jordan Taylor', 'TN01-EMP-99214', 'jordan.taylor@enterprise.com', 'Internal', 'Workplace Safety', 'Safety Compliance Associate', null, 'May 2025 Intake', 'Safety Officer', 2.60, '2025-01-14'),
+  (8, 'Sarah Jenkins', 'TN01-EMP-33109', 'sarah.jenkins@enterprise.com', 'External', null, 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'January 2025 Intake', null, 3.70, '2025-08-22'),
+  (9, 'Liam Nguyen', 'TN01-EMP-66381', 'liam.nguyen@enterprise.com', 'Internal', 'Data Architecture', 'Data Architecture Associate', null, 'January 2025 Intake', 'IT Support Specialist', 3.30, '2025-08-23'),
+  (10, 'Chloe Bennett', 'TN01-EMP-44820', 'chloe.bennett@enterprise.com', 'External', null, 'Junior Data Analyst', 'Data Architecture & Analytics', 'January 2025 Intake', null, 3.35, '2025-08-24');
 
 -- Keep the identity sequence ahead of the explicit ids inserted above, so
 -- the next `insert into students (name, ...)` (no id given — e.g. Register
@@ -763,15 +766,15 @@ insert into lecturers (id, name, title, lecturer_code, email, department, specia
 
 -- ── More students (ids 11–18) ────────────────────────────────────────
 
-insert into students (id, name, student_code, email, department, title, program_track, cohort, role, gpa, registration_date) overriding system value values
-  (11, 'Wei Xin Tan', 'TN01-EMP-10122', 'weixin.tan@enterprise.com', 'Finance', 'FP&A Associate • Finance', 'Financial Analytics Track', 'September 2025 Intake', 'Financial Analyst', 3.45, '2025-09-01'),
-  (12, 'Nadia Rahman', 'TN01-EMP-10233', 'nadia.rahman@enterprise.com', 'Product & UX', 'Associate Product Manager', 'Product & UX Track', 'May 2025 Intake', 'Product Manager', 3.60, '2025-01-15'),
-  (13, 'Kai Zhang', 'TN01-EMP-10344', 'kai.zhang@enterprise.com', 'Cloud Engineering', 'Cloud Platform Engineer II', 'Cloud & Distributed Computing', 'January 2025 Intake', 'Cloud Engineer', 3.50, '2025-08-25'),
-  (14, 'Farah Ibrahim', 'TN01-EMP-10455', 'farah.ibrahim@enterprise.com', 'Supply Chain', 'Demand Planning Analyst', 'General Enterprise Track', 'January 2025 Intake', 'Data Analyst', 3.20, '2025-08-26'),
-  (15, 'Ethan Goh', 'TN01-EMP-10566', 'ethan.goh@enterprise.com', 'Data Architecture', 'Data Platform Associate', 'Data Architecture & Analytics', 'September 2025 Intake', 'IT Support Specialist', 3.15, '2025-09-02'),
-  (16, 'Priya Sundaram', 'TN01-EMP-10677', 'priya.sundaram@enterprise.com', 'Global Risk', 'Compliance Analyst • Global Risk', 'Workplace Safety Track', 'May 2025 Intake', 'Compliance Officer', 3.65, '2025-01-16'),
-  (17, 'Marcus Lee', 'TN01-EMP-10788', 'marcus.lee@enterprise.com', 'Analytics Platform', 'ML Ops Associate • Analytics Platform', 'AI & Machine Learning', 'January 2025 Intake', 'Data Analyst', 3.80, '2025-08-27'),
-  (18, 'Hannah Wong', 'TN01-EMP-10899', 'hannah.wong@enterprise.com', 'Business Intelligence', 'BI Associate • BI Group', 'AI Engineering Track', 'January 2025 Intake', 'Data Analyst', 3.72, '2025-08-28');
+insert into students (id, name, student_code, email, student_type, department, title, program_track, cohort, role, gpa, registration_date) overriding system value values
+  (11, 'Wei Xin Tan', 'TN01-EMP-10122', 'weixin.tan@enterprise.com', 'Internal', 'Finance', 'FP&A Associate • Finance', null, 'September 2025 Intake', 'Financial Analyst', 3.45, '2025-09-01'),
+  (12, 'Nadia Rahman', 'TN01-EMP-10233', 'nadia.rahman@enterprise.com', 'External', null, 'Associate Product Manager', 'Product & UX Track', 'May 2025 Intake', null, 3.60, '2025-01-15'),
+  (13, 'Kai Zhang', 'TN01-EMP-10344', 'kai.zhang@enterprise.com', 'Internal', 'Cloud Engineering', 'Cloud Platform Engineer II', null, 'January 2025 Intake', 'Cloud Engineer', 3.50, '2025-08-25'),
+  (14, 'Farah Ibrahim', 'TN01-EMP-10455', 'farah.ibrahim@enterprise.com', 'External', null, 'Demand Planning Analyst', 'General Enterprise Track', 'January 2025 Intake', null, 3.20, '2025-08-26'),
+  (15, 'Ethan Goh', 'TN01-EMP-10566', 'ethan.goh@enterprise.com', 'Internal', 'Data Architecture', 'Data Platform Associate', null, 'September 2025 Intake', 'IT Support Specialist', 3.15, '2025-09-02'),
+  (16, 'Priya Sundaram', 'TN01-EMP-10677', 'priya.sundaram@enterprise.com', 'External', null, 'Compliance Analyst • Global Risk', 'Workplace Safety Track', 'May 2025 Intake', null, 3.65, '2025-01-16'),
+  (17, 'Marcus Lee', 'TN01-EMP-10788', 'marcus.lee@enterprise.com', 'Internal', 'Analytics Platform', 'ML Ops Associate • Analytics Platform', null, 'January 2025 Intake', 'Data Analyst', 3.80, '2025-08-27'),
+  (18, 'Hannah Wong', 'TN01-EMP-10899', 'hannah.wong@enterprise.com', 'External', null, 'BI Associate • BI Group', 'AI Engineering Track', 'January 2025 Intake', null, 3.72, '2025-08-28');
 
 select setval(pg_get_serial_sequence('students', 'id'), 18, true);
 

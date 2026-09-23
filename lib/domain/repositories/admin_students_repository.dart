@@ -10,30 +10,34 @@ abstract class AdminStudentsRepository {
 
   /// Inserts a new student row (the `id` is auto-assigned by the database's
   /// identity column) and returns it. GPA is not settable at registration —
-  /// it defaults to 0 in the database.
+  /// it defaults to 0 in the database. [department]/[role] are required for
+  /// [StudentType.internal] and must be omitted for [StudentType.external],
+  /// which requires [programTrack] instead — matching the `students` table's
+  /// `students_type_fields_check` constraint.
   Future<Student> createStudent({
     required String name,
     required String studentCode,
     required String email,
-    required String department,
+    required StudentType studentType,
+    String? department,
     String? title,
-    required String programTrack,
-    required String cohort,
-    required String role,
+    String? programTrack,
+    String? role,
     required DateTime registrationDate,
   });
 
-  /// [gpa] is left unchanged when omitted.
+  /// [gpa] is left unchanged when omitted. See [createStudent] for the
+  /// department/role vs. programTrack requirements per [studentType].
   Future<Student> updateStudent(
     String id, {
     required String name,
     required String studentCode,
     required String email,
-    required String department,
+    required StudentType studentType,
+    String? department,
     String? title,
-    required String programTrack,
-    required String cohort,
-    required String role,
+    String? programTrack,
+    String? role,
     required DateTime registrationDate,
     double? gpa,
   });

@@ -16,11 +16,13 @@ import 'widgets/admin_field_label.dart';
 // its primary key); omit it to register a new student. Saving pops back to
 // the caller with the created/updated Student so the table can refresh.
 //
-// Department / Program Track / Cohort are selected from the admin-managed
+// Department / Program Track / Role are selected from the admin-managed
 // master data lists (Manage Departments / Manage Program Tracks / Manage
-// Cohorts) rather than freely typed, so the values always satisfy the
+// Roles) rather than freely typed, so the values always satisfy the
 // `students` table's foreign keys. GPA is not editable here — it defaults
 // to 0 in the database and is updated elsewhere as the student progresses.
+// Cohort isn't collected here either — it follows from whichever class the
+// student is later enrolled into.
 // ---------------------------------------------------------------------------
 class StudentFormScreen extends ConsumerStatefulWidget {
   final String? studentId;
@@ -45,11 +47,10 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
   List<String> _departments = [];
   List<String> _programTracks = [];
-  List<String> _cohorts = [];
   List<String> _roles = [];
+  StudentType _studentType = StudentType.internal;
   String? _selectedDepartment;
   String? _selectedProgramTrack;
-  String? _selectedCohort;
   String? _selectedRole;
   DateTime? _registrationDate;
 
@@ -77,7 +78,6 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
     try {
       final departments = await _masterDataRepository.getDepartments();
       final programTracks = await _masterDataRepository.getProgramTracks();
-      final cohorts = await _masterDataRepository.getCohorts();
       final roles = await _masterDataRepository.getRoles();
       Student? student;
       if (widget.isEditing) {
@@ -87,16 +87,15 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       setState(() {
         _departments = [for (final d in departments) d.name];
         _programTracks = [for (final t in programTracks) t.name];
-        _cohorts = [for (final c in cohorts) c.name];
         _roles = [for (final r in roles) r.name];
         if (student != null) {
           _nameController.text = student.name;
           _studentCodeController.text = _stripTenantPrefix(student.studentCode);
           _emailController.text = student.email;
           _titleController.text = student.title ?? '';
+          _studentType = student.studentType;
           _selectedDepartment = _departments.contains(student.department) ? student.department : null;
           _selectedProgramTrack = _programTracks.contains(student.programTrack) ? student.programTrack : null;
-          _selectedCohort = _cohorts.contains(student.cohort) ? student.cohort : null;
           _selectedRole = _roles.contains(student.role) ? student.role : null;
           _registrationDate = student.registrationDate;
         }
@@ -129,6 +128,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
     });
     try {
       final title = _titleController.text.trim();
+      final isInternal = _studentType == StudentType.internal;
       final Student saved;
       if (widget.isEditing) {
         saved = await _repository.updateStudent(
@@ -136,11 +136,11 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           name: _nameController.text.trim(),
           studentCode: '${_tenantPrefix()}${_studentCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
-          department: _selectedDepartment!,
+          studentType: _studentType,
+          department: isInternal ? _selectedDepartment : null,
           title: title.isEmpty ? null : title,
-          programTrack: _selectedProgramTrack!,
-          cohort: _selectedCohort!,
-          role: _selectedRole!,
+          programTrack: isInternal ? null : _selectedProgramTrack,
+          role: isInternal ? _selectedRole : null,
           registrationDate: _registrationDate!,
         );
       } else {
@@ -148,11 +148,11 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           name: _nameController.text.trim(),
           studentCode: '${_tenantPrefix()}${_studentCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
-          department: _selectedDepartment!,
+          studentType: _studentType,
+          department: isInternal ? _selectedDepartment : null,
           title: title.isEmpty ? null : title,
-          programTrack: _selectedProgramTrack!,
-          cohort: _selectedCohort!,
-          role: _selectedRole!,
+          programTrack: isInternal ? null : _selectedProgramTrack,
+          role: isInternal ? _selectedRole : null,
           registrationDate: _registrationDate!,
         );
       }
@@ -220,41 +220,37 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                           const SizedBox(height: 14),
                           _field(controller: _studentCodeController, label: 'Student Code', hint: 'EMP-88219'),
                           const SizedBox(height: 14),
-                          _field(controller: _emailController, label: 'Email', hint: 'alex.chen@enterprise.com', keyboardType: TextInputType.emailAddress),
+                          _studentTypeToggle(),
                           const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Department',
-                            hint: 'Select a department',
-                            value: _selectedDepartment,
-                            options: _departments,
-                            onChanged: (v) => setState(() => _selectedDepartment = v),
-                          ),
+                          _field(controller: _emailController, label: 'Email', hint: 'alex.chen@enterprise.com', keyboardType: TextInputType.emailAddress),
                           const SizedBox(height: 14),
                           _field(controller: _titleController, label: 'Title (optional)', hint: 'Product Analyst • Operations', required: false),
                           const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Program Track',
-                            hint: 'Select a program track',
-                            value: _selectedProgramTrack,
-                            options: _programTracks,
-                            onChanged: (v) => setState(() => _selectedProgramTrack = v),
-                          ),
-                          const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Cohort',
-                            hint: 'Select a cohort',
-                            value: _selectedCohort,
-                            options: _cohorts,
-                            onChanged: (v) => setState(() => _selectedCohort = v),
-                          ),
-                          const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Role',
-                            hint: 'Select a role',
-                            value: _selectedRole,
-                            options: _roles,
-                            onChanged: (v) => setState(() => _selectedRole = v),
-                          ),
+                          if (_studentType == StudentType.external) ...[
+                            _dropdown(
+                              label: 'Program Track',
+                              hint: 'Select a program track',
+                              value: _selectedProgramTrack,
+                              options: _programTracks,
+                              onChanged: (v) => setState(() => _selectedProgramTrack = v),
+                            ),
+                          ] else ...[
+                            _dropdown(
+                              label: 'Role',
+                              hint: 'Select a role',
+                              value: _selectedRole,
+                              options: _roles,
+                              onChanged: (v) => setState(() => _selectedRole = v),
+                            ),
+                            const SizedBox(height: 14),
+                            _dropdown(
+                              label: 'Department',
+                              hint: 'Select a department',
+                              value: _selectedDepartment,
+                              options: _departments,
+                              onChanged: (v) => setState(() => _selectedDepartment = v),
+                            ),
+                          ],
                           const SizedBox(height: 14),
                           _datePicker(
                             label: 'Registration Date',
@@ -339,6 +335,34 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
           validator: validator ?? (required ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null : null),
+        ),
+      ],
+    );
+  }
+
+  Widget _studentTypeToggle() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AdminFieldLabel('Student Type'),
+        const SizedBox(height: 6),
+        SegmentedButton<StudentType>(
+          segments: const [
+            ButtonSegment(value: StudentType.internal, label: Text('Internal')),
+            ButtonSegment(value: StudentType.external, label: Text('External')),
+          ],
+          selected: {_studentType},
+          onSelectionChanged: (selection) => setState(() {
+            _studentType = selection.first;
+            // Clear whichever fields the new type doesn't use, so a stale
+            // selection from before switching can't be silently submitted.
+            if (_studentType == StudentType.external) {
+              _selectedRole = null;
+              _selectedDepartment = null;
+            } else {
+              _selectedProgramTrack = null;
+            }
+          }),
         ),
       ],
     );

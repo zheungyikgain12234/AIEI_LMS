@@ -5,7 +5,6 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_role_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badges_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
@@ -34,18 +33,19 @@ class ManageStudentsScreen extends StatefulWidget {
 enum _SortColumn { name, code, track }
 
 class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
+  final _client = Supabase.instance.client;
   final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _badgesRepository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
-  final _roleCourseMappingRepository = SupabaseRoleCourseMappingRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
+  String? _errorMessage;
   List<Student> _students = [];
   Map<String, int> _enrollmentCounts = {};
   Map<String, List<String>> _credentialTitles = {};
   List<(String, int)> _tracks = [];
   List<(String, int)> _trend = [];
-  Set<String> _roleMismatchStudentIds = {};
+  Set<String> _courseMismatchStudentIds = {};
   _SortColumn _sortColumn = _SortColumn.name;
   bool _sortAscending = true;
   int _page = 1;
@@ -61,7 +61,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         s.name.toLowerCase().contains(_query) ||
         s.studentCode.toLowerCase().contains(_query) ||
         s.email.toLowerCase().contains(_query) ||
-        s.department.toLowerCase().contains(_query)).toList();
+        (s.department ?? '').toLowerCase().contains(_query) ||
+        (s.role ?? '').toLowerCase().contains(_query) ||
+        (s.programTrack ?? '').toLowerCase().contains(_query)).toList();
   }
 
   List<Student> get _sortedStudents {
@@ -74,7 +76,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         case _SortColumn.code:
           cmp = a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase());
         case _SortColumn.track:
-          cmp = a.programTrack.toLowerCase().compareTo(b.programTrack.toLowerCase());
+          cmp = (a.programTrack ?? '').toLowerCase().compareTo((b.programTrack ?? '').toLowerCase());
       }
       return _sortAscending ? cmp : -cmp;
     });
@@ -137,39 +139,133 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   }
 
   Future<void> _load() async {
-    final students = await _repository.getStudents();
-    final counts = await _repository.getEnrollmentCounts();
-    final credentials = await _repository.getEarnedCredentialTitles();
-    final tracks = await _repository.getProgramTracks();
-    final trend = await _badgesRepository.getMonthlyIssueCounts();
-    final enrolledCourseIds = await _repository.getEnrolledCourseIdsByStudent();
-    final roles = await _masterDataRepository.getRoles();
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final students = await _repository.getStudents();
+      final counts = await _repository.getEnrollmentCounts();
+      final credentials = await _repository.getEarnedCredentialTitles();
+      final tracks = await _repository.getProgramTracks();
+      final trend = await _badgesRepository.getMonthlyIssueCounts();
+      final enrolledCourseIds = await _repository.getEnrolledCourseIdsByStudent();
+      final roles = await _masterDataRepository.getRoles();
+      final programTracks = await _masterDataRepository.getProgramTracks();
+      final departments = await _masterDataRepository.getDepartments();
+      final mismatches = await _computeCourseMismatches(
+        students: students,
+        enrolledCourseIds: enrolledCourseIds,
+        roles: roles,
+        programTracks: programTracks,
+        departments: departments,
+      );
 
-    // A student's enrollment "mismatches" their role when a course they're
-    // enrolled in isn't mapped to their role in `role_courses` (Role ↔
-    // Course Mapping). This only drives the warning icon below — it never
-    // blocks enrollment.
-    final roleIdByName = {for (final r in roles) r.name: r.id};
-    final allowedCourseIdsByRoleId = <String, Set<String>>{};
-    final mismatches = <String>{};
+      if (!mounted) return;
+      setState(() {
+        _students = students;
+        _enrollmentCounts = counts;
+        _credentialTitles = credentials;
+        _tracks = tracks;
+        _trend = trend;
+        _courseMismatchStudentIds = mismatches;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Failed to load students: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// A student's enrollment "mismatches" when a course they're enrolled in
+  /// isn't mapped to their profile — for an Internal student that means
+  /// neither their Role (`role_courses`) nor their Department
+  /// (`department_courses`) covers the course; for an External student it
+  /// means the course isn't mapped to their Program Track (`track_courses`).
+  /// This only drives the warning icon in the table — it never blocks
+  /// enrollment.
+  ///
+  /// Every (track/role/department) → course mapping this page could need is
+  /// fetched in three bulk queries up front rather than one query per
+  /// student — with 18+ students that was 30+ sequential round trips with no
+  /// timeout, so a single slow request stalled the whole screen forever.
+  Future<Set<String>> _computeCourseMismatches({
+    required List<Student> students,
+    required Map<String, List<String>> enrolledCourseIds,
+    required List<dynamic> roles,
+    required List<dynamic> programTracks,
+    required List<dynamic> departments,
+  }) async {
+    final roleIdByName = {for (final r in roles) r.name as String: r.id as String};
+    final trackIdByName = {for (final t in programTracks) t.name as String: t.id as String};
+    final departmentIdByName = {for (final d in departments) d.name as String: d.id as String};
+
+    final neededTrackIds = <String>{};
+    final neededRoleIds = <String>{};
+    final neededDepartmentIds = <String>{};
     for (final s in students) {
-      final roleId = roleIdByName[s.role];
-      if (roleId == null) continue;
-      final allowed = allowedCourseIdsByRoleId[roleId] ??= await _roleCourseMappingRepository.getCourseIdsForRole(roleId);
-      final enrolled = enrolledCourseIds[s.id] ?? const [];
-      if (enrolled.any((courseId) => !allowed.contains(courseId))) mismatches.add(s.id);
+      if ((enrolledCourseIds[s.id] ?? const []).isEmpty) continue;
+      if (s.studentType == StudentType.external) {
+        final trackId = trackIdByName[s.programTrack];
+        if (trackId != null) neededTrackIds.add(trackId);
+      } else {
+        final roleId = roleIdByName[s.role];
+        final departmentId = departmentIdByName[s.department];
+        if (roleId != null) neededRoleIds.add(roleId);
+        if (departmentId != null) neededDepartmentIds.add(departmentId);
+      }
     }
 
-    if (!mounted) return;
-    setState(() {
-      _students = students;
-      _enrollmentCounts = counts;
-      _credentialTitles = credentials;
-      _tracks = tracks;
-      _trend = trend;
-      _roleMismatchStudentIds = mismatches;
-      _isLoading = false;
-    });
+    final trackRows = neededTrackIds.isEmpty
+        ? const <dynamic>[]
+        : await _client.from('track_courses').select('track_id, course_id').inFilter('track_id', neededTrackIds.toList());
+    final roleRows = neededRoleIds.isEmpty
+        ? const <dynamic>[]
+        : await _client.from('role_courses').select('role_id, course_id').inFilter('role_id', neededRoleIds.toList());
+    final departmentRows = neededDepartmentIds.isEmpty
+        ? const <dynamic>[]
+        : await _client
+            .from('department_courses')
+            .select('department_id, course_id')
+            .inFilter('department_id', neededDepartmentIds.toList());
+
+    final courseIdsByTrackId = <String, Set<String>>{};
+    for (final row in trackRows) {
+      courseIdsByTrackId.putIfAbsent(row['track_id'] as String, () => {}).add(row['course_id'] as String);
+    }
+    final courseIdsByRoleId = <String, Set<String>>{};
+    for (final row in roleRows) {
+      courseIdsByRoleId.putIfAbsent(row['role_id'] as String, () => {}).add(row['course_id'] as String);
+    }
+    final courseIdsByDepartmentId = <String, Set<String>>{};
+    for (final row in departmentRows) {
+      courseIdsByDepartmentId.putIfAbsent(row['department_id'] as String, () => {}).add(row['course_id'] as String);
+    }
+
+    final mismatches = <String>{};
+    for (final s in students) {
+      final enrolled = enrolledCourseIds[s.id] ?? const [];
+      if (enrolled.isEmpty) continue;
+      final Set<String> allowed;
+      if (s.studentType == StudentType.external) {
+        final trackId = trackIdByName[s.programTrack];
+        if (trackId == null) continue;
+        allowed = courseIdsByTrackId[trackId] ?? const {};
+      } else {
+        final roleId = roleIdByName[s.role];
+        final departmentId = departmentIdByName[s.department];
+        if (roleId == null && departmentId == null) continue;
+        allowed = {
+          ...?roleId == null ? null : courseIdsByRoleId[roleId],
+          ...?departmentId == null ? null : courseIdsByDepartmentId[departmentId],
+        };
+      }
+      if (enrolled.any((courseId) => !allowed.contains(courseId))) mismatches.add(s.id);
+    }
+    return mismatches;
   }
 
   void _handleNav(AdminNavDestination dest) =>
@@ -253,6 +349,23 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_errorMessage != null) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_errorMessage!, style: AdminTypography.bodyMd(color: AdminColors.error), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                ElevatedButton(onPressed: _load, child: const Text('Retry')),
+              ],
+            ),
+          ),
+        ),
+      );
     }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
@@ -512,9 +625,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           const SizedBox(width: 48),
           Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
           Expanded(flex: 4, child: _sortHeader('Student', _SortColumn.name)),
-          Expanded(flex: 3, child: _sortHeader('Track', _SortColumn.track)),
-          const SizedBox(width: 56),
-          Expanded(flex: 4, child: Text('Badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          Expanded(flex: 2, child: Text('Student Type', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          Expanded(flex: 2, child: _sortHeader('Track', _SortColumn.track)),
+          Expanded(flex: 3, child: Text('Department / Role', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          Expanded(flex: 3, child: Text('Badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
         ],
       ),
     );
@@ -522,11 +636,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
 
   Widget _studentRow(Student s) {
     final selected = _selected.contains(s.id);
-    final enrollments = _enrollmentCounts[s.id] ?? 0;
     final credentials = _credentialTitles[s.id] ?? const [];
     final flagged = _isFlagged(s);
-    final standing = flagged ? 'Under Review' : 'Good Standing';
-    final roleMismatch = _roleMismatchStudentIds.contains(s.id);
+    final courseMismatch = _courseMismatchStudentIds.contains(s.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -560,10 +672,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                       Flexible(
                         child: Text(s.name, style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface), overflow: TextOverflow.ellipsis),
                       ),
-                      if (roleMismatch) ...[
+                      if (courseMismatch) ...[
                         const SizedBox(width: 4),
                         Tooltip(
-                          message: 'One or more course mismatch with the student role',
+                          message: s.studentType == StudentType.external
+                              ? 'One or more enrolled course is not mapped to this student\'s track'
+                              : 'One or more enrolled course is not mapped to this student\'s role or department',
                           child: Icon(Icons.error, size: 15, color: AdminColors.error),
                         ),
                       ],
@@ -584,29 +698,43 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             ),
           ),
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${s.programTrack} • ${s.cohort}', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                Text(s.role, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
-                Text('GPA ${s.gpa.toStringAsFixed(2)} • $enrollments Enrolled', style: AdminTypography.labelSm(color: flagged ? AdminColors.error : AdminColors.onSurfaceVariant)),
-              ]),
-            ),
-          ),
-          SizedBox(
-            width: 56,
-            child: Tooltip(
-              message: standing,
-              child: Icon(
-                flagged ? Icons.error_outline : Icons.check_circle_outline,
-                size: 28,
-                color: flagged ? AdminColors.error : AdminColors.secondary,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: s.studentType == StudentType.internal ? AdminColors.primaryFixed : AdminColors.tertiaryFixed,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  s.studentType.label,
+                  style: AdminTypography.labelSm(
+                    color: s.studentType == StudentType.internal ? AdminColors.onPrimaryFixed : AdminColors.onTertiaryFixedVariant,
+                  ),
+                ),
               ),
             ),
           ),
           Expanded(
-            flex: 4,
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text(s.programTrack ?? '—', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(s.department ?? '—', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                Text(s.role ?? '—', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+              ]),
+            ),
+          ),
+          Expanded(
+            flex: 3,
             child: credentials.isEmpty
                 ? Text('—', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
                 : Tooltip(
@@ -1097,7 +1225,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final standing = flagged ? 'Under Review' : 'Good Standing';
     final progress = (s.gpa / 4.0).clamp(0.0, 1.0);
     final selected = _selected.contains(s.id);
-    final roleMismatch = _roleMismatchStudentIds.contains(s.id);
+    final courseMismatch = _courseMismatchStudentIds.contains(s.id);
+    final cohortSuffix = s.cohort == null ? '' : ' (${s.cohort})';
+    final profileLine = s.studentType == StudentType.external
+        ? '${s.studentType.label} • ${s.programTrack ?? '—'}$cohortSuffix'
+        : '${s.studentType.label} • ${s.department ?? '—'} / ${s.role ?? '—'}$cohortSuffix';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1136,9 +1268,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                           s.name,
                           style: AdminTypography.headlineSm(color: flagged ? AdminColors.error : AdminColors.onSurface),
                         ),
-                        if (roleMismatch)
+                        if (courseMismatch)
                           Tooltip(
-                            message: 'One or more course mismatch with the student role',
+                            message: s.studentType == StudentType.external
+                                ? 'One or more enrolled course is not mapped to this student\'s track'
+                                : 'One or more enrolled course is not mapped to this student\'s role or department',
                             child: Icon(Icons.error, size: 16, color: AdminColors.error),
                           ),
                         InkWell(
@@ -1170,7 +1304,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  '${s.programTrack} (${s.cohort}) • ${s.role}',
+                  profileLine,
                   style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),

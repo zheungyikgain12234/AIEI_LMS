@@ -48,6 +48,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   String _courseTitle = 'Course';
   String _courseCode = '';
   String _classCode = '';
+  int _classCapacity = 0;
   int _enrolledCount = 0;
   int _avgProgress = 0;
   int _assignmentsToGrade = 0;
@@ -76,7 +77,12 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
 
   Future<void> _load() async {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
-    final students = await _rosterRepository.getCourseRoster(widget.courseId);
+    // Section-scoped, not course-scoped: a student enrolled in this course
+    // through a different section/cohort (or with no section assigned at
+    // all) must not count toward THIS class's progress/grading stats — this
+    // is also what MyAssignedCoursesScreen's table now uses, so the two
+    // pages agree on the same number for the same class.
+    final students = await _rosterRepository.getSectionRoster(widget.sectionId);
     final modules = await _facultyRepository.getCourseModules(widget.sectionId);
     final materials = await _facultyRepository.getCourseMaterials(widget.sectionId);
     final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
@@ -187,6 +193,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _courseTitle = course?.title ?? 'Course';
       _courseCode = course?.courseCode ?? _courseCode;
       _classCode = course?.sectionCode ?? _classCode;
+      _classCapacity = course?.capacity ?? _classCapacity;
       _enrolledCount = students.length;
       _avgProgress = avgProgress;
       _assignmentsToGrade = assignmentsToGrade;
@@ -362,10 +369,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             footer: '$_assignmentNonSubmissions non-submissions', footerColor: FacultyColors.onSecondaryFixedVariant, pillFooter: true),
         _kpiCard('QUIZZES TO GRADE', '$_quizzesToGrade', Icons.quiz_outlined, FacultyColors.primary, FacultyColors.surfaceContainerHigh,
             footer: '$_quizNonSubmissions non-submissions'),
-        _kpiCard('AVG. COHORT PROGRESS', '$_avgProgress%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
+        _kpiCard('AVERAGE STUDENT PROGRESS', '$_avgProgress%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
             progress: _avgProgress / 100),
-        _kpiCard('PASSING CRITERIA', '80%', Icons.flag_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
-            footer: 'Weighted total grade'),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -472,7 +477,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
 
   Widget _buildStudentRosterCard() {
     final total = _rosterRows.length;
-    final avgProgress = total == 0 ? 0 : (_rosterRows.fold<int>(0, (sum, s) => sum + s.progress) / total).round();
     final scored = _rosterRows.where((s) => s.quizAvg != '—').toList();
     final avgQuiz = scored.isEmpty
         ? null
@@ -480,7 +484,13 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     final assignmentDone = _rosterRows.fold<int>(0, (sum, s) => sum + int.parse(s.assignments.split('/').first));
     final assignmentCompletionPct =
         total == 0 || _totalAssignmentBlocks == 0 ? 0.0 : assignmentDone / (total * _totalAssignmentBlocks);
-    final onPace = _rosterRows.where((s) => s.status != 'Needs Review').length;
+    // "On pace" = not flagged for an overdue, unsubmitted assessment (the
+    // same signal RosterRow.fromRoster uses for progressTag == 'On Pace').
+    // The previous `s.status != 'Needs Review'` check compared against a
+    // value RosterRow.status never actually produces (it's only ever
+    // 'Behind Schedule' or 'On Track'), so it was always true — i.e. this
+    // always rendered as "$total of $total on pace" regardless of real data.
+    final onPace = _rosterRows.where((s) => !s.flagged).length;
 
     return Container(
       decoration: BoxDecoration(
@@ -524,8 +534,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
                 final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
                 final cards = [
-                  _kpiCard('COHORT CAPACITY', '$total', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
-                      footer: '$avgProgress% Avg Progress'),
+                  _kpiCard('CLASS CAPACITY', '$_classCapacity', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
+                      footer: '$total / $_classCapacity Enrolled'),
                   _kpiCard('AVG. QUIZ PERFORMANCE', avgQuiz != null ? '${avgQuiz.toStringAsFixed(1)}%' : '—', Icons.quiz_outlined,
                       FacultyColors.primary, FacultyColors.surfaceContainer,
                       progress: avgQuiz != null ? avgQuiz / 100 : null),
@@ -793,21 +803,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             _courseTitle,
             style: FacultyTypography.headlineLg(color: FacultyColors.primary),
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.school, size: 16, color: FacultyColors.onSurfaceVariant),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  'Lead Instructor: Dr. Sarah Lin • Faculty of Applied Computing',
-                  style: FacultyTypography.bodySm(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -881,28 +876,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                     ),
                   ),
                   value: '$_avgProgress%',
-                  label: 'Cohort Progress',
+                  label: 'Average Student Progress',
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _mobileStatCard(
-                icon: Icons.flag_outlined,
-                iconBg: FacultyColors.surfaceContainer,
-                iconColor: FacultyColors.secondary,
-                cornerBadge: const SizedBox.shrink(),
-                value: '80%',
-                label: 'Passing Criteria',
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(child: SizedBox.shrink()),
-          ],
         ),
       ],
     );

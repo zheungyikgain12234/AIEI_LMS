@@ -24,6 +24,7 @@ class CourseSection {
   final int enrolledCount;
   final String status;
   final DateTime? startDate;
+  final DateTime? endDate;
 
   const CourseSection({
     required this.id,
@@ -49,6 +50,7 @@ class CourseSection {
     required this.enrolledCount,
     required this.status,
     this.startDate,
+    this.endDate,
   });
 
   /// `enrolled_count` is not stored on the `course_sections` row — it's
@@ -82,6 +84,7 @@ class CourseSection {
       enrolledCount: enrolledCount,
       status: map['status'] as String,
       startDate: map['start_date'] == null ? null : DateTime.parse(map['start_date'] as String),
+      endDate: map['end_date'] == null ? null : DateTime.parse(map['end_date'] as String),
     );
   }
 }

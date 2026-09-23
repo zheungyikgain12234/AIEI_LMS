@@ -3,27 +3,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_material_progress_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
-import 'package:stitch_aiei_lms/domain/models/course_module.dart';
-import 'package:stitch_aiei_lms/domain/models/module_material.dart';
+import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
-
-/// PY-402 is the only course with a full seeded roster + graded
-/// submissions in this demo, so this row's own KPI columns (modules,
-/// avg progress, pending grading, class avg) only compute for it — other
-/// rows show placeholders there. "Open Dashboard"/"Roster" still work for
-/// every course; they navigate with that course's real ids.
-const _kDashboardCourseId = '44444444-4444-4444-4444-444444444401';
 
 const _kAccentPalette = [
   (FacultyColors.primary, Color(0xFFDBEAFE)),
@@ -41,8 +31,6 @@ class MyAssignedCoursesScreen extends StatefulWidget {
 class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
-  final _adminStudentsRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
-  final _progressRepository = SupabaseMaterialProgressRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
@@ -55,14 +43,17 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   int? _selectedYear;
   String? _selectedCohort;
 
-  // Cached per-row detail data (only ever populated for _kDashboardCourseId
-  // in this demo — see the class-level comment) so the row list can be
-  // rebuilt on filter change without re-fetching from Supabase.
-  int? _moduleCount;
-  int? _assetCount;
-  int? _avgRosterProgress;
-  int? _totalPending;
-  double? _avgCohortScore;
+  // Real per-course KPIs, keyed by `sectionId` — computed for EVERY assigned
+  // course (not just one hardcoded demo course), so the table and overall
+  // stats both reflect actual roster/grading data for any course a lecturer
+  // teaches. Rebuilt on every `_load()`; looked up (not refetched) on filter
+  // change.
+  Map<String, int> _moduleCountBySection = const {};
+  Map<String, int> _assetCountBySection = const {};
+  Map<String, int> _avgProgressBySection = const {};
+  Map<String, int> _pendingAssignmentsBySection = const {};
+  Map<String, int> _pendingQuizzesBySection = const {};
+  Lecturer? _lecturer;
 
   Map<String, int> get _cohortYearByName => {for (final c in _cohorts) c.name: c.year};
 
@@ -102,47 +93,34 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
     final lecturers = await _lecturersRepository.getLecturers();
     final cohorts = await _masterDataRepository.getCohorts();
+    final sectionIds = [for (final c in assignedCourses) c.sectionId];
 
-    // Only PY-402 (_kDashboardCourseId) has a full seeded roster + graded
-    // submissions in this demo, so that's the only course we can compute
-    // real grading/progress KPIs for — see DemoIdentity for the material ids.
-    // Module content is class-scoped, so resolve PY-402's class from the
-    // list of classes just fetched above rather than the bare course id.
-    final dashboardSectionId = assignedCourses.where((c) => c.courseId == _kDashboardCourseId).firstOrNull?.sectionId;
-    final roster = await _adminStudentsRepository.getCourseRoster(_kDashboardCourseId);
-    final modules =
-        dashboardSectionId == null ? <CourseModule>[] : await _facultyRepository.getCourseModules(dashboardSectionId);
-    final materials =
-        dashboardSectionId == null ? <ModuleMaterial>[] : await _facultyRepository.getCourseMaterials(dashboardSectionId);
-    final assignmentSubs =
-        await _progressRepository.getSubmissionsForMaterial(DemoIdentity.materialAssignment02Id);
-    final quizSubs =
-        await _progressRepository.getSubmissionsForMaterial(DemoIdentity.materialComplianceQuizId);
+    // Real per-course module/asset counts, computed for every assigned
+    // course in parallel (not just one hardcoded demo course).
+    final moduleCountBySection = <String, int>{};
+    final assetCountBySection = <String, int>{};
+    await Future.wait([
+      for (final c in assignedCourses) _loadCourseModuleCounts(c, moduleCountBySection, assetCountBySection),
+    ]);
+
+    // Real pending-grading counts and avg progress, batched across every
+    // section in one round trip (see FacultyRepository.getSectionAssessmentStats).
+    // This is scoped by section (not course), so a student enrolled in the
+    // same course through a different section/cohort is correctly excluded.
+    final assessmentStats = await _facultyRepository.getSectionAssessmentStats(sectionIds);
     if (!mounted) return;
 
     final lecturer = lecturers.where((l) => l.id == DemoIdentity.lecturerId).firstOrNull;
 
-    final pendingAssignments = assignmentSubs.where((m) => m.status == 'completed' && m.score == null).length;
-    final pendingQuizzes = quizSubs.where((m) => m.status == 'completed' && m.score == null).length;
-    final totalPending = pendingAssignments + pendingQuizzes;
-
-    final scores = roster.map((s) => s.overallScore).whereType<double>().toList();
-    final avgCohortScore = scores.isEmpty ? null : scores.reduce((a, b) => a + b) / scores.length;
-    final assetCount = materials.fold<int>(0, (sum, m) => sum + m.attachedFiles.length);
-    final avgRosterProgress = roster.isEmpty
-        ? null
-        : roster.fold<int>(0, (sum, s) => sum + s.progressPercentage) ~/ roster.length;
-
-    final totalEnrolled = assignedCourses.fold<int>(0, (sum, c) => sum + c.enrolledCount);
-
     setState(() {
       _assignedCourses = assignedCourses;
       _cohorts = cohorts;
-      _moduleCount = modules.length;
-      _assetCount = assetCount;
-      _avgRosterProgress = avgRosterProgress;
-      _totalPending = totalPending;
-      _avgCohortScore = avgCohortScore;
+      _moduleCountBySection = moduleCountBySection;
+      _assetCountBySection = assetCountBySection;
+      _avgProgressBySection = {for (final e in assessmentStats.entries) e.key: e.value.avgProgress};
+      _pendingAssignmentsBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingAssignments};
+      _pendingQuizzesBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingQuizzes};
+      _lecturer = lecturer;
 
       // Default to the current calendar year if the lecturer has courses
       // there, else fall back to the most recent year they do have.
@@ -153,38 +131,63 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
 
       _rows = _buildRows();
-      _stats = [
-        _Stat('Active Courses', '${assignedCourses.length} Courses', '$totalEnrolled Enrolled Learners', Icons.school_outlined,
-            FacultyColors.primary, FacultyColors.surfaceContainer),
-        _Stat('Pending Reviews', '$totalPending Items', '$pendingAssignments assignments • $pendingQuizzes quizzes',
-            Icons.history_toggle_off, const Color(0xFFD97706), const Color(0xFFFEF3C7)),
-        _Stat(
-            'Average Cohort Score',
-            avgCohortScore == null ? '—' : '${avgCohortScore.toStringAsFixed(1)}%',
-            null,
-            Icons.show_chart,
-            const Color(0xFF059669),
-            const Color(0xFFD1FAE5)),
-        _Stat('Teaching Capacity', lecturer != null ? '${lecturer.creditsUsed} / ${lecturer.creditsMax} Cr' : '— / — Cr', null,
-            Icons.speed, const Color(0xFF4F46E5), const Color(0xFFE0E7FF)),
-      ];
+      _stats = _computeStats();
       _isLoading = false;
     });
+  }
+
+  /// Fetches this one course's module/asset counts from its own section.
+  Future<void> _loadCourseModuleCounts(
+    AssignedCourse c,
+    Map<String, int> moduleCountBySection,
+    Map<String, int> assetCountBySection,
+  ) async {
+    final modules = await _facultyRepository.getCourseModules(c.sectionId);
+    final materials = await _facultyRepository.getCourseMaterials(c.sectionId);
+    moduleCountBySection[c.sectionId] = modules.length;
+    assetCountBySection[c.sectionId] = materials.fold<int>(0, (sum, m) => sum + m.attachedFiles.length);
   }
 
   List<_CourseRow> _buildRows() {
     final courses = _filteredAssignedCourses;
     return [
-      for (var i = 0; i < courses.length; i++)
-        _rowFromCourse(
-          courses[i],
-          i,
-          moduleCount: courses[i].courseId == _kDashboardCourseId ? _moduleCount : null,
-          assetCount: courses[i].courseId == _kDashboardCourseId ? _assetCount : null,
-          avgProgress: courses[i].courseId == _kDashboardCourseId ? _avgRosterProgress : null,
-          pendingCount: courses[i].courseId == _kDashboardCourseId ? _totalPending : null,
-          classAvgScore: courses[i].courseId == _kDashboardCourseId ? _avgCohortScore : null,
-        ),
+      for (var i = 0; i < courses.length; i++) _rowFromCourse(courses[i], i),
+    ];
+  }
+
+  /// Recomputed against [_filteredAssignedCourses] so the cards react to the
+  /// Year/Cohort selection above the course list, not just the full roster.
+  List<_Stat> _computeStats() {
+    final courses = _filteredAssignedCourses;
+    final activeCourses = courses.where((c) => c.isActive).toList();
+    final enrolledInActive = activeCourses.fold<int>(0, (sum, c) => sum + c.enrolledCount);
+
+    final pendingAssignments =
+        courses.fold<int>(0, (sum, c) => sum + (_pendingAssignmentsBySection[c.sectionId] ?? 0));
+    final pendingQuizzes = courses.fold<int>(0, (sum, c) => sum + (_pendingQuizzesBySection[c.sectionId] ?? 0));
+    final totalPending = pendingAssignments + pendingQuizzes;
+
+    // `credits_max` is a per-cohort cap, not a global one, so when a cohort
+    // is selected the credits used are summed just for that cohort's
+    // assigned courses rather than read off the lecturer's global
+    // `credits_used` (which is deduped across every cohort they teach in).
+    final creditsUsed = _selectedCohort == null
+        ? _lecturer?.creditsUsed
+        : courses.fold<int>(0, (sum, c) => sum + c.credits);
+    final creditsFootnote = _selectedCohort == null ? null : 'in $_selectedCohort';
+
+    return [
+      _Stat('Active Courses', '${activeCourses.length} / ${courses.length} Courses', '$enrolledInActive Enrolled Learners (Active)',
+          Icons.school_outlined, FacultyColors.primary, FacultyColors.surfaceContainer),
+      _Stat('Pending Reviews', '$totalPending Items', '$pendingAssignments assignments • $pendingQuizzes quizzes',
+          Icons.history_toggle_off, const Color(0xFFD97706), const Color(0xFFFEF3C7)),
+      _Stat(
+          'Teaching Capacity',
+          _lecturer != null && creditsUsed != null ? '$creditsUsed / ${_lecturer!.creditsMax} Cr' : '— / — Cr',
+          creditsFootnote,
+          Icons.speed,
+          const Color(0xFF4F46E5),
+          const Color(0xFFE0E7FF)),
     ];
   }
 
@@ -194,6 +197,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       final cohortNames = _cohortNamesForYear(year);
       _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
       _rows = _buildRows();
+      _stats = _computeStats();
     });
   }
 
@@ -201,22 +205,19 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     setState(() {
       _selectedCohort = cohort;
       _rows = _buildRows();
+      _stats = _computeStats();
     });
   }
 
-  _CourseRow _rowFromCourse(
-    AssignedCourse c,
-    int index, {
-    int? moduleCount,
-    int? assetCount,
-    int? avgProgress,
-    int? pendingCount,
-    double? classAvgScore,
-  }) {
+  _CourseRow _rowFromCourse(AssignedCourse c, int index) {
     final segments = c.courseCode.split('-');
     var initials = segments.first;
     if (initials.length > 3) initials = initials.substring(0, 3);
     final (accent, accentBg) = _kAccentPalette[index % _kAccentPalette.length];
+    final moduleCount = _moduleCountBySection[c.sectionId];
+    final assetCount = _assetCountBySection[c.sectionId];
+    final avgProgress = _avgProgressBySection[c.sectionId] ?? 0;
+    final pendingCount = (_pendingAssignmentsBySection[c.sectionId] ?? 0) + (_pendingQuizzesBySection[c.sectionId] ?? 0);
     return _CourseRow(
       courseId: c.courseId,
       sectionId: c.sectionId,
@@ -224,18 +225,16 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       accent: accent,
       accentBg: accentBg,
       code: c.courseCode,
-      roleLabel: c.roleLabel,
       section: '${c.sectionCode} • ${c.capacity} Cap.',
       title: c.title,
       description: c.description,
       schedule: c.scheduleText,
       enrolled: '${c.enrolledCount} / ${c.capacity} Enrolled Students',
       modules: moduleCount == null ? '— Modules • — Assets' : '$moduleCount Modules • $assetCount Assets',
-      avgProgress: avgProgress ?? 0,
-      pendingCount: pendingCount == null ? '— items' : '$pendingCount items',
+      isActive: c.isActive,
+      avgProgress: avgProgress,
+      pendingCount: '$pendingCount items',
       pendingLabel: 'Review Items',
-      classAvg: classAvgScore == null ? '—' : '${classAvgScore.toStringAsFixed(1)}%',
-      classAvgTag: classAvgScore == null ? 'On Track' : (classAvgScore >= 80 ? 'On Track' : 'Needs Attention'),
     );
   }
 
@@ -289,8 +288,6 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 32),
-          _buildTipCard(),
         ],
       ),
     );
@@ -304,11 +301,6 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'ACADEMIC TERM: FALL 2025 • DIVISION OF COMPUTING & AI',
-                style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
               Text('My Assigned Courses', style: FacultyTypography.headlineLg()),
               const SizedBox(height: 6),
               Text(
@@ -487,12 +479,16 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _pill(c.code, c.accentBg, c.accent),
-                      _pill(c.roleLabel, const Color(0xFFD1FAE5), const Color(0xFF047857)),
                       Text(c.section, style: FacultyTypography.labelXs()),
                       Row(mainAxisSize: MainAxisSize.min, children: [
-                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle)),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(color: c.isActive ? const Color(0xFF10B981) : FacultyColors.outline, shape: BoxShape.circle),
+                        ),
                         const SizedBox(width: 4),
-                        Text('Active Cohort', style: FacultyTypography.labelXs(color: const Color(0xFF059669))),
+                        Text(c.isActive ? 'Active' : 'Inactive',
+                            style: FacultyTypography.labelXs(color: c.isActive ? const Color(0xFF059669) : FacultyColors.outline)),
                       ]),
                     ],
                   ),
@@ -519,11 +515,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
         final middle = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _metric('Avg Progress', '${c.avgProgress}%', progress: c.avgProgress / 100, barColor: c.accent),
+            _metric('Average Student Progress', '${c.avgProgress}%', progress: c.avgProgress / 100, barColor: c.accent),
             const SizedBox(width: 24),
             _metric('Pending Grading', c.pendingCount, footnote: c.pendingLabel, valueColor: const Color(0xFFD97706)),
-            const SizedBox(width: 24),
-            _metric('Class Avg', c.classAvg, footnote: c.classAvgTag, footnoteColor: const Color(0xFF059669)),
           ],
         );
 
@@ -616,43 +610,6 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     );
   }
 
-  Widget _buildTipCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFDBEAFE)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(color: FacultyColors.primary, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.info_outline, color: Colors.white, size: 16),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Term Teaching Compliance & Syllabus Deadlines',
-                    style: FacultyTypography.labelXs(color: const Color(0xFF1E3A8A)).copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(
-                  'All midterm assignment grades for PY-402 and DATA-501 must be finalized before the institutional audit lock on Friday, Nov 21. For schedule changes or section capacity overrides, contact your Chief Academic Administrator (Marcus Vance).',
-                  style: FacultyTypography.labelXs(color: const Color(0xFF1E40AF)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ---------------------------------------------------------------------
   // Mobile (< 700px) layout
   // ---------------------------------------------------------------------
@@ -669,41 +626,6 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('My Courses', style: FacultyTypography.headlineLg(color: FacultyColors.primary)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(8)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: FacultyColors.secondary, shape: BoxShape.circle)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'FALL 2025 TERM',
-                          style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.6),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.school, size: 14, color: FacultyColors.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                        Text('Computing & AI', style: FacultyTypography.labelXs()),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 10),
               Text(
                 'Manage active curriculum, track progress, and review pending evaluations.',
@@ -720,20 +642,25 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                 _buildMobileCourseCard(c),
                 const SizedBox(height: 16),
               ],
-              _buildMobileComplianceNotice(),
             ],
           ),
         ),
       ),
       bottomNavigationBar: FacultyMobileBottomNav(
         selected: FacultyNavDestination.myCourses,
-        pendingCount: 22,
+        pendingCount: _assignedCourses.fold<int>(
+            0, (sum, c) => sum + (_pendingAssignmentsBySection[c.sectionId] ?? 0) + (_pendingQuizzesBySection[c.sectionId] ?? 0)),
         onDestinationSelected: _handleNav,
       ),
     );
   }
 
   Widget _buildMobileKpiGrid() {
+    final courses = _filteredAssignedCourses;
+    final activeCourses = courses.where((c) => c.isActive).toList();
+    final enrolledInActive = activeCourses.fold<int>(0, (sum, c) => sum + c.enrolledCount);
+    final pendingAssignments = courses.fold<int>(0, (sum, c) => sum + (_pendingAssignmentsBySection[c.sectionId] ?? 0));
+    final pendingQuizzes = courses.fold<int>(0, (sum, c) => sum + (_pendingQuizzesBySection[c.sectionId] ?? 0));
     return Column(
       children: [
         IntrinsicHeight(
@@ -746,9 +673,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                   icon: Icons.menu_book,
                   iconBg: FacultyColors.surfaceContainer,
                   iconColor: FacultyColors.secondary,
-                  value: '3',
+                  value: '${activeCourses.length}',
+                  valueSuffix: '/ ${courses.length}',
                   valueColor: FacultyColors.primary,
-                  footnote: '112 Enrolled Learners',
+                  footnote: '$enrolledInActive Enrolled Learners (Active)',
                 ),
               ),
               const SizedBox(width: 12),
@@ -758,50 +686,37 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                   icon: Icons.pending_actions,
                   iconBg: FacultyColors.errorContainer,
                   iconColor: FacultyColors.onErrorContainer,
-                  value: '22',
+                  value: '${pendingAssignments + pendingQuizzes}',
                   valueColor: FacultyColors.error,
-                  valueTag: 'urgent',
-                  valueTagColor: FacultyColors.onErrorContainer,
-                  footnote: '14 asgns • 8 quizzes',
+                  footnote: '$pendingAssignments asgns • $pendingQuizzes quizzes',
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _mobileKpiCard(
-                  label: 'Avg Cohort Score',
-                  icon: Icons.trending_up,
-                  iconBg: FacultyColors.tertiaryFixed,
-                  iconColor: FacultyColors.onTertiaryFixedVariant,
-                  value: '86.4%',
-                  valueColor: FacultyColors.primary,
-                  valueTag: '+2.8%',
-                  valueTagColor: FacultyColors.onTertiaryContainer,
-                  footnote: 'vs. last academic term',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _mobileKpiCard(
-                  label: 'Workload',
-                  icon: Icons.pie_chart,
-                  iconBg: FacultyColors.surfaceContainer,
-                  iconColor: FacultyColors.primary,
-                  value: '12',
-                  valueSuffix: '/ 15 Cr',
-                  valueColor: FacultyColors.primary,
-                  footnote: 'Capacity: 80% assigned',
-                ),
-              ),
-            ],
-          ),
-        ),
+        Builder(builder: (context) {
+          // `credits_max` is a per-cohort cap, so with a cohort selected the
+          // credits used are summed just for that cohort's courses rather
+          // than read off the lecturer's global (cross-cohort) credits_used.
+          final creditsUsed = _selectedCohort == null
+              ? _lecturer?.creditsUsed
+              : courses.fold<int>(0, (sum, c) => sum + c.credits);
+          final creditsMax = _lecturer?.creditsMax;
+          return _mobileKpiCard(
+            label: 'Teaching Capacity',
+            icon: Icons.pie_chart,
+            iconBg: FacultyColors.surfaceContainer,
+            iconColor: FacultyColors.primary,
+            value: creditsUsed != null ? '$creditsUsed' : '—',
+            valueSuffix: creditsMax != null ? '/ $creditsMax Cr' : '/ — Cr',
+            valueColor: FacultyColors.primary,
+            footnote: creditsUsed != null && creditsMax != null && creditsMax > 0
+                ? '${(creditsUsed / creditsMax * 100).round()}% assigned'
+                    '${_selectedCohort == null ? '' : ' in $_selectedCohort'}'
+                : '—',
+          );
+        }),
       ],
     );
   }
@@ -1097,16 +1012,27 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                       Flexible(
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: FacultyColors.tertiaryFixed, borderRadius: BorderRadius.circular(9999)),
+                          decoration: BoxDecoration(
+                            color: c.isActive ? FacultyColors.tertiaryFixed : Colors.black.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(width: 5, height: 5, decoration: const BoxDecoration(color: FacultyColors.onTertiaryFixedVariant, shape: BoxShape.circle)),
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: c.isActive ? FacultyColors.onTertiaryFixedVariant : Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
-                                  'Active Cohort',
-                                  style: FacultyTypography.labelXs(color: FacultyColors.onTertiaryFixedVariant).copyWith(fontWeight: FontWeight.w700),
+                                  c.isActive ? 'Active' : 'Inactive',
+                                  style: FacultyTypography.labelXs(color: c.isActive ? FacultyColors.onTertiaryFixedVariant : Colors.white)
+                                      .copyWith(fontWeight: FontWeight.w700),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -1117,31 +1043,11 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                       ),
                     ],
                   ),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                          child: Text(
-                            c.roleLabel,
-                            style: FacultyTypography.labelXs(color: Colors.white),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          c.enrolled,
-                          style: FacultyTypography.labelXs(color: Colors.white),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    c.enrolled,
+                    style: FacultyTypography.labelXs(color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -1187,33 +1093,13 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: _mobileMetricTile(
-                    icon: Icons.assignment_late,
-                    iconBg: FacultyColors.errorContainer,
-                    iconColor: FacultyColors.onErrorContainer,
-                    value: '$pendingNumber to Grade',
-                    valueColor: FacultyColors.error,
-                    footnote: c.pendingLabel,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _mobileMetricTile(
-                    icon: Icons.grade,
-                    iconBg: FacultyColors.tertiaryFixed,
-                    iconColor: FacultyColors.onTertiaryFixedVariant,
-                    value: c.classAvg,
-                    valueColor: FacultyColors.primary,
-                    footnote: 'Class Avg Grade',
-                  ),
-                ),
-              ],
-            ),
+          _mobileMetricTile(
+            icon: Icons.assignment_late,
+            iconBg: FacultyColors.errorContainer,
+            iconColor: FacultyColors.onErrorContainer,
+            value: '$pendingNumber to Grade',
+            valueColor: FacultyColors.error,
+            footnote: c.pendingLabel,
           ),
         ],
       ),
@@ -1304,65 +1190,6 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       ],
     );
   }
-
-  Widget _buildMobileComplianceNotice() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerHigh.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            margin: const EdgeInsets.only(top: 2),
-            decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.verified_user, size: 20, color: FacultyColors.secondary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Teaching Compliance Notice',
-                        style: FacultyTypography.labelMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: FacultyColors.secondary, shape: BoxShape.circle)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                RichText(
-                  text: TextSpan(
-                    style: FacultyTypography.bodySm(),
-                    children: [
-                      const TextSpan(text: 'Midterm assignment grades finalized before audit lock on '),
-                      TextSpan(
-                        text: 'Nov 21, 23:59 UTC',
-                        style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const TextSpan(text: '. Course syllabi and telemetry synchronize bi-hourly with Registrar systems.'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _Stat {
@@ -1385,18 +1212,16 @@ class _CourseRow {
   final Color accent;
   final Color accentBg;
   final String code;
-  final String roleLabel;
   final String section;
   final String title;
   final String description;
   final String schedule;
   final String enrolled;
   final String modules;
+  final bool isActive;
   final int avgProgress;
   final String pendingCount;
   final String pendingLabel;
-  final String classAvg;
-  final String classAvgTag;
 
   const _CourseRow({
     required this.courseId,
@@ -1405,17 +1230,15 @@ class _CourseRow {
     required this.accent,
     required this.accentBg,
     required this.code,
-    required this.roleLabel,
     required this.section,
     required this.title,
     required this.description,
     required this.schedule,
     required this.enrolled,
     required this.modules,
+    required this.isActive,
     required this.avgProgress,
     required this.pendingCount,
     required this.pendingLabel,
-    required this.classAvg,
-    required this.classAvgTag,
   });
 }

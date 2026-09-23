@@ -64,6 +64,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   String? _dayOfWeek;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+  DateTime? _courseStartDate;
+  DateTime? _courseEndDate;
   String _deliveryMode = 'physical';
   String? _selectedCohort;
   String? _assignErrorMessage;
@@ -226,11 +228,15 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   bool get _timeRangeValid => _startTime != null && _endTime != null && _toMinutes(_endTime!) > _toMinutes(_startTime!);
 
+  bool get _dateRangeValid =>
+      _courseStartDate != null && _courseEndDate != null && _courseEndDate!.isAfter(_courseStartDate!);
+
   bool get _canAssign =>
       _selectedCourseId != null &&
       !_overCapacity &&
       _dayOfWeek != null &&
       _timeRangeValid &&
+      _dateRangeValid &&
       _locationController.text.trim().isNotEmpty &&
       _classCodeController.text.trim().isNotEmpty &&
       _classCapacity != null &&
@@ -302,6 +308,19 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     setState(() => isStart ? _startTime = picked : _endTime = picked);
   }
 
+  Future<void> _pickDate({required bool isStart}) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: (isStart ? _courseStartDate : _courseEndDate) ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    setState(() => isStart ? _courseStartDate = picked : _courseEndDate = picked);
+  }
+
+  String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   Future<void> _assign() async {
     if (!_canAssign || _lecturer == null) return;
     final courses = _availableCourses.where((c) => c.id == _selectedCourseId).toList();
@@ -351,6 +370,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           capacity: capacity,
           deliveryMode: _deliveryMode,
           cohort: _selectedCohort!,
+          courseStartDate: _courseStartDate,
+          courseEndDate: _courseEndDate,
         );
       }
       await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, [_selectedCourseId!]);
@@ -361,6 +382,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _dayOfWeek = null;
       _startTime = null;
       _endTime = null;
+      _courseStartDate = null;
+      _courseEndDate = null;
       _deliveryMode = 'physical';
       _locationController.clear();
       _classCodeController.clear();
@@ -974,6 +997,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               ),
               _timeField(label: 'Start Time', value: _startTime, onTap: () => _pickTime(isStart: true)),
               _timeField(label: 'End Time', value: _endTime, onTap: () => _pickTime(isStart: false)),
+              _dateField(label: 'Course Start Date', value: _courseStartDate, onTap: () => _pickDate(isStart: true)),
+              _dateField(label: 'Course End Date', value: _courseEndDate, onTap: () => _pickDate(isStart: false)),
               SizedBox(
                 width: 220,
                 child: Column(
@@ -1086,6 +1111,41 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             const SizedBox(height: 8),
             Text('End time must be after start time.', style: AdminTypography.labelSm(color: AdminColors.error)),
           ],
+          if (_courseStartDate != null && _courseEndDate != null && !_dateRangeValid) ...[
+            const SizedBox(height: 8),
+            Text('Course end date must be after the course start date.', style: AdminTypography.labelSm(color: AdminColors.error)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap}) {
+    return SizedBox(
+      width: 160,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AdminFieldLabel(label),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_outlined, size: 16, color: AdminColors.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Text(
+                    value == null ? 'Select date' : _formatDate(value),
+                    style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1136,7 +1196,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                         ? 'Set a day above.'
                         : !_timeRangeValid
                             ? 'Set a valid start/end time above.'
-                            : _locationController.text.trim().isEmpty
+                            : !_dateRangeValid
+                                ? 'Set a valid course start/end date above.'
+                                : _locationController.text.trim().isEmpty
                                 ? 'Set a location above.'
                                 : _classCodeController.text.trim().isEmpty
                                     ? 'Set a class code above.'

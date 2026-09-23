@@ -12,6 +12,9 @@ class AssignedCourse {
   final int capacity;
   final int enrolledCount;
   final String? cohort;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final int credits;
 
   const AssignedCourse({
     required this.sectionId,
@@ -25,7 +28,22 @@ class AssignedCourse {
     required this.capacity,
     required this.enrolledCount,
     this.cohort,
+    this.startDate,
+    this.endDate,
+    required this.credits,
   });
+
+  /// A course with no start/end date is treated as active (schedule TBD).
+  /// Otherwise it's active only while today falls within [startDate,
+  /// endDate] — a course that hasn't started yet or has already ended is
+  /// inactive.
+  bool get isActive {
+    final today = DateTime.now();
+    final date = DateTime(today.year, today.month, today.day);
+    if (startDate != null && date.isBefore(startDate!)) return false;
+    if (endDate != null && date.isAfter(endDate!)) return false;
+    return true;
+  }
 
   /// `enrolled_count` is not stored on the `course_sections` row — it's
   /// always computed by counting `student_courses` rows for this section,
@@ -44,6 +62,9 @@ class AssignedCourse {
       capacity: map['capacity'] as int,
       enrolledCount: enrolledCount,
       cohort: (map['cohorts'] as Map<String, dynamic>?)?['name'] as String?,
+      startDate: map['start_date'] == null ? null : DateTime.parse(map['start_date'] as String),
+      endDate: map['end_date'] == null ? null : DateTime.parse(map['end_date'] as String),
+      credits: course['credits'] as int? ?? 0,
     );
   }
 }

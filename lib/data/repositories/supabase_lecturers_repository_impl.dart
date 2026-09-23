@@ -78,6 +78,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
   Future<CourseSection> updateSection(
     String id, {
     DateTime? startDate,
+    DateTime? endDate,
     String? dayOfWeek,
     String? startTime,
     String? endTime,
@@ -95,6 +96,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
         .from('course_sections')
         .update({
           'start_date': startDate?.toIso8601String().substring(0, 10),
+          'end_date': endDate?.toIso8601String().substring(0, 10),
           'day_of_week': dayOfWeek,
           'start_time': startTime,
           'end_time': endTime,
@@ -262,6 +264,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     required int capacity,
     required String deliveryMode,
     required String cohort,
+    DateTime? courseStartDate,
+    DateTime? courseEndDate,
   }) async {
     final dayAbbrev = dayOfWeek.substring(0, 3);
     final cohortId = await _cohortIdForName(cohort);
@@ -281,6 +285,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'capacity': capacity,
           'delivery_mode': deliveryMode,
           'cohort_id': cohortId,
+          'start_date': courseStartDate?.toIso8601String().substring(0, 10),
+          'end_date': courseEndDate?.toIso8601String().substring(0, 10),
           'status': 'scheduled',
         })
         .select(_sectionSelect)

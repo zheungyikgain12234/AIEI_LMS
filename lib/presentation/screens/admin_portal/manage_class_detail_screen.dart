@@ -53,6 +53,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   final Set<String> _unenrolling = {};
 
   DateTime? _startDate;
+  DateTime? _endDate;
   String? _dayOfWeek;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -93,6 +94,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         _roster = roster;
         _cohorts = [for (final c in cohorts) c.name];
         _startDate = section.startDate;
+        _endDate = section.endDate;
         _dayOfWeek = section.dayOfWeek;
         _startTime = _parseTime(section.startTime);
         _endTime = _parseTime(section.endTime);
@@ -112,14 +114,14 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     }
   }
 
-  Future<void> _pickDate() async {
+  Future<void> _pickDate({required bool isStart}) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _startDate ?? DateTime.now(),
+      initialDate: (isStart ? _startDate : _endDate) ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() => _startDate = picked);
+    if (picked != null) setState(() => isStart ? _startDate = picked : _endDate = picked);
   }
 
   Future<void> _pickTime({required bool isStart}) async {
@@ -146,6 +148,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       final saved = await _lecturersRepository.updateSection(
         widget.sectionId,
         startDate: _startDate,
+        endDate: _endDate,
         dayOfWeek: _dayOfWeek,
         startTime: _startTime == null ? null : _formatTime(_startTime!),
         endTime: _endTime == null ? null : _formatTime(_endTime!),
@@ -203,6 +206,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           enrolledCount: _roster.length,
           status: _section!.status,
           startDate: _section!.startDate,
+          endDate: _section!.endDate,
         );
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unenrolled ${s.name}.')));
@@ -296,7 +300,13 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             ),
             const SizedBox(height: 14),
           ],
-          _dateField(label: 'Start Date', value: _startDate, onTap: _pickDate),
+          Row(
+            children: [
+              Expanded(child: _dateField(label: 'Start Date', value: _startDate, onTap: () => _pickDate(isStart: true))),
+              const SizedBox(width: 12),
+              Expanded(child: _dateField(label: 'End Date', value: _endDate, onTap: () => _pickDate(isStart: false))),
+            ],
+          ),
           const SizedBox(height: 14),
           _dropdown(
             label: 'Day of Week',

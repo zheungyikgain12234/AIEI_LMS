@@ -183,6 +183,7 @@ create table course_sections (
   delivery_mode text not null default 'physical' check (delivery_mode in ('online', 'physical')),
   cohort_id uuid references cohorts(id) on update cascade,
   start_date date,
+  end_date date,
   status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
 );
 

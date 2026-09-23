@@ -42,6 +42,7 @@ abstract class LecturersRepository {
   Future<CourseSection> updateSection(
     String id, {
     DateTime? startDate,
+    DateTime? endDate,
     String? dayOfWeek,
     String? startTime,
     String? endTime,
@@ -133,6 +134,8 @@ abstract class LecturersRepository {
     required int capacity,
     required String deliveryMode,
     required String cohort,
+    DateTime? courseStartDate,
+    DateTime? courseEndDate,
   });
 
   Future<void> deleteSections(List<String> sectionIds);

@@ -8,6 +8,9 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badges_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
+import 'package:stitch_aiei_lms/domain/models/department.dart';
+import 'package:stitch_aiei_lms/domain/models/program_track.dart';
+import 'package:stitch_aiei_lms/domain/models/role.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -329,10 +332,39 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   Future<void> _openBulkEnroll() async {
     final studentIds = _selected.toList();
     final sections = await _lecturersRepository.getAllSections();
+    final programTracks = await _masterDataRepository.getProgramTracks();
+    final departments = await _masterDataRepository.getDepartments();
+    final roles = await _masterDataRepository.getRoles();
+    // Bulk-fetched once (small tables) so the dialog's Track/Department/Role
+    // filter is instant client-side instead of a query per selection.
+    final trackRows = await _client.from('track_courses').select('track_id, course_id');
+    final roleRows = await _client.from('role_courses').select('role_id, course_id');
+    final departmentRows = await _client.from('department_courses').select('department_id, course_id');
+    final courseIdsByTrackId = <String, Set<String>>{};
+    for (final row in trackRows as List) {
+      courseIdsByTrackId.putIfAbsent(row['track_id'] as String, () => {}).add(row['course_id'] as String);
+    }
+    final courseIdsByRoleId = <String, Set<String>>{};
+    for (final row in roleRows as List) {
+      courseIdsByRoleId.putIfAbsent(row['role_id'] as String, () => {}).add(row['course_id'] as String);
+    }
+    final courseIdsByDepartmentId = <String, Set<String>>{};
+    for (final row in departmentRows as List) {
+      courseIdsByDepartmentId.putIfAbsent(row['department_id'] as String, () => {}).add(row['course_id'] as String);
+    }
     if (!mounted) return;
     final chosen = await showDialog<CourseSection>(
       context: context,
-      builder: (ctx) => _BulkEnrollDialog(studentCount: studentIds.length, sections: sections),
+      builder: (ctx) => _BulkEnrollDialog(
+        studentCount: studentIds.length,
+        sections: sections,
+        programTracks: programTracks,
+        departments: departments,
+        roles: roles,
+        courseIdsByTrackId: courseIdsByTrackId,
+        courseIdsByRoleId: courseIdsByRoleId,
+        courseIdsByDepartmentId: courseIdsByDepartmentId,
+      ),
     );
     if (chosen == null) return;
     await _repository.enrollStudentsInSection(studentIds, sectionId: chosen.id, courseId: chosen.courseId);
@@ -440,11 +472,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
 
   int get _totalEnrolled => _students.length;
 
-  double get _avgGpa => _students.isEmpty ? 0 : _students.map((s) => s.gpa).reduce((a, b) => a + b) / _students.length;
-
   int get _totalCredentials => _credentialTitles.values.fold(0, (sum, list) => sum + list.length);
-
-  int get _academicReviewCount => _students.where(_isFlagged).length;
 
   Widget _buildInstructionBanner() {
     return Container(
@@ -479,13 +507,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
 
   Widget _buildMetrics() {
     return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
+      final cols = constraints.maxWidth >= 500 ? 2 : 1;
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
         _metric('TOTAL ENROLLED', '$_totalEnrolled Active', Icons.groups_outlined, 'Registered across all cohorts'),
-        _metric('AVG GPA', _avgGpa.toStringAsFixed(2), Icons.percent_outlined, 'Across all registered students'),
         _metric('GRANTED CREDENTIALS', '$_totalCredentials Granted', Icons.workspace_premium_outlined, 'Earned or revoked credentials'),
-        _metric('ACADEMIC REVIEW', '$_academicReviewCount Students', Icons.warning_amber_outlined, 'GPA below 2.0 threshold', urgent: _academicReviewCount > 0),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -561,7 +587,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                   ]),
                   Wrap(spacing: 6, children: [
                     OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enroll')),
-                    OutlinedButton(onPressed: _notAvailable, style: _pillButtonStyle(), child: const Text('Issue Notice')),
                     OutlinedButton.icon(
                       onPressed: _deleteSelected,
                       icon: const Icon(Icons.delete_outline, size: 16),
@@ -574,11 +599,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         textStyle: AdminTypography.labelSm(),
                       ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _notAvailable,
-                      style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primary, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
-                      child: const Text('Export Selected'),
                     ),
                   ]),
                 ],
@@ -991,65 +1011,32 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   }
 
   Widget _buildMobileKpiGrid() {
-    return Column(
-      children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _mobileKpiCard(
-                  label: 'TOTAL ENROLLED',
-                  icon: Icons.groups,
-                  value: '$_totalEnrolled',
-                  valueSuffix: 'Active',
-                  footerIcon: Icons.trending_up,
-                  footerText: 'Registered students',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _mobileKpiCard(
-                  label: 'AVG GPA',
-                  icon: Icons.insights,
-                  value: _avgGpa.toStringAsFixed(2),
-                  footerIcon: Icons.arrow_upward,
-                  footerText: 'Across all students',
-                ),
-              ),
-            ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _mobileKpiCard(
+              label: 'TOTAL ENROLLED',
+              icon: Icons.groups,
+              value: '$_totalEnrolled',
+              valueSuffix: 'Active',
+              footerIcon: Icons.trending_up,
+              footerText: 'Registered students',
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _mobileKpiCard(
-                  label: 'GRANTED CREDS',
-                  icon: Icons.verified,
-                  value: '$_totalCredentials',
-                  footerIcon: Icons.check_circle,
-                  footerText: 'Earned or revoked',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _mobileKpiCard(
-                  label: 'ACAD. REVIEW',
-                  icon: Icons.warning,
-                  value: '$_academicReviewCount',
-                  valueSuffix: 'Flagged',
-                  footerIcon: Icons.flag,
-                  footerText: 'Action Required',
-                  urgent: _academicReviewCount > 0,
-                ),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: _mobileKpiCard(
+              label: 'GRANTED CREDS',
+              icon: Icons.verified,
+              value: '$_totalCredentials',
+              footerIcon: Icons.check_circle,
+              footerText: 'Earned or revoked',
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1402,15 +1389,41 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
 class _BulkEnrollDialog extends StatefulWidget {
   final int studentCount;
   final List<CourseSection> sections;
+  final List<ProgramTrack> programTracks;
+  final List<Department> departments;
+  final List<Role> roles;
+  final Map<String, Set<String>> courseIdsByTrackId;
+  final Map<String, Set<String>> courseIdsByRoleId;
+  final Map<String, Set<String>> courseIdsByDepartmentId;
 
-  const _BulkEnrollDialog({required this.studentCount, required this.sections});
+  const _BulkEnrollDialog({
+    required this.studentCount,
+    required this.sections,
+    required this.programTracks,
+    required this.departments,
+    required this.roles,
+    required this.courseIdsByTrackId,
+    required this.courseIdsByRoleId,
+    required this.courseIdsByDepartmentId,
+  });
 
   @override
   State<_BulkEnrollDialog> createState() => _BulkEnrollDialogState();
 }
 
+/// A profile-filter option in the combined Track/Department/Role dropdown —
+/// picking one narrows the Class dropdown to classes whose course is mapped
+/// to it (`track_courses` / `role_courses` / `department_courses`).
+class _ProfileFilter {
+  final String key;
+  final String label;
+  final Set<String> courseIds;
+  const _ProfileFilter({required this.key, required this.label, required this.courseIds});
+}
+
 class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
   String? _selectedCohort;
+  String? _selectedProfileFilterKey;
   String? _selectedSectionId;
 
   @override
@@ -1426,8 +1439,22 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
     return names;
   }
 
-  List<CourseSection> get _sectionsForSelectedCohort {
-    final sections = widget.sections.where((s) => s.cohort == _selectedCohort).toList();
+  List<_ProfileFilter> get _profileFilters => [
+        for (final t in widget.programTracks)
+          _ProfileFilter(key: 'track:${t.id}', label: 'Track: ${t.name}', courseIds: widget.courseIdsByTrackId[t.id] ?? const {}),
+        for (final d in widget.departments)
+          _ProfileFilter(key: 'dept:${d.id}', label: 'Department: ${d.name}', courseIds: widget.courseIdsByDepartmentId[d.id] ?? const {}),
+        for (final r in widget.roles)
+          _ProfileFilter(key: 'role:${r.id}', label: 'Role: ${r.name}', courseIds: widget.courseIdsByRoleId[r.id] ?? const {}),
+      ];
+
+  List<CourseSection> get _sectionsForSelection {
+    var sections = widget.sections.where((s) => s.cohort == _selectedCohort).toList();
+    final filterKey = _selectedProfileFilterKey;
+    if (filterKey != null) {
+      final filter = _profileFilters.firstWhere((f) => f.key == filterKey);
+      sections = sections.where((s) => filter.courseIds.contains(s.courseId)).toList();
+    }
     sections.sort((a, b) => a.sectionCode.compareTo(b.sectionCode));
     return sections;
   }
@@ -1436,7 +1463,8 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
   Widget build(BuildContext context) {
     final count = widget.studentCount;
     final cohortNames = _cohortNames;
-    final sections = _sectionsForSelectedCohort;
+    final profileFilters = _profileFilters;
+    final sections = _sectionsForSelection;
     return AlertDialog(
       title: Text('Enroll $count student${count == 1 ? '' : 's'}'),
       content: SizedBox(
@@ -1445,7 +1473,10 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Select a cohort, then a class, to enroll ${count == 1 ? 'this student' : 'these students'} into.', style: AdminTypography.bodySm()),
+            Text(
+              'Select a cohort, optionally narrow by track/department/role, then a class, to enroll ${count == 1 ? 'this student' : 'these students'} into.',
+              style: AdminTypography.bodySm(),
+            ),
             const SizedBox(height: 14),
             if (widget.sections.isEmpty)
               Text('No classes exist yet. Create one from Manage Assigned Courses first.', style: AdminTypography.bodySm(color: AdminColors.error))
@@ -1464,8 +1495,25 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                 items: [for (final c in cohortNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
                 onChanged: (v) => setState(() {
                   _selectedCohort = v;
-                  final matching = widget.sections.where((s) => s.cohort == v).toList();
-                  _selectedSectionId = matching.isEmpty ? null : matching.first.id;
+                  _selectedSectionId = null;
+                }),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: profileFilters.any((f) => f.key == _selectedProfileFilterKey) ? _selectedProfileFilterKey : null,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: AdminColors.surfaceContainerLow,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+                hint: const Text('Track / Department / Role (optional)'),
+                items: [for (final f in profileFilters) DropdownMenuItem(value: f.key, child: Text(f.label, overflow: TextOverflow.ellipsis))],
+                onChanged: (v) => setState(() {
+                  _selectedProfileFilterKey = v;
+                  _selectedSectionId = null;
                 }),
               ),
               const SizedBox(height: 12),

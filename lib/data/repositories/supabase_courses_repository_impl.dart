@@ -366,8 +366,27 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
           null,
           null,
           null,
-          ctaOverride: 'Not Enrolled Yet',
+          ctaOverride: 'Enroll Now',
         ),
     ];
+  }
+
+  @override
+  Future<bool> enrollInCompulsoryCourse(String courseId) async {
+    final sectionRow = await _client
+        .from('course_sections')
+        .select('id')
+        .eq('course_id', courseId)
+        .order('section_code')
+        .limit(1)
+        .maybeSingle();
+    final sectionId = sectionRow?['id'] as String?;
+    if (sectionId == null) return false;
+
+    await _client.from('student_courses').upsert(
+      {'student_id': DemoIdentity.studentId, 'course_id': courseId, 'section_id': sectionId},
+      onConflict: 'student_id,course_id',
+    );
+    return true;
   }
 }

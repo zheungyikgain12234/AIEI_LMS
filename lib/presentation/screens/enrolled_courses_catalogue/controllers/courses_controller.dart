@@ -56,6 +56,16 @@ class CoursesNotifier extends Notifier<CoursesState> {
   void setSortOption(CourseSortOption option) {
     state = state.copyWith(sortOption: option);
   }
+
+  /// Enrolls the student into [courseId] via any available class. Returns
+  /// false (nothing changed) if the course has no class yet; on success,
+  /// reloads so the course moves out of "Compulsory for You" into the
+  /// enrolled list.
+  Future<bool> enrollInCompulsoryCourse(String courseId) async {
+    final enrolled = await _repository.enrollInCompulsoryCourse(courseId);
+    if (enrolled) await loadInitialData();
+    return enrolled;
+  }
 }
 
 final coursesControllerProvider =

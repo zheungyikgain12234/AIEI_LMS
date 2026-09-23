@@ -164,7 +164,7 @@ class _EnrolledCoursesCatalogueScreenState
                               const SizedBox(height: 16),
                               CourseGrid(
                                 courses: state.compulsoryCourses,
-                                onCourseAction: (course) => _openCourse(context, course),
+                                onCourseAction: (course) => _enrollInCompulsoryCourse(context, course),
                               ),
                             ],
 
@@ -176,6 +176,18 @@ class _EnrolledCoursesCatalogueScreenState
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _enrollInCompulsoryCourse(BuildContext context, EnrolledCourse course) async {
+    final enrolled = await ref.read(coursesControllerProvider.notifier).enrollInCompulsoryCourse(course.id);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          enrolled ? 'Enrolled in ${course.title}.' : 'No class available as of now, please try again later.',
+        ),
       ),
     );
   }
@@ -269,7 +281,7 @@ class _EnrolledCoursesCatalogueScreenState
                       ),
                       const SizedBox(height: 12),
                       for (final course in state.compulsoryCourses) ...[
-                        MobileCourseCard(course: course, onAction: () => _openCourse(context, course)),
+                        MobileCourseCard(course: course, onAction: () => _enrollInCompulsoryCourse(context, course)),
                         const SizedBox(height: 16),
                       ],
                     ],

@@ -21,4 +21,10 @@ abstract class CoursesRepository {
   /// have no department) — powers the catalogue's "Compulsory for You"
   /// section.
   Future<List<EnrolledCourse>> getCompulsoryCourses();
+
+  /// Enrolls the demo student into [courseId] via any one of its existing
+  /// classes (`course_sections`) — used when they click "Enroll" on a
+  /// compulsory-but-not-enrolled course. Returns false (no write performed)
+  /// if the course has no class yet.
+  Future<bool> enrollInCompulsoryCourse(String courseId);
 }

@@ -15,4 +15,10 @@ abstract class CoursesRepository {
   /// student's completion status — the lesson/module list shown on the
   /// Course Info screens.
   Future<List<(ModuleMaterial, String)>> getCourseLessons(String courseId);
+
+  /// Courses mapped to the demo student's department (`department_courses`)
+  /// that they aren't enrolled in yet. Empty for External students (they
+  /// have no department) — powers the catalogue's "Compulsory for You"
+  /// section.
+  Future<List<EnrolledCourse>> getCompulsoryCourses();
 }

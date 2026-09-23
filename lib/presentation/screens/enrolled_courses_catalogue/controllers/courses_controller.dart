@@ -24,11 +24,13 @@ class CoursesNotifier extends Notifier<CoursesState> {
       final courses = await _repository.getEnrolledCourses();
       final stats = await _repository.getCourseStats();
       final criticalActions = await _repository.getCriticalActions();
+      final compulsoryCourses = await _repository.getCompulsoryCourses();
 
       state = state.copyWith(
         allCourses: courses,
         stats: stats,
         criticalActions: criticalActions,
+        compulsoryCourses: compulsoryCourses,
         isLoading: false,
       );
     } catch (e) {

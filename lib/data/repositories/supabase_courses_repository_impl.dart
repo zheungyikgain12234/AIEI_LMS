@@ -144,8 +144,9 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     Map<String, int> progressByCourse,
     String? sectionId,
     String? lecturerName,
-    String? classCode,
-  ) {
+    String? classCode, {
+    String? ctaOverride,
+  }) {
     final id = course['id'] as String;
     final category = CourseCategory.fromKey(course['category'] as String);
     final progress = progressByCourse[id] ?? 0;
@@ -189,7 +190,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       progressPercentage: progress,
       badgeCount: badgeNames.length,
       badgeNames: badgeNames,
-      ctaButtonText: isCompleted ? 'Review Course / View Badge' : 'View Course',
+      ctaButtonText: ctaOverride ?? (isCompleted ? 'Review Course / View Badge' : 'View Course'),
       isCompleted: isCompleted,
     );
   }
@@ -319,5 +320,54 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
 
     items.sort((a, b) => a.dueDate.compareTo(b.dueDate));
     return items.take(limit).toList();
+  }
+
+  @override
+  Future<List<EnrolledCourse>> getCompulsoryCourses() async {
+    final studentRow = await _client
+        .from('students')
+        .select('student_type, department')
+        .eq('id', DemoIdentity.studentId)
+        .maybeSingle();
+    if (studentRow == null || studentRow['student_type'] != 'Internal') return [];
+    final departmentName = studentRow['department'] as String?;
+    if (departmentName == null) return [];
+
+    final departmentRow =
+        await _client.from('departments').select('id').eq('name', departmentName).maybeSingle();
+    final departmentId = departmentRow?['id'] as String?;
+    if (departmentId == null) return [];
+
+    final mappedRows = await _client.from('department_courses').select('course_id').eq('department_id', departmentId);
+    final mappedCourseIds = {for (final row in mappedRows as List) row['course_id'] as String};
+    if (mappedCourseIds.isEmpty) return [];
+
+    final enrollmentRows = await _client
+        .from('student_courses')
+        .select('course_id')
+        .eq('student_id', DemoIdentity.studentId);
+    final enrolledCourseIds = {for (final row in enrollmentRows as List) row['course_id'] as String};
+
+    final compulsoryCourseIds = mappedCourseIds.difference(enrolledCourseIds);
+    if (compulsoryCourseIds.isEmpty) return [];
+
+    final courseRows = await _client.from('courses').select('''
+      id, course_title, course_description, category, image_url,
+      course_tags(tags(label, color_hex)),
+      course_badges(certifications(title))
+    ''').inFilter('id', compulsoryCourseIds.toList());
+
+    final progressByCourse = {for (final id in compulsoryCourseIds) id: 0};
+    return [
+      for (final course in courseRows as List)
+        _mapCourse(
+          course as Map<String, dynamic>,
+          progressByCourse,
+          null,
+          null,
+          null,
+          ctaOverride: 'Not Enrolled Yet',
+        ),
+    ];
   }
 }

@@ -17,6 +17,11 @@ class CoursesState {
   final CourseStats? stats;
   final List<CriticalActionItem> criticalActions;
 
+  /// Courses mapped to an Internal student's department (`department_courses`)
+  /// that they aren't enrolled in yet — shown in a separate "Compulsory for
+  /// You" section on the catalogue, distinct from [allCourses].
+  final List<EnrolledCourse> compulsoryCourses;
+
   /// Selected Course Tag ("All Courses" chip = null) — the real, admin-
   /// managed filter, replacing the old fixed-category filter pills.
   final String? selectedTag;
@@ -29,6 +34,7 @@ class CoursesState {
     this.allCourses = const [],
     this.stats,
     this.criticalActions = const [],
+    this.compulsoryCourses = const [],
     this.selectedTag,
     this.searchQuery = '',
     this.sortOption = CourseSortOption.progressDesc,
@@ -40,6 +46,7 @@ class CoursesState {
     List<EnrolledCourse>? allCourses,
     CourseStats? stats,
     List<CriticalActionItem>? criticalActions,
+    List<EnrolledCourse>? compulsoryCourses,
     String? selectedTag,
     bool clearSelectedTag = false,
     String? searchQuery,
@@ -51,6 +58,7 @@ class CoursesState {
       allCourses: allCourses ?? this.allCourses,
       stats: stats ?? this.stats,
       criticalActions: criticalActions ?? this.criticalActions,
+      compulsoryCourses: compulsoryCourses ?? this.compulsoryCourses,
       selectedTag: clearSelectedTag ? null : (selectedTag ?? this.selectedTag),
       searchQuery: searchQuery ?? this.searchQuery,
       sortOption: sortOption ?? this.sortOption,

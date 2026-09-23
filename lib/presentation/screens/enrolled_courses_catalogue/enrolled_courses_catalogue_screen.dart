@@ -153,6 +153,21 @@ class _EnrolledCoursesCatalogueScreenState
                               onCourseAction: (course) => _openCourse(context, course),
                             ),
 
+                            if (state.compulsoryCourses.isNotEmpty) ...[
+                              const SizedBox(height: 40),
+                              Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Required for your department — not yet on your enrolled list.',
+                                style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant),
+                              ),
+                              const SizedBox(height: 16),
+                              CourseGrid(
+                                courses: state.compulsoryCourses,
+                                onCourseAction: (course) => _openCourse(context, course),
+                              ),
+                            ],
+
                             const SizedBox(height: 48),
                           ],
                         ),
@@ -243,6 +258,20 @@ class _EnrolledCoursesCatalogueScreenState
                     for (final course in state.filteredAndSortedCourses) ...[
                       MobileCourseCard(course: course, onAction: () => _openCourse(context, course)),
                       const SizedBox(height: 16),
+                    ],
+                    if (state.compulsoryCourses.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 18)),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Required for your department — not yet on your enrolled list.',
+                        style: AppTypography.bodySm(color: AppColors.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 12),
+                      for (final course in state.compulsoryCourses) ...[
+                        MobileCourseCard(course: course, onAction: () => _openCourse(context, course)),
+                        const SizedBox(height: 16),
+                      ],
                     ],
                   ],
                 ),

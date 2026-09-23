@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
@@ -13,7 +12,6 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(appSessionProvider);
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -44,15 +42,6 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
             ],
           ),
           const Spacer(),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(9999)),
-            child: Text(
-              '${session.username} · ${session.tenantId}',
-              style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-            ),
-          ),
           const SizedBox(width: 16),
           Stack(
             children: [

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
@@ -13,7 +12,6 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(appSessionProvider);
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -59,49 +57,6 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
 
           const Spacer(),
 
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(9999),
-            ),
-            child: Text(
-              '${session.username} · ${session.tenantId}',
-              style: AppTypography.labelSm(color: AppColors.onSurfaceVariant),
-            ),
-          ),
-          const SizedBox(width: 16),
-
-          // Notification Bell
-          Stack(
-            children: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  size: 22,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                tooltip: 'Notifications',
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.secondary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(width: 8),
-
           // User Profile Info — tap to sign out back to Login
           GestureDetector(
             onTap: () => Navigator.of(context).pushAndRemoveUntil(
@@ -118,7 +73,7 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'Alex Chen',
+                        'David Kim',
                         style: AppTypography.labelMd(color: AppColors.onSurface),
                       ),
                       Text(

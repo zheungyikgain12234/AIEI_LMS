@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
@@ -13,7 +12,6 @@ class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(appSessionProvider);
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -52,35 +50,6 @@ class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
             ],
           ),
           const Spacer(),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
-            child: Text(
-              '${session.username} · ${session.tenantId}',
-              style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Stack(
-            children: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications_outlined, size: 22, color: FacultyColors.onSurfaceVariant),
-                tooltip: 'Notifications',
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(color: FacultyColors.error, shape: BoxShape.circle),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 8),
           GestureDetector(
             onTap: () => Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -102,7 +71,7 @@ class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Dr. Sarah Lin', style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                      Text('Dr Emmett Brown', style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
                       Text('Lead Data Architect • Faculty Instructor', style: FacultyTypography.labelXs()),
                     ],
                   ),

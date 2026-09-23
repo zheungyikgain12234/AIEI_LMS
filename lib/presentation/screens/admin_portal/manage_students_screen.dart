@@ -33,7 +33,7 @@ class ManageStudentsScreen extends StatefulWidget {
   State<ManageStudentsScreen> createState() => _ManageStudentsScreenState();
 }
 
-enum _SortColumn { name, code, track }
+enum _SortColumn { name, code, track, department }
 
 class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   final _client = Supabase.instance.client;
@@ -80,6 +80,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           cmp = a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase());
         case _SortColumn.track:
           cmp = (a.programTrack ?? '').toLowerCase().compareTo((b.programTrack ?? '').toLowerCase());
+        case _SortColumn.department:
+          cmp = (a.department ?? a.role ?? '').toLowerCase().compareTo((b.department ?? b.role ?? '').toLowerCase());
       }
       return _sortAscending ? cmp : -cmp;
     });
@@ -647,7 +649,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           Expanded(flex: 4, child: _sortHeader('Student', _SortColumn.name)),
           Expanded(flex: 2, child: Text('Student Type', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
           Expanded(flex: 2, child: _sortHeader('Track', _SortColumn.track)),
-          Expanded(flex: 3, child: Text('Department / Role', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          Expanded(flex: 3, child: _sortHeader('Department / Role', _SortColumn.department)),
           Expanded(flex: 3, child: Text('Badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
         ],
       ),

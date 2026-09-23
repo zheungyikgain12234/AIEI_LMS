@@ -243,10 +243,12 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     }
   }
 
-  void _openSyllabusEditor() {
-    Navigator.of(context).push(
+  Future<void> _openSyllabusEditor() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => CourseSyllabusScreen(sectionId: widget.sectionId, courseTitle: _courseTitle)),
     );
+    if (!mounted) return;
+    _load();
   }
 
   void _rosterRowAction(RosterRow s, String action) {

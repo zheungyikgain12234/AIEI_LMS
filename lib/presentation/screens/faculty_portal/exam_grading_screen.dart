@@ -157,6 +157,37 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
     return index + 1 < ordered.length;
   }
 
+  /// There's nothing to save for a student who hasn't submitted, so the
+  /// "Next" action must still work in that case — it just navigates without
+  /// calling [_saveMarks], rather than being disabled outright by [_canSave]
+  /// (which is only meaningful once a submission exists to grade).
+  bool get _canAdvance => _submission == null || _canSave;
+
+  void _onNextPressed() {
+    if (_submission == null) {
+      _goToNextStudent();
+    } else {
+      _saveMarks(andExit: false);
+    }
+  }
+
+  void _goToNextStudent() {
+    final ordered = widget.orderedStudents!;
+    final nextIndex = widget.currentIndex! + 1;
+    final next = ordered[nextIndex];
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => ExamGradingScreen(
+          contentBlockId: widget.contentBlockId,
+          studentId: next.studentId,
+          studentName: next.studentName,
+          orderedStudents: ordered,
+          currentIndex: nextIndex,
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveMarks({required bool andExit}) async {
     if (!_canSave) return;
     setState(() => _saving = true);
@@ -178,20 +209,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
       Navigator.of(context).pop();
       return;
     }
-    final ordered = widget.orderedStudents!;
-    final nextIndex = widget.currentIndex! + 1;
-    final next = ordered[nextIndex];
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => ExamGradingScreen(
-          contentBlockId: widget.contentBlockId,
-          studentId: next.studentId,
-          studentName: next.studentName,
-          orderedStudents: ordered,
-          currentIndex: nextIndex,
-        ),
-      ),
-    );
+    _goToNextStudent();
   }
 
   String _formatMarks(double marks) => marks.toStringAsFixed(marks.truncateToDouble() == marks ? 0 : 1);
@@ -390,7 +408,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: !_canSave || _saving || !_hasNextStudent ? null : () => _saveMarks(andExit: false),
+                onPressed: !_canAdvance || _saving || !_hasNextStudent ? null : _onNextPressed,
                 icon: _saving
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.navigate_next, size: 18),

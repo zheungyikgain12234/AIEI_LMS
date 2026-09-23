@@ -62,6 +62,15 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
   }
 
   @override
+  Future<int> getSessionCount(String sectionId) async {
+    final moduleRows = await _client.from('course_modules').select('id').eq('section_id', sectionId);
+    final moduleIds = [for (final m in moduleRows as List) m['id'] as String];
+    if (moduleIds.isEmpty) return 0;
+    final sessionRows = await _client.from('sessions').select('id').inFilter('module_id', moduleIds);
+    return (sessionRows as List).length;
+  }
+
+  @override
   Future<String?> getPrimarySectionIdForCourse(String courseId) async {
     final rows = await _client.from('course_sections').select('id').eq('course_id', courseId).order('section_code').limit(1);
     final list = rows as List;
@@ -165,5 +174,58 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
       return sum + ((graded / totalAssessments) * 100).round();
     });
     return (progressSum / studentIds.length).round();
+  }
+
+  @override
+  Future<List<PendingGradingItem>> getPendingGradingItems(List<String> sectionIds) async {
+    if (sectionIds.isEmpty) return [];
+
+    final moduleRows = await _client.from('course_modules').select('id, section_id').inFilter('section_id', sectionIds);
+    final sectionByModule = {for (final row in moduleRows as List) row['id'] as String: row['section_id'] as String};
+    if (sectionByModule.isEmpty) return [];
+
+    final sessionRows = await _client.from('sessions').select('id, module_id').inFilter('module_id', sectionByModule.keys.toList());
+    final moduleBySession = {for (final row in sessionRows as List) row['id'] as String: row['module_id'] as String};
+    if (moduleBySession.isEmpty) return [];
+
+    final blockRows = await _client
+        .from('content_blocks')
+        .select('id, block_type, block_content, session_id')
+        .inFilter('session_id', moduleBySession.keys.toList())
+        .inFilter('block_type', ['exam', 'assignment']);
+    final blockRowById = <String, Map<String, dynamic>>{};
+    final sectionByBlock = <String, String>{};
+    for (final row in blockRows as List) {
+      final blockId = row['id'] as String;
+      final moduleId = moduleBySession[row['session_id'] as String];
+      final sectionId = moduleId == null ? null : sectionByModule[moduleId];
+      if (sectionId == null) continue;
+      blockRowById[blockId] = row as Map<String, dynamic>;
+      sectionByBlock[blockId] = sectionId;
+    }
+    if (blockRowById.isEmpty) return [];
+
+    final submissionRows = await _client
+        .from('content_block_submissions')
+        .select('content_block_id')
+        .inFilter('content_block_id', blockRowById.keys.toList())
+        .eq('status', 'submitted');
+
+    final pendingCountByBlock = <String, int>{};
+    for (final row in submissionRows as List) {
+      final blockId = row['content_block_id'] as String;
+      pendingCountByBlock[blockId] = (pendingCountByBlock[blockId] ?? 0) + 1;
+    }
+
+    return [
+      for (final entry in pendingCountByBlock.entries)
+        (
+          sectionId: sectionByBlock[entry.key]!,
+          contentBlockId: entry.key,
+          blockType: blockRowById[entry.key]!['block_type'] as String,
+          title: (blockRowById[entry.key]!['block_content'] as Map<String, dynamic>?)?['title'] as String? ?? 'Untitled',
+          pendingCount: entry.value,
+        ),
+    ];
   }
 }

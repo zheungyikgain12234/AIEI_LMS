@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
@@ -43,6 +44,7 @@ class CourseContentScreen extends StatefulWidget {
 }
 
 class _CourseContentScreenState extends State<CourseContentScreen> {
+  final _client = Supabase.instance.client;
   final _repository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
   final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
   final _scrollController = ScrollController();
@@ -54,6 +56,8 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
   List<_ContentModule> _modules = [];
   List<CourseAnnouncement> _announcements = const [];
   String? _activeId;
+  String? _classCode;
+  String? _lecturerName;
 
   @override
   void initState() {
@@ -81,10 +85,17 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
       content.add((module: m, sessions: withBlocks));
     }
     final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
+    final sectionRow = await _client
+        .from('course_sections')
+        .select('section_code, lecturers(name)')
+        .eq('id', widget.sectionId)
+        .maybeSingle();
     if (!mounted) return;
     setState(() {
       _modules = content;
       _announcements = announcements;
+      _classCode = sectionRow == null ? null : displayCode(sectionRow['section_code'] as String);
+      _lecturerName = (sectionRow?['lecturers'] as Map<String, dynamic>?)?['name'] as String?;
       _expandedModuleIds
         ..clear()
         ..addAll(content.map((m) => m.module.id));
@@ -502,7 +513,9 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(widget.courseTitle, style: FacultyTypography.headlineLg()),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
+                _classAndLecturerBadges(),
+                const SizedBox(height: 10),
                 Text(
                   '${_modules.length} module${_modules.length == 1 ? '' : 's'}',
                   style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
@@ -521,6 +534,51 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Class code + lecturer name, shown prominently right under the course
+  /// title so a student can tell which class/instructor this content
+  /// belongs to at a glance.
+  Widget _classAndLecturerBadges() {
+    if (_classCode == null && _lecturerName == null) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 10,
+      runSpacing: 8,
+      children: [
+        if (_classCode != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(color: FacultyColors.primaryContainer, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.event_note_outlined, size: 15, color: FacultyColors.onPrimaryContainer),
+                const SizedBox(width: 6),
+                Text(
+                  'Class: $_classCode',
+                  style: FacultyTypography.labelMd(color: FacultyColors.onPrimaryContainer).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        if (_lecturerName != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.person_outline, size: 15, color: FacultyColors.onSecondaryContainer),
+                const SizedBox(width: 6),
+                Text(
+                  'Lecturer: $_lecturerName',
+                  style: FacultyTypography.labelMd(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

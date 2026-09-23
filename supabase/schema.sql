@@ -12,7 +12,7 @@
 
 drop table if exists
   enrollment_candidates, course_announcements, course_sections,
-  badge_awards, student_certifications, student_materials, student_courses,
+  badge_awards, course_badges, student_certifications, student_materials, student_courses,
   specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags,
   template_content_blocks, template_sessions, template_modules, syllabus_templates,
@@ -352,6 +352,10 @@ create table tags (
   icon_name text
 );
 
+-- Course Tags master data (admin-managed) is a single unique label per tag —
+-- case-insensitive so "Compliance" and "compliance" can't both be created.
+create unique index tags_label_ci_idx on tags (lower(label));
+
 create table course_tags (
   course_id uuid not null references courses(id) on delete cascade,
   tag_id uuid not null references tags(id) on delete cascade,
@@ -370,6 +374,16 @@ create table certifications (
   narrative text not null default '',
   accrediting_bodies text[] not null default '{}',
   metrics jsonb not null default '{}'::jsonb
+);
+
+-- Badges configured on a course template (by an admin, via the course
+-- form) as "students earn this badge on completing this course" — distinct
+-- from `badge_awards`, which is the actual per-student award record created
+-- once a specific student completes the course.
+create table course_badges (
+  course_id uuid not null references courses(id) on delete cascade,
+  badge_id uuid not null references certifications(id) on delete cascade,
+  primary key (course_id, badge_id)
 );
 
 create table module_certs (
@@ -563,6 +577,7 @@ alter table content_block_submissions enable row level security;
 alter table tags enable row level security;
 alter table course_tags enable row level security;
 alter table certifications enable row level security;
+alter table course_badges enable row level security;
 alter table module_certs enable row level security;
 alter table lecturer_courses enable row level security;
 alter table student_courses enable row level security;
@@ -585,7 +600,7 @@ begin
     'syllabus_templates', 'template_modules', 'template_sessions', 'template_content_blocks',
     'exam_sections', 'exam_questions', 'exam_question_options',
     'assignment_criteria', 'content_block_submissions',
-    'tags', 'course_tags', 'certifications', 'module_certs',
+    'tags', 'course_tags', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates', 'course_announcements'
   ]

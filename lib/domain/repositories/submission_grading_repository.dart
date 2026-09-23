@@ -23,7 +23,13 @@ abstract class SubmissionGradingRepository {
   });
 
   /// Records a lecturer's marks for one student's submission — upserts by
-  /// (contentBlockId, studentId), setting status to `graded`.
+  /// (contentBlockId, studentId), setting status to `graded`. Also
+  /// recomputes this student's real `student_courses.progress_percentage`
+  /// for the course this content block belongs to (graded / total exam+
+  /// assignment blocks in that class), and — once that reaches 100% —
+  /// auto-grants every badge configured on the course (`course_badges`)
+  /// that this student doesn't already hold, by inserting into
+  /// `badge_awards`.
   Future<void> saveGrade({
     required String contentBlockId,
     required String studentId,

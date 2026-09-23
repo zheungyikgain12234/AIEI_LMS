@@ -71,7 +71,7 @@ class _CourseCardState extends State<CourseCard> {
 
                 const SizedBox(height: 8),
 
-                // Instructor / Division
+                // Instructor / Division + Class Code
                 Row(
                   children: [
                     Icon(
@@ -90,6 +90,22 @@ class _CourseCardState extends State<CourseCard> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (c.classCode != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          c.classCode!,
+                          style: AppTypography.labelSm(color: AppColors.onSurfaceVariant).copyWith(fontSize: 10),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
 
@@ -166,30 +182,33 @@ class _CourseCardState extends State<CourseCard> {
               spacing: 6,
               runSpacing: 6,
               children: c.tags.map((tag) {
+                // Fixed amber/black styling for every tag shown on the
+                // thumbnail, regardless of the tag's own stored color —
+                // keeps the catalogue cards visually consistent.
                 return Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: tag.backgroundColor,
+                    color: Colors.amber,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (tag.hasCheckIcon) ...[
-                        Icon(
+                        const Icon(
                           Icons.check,
                           size: 12,
-                          color: tag.textColor,
+                          color: Colors.black,
                         ),
                         const SizedBox(width: 3),
                       ],
                       Text(
                         tag.label,
                         style: AppTypography.labelSm(
-                          color: tag.textColor,
+                          color: Colors.black,
                         ).copyWith(fontSize: 10),
                       ),
                     ],
@@ -309,9 +328,7 @@ class _CourseCardState extends State<CourseCard> {
             children: [
               Expanded(
                 child: Text(
-                  isDone
-                      ? 'Fully Completed (100%)'
-                      : 'In Progress (${c.progressPercentage}%)',
+                  isDone ? 'Fully Completed' : 'In Progress',
                   style: AppTypography.labelSm(
                     color: isDone
                         ? AppColors.onTertiaryContainer
@@ -322,7 +339,7 @@ class _CourseCardState extends State<CourseCard> {
               ),
               const SizedBox(width: 8),
               Text(
-                '${c.completedLessons} / ${c.totalLessons} Lessons',
+                '${c.progressPercentage}%',
                 style: AppTypography.labelSm(
                   color: AppColors.primary,
                 ).copyWith(fontWeight: FontWeight.w700),
@@ -345,81 +362,44 @@ class _CourseCardState extends State<CourseCard> {
               ),
             ),
           ),
-
-          const SizedBox(height: 8),
-
-          // Next Lesson Pointer
-          Row(
-            children: [
-              Icon(
-                isDone
-                    ? Icons.done_all
-                    : (c.isWarningNextLesson
-                        ? Icons.warning_amber_rounded
-                        : Icons.play_circle_outline),
-                size: 14,
-                color: isDone
-                    ? AppColors.onTertiaryContainer
-                    : (c.isWarningNextLesson
-                        ? AppColors.error
-                        : AppColors.secondary),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  c.nextLessonOrStatus,
-                  style: AppTypography.bodySm(
-                    color: c.isWarningNextLesson
-                        ? AppColors.error
-                        : AppColors.onSurfaceVariant,
-                  ).copyWith(
-                    fontWeight: c.isWarningNextLesson
-                        ? FontWeight.w500
-                        : FontWeight.w400,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
   Widget _buildBadgeSnippet(EnrolledCourse c) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: c.isCompleted
-            ? AppColors.surfaceContainerHigh.withValues(alpha: 0.6)
-            : AppColors.surfaceContainerHigh.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            c.unlockBadgeIcon,
-            size: 18,
-            color: c.isCompleted
-                ? AppColors.onTertiaryContainer
-                : AppColors.secondary,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              c.unlockBadgeTitle,
+    if (c.badgeCount == 0) return const SizedBox.shrink();
+    return Tooltip(
+      message: c.badgeNames.join(', '),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: c.isCompleted
+              ? AppColors.surfaceContainerHigh.withValues(alpha: 0.6)
+              : AppColors.surfaceContainerHigh.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.military_tech_outlined,
+              size: 18,
+              color: c.isCompleted
+                  ? AppColors.onTertiaryContainer
+                  : AppColors.secondary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${c.badgeCount} Badge${c.badgeCount == 1 ? '' : 's'} to Unlock',
               style: AppTypography.labelSm(
                 color: AppColors.onSurface,
               ).copyWith(
                 fontWeight: c.isCompleted ? FontWeight.w600 : FontWeight.w500,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

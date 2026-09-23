@@ -6,9 +6,7 @@ import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
-  final ValueChanged<String>? onSearch;
-
-  const FacultyHeader({super.key, this.onSearch});
+  const FacultyHeader({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -53,32 +51,7 @@ class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
               ),
             ],
           ),
-          const SizedBox(width: 32),
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Container(
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: FacultyColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: TextField(
-                    onChanged: onSearch,
-                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-                    decoration: InputDecoration(
-                      hintText: 'Search courses, curriculum, submissions, students...',
-                      hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
-                      prefixIcon: const Icon(Icons.search, size: 18, color: FacultyColors.outline),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          const Spacer(),
           const SizedBox(width: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

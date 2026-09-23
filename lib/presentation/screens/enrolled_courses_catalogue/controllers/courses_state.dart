@@ -1,10 +1,9 @@
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
-import 'package:stitch_aiei_lms/domain/models/urgent_notice.dart';
+import 'package:stitch_aiei_lms/domain/models/critical_action_item.dart';
 
 enum CourseSortOption {
   progressDesc('progress-desc', 'Sort: Highest Progress'),
-  deadline('deadline', 'Sort: Urgent Deadline'),
   name('name', 'Sort: Course Title'),
   estTime('est-time', 'Sort: Estimated Time');
 
@@ -16,8 +15,11 @@ enum CourseSortOption {
 class CoursesState {
   final List<EnrolledCourse> allCourses;
   final CourseStats? stats;
-  final UrgentNotice? urgentNotice;
-  final CourseCategory selectedCategory;
+  final List<CriticalActionItem> criticalActions;
+
+  /// Selected Course Tag ("All Courses" chip = null) — the real, admin-
+  /// managed filter, replacing the old fixed-category filter pills.
+  final String? selectedTag;
   final String searchQuery;
   final CourseSortOption sortOption;
   final bool isLoading;
@@ -26,8 +28,8 @@ class CoursesState {
   const CoursesState({
     this.allCourses = const [],
     this.stats,
-    this.urgentNotice,
-    this.selectedCategory = CourseCategory.all,
+    this.criticalActions = const [],
+    this.selectedTag,
     this.searchQuery = '',
     this.sortOption = CourseSortOption.progressDesc,
     this.isLoading = false,
@@ -37,8 +39,9 @@ class CoursesState {
   CoursesState copyWith({
     List<EnrolledCourse>? allCourses,
     CourseStats? stats,
-    UrgentNotice? urgentNotice,
-    CourseCategory? selectedCategory,
+    List<CriticalActionItem>? criticalActions,
+    String? selectedTag,
+    bool clearSelectedTag = false,
     String? searchQuery,
     CourseSortOption? sortOption,
     bool? isLoading,
@@ -47,8 +50,8 @@ class CoursesState {
     return CoursesState(
       allCourses: allCourses ?? this.allCourses,
       stats: stats ?? this.stats,
-      urgentNotice: urgentNotice ?? this.urgentNotice,
-      selectedCategory: selectedCategory ?? this.selectedCategory,
+      criticalActions: criticalActions ?? this.criticalActions,
+      selectedTag: clearSelectedTag ? null : (selectedTag ?? this.selectedTag),
       searchQuery: searchQuery ?? this.searchQuery,
       sortOption: sortOption ?? this.sortOption,
       isLoading: isLoading ?? this.isLoading,
@@ -56,27 +59,36 @@ class CoursesState {
     );
   }
 
+  /// Distinct tag labels across every enrolled course, in first-seen order —
+  /// the horizontally scrollable filter row above the course grid.
+  List<String> get availableTags {
+    final seen = <String>{};
+    final labels = <String>[];
+    for (final course in allCourses) {
+      for (final tag in course.tags) {
+        if (seen.add(tag.label)) labels.add(tag.label);
+      }
+    }
+    return labels;
+  }
+
   List<EnrolledCourse> get filteredAndSortedCourses {
     var filtered = allCourses.where((course) {
-      final matchesCategory = selectedCategory == CourseCategory.all ||
-          course.category == selectedCategory;
+      final matchesTag = selectedTag == null || course.tags.any((t) => t.label == selectedTag);
 
       final query = searchQuery.trim().toLowerCase();
       final matchesQuery = query.isEmpty ||
           course.title.toLowerCase().contains(query) ||
           course.instructorOrBoard.toLowerCase().contains(query) ||
-          course.tags.any((t) => t.label.toLowerCase().contains(query)) ||
-          course.unlockBadgeTitle.toLowerCase().contains(query);
+          course.tags.any((t) => t.label.toLowerCase().contains(query));
 
-      return matchesCategory && matchesQuery;
+      return matchesTag && matchesQuery;
     }).toList();
 
     filtered.sort((a, b) {
       switch (sortOption) {
         case CourseSortOption.progressDesc:
           return b.progressPercentage.compareTo(a.progressPercentage);
-        case CourseSortOption.deadline:
-          return a.deadlineDays.compareTo(b.deadlineDays);
         case CourseSortOption.name:
           return a.title.compareTo(b.title);
         case CourseSortOption.estTime:
@@ -96,10 +108,5 @@ class CoursesState {
       return double.tryParse(match.group(1) ?? '0') ?? 0.0;
     }
     return 0.0;
-  }
-
-  int getCountForCategory(CourseCategory category) {
-    if (category == CourseCategory.all) return allCourses.length;
-    return allCourses.where((c) => c.category == category).length;
   }
 }

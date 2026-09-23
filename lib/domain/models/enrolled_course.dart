@@ -43,6 +43,11 @@ class EnrolledCourse {
   /// this is what "View Course" needs to load the right content. Null if
   /// the student hasn't been assigned to a class yet.
   final String? sectionId;
+
+  /// That class's `section_code` (e.g. `CLS-PY402-A01`) — shown on the
+  /// catalogue card so a student can tell classes of the same course apart.
+  /// Null alongside [sectionId] when unassigned.
+  final String? classCode;
   final String instructorOrBoard;
   final IconData instructorIcon;
   final Color instructorIconColor;
@@ -52,13 +57,12 @@ class EnrolledCourse {
   final String? trackTypeText;
   final String? scoreText;
   final int progressPercentage;
-  final int completedLessons;
-  final int totalLessons;
-  final String nextLessonOrStatus;
-  final bool isWarningNextLesson;
-  final String unlockBadgeTitle;
-  final IconData unlockBadgeIcon;
-  final int deadlineDays;
+
+  /// Badges configured on this course (`course_badges`) that the student
+  /// unlocks on completion — just the count and names are shown on the
+  /// catalogue card (names only on hover), not per-badge detail.
+  final int badgeCount;
+  final List<String> badgeNames;
   final String ctaButtonText;
   final bool isCompleted;
 
@@ -67,6 +71,7 @@ class EnrolledCourse {
     required this.title,
     required this.category,
     this.sectionId,
+    this.classCode,
     required this.instructorOrBoard,
     required this.instructorIcon,
     required this.instructorIconColor,
@@ -76,13 +81,8 @@ class EnrolledCourse {
     this.trackTypeText,
     this.scoreText,
     required this.progressPercentage,
-    required this.completedLessons,
-    required this.totalLessons,
-    required this.nextLessonOrStatus,
-    this.isWarningNextLesson = false,
-    required this.unlockBadgeTitle,
-    required this.unlockBadgeIcon,
-    required this.deadlineDays,
+    this.badgeCount = 0,
+    this.badgeNames = const [],
     required this.ctaButtonText,
     this.isCompleted = false,
   });

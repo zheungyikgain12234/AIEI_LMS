@@ -6,12 +6,7 @@ import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
-  final ValueChanged<String>? onSearch;
-
-  const PortalHeader({
-    super.key,
-    this.onSearch,
-  });
+  const PortalHeader({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -62,43 +57,7 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
             ],
           ),
 
-          const SizedBox(width: 32),
-
-          // Central Search Input
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 576),
-                child: Container(
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextField(
-                    onChanged: onSearch,
-                    style: AppTypography.bodySm(color: AppColors.onSurface),
-                    decoration: InputDecoration(
-                      hintText: 'Search courses, lessons and certifications',
-                      hintStyle: AppTypography.bodySm(
-                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        size: 18,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          const Spacer(),
 
           const SizedBox(width: 16),
           Container(

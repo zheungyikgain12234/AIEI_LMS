@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -5,8 +7,12 @@ import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
+import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
 import 'widgets/admin_field_label.dart';
 
 // ---------------------------------------------------------------------------
@@ -28,13 +34,14 @@ class CourseFormScreen extends ConsumerStatefulWidget {
 
 class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   final _repository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
+  final _tagsRepository = SupabaseAdminCourseTagsRepositoryImpl(Supabase.instance.client);
+  final _badgesRepository = SupabaseAdminBadgeCatalogRepositoryImpl(Supabase.instance.client);
   final _formKey = GlobalKey<FormState>();
 
   final _courseCodeController = TextEditingController();
   final _courseTitleController = TextEditingController();
   final _courseDescriptionController = TextEditingController();
   final _creditsController = TextEditingController(text: '3');
-  final _imageUrlController = TextEditingController();
 
   static const _categoryOptions = [
     ('techData', 'Technical & Data'),
@@ -43,6 +50,14 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
     ('productivity', 'Productivity & Soft Skills'),
   ];
   String _category = 'techData';
+
+  List<CourseTagOption> _availableTags = [];
+  List<BadgeCatalogItem> _availableBadges = [];
+  final Set<String> _selectedTagIds = {};
+  final Set<String> _selectedBadgeIds = {};
+
+  String? _bannerImageUrl;
+  bool _uploadingBanner = false;
 
   bool _isLoading = false;
   bool _isSaving = false;
@@ -60,23 +75,36 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.isEditing) {
-      _load();
-    }
+    _load();
   }
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
-      final course = await _repository.getCourseById(widget.courseId!);
+      final tags = await _tagsRepository.getTags();
+      final badges = await _badgesRepository.getBadges();
+      AdminCourse? course;
+      if (widget.isEditing) {
+        course = await _repository.getCourseById(widget.courseId!);
+      }
       if (!mounted) return;
-      _courseCodeController.text = _stripTenantPrefix(course.courseCode);
-      _courseTitleController.text = course.courseTitle;
-      _courseDescriptionController.text = course.courseDescription;
-      _creditsController.text = course.credits.toString();
-      _imageUrlController.text = course.imageUrl ?? '';
       setState(() {
-        _category = _categoryOptions.any((c) => c.$1 == course.category) ? course.category : 'techData';
+        _availableTags = tags;
+        _availableBadges = badges;
+        if (course != null) {
+          _courseCodeController.text = _stripTenantPrefix(course.courseCode);
+          _courseTitleController.text = course.courseTitle;
+          _courseDescriptionController.text = course.courseDescription;
+          _creditsController.text = course.credits.toString();
+          _bannerImageUrl = course.imageUrl;
+          _category = _categoryOptions.any((c) => c.$1 == course!.category) ? course.category : 'techData';
+          _selectedTagIds
+            ..clear()
+            ..addAll(course.tagIds);
+          _selectedBadgeIds
+            ..clear()
+            ..addAll(course.badgeIds);
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -94,19 +122,44 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
     _courseTitleController.dispose();
     _courseDescriptionController.dispose();
     _creditsController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadBanner() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.single;
+    final Uint8List? bytes = file.bytes;
+    if (bytes == null) return;
+    setState(() => _uploadingBanner = true);
+    try {
+      final url = await _repository.uploadCourseBanner(fileName: file.name, bytes: bytes);
+      if (!mounted) return;
+      setState(() {
+        _bannerImageUrl = url;
+        _uploadingBanner = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Banner upload failed: $e';
+        _uploadingBanner = false;
+      });
+    }
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedTagIds.isEmpty) {
+      setState(() => _errorMessage = 'Select at least one Course Tag.');
+      return;
+    }
     setState(() {
       _isSaving = true;
       _errorMessage = null;
     });
     try {
       final credits = int.parse(_creditsController.text.trim());
-      final imageUrl = _imageUrlController.text.trim();
       final AdminCourse saved;
       if (widget.isEditing) {
         saved = await _repository.updateCourse(
@@ -115,8 +168,10 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           courseTitle: _courseTitleController.text.trim(),
           courseDescription: _courseDescriptionController.text.trim(),
           category: _category,
-          imageUrl: imageUrl.isEmpty ? null : imageUrl,
+          imageUrl: _bannerImageUrl,
           credits: credits,
+          tagIds: _selectedTagIds.toList(),
+          badgeIds: _selectedBadgeIds.toList(),
         );
       } else {
         saved = await _repository.createCourse(
@@ -124,8 +179,10 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           courseTitle: _courseTitleController.text.trim(),
           courseDescription: _courseDescriptionController.text.trim(),
           category: _category,
-          imageUrl: imageUrl.isEmpty ? null : imageUrl,
+          imageUrl: _bannerImageUrl,
           credits: credits,
+          tagIds: _selectedTagIds.toList(),
+          badgeIds: _selectedBadgeIds.toList(),
         );
       }
       if (!mounted) return;
@@ -188,6 +245,8 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                             ),
                             const SizedBox(height: 16),
                           ],
+                          _bannerField(),
+                          const SizedBox(height: 14),
                           _field(controller: _courseCodeController, label: 'Course Code', hint: 'PY-402'),
                           const SizedBox(height: 14),
                           _field(controller: _courseTitleController, label: 'Course Title', hint: 'Python for Enterprise Data Analysis'),
@@ -215,7 +274,21 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                             },
                           ),
                           const SizedBox(height: 14),
-                          _field(controller: _imageUrlController, label: 'Image URL (optional)', hint: 'https://...', required: false),
+                          _multiSelect(
+                            label: 'Course Tags',
+                            required: true,
+                            hint: 'Select at least one tag',
+                            options: [for (final t in _availableTags) (id: t.id, label: t.label)],
+                            selectedIds: _selectedTagIds,
+                          ),
+                          const SizedBox(height: 14),
+                          _multiSelect(
+                            label: 'Badges Awarded on Completion',
+                            required: false,
+                            hint: 'Select badges students unlock (optional)',
+                            options: [for (final b in _availableBadges) (id: b.id, label: b.title)],
+                            selectedIds: _selectedBadgeIds,
+                          ),
                           const SizedBox(height: 24),
                           Row(
                             children: [
@@ -261,6 +334,165 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _bannerField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AdminFieldLabel('Course Banner Image', required: false),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            height: 140,
+            width: double.infinity,
+            color: AdminColors.surfaceContainerLow,
+            child: _bannerImageUrl == null || _bannerImageUrl!.isEmpty
+                ? const Center(child: Icon(Icons.image_outlined, size: 36, color: AdminColors.outline))
+                : Image.network(
+                    _bannerImageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Center(child: Icon(Icons.broken_image_outlined, size: 36, color: AdminColors.outline)),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: _uploadingBanner ? null : _pickAndUploadBanner,
+              icon: _uploadingBanner
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.upload_outlined, size: 16),
+              label: Text(_bannerImageUrl == null || _bannerImageUrl!.isEmpty ? 'Upload Banner Image' : 'Replace Banner Image'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AdminColors.primary,
+                backgroundColor: AdminColors.surfaceContainer,
+                side: BorderSide.none,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            if (_bannerImageUrl != null && _bannerImageUrl!.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: _uploadingBanner ? null : () => setState(() => _bannerImageUrl = null),
+                child: const Text('Remove'),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _multiSelect({
+    required String label,
+    required bool required,
+    required String hint,
+    required List<({String id, String label})> options,
+    required Set<String> selectedIds,
+  }) {
+    final selectedOptions = options.where((o) => selectedIds.contains(o.id)).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AdminFieldLabel(label, required: required),
+        const SizedBox(height: 6),
+        InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => _openMultiSelectPicker(label: label, options: options, selectedIds: selectedIds),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: selectedOptions.isEmpty
+                ? Row(
+                    children: [
+                      Expanded(child: Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline))),
+                      const Icon(Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
+                    ],
+                  )
+                : Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final o in selectedOptions)
+                        Chip(
+                          label: Text(o.label, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+                          backgroundColor: AdminColors.surfaceContainer,
+                          deleteIcon: const Icon(Icons.close, size: 14),
+                          onDeleted: () => setState(() => selectedIds.remove(o.id)),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openMultiSelectPicker({
+    required String label,
+    required List<({String id, String label})> options,
+    required Set<String> selectedIds,
+  }) async {
+    final searchController = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final query = searchController.text.trim().toLowerCase();
+          final filtered = query.isEmpty ? options : options.where((o) => o.label.toLowerCase().contains(query)).toList();
+          return AlertDialog(
+            title: Text('Select $label'),
+            content: SizedBox(
+              width: 400,
+              height: 420,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: searchController,
+                    autofocus: true,
+                    onChanged: (_) => setDialogState(() {}),
+                    decoration: const InputDecoration(prefixIcon: Icon(Icons.search, size: 18), hintText: 'Search...', isDense: true),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(child: Text('No matches.', style: AdminTypography.bodySm()))
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final option = filtered[index];
+                              final checked = selectedIds.contains(option.id);
+                              return CheckboxListTile(
+                                value: checked,
+                                dense: true,
+                                controlAffinity: ListTileControlAffinity.leading,
+                                title: Text(option.label),
+                                onChanged: (v) => setDialogState(() {
+                                  setState(() => v == true ? selectedIds.add(option.id) : selectedIds.remove(option.id));
+                                }),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Done')),
+            ],
+          );
+        },
+      ),
     );
   }
 

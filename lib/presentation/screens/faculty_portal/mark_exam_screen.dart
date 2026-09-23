@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
@@ -35,10 +37,14 @@ class MarkExamScreen extends StatefulWidget {
 class _MarkExamScreenState extends State<MarkExamScreen> {
   final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _gradingRepository = SupabaseSubmissionGradingRepositoryImpl(Supabase.instance.client);
+  final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
+  final _syllabusRepository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   List<RosterStudent> _roster = const [];
   Map<String, ContentBlockSubmission> _submissions = const {};
+  double _maxMarks = 0;
+  double? _weightage;
 
   _SortColumn _sortColumn = _SortColumn.name;
   bool _sortAscending = true;
@@ -54,13 +60,34 @@ class _MarkExamScreenState extends State<MarkExamScreen> {
     setState(() => _isLoading = true);
     final roster = await _rosterRepository.getSectionRoster(widget.sectionId);
     final submissions = await _gradingRepository.getRosterSubmissions(widget.contentBlockId);
+    final maxMarks = await _examRepository.getTotalMarks(widget.contentBlockId);
+    final block = await _syllabusRepository.getContentBlock(widget.contentBlockId);
     if (!mounted) return;
     setState(() {
       _roster = roster;
       _submissions = submissions;
+      _maxMarks = maxMarks;
+      _weightage = block?.weightage;
       _page = 0;
       _isLoading = false;
     });
+  }
+
+  /// This student's score as a percentage of [_maxMarks] — null until
+  /// they're graded, or if the exam has no questions/marks set up yet.
+  double? _percentFor(ContentBlockSubmission? submission) {
+    if (submission?.totalScore == null || _maxMarks <= 0) return null;
+    return submission!.totalScore! / _maxMarks * 100;
+  }
+
+  /// The marks this submission actually carries toward the class's final
+  /// grade — this block's `weightage` (0-100, from the syllabus editor)
+  /// scaled by the student's percentage score on it. Null until graded, or
+  /// if no weightage has been set for this block.
+  double? _carryMarkFor(ContentBlockSubmission? submission) {
+    final percent = _percentFor(submission);
+    if (percent == null || _weightage == null) return null;
+    return percent / 100 * _weightage!;
   }
 
   int _statusRank(RosterStudent s) {
@@ -143,7 +170,7 @@ class _MarkExamScreenState extends State<MarkExamScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
+              constraints: const BoxConstraints(maxWidth: 1200),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -180,18 +207,25 @@ class _MarkExamScreenState extends State<MarkExamScreen> {
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: 760,
-          child: Column(
-            children: [
-              _headerRow(),
-              for (var i = 0; i < pageRows.length; i++) _dataRow(sorted, pageStart + i),
-            ],
+      child: LayoutBuilder(builder: (context, constraints) {
+        // Stretch to fill the available width on desktop instead of always
+        // sitting at a fixed 940px (leaving dead space on wide screens);
+        // only fall back to the 940px minimum + horizontal scroll when the
+        // viewport is narrower than that (tablet/mobile).
+        final width = constraints.maxWidth > 940 ? constraints.maxWidth : 940.0;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: width,
+            child: Column(
+              children: [
+                _headerRow(),
+                for (var i = 0; i < pageRows.length; i++) _dataRow(sorted, pageStart + i),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 
@@ -205,6 +239,8 @@ class _MarkExamScreenState extends State<MarkExamScreen> {
           Expanded(flex: 2, child: _headerCell('Student Code', _SortColumn.code)),
           Expanded(flex: 2, child: _headerCell('Status', _SortColumn.status)),
           Expanded(flex: 2, child: _headerCell('Score', _SortColumn.score, alignEnd: true)),
+          Expanded(flex: 2, child: _plainHeaderCell('Mark %', alignEnd: true)),
+          Expanded(flex: 2, child: _plainHeaderCell('Carry Mark', alignEnd: true)),
           const SizedBox(width: 24),
         ],
       ),
@@ -233,10 +269,26 @@ class _MarkExamScreenState extends State<MarkExamScreen> {
     );
   }
 
+  /// A header cell for a column that isn't sortable (Mark %/Carry Mark are
+  /// derived, not stored, so sorting by them isn't supported).
+  Widget _plainHeaderCell(String label, {bool alignEnd = false}) {
+    return Row(
+      mainAxisAlignment: alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+  }
+
   Widget _dataRow(List<RosterStudent> sorted, int index) {
     final s = sorted[index];
     final submission = _submissions[s.studentId];
     final (statusLabel, statusColor, statusBg) = _statusFor(submission);
+    final percent = _percentFor(submission);
+    final carryMark = _carryMarkFor(submission);
     return InkWell(
       onTap: () => _openStudent(sorted, index),
       child: Container(
@@ -283,6 +335,22 @@ class _MarkExamScreenState extends State<MarkExamScreen> {
                 submission?.totalScore != null ? _formatScore(submission!.totalScore!) : '—',
                 textAlign: TextAlign.end,
                 style: FacultyTypography.titleSm(color: FacultyColors.primary),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                percent != null ? '${percent.toStringAsFixed(1)}%' : '—',
+                textAlign: TextAlign.end,
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                carryMark != null ? _formatScore(carryMark) : '—',
+                textAlign: TextAlign.end,
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
               ),
             ),
             const SizedBox(width: 8),

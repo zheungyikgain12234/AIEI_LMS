@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
+import 'package:stitch_aiei_lms/main.dart' show routeObserver;
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
-import 'package:stitch_aiei_lms/domain/models/urgent_notice.dart';
+import 'package:stitch_aiei_lms/domain/models/critical_action_item.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_content_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
 import 'controllers/courses_controller.dart';
@@ -13,6 +14,7 @@ import 'widgets/portal_header.dart';
 import 'widgets/portal_sidebar.dart';
 import 'widgets/telemetry_banner.dart';
 import 'widgets/course_filters_bar.dart';
+import 'widgets/tags_filter_row.dart';
 import 'widgets/course_grid.dart';
 import 'widgets/mobile_course_card.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
@@ -29,8 +31,37 @@ class EnrolledCoursesCatalogueScreen extends ConsumerStatefulWidget {
 }
 
 class _EnrolledCoursesCatalogueScreenState
-    extends ConsumerState<EnrolledCoursesCatalogueScreen> {
+    extends ConsumerState<EnrolledCoursesCatalogueScreen> with RouteAware {
   int _sidebarIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Progress/badges/tags are admin- or lecturer-editable elsewhere in the
+    // app, so always reload fresh from the DB whenever this screen is
+    // (re)created rather than trusting whatever the provider last cached.
+    Future.microtask(() => ref.read(coursesControllerProvider.notifier).loadInitialData());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // A pushed screen (e.g. viewing course content) popped back to this
+    // one — progress/badges may have changed server-side since this
+    // screen's provider state was last loaded, so refresh it.
+    ref.read(coursesControllerProvider.notifier).loadInitialData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +76,7 @@ class _EnrolledCoursesCatalogueScreenState
     return Scaffold(
       backgroundColor: AppColors.background,
       // Fixed Desktop Portal Header
-      appBar: PortalHeader(
-        onSearch: (query) => notifier.setSearchQuery(query),
-      ),
+      appBar: const PortalHeader(),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -86,27 +115,39 @@ class _EnrolledCoursesCatalogueScreenState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Section 1: Top Stat Telemetry & Urgent Action
+                            // Section 1: Top Stat Telemetry & Critical Action
                             TelemetryBanner(
                               stats: state.stats,
-                              urgentNotice: state.urgentNotice,
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // Section 2: Filter Tabs, Live Search & Sort Options
-                            CourseFiltersBar(
-                              selectedCategory: state.selectedCategory,
-                              onSelectCategory: notifier.selectCategory,
-                              onSearchChanged: notifier.setSearchQuery,
-                              selectedSort: state.sortOption,
-                              onSortChanged: notifier.setSortOption,
-                              countForCategory: state.getCountForCategory,
+                              criticalActions: state.criticalActions,
+                              onOpenAction: (action) => _openCriticalAction(context, action),
                             ),
 
                             const SizedBox(height: 24),
 
-                            // Section 3: Course Grid (Interactive Cards)
+                            // Section 2: Tags (horizontally scrollable, click to
+                            // filter) + Search & Sort, sharing one row.
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: TagsFilterRow(
+                                    tags: state.availableTags,
+                                    selectedTag: state.selectedTag,
+                                    onSelectTag: notifier.selectTag,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                CourseFiltersBar(
+                                  onSearchChanged: notifier.setSearchQuery,
+                                  selectedSort: state.sortOption,
+                                  onSortChanged: notifier.setSortOption,
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Section 4: Course Grid (Interactive Cards)
                             CourseGrid(
                               courses: state.filteredAndSortedCourses,
                               onCourseAction: (course) => _openCourse(context, course),
@@ -137,19 +178,12 @@ class _EnrolledCoursesCatalogueScreenState
     );
   }
 
-  IconData _categoryIcon(CourseCategory category) {
-    switch (category) {
-      case CourseCategory.all:
-        return Icons.apps;
-      case CourseCategory.compliance:
-        return Icons.shield_outlined;
-      case CourseCategory.techData:
-        return Icons.code;
-      case CourseCategory.aiTools:
-        return Icons.smart_toy_outlined;
-      case CourseCategory.productivity:
-        return Icons.groups_outlined;
-    }
+  void _openCriticalAction(BuildContext context, CriticalActionItem action) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CourseContentScreen(sectionId: action.sectionId, courseTitle: action.courseTitle),
+      ),
+    );
   }
 
   Widget _buildMobileScaffold(BuildContext context, CoursesState state, CoursesNotifier notifier) {
@@ -192,24 +226,19 @@ class _EnrolledCoursesCatalogueScreenState
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(child: Text('My Enrolled Courses', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22))),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(9999)),
-                          child: Text('ACTIVE TERM', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-                        ),
-                      ],
-                    ),
+                    Text('My Enrolled Courses', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
                     const SizedBox(height: 8),
                     if (state.stats != null) _buildMobileTelemetryChips(state.stats!),
                     const SizedBox(height: 16),
-                    if (state.urgentNotice != null) ...[
-                      _buildMobilePriorityCard(context, state.urgentNotice!),
+                    if (state.criticalActions.isNotEmpty) ...[
+                      _buildMobileCriticalActionsCard(context, state.criticalActions),
                       const SizedBox(height: 16),
                     ],
-                    _buildMobileFilterPills(state, notifier),
+                    TagsFilterRow(
+                      tags: state.availableTags,
+                      selectedTag: state.selectedTag,
+                      onSelectTag: notifier.selectTag,
+                    ),
                     const SizedBox(height: 16),
                     for (final course in state.filteredAndSortedCourses) ...[
                       MobileCourseCard(course: course, onAction: () => _openCourse(context, course)),
@@ -253,147 +282,67 @@ class _EnrolledCoursesCatalogueScreenState
           chip(AppColors.secondary, 'ENROLLED', '${stats.enrolledCourses}'),
           chip(AppColors.secondaryContainer, 'IN PROGRESS', '${stats.inProgressCourses}'),
           chip(AppColors.onTertiaryContainer, 'COMPLETED', '${stats.completedCourses}'),
-          chip(Colors.transparent, 'LESSONS', '${stats.completedLessons}/${stats.totalLessons}', icon: Icons.menu_book_outlined),
           chip(Colors.transparent, 'BADGES', '${stats.badgesEarned}', icon: Icons.military_tech_outlined),
         ],
       ),
     );
   }
 
-  Widget _buildMobilePriorityCard(BuildContext context, UrgentNotice notice) {
+  Widget _buildMobileCriticalActionsCard(BuildContext context, List<CriticalActionItem> actions) {
+    String dueText(CriticalActionItem item) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final due = DateTime(item.dueDate.year, item.dueDate.month, item.dueDate.day);
+      final diff = due.difference(today).inDays;
+      if (diff < 0) return 'Overdue by ${-diff}d';
+      if (diff == 0) return 'Due Today';
+      return 'Due in ${diff}d';
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x26000000), blurRadius: 12, offset: Offset(0, 4))]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(9999)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.warning_amber_rounded, size: 13, color: Colors.white),
-                    const SizedBox(width: 4),
-                    Text(notice.badgeText.toUpperCase(), style: AppTypography.labelSm(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
-                  ],
-                ),
-              ),
-              Text('REQUIRED COMPLIANCE', style: AppTypography.labelSm(color: const Color(0xFFBCC7DE))),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(notice.title, style: AppTypography.headlineMd(color: Colors.white)),
-          const SizedBox(height: 4),
-          Text(notice.subtitle, style: AppTypography.bodySm(color: const Color(0xFFBCC7DE))),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.primaryContainer.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(8)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    Text('Module Completion', style: AppTypography.labelSm(color: const Color(0xFFBCC7DE))),
-                    Text('${notice.progressPercentage}% Complete', style: AppTypography.labelSm(color: const Color(0xFF6FFBBE)).copyWith(fontWeight: FontWeight.w700)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(9999),
-                  child: LinearProgressIndicator(
-                    value: notice.progressPercentage / 100,
-                    minHeight: 8,
-                    backgroundColor: Colors.white.withValues(alpha: 0.15),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6FFBBE)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(
-                child: Text(notice.dueText, style: AppTypography.labelSm(color: const Color(0xFFBCC7DE)), overflow: TextOverflow.ellipsis),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.arrow_forward, size: 16),
-                label: Text(notice.ctaLabel),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
-                  foregroundColor: AppColors.onSecondary,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
+              Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text('CRITICAL ACTION', style: AppTypography.labelSm(color: AppColors.errorContainer)),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileFilterPills(CoursesState state, CoursesNotifier notifier) {
-    return SizedBox(
-      height: 40,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          for (final category in CourseCategory.values) ...[
-            _mobileFilterPill(
-              icon: _categoryIcon(category),
-              label: category.label,
-              count: state.getCountForCategory(category),
-              active: state.selectedCategory == category,
-              onTap: () => notifier.selectCategory(category),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileFilterPill({required IconData icon, required String label, required int count, required bool active, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? AppColors.secondary : AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4)],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label, style: AppTypography.labelMd(color: active ? AppColors.onSecondary : AppColors.onSurfaceVariant)),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: active ? Colors.white.withValues(alpha: 0.25) : AppColors.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(9999),
+          const SizedBox(height: 10),
+          for (var i = 0; i < actions.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            InkWell(
+              onTap: () => _openCriticalAction(context, actions[i]),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  children: [
+                    Icon(actions[i].type == 'exam' ? Icons.quiz_outlined : Icons.assignment_outlined, size: 16, color: const Color(0xFF6FFBBE)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(actions[i].title, style: AppTypography.bodySm(color: Colors.white).copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(actions[i].courseTitle, style: AppTypography.labelSm(color: const Color(0xFFBCC7DE)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    Text(dueText(actions[i]), style: AppTypography.labelSm(color: const Color(0xFFBCC7DE)).copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
               ),
-              child: Text('$count', style: AppTypography.labelSm(color: active ? AppColors.onSecondary : AppColors.onSurfaceVariant)),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
+
 }

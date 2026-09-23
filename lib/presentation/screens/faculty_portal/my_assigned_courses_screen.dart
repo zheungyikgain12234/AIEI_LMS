@@ -14,6 +14,7 @@ import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
+import 'grading_queue_screen.dart';
 
 const _kAccentPalette = [
   (FacultyColors.primary, Color(0xFFDBEAFE)),
@@ -49,7 +50,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   // teaches. Rebuilt on every `_load()`; looked up (not refetched) on filter
   // change.
   Map<String, int> _moduleCountBySection = const {};
-  Map<String, int> _assetCountBySection = const {};
+  Map<String, int> _sessionCountBySection = const {};
   Map<String, int> _avgProgressBySection = const {};
   Map<String, int> _pendingAssignmentsBySection = const {};
   Map<String, int> _pendingQuizzesBySection = const {};
@@ -95,12 +96,12 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     final cohorts = await _masterDataRepository.getCohorts();
     final sectionIds = [for (final c in assignedCourses) c.sectionId];
 
-    // Real per-course module/asset counts, computed for every assigned
+    // Real per-course module/session counts, computed for every assigned
     // course in parallel (not just one hardcoded demo course).
     final moduleCountBySection = <String, int>{};
-    final assetCountBySection = <String, int>{};
+    final sessionCountBySection = <String, int>{};
     await Future.wait([
-      for (final c in assignedCourses) _loadCourseModuleCounts(c, moduleCountBySection, assetCountBySection),
+      for (final c in assignedCourses) _loadCourseModuleCounts(c, moduleCountBySection, sessionCountBySection),
     ]);
 
     // Real pending-grading counts and avg progress, batched across every
@@ -116,7 +117,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       _assignedCourses = assignedCourses;
       _cohorts = cohorts;
       _moduleCountBySection = moduleCountBySection;
-      _assetCountBySection = assetCountBySection;
+      _sessionCountBySection = sessionCountBySection;
       _avgProgressBySection = {for (final e in assessmentStats.entries) e.key: e.value.avgProgress};
       _pendingAssignmentsBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingAssignments};
       _pendingQuizzesBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingQuizzes};
@@ -136,16 +137,16 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     });
   }
 
-  /// Fetches this one course's module/asset counts from its own section.
+  /// Fetches this one course's module/session counts from its own section.
   Future<void> _loadCourseModuleCounts(
     AssignedCourse c,
     Map<String, int> moduleCountBySection,
-    Map<String, int> assetCountBySection,
+    Map<String, int> sessionCountBySection,
   ) async {
     final modules = await _facultyRepository.getCourseModules(c.sectionId);
-    final materials = await _facultyRepository.getCourseMaterials(c.sectionId);
+    final sessionCount = await _facultyRepository.getSessionCount(c.sectionId);
     moduleCountBySection[c.sectionId] = modules.length;
-    assetCountBySection[c.sectionId] = materials.fold<int>(0, (sum, m) => sum + m.attachedFiles.length);
+    sessionCountBySection[c.sectionId] = sessionCount;
   }
 
   List<_CourseRow> _buildRows() {
@@ -215,7 +216,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     if (initials.length > 3) initials = initials.substring(0, 3);
     final (accent, accentBg) = _kAccentPalette[index % _kAccentPalette.length];
     final moduleCount = _moduleCountBySection[c.sectionId];
-    final assetCount = _assetCountBySection[c.sectionId];
+    final sessionCount = _sessionCountBySection[c.sectionId];
     final avgProgress = _avgProgressBySection[c.sectionId] ?? 0;
     final pendingCount = (_pendingAssignmentsBySection[c.sectionId] ?? 0) + (_pendingQuizzesBySection[c.sectionId] ?? 0);
     return _CourseRow(
@@ -225,12 +226,12 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       accent: accent,
       accentBg: accentBg,
       code: c.courseCode,
-      section: '${c.sectionCode} • ${c.capacity} Cap.',
-      title: c.title,
+      title: '[${c.sectionCode}] ${c.title}',
       description: c.description,
       schedule: c.scheduleText,
+      dateRange: _formatDateRange(c.startDate, c.endDate),
       enrolled: '${c.enrolledCount} / ${c.capacity} Enrolled Students',
-      modules: moduleCount == null ? '— Modules • — Assets' : '$moduleCount Modules • $assetCount Assets',
+      modules: moduleCount == null ? '— Modules • — Sessions' : '$moduleCount Modules • $sessionCount Sessions',
       isActive: c.isActive,
       avgProgress: avgProgress,
       pendingCount: '$pendingCount items',
@@ -238,11 +239,18 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     );
   }
 
+  static String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static String _formatDateRange(DateTime? start, DateTime? end) {
+    if (start == null && end == null) return 'Schedule TBD';
+    if (start != null && end != null) return '${_formatDate(start)} – ${_formatDate(end)}';
+    if (start != null) return 'From ${_formatDate(start)}';
+    return 'Until ${_formatDate(end!)}';
+  }
+
   void _handleNav(FacultyNavDestination dest) {
     if (dest == FacultyNavDestination.myCourses) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('The full submissions queue isn\'t in this preview — open a course dashboard to grade a submission.')),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
   }
 
   void _openDashboard(_CourseRow c) {
@@ -479,7 +487,6 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _pill(c.code, c.accentBg, c.accent),
-                      Text(c.section, style: FacultyTypography.labelXs()),
                       Row(mainAxisSize: MainAxisSize.min, children: [
                         Container(
                           width: 6,
@@ -502,6 +509,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                     runSpacing: 4,
                     children: [
                       _iconLabel(Icons.calendar_today_outlined, c.schedule),
+                      _iconLabel(Icons.event_outlined, c.dateRange),
                       _iconLabel(Icons.person_outline, c.enrolled),
                       _iconLabel(Icons.folder_open_outlined, c.modules),
                     ],
@@ -949,6 +957,21 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.event_outlined, size: 14, color: c.accent),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  c.dateRange,
+                  style: FacultyTypography.bodySm(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           _mobileCourseMetricsBox(c),
           const SizedBox(height: 12),
@@ -1212,10 +1235,10 @@ class _CourseRow {
   final Color accent;
   final Color accentBg;
   final String code;
-  final String section;
   final String title;
   final String description;
   final String schedule;
+  final String dateRange;
   final String enrolled;
   final String modules;
   final bool isActive;
@@ -1230,10 +1253,10 @@ class _CourseRow {
     required this.accent,
     required this.accentBg,
     required this.code,
-    required this.section,
     required this.title,
     required this.description,
     required this.schedule,
+    required this.dateRange,
     required this.enrolled,
     required this.modules,
     required this.isActive,

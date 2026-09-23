@@ -7,13 +7,13 @@ enum FacultyNavDestination { myCourses, gradingAndSubmissions }
 class FacultySidebar extends StatelessWidget {
   final FacultyNavDestination selected;
   final ValueChanged<FacultyNavDestination>? onDestinationSelected;
-  final int pendingCount;
+  final int? pendingCount;
 
   const FacultySidebar({
     super.key,
     this.selected = FacultyNavDestination.myCourses,
     this.onDestinationSelected,
-    this.pendingCount = 14,
+    this.pendingCount,
   });
 
   @override

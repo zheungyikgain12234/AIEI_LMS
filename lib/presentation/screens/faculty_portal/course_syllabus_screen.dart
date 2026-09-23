@@ -23,7 +23,7 @@ import 'widgets/required_field_label.dart';
 import 'widgets/rich_text_field.dart';
 import 'widgets/rich_text_viewer.dart';
 import 'my_assigned_courses_screen.dart';
-import 'grade_assignment_screen.dart';
+import 'grading_queue_screen.dart';
 import 'course_syllabus_preview_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -339,7 +339,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
       case FacultyNavDestination.gradingAndSubmissions:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
     }
   }
 

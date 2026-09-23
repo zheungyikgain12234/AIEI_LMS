@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/supabase/supabase_providers.dart';
-import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/repositories/courses_repository.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_courses_repository_impl.dart';
 import 'courses_state.dart';
@@ -24,12 +23,12 @@ class CoursesNotifier extends Notifier<CoursesState> {
     try {
       final courses = await _repository.getEnrolledCourses();
       final stats = await _repository.getCourseStats();
-      final urgent = await _repository.getUrgentNotice();
+      final criticalActions = await _repository.getCriticalActions();
 
       state = state.copyWith(
         allCourses: courses,
         stats: stats,
-        urgentNotice: urgent,
+        criticalActions: criticalActions,
         isLoading: false,
       );
     } catch (e) {
@@ -40,8 +39,12 @@ class CoursesNotifier extends Notifier<CoursesState> {
     }
   }
 
-  void selectCategory(CourseCategory category) {
-    state = state.copyWith(selectedCategory: category);
+  void selectTag(String? tag) {
+    if (tag == null || state.selectedTag == tag) {
+      state = state.copyWith(clearSelectedTag: true);
+    } else {
+      state = state.copyWith(selectedTag: tag);
+    }
   }
 
   void setSearchQuery(String query) {

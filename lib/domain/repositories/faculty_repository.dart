@@ -14,6 +14,16 @@ import 'package:stitch_aiei_lms/domain/models/module_material.dart';
 ///   assessments or no enrolled students.
 typedef SectionAssessmentStats = ({int pendingAssignments, int pendingQuizzes, int avgProgress});
 
+/// One exam/assignment content block that has at least one submission
+/// awaiting grading — the row shown on the Grading & Submissions queue.
+typedef PendingGradingItem = ({
+  String sectionId,
+  String contentBlockId,
+  String blockType, // 'exam' | 'assignment'
+  String title,
+  int pendingCount,
+});
+
 abstract class FacultyRepository {
   Future<List<AssignedCourse>> getAssignedCourses(String lecturerId);
 
@@ -26,6 +36,11 @@ abstract class FacultyRepository {
   /// Curriculum Manager to render one card per module.
   Future<List<CourseModule>> getCourseModules(String sectionId);
 
+  /// Number of `sessions` rows across this section's own modules — used by
+  /// My Assigned Courses' "n Modules • n Sessions" line and the Course
+  /// Dashboard's "Modules & Sessions" card.
+  Future<int> getSessionCount(String sectionId);
+
   /// The `course_sections.id` of one class teaching [courseId] — for the
   /// couple of legacy demo screens that were built around a course id
   /// before module content became class-scoped, and just need any one
@@ -36,4 +51,11 @@ abstract class FacultyRepository {
   /// by `sectionId`, in one round trip. A section with no assessments/no
   /// enrolled students is present in the map with zero values, not absent.
   Future<Map<String, SectionAssessmentStats>> getSectionAssessmentStats(List<String> sectionIds);
+
+  /// Every exam/assignment content block, across [sectionIds], that has at
+  /// least one `content_block_submissions` row with status `submitted`
+  /// (awaiting grading) — the real data behind the Grading & Submissions
+  /// queue. A block with zero pending submissions is simply absent from the
+  /// result, not present with a zero count.
+  Future<List<PendingGradingItem>> getPendingGradingItems(List<String> sectionIds);
 }

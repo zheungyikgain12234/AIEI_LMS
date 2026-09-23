@@ -23,7 +23,7 @@ class AdminScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: AdminHeader(onSearch: (_) {}),
+      appBar: const AdminHeader(),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -167,7 +167,6 @@ class StudentRosterTable extends StatelessWidget {
           Expanded(flex: 1, child: Text('ASSIGN.', style: s())),
           Expanded(flex: 1, child: Text('QUIZ AVG', style: s(), textAlign: TextAlign.right)),
           Expanded(flex: 2, child: Text('STATUS', style: s(), textAlign: TextAlign.center)),
-          const SizedBox(width: 32),
         ],
       ),
     );
@@ -256,18 +255,6 @@ class StudentRosterTable extends StatelessWidget {
                 decoration: BoxDecoration(color: s.statusBg, borderRadius: BorderRadius.circular(4)),
                 child: Text(s.status, style: FacultyTypography.labelXs(color: s.statusColor).copyWith(fontWeight: FontWeight.w700)),
               ),
-            ),
-          ),
-          SizedBox(
-            width: 32,
-            child: PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 18, color: FacultyColors.secondary),
-              onSelected: (action) => onAction(s, action),
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'submissions', child: Text('View Submissions')),
-                PopupMenuItem(value: 'email', child: Text('Email Student')),
-                PopupMenuItem(value: 'note', child: Text('Add Private Note')),
-              ],
             ),
           ),
         ],

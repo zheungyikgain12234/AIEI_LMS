@@ -9,21 +9,21 @@ class FacultyScaffold extends StatelessWidget {
   final FacultyNavDestination selected;
   final ValueChanged<FacultyNavDestination> onDestinationSelected;
   final Widget body;
-  final int pendingCount;
+  final int? pendingCount;
 
   const FacultyScaffold({
     super.key,
     required this.selected,
     required this.onDestinationSelected,
     required this.body,
-    this.pendingCount = 14,
+    this.pendingCount,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: FacultyColors.background,
-      appBar: FacultyHeader(onSearch: (_) {}),
+      appBar: const FacultyHeader(),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -6,9 +6,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
-  final ValueChanged<String>? onSearch;
-
-  const AdminHeader({super.key, this.onSearch});
+  const AdminHeader({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -45,29 +43,7 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
               ),
             ],
           ),
-          const SizedBox(width: 32),
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Container(
-                  height: 38,
-                  decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-                  child: TextField(
-                    onChanged: onSearch,
-                    style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                    decoration: InputDecoration(
-                      hintText: 'Search instructors, students, courses, cohorts...',
-                      hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-                      prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          const Spacer(),
           const SizedBox(width: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

@@ -110,19 +110,17 @@ class SupabaseBadgesRepositoryImpl implements BadgesRepository {
           statusChipText: course.progressPercentage >= 100
               ? 'Done'
               : '${course.progressPercentage}% Done',
-          isUrgent: course.deadlineDays <= 7,
+          isUrgent: false,
           title: course.title,
-          description: course.nextLessonOrStatus,
+          description: course.badgeCount > 0 ? 'Unlocks ${course.badgeCount} badge(s) on completion' : 'In progress',
           progressPercent: course.progressPercentage,
-          completedModules: course.completedLessons,
-          totalModules: course.totalLessons,
+          completedModules: course.progressPercentage,
+          totalModules: 100,
           progressColor: course.instructorIconColor,
-          checklistDoneText: course.completedLessons > 0 ? 'Progress recorded' : 'Not started yet',
-          checklistPendingIcon: course.isWarningNextLesson ? Icons.warning_amber_rounded : Icons.lock,
-          checklistPendingColor:
-              course.isWarningNextLesson ? AppColors.error : AppColors.onSurfaceVariant,
-          checklistPendingText:
-              '${course.totalLessons - course.completedLessons} lessons remaining',
+          checklistDoneText: course.progressPercentage > 0 ? 'Progress recorded' : 'Not started yet',
+          checklistPendingIcon: Icons.lock,
+          checklistPendingColor: AppColors.onSurfaceVariant,
+          checklistPendingText: '${100 - course.progressPercentage}% remaining',
           ctaText: course.ctaButtonText,
         ),
     ];

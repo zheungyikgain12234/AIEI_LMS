@@ -7,6 +7,11 @@ import 'package:stitch_aiei_lms/core/config/supabase_env.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
+/// Lets pushed screens (e.g. course grading) tell screens beneath them
+/// (e.g. the student course catalogue) to refresh when the user navigates
+/// back, so server-side changes aren't hidden behind stale provider state.
+final routeObserver = RouteObserver<ModalRoute<void>>();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -54,6 +59,7 @@ class AieiLmsApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en')],
+      navigatorObservers: [routeObserver],
       home: const LoginScreen(),
     );
   }

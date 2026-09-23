@@ -101,7 +101,7 @@ class RevokedCredentialDetailScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: PortalHeader(onSearch: (_) {}),
+      appBar: const PortalHeader(),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

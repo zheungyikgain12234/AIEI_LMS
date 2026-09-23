@@ -11,6 +11,7 @@ import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'my_assigned_courses_screen.dart';
 import 'grade_assignment_screen.dart';
+import 'grading_queue_screen.dart';
 
 // ---------------------------------------------------------------------------
 // CurriculumManagerScreen – Stitch "Course Curriculum & Content Manager"
@@ -201,7 +202,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
         break;
       case FacultyNavDestination.gradingAndSubmissions:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
         break;
     }
   }

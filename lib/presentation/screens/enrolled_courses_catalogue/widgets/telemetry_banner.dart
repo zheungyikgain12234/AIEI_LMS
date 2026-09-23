@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
-import 'package:stitch_aiei_lms/domain/models/urgent_notice.dart';
+import 'package:stitch_aiei_lms/domain/models/critical_action_item.dart';
 
 class TelemetryBanner extends StatelessWidget {
   final CourseStats? stats;
-  final UrgentNotice? urgentNotice;
+  final List<CriticalActionItem> criticalActions;
+  final ValueChanged<CriticalActionItem>? onOpenAction;
 
   const TelemetryBanner({
     super.key,
     this.stats,
-    this.urgentNotice,
+    this.criticalActions = const [],
+    this.onOpenAction,
   });
 
   @override
@@ -31,7 +33,7 @@ class TelemetryBanner extends StatelessWidget {
               const SizedBox(width: 24),
               Expanded(
                 flex: 4,
-                child: _UrgentNoticeAndVault(urgentNotice: urgentNotice),
+                child: _CriticalActionsCard(actions: criticalActions, onOpenAction: onOpenAction),
               ),
             ],
           );
@@ -41,7 +43,7 @@ class TelemetryBanner extends StatelessWidget {
             children: [
               _MainTelemetryCard(stats: stats),
               const SizedBox(height: 24),
-              _UrgentNoticeAndVault(urgentNotice: urgentNotice),
+              _CriticalActionsCard(actions: criticalActions, onOpenAction: onOpenAction),
             ],
           );
         }
@@ -59,12 +61,10 @@ class _MainTelemetryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = stats ??
         const CourseStats(
-          enrolledCourses: 6,
-          inProgressCourses: 4,
-          completedCourses: 2,
-          completedLessons: 24,
-          totalLessons: 52,
-          badgesEarned: 2,
+          enrolledCourses: 0,
+          inProgressCourses: 0,
+          completedCourses: 0,
+          badgesEarned: 0,
         );
 
     return Container(
@@ -117,65 +117,6 @@ class _MainTelemetryCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top milestone tags & enterprise ID
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 8,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.secondary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'CURRICULUM OVERVIEW',
-                                style: AppTypography.labelSm(
-                                  color: AppColors.secondary,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '•',
-                              style: AppTypography.bodySm(
-                                color: AppColors.outlineVariant,
-                              ),
-                            ),
-                            Text(
-                              'Q4 Performance Milestone',
-                              style: AppTypography.labelMd(
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.verified_user,
-                              size: 16,
-                              color: AppColors.onTertiaryContainer,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Enterprise ID: SKL-8842-AC',
-                              style: AppTypography.labelSm(
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
                     // Headline
                     Text(
                       'My Enrolled Courses',
@@ -231,13 +172,6 @@ class _MainTelemetryCard extends StatelessWidget {
                         valueColor: AppColors.onTertiaryContainer,
                         icon: Icons.check_circle_outline,
                         iconColor: AppColors.onTertiaryContainer,
-                      ),
-                      _buildDivider(),
-                      _buildMetricItem(
-                        value: '${s.completedLessons}',
-                        suffix: '/${s.totalLessons}',
-                        label: 'LESSONS DONE',
-                        valueColor: AppColors.primary,
                       ),
                       _buildDivider(),
                       _buildMetricItem(
@@ -316,238 +250,123 @@ class _MainTelemetryCard extends StatelessWidget {
   }
 }
 
-class _UrgentNoticeAndVault extends StatelessWidget {
-  final UrgentNotice? urgentNotice;
+/// Real "what needs my attention next" box — the two ungraded assignments/
+/// quizzes (across every enrolled course) with the nearest due dates,
+/// replacing the old fabricated single-course "Urgent Notice" + Credential
+/// Vault combo.
+class _CriticalActionsCard extends StatelessWidget {
+  final List<CriticalActionItem> actions;
+  final ValueChanged<CriticalActionItem>? onOpenAction;
 
-  const _UrgentNoticeAndVault({this.urgentNotice});
+  const _CriticalActionsCard({required this.actions, this.onOpenAction});
+
+  String _dueText(CriticalActionItem item) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(item.dueDate.year, item.dueDate.month, item.dueDate.day);
+    final diff = due.difference(today).inDays;
+    if (diff < 0) return 'Overdue by ${-diff} Day${-diff == 1 ? '' : 's'}';
+    if (diff == 0) return 'Due Today';
+    return 'Due in $diff Day${diff == 1 ? '' : 's'}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final notice = urgentNotice ??
-        const UrgentNotice(
-          title: 'Corporate Cybersecurity & Phishing Defense',
-          subtitle:
-              'Lesson 7 Incident Escalation Simulation pending final sign-off.',
-          badgeText: 'Critical Action',
-          dueText: 'Due in 5 Days',
-          progressPercentage: 85,
-          ctaLabel: 'Resume',
-        );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Urgent Notice Card
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x14000000),
-                  blurRadius: 10,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header tags
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.error,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          notice.badgeText.toUpperCase(),
-                          style: AppTypography.labelSm(
-                            color: AppColors.errorContainer,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        notice.dueText,
-                        style: AppTypography.labelSm(color: AppColors.onError),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Title & Subtitle
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notice.title,
-                      style: AppTypography.headlineSm(
-                        color: AppColors.onPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      notice.subtitle,
-                      style: AppTypography.bodySm(
-                        color: AppColors.primaryFixedDim,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Footer with progress & Resume Button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${notice.progressPercentage}% Complete',
-                      style: AppTypography.labelMd(
-                        color: AppColors.secondaryFixed,
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondary,
-                        foregroundColor: AppColors.onSecondary,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            notice.ctaLabel,
-                            style: AppTypography.labelMd(
-                              color: AppColors.onSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.arrow_forward,
-                            size: 16,
-                            color: AppColors.onSecondary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
           ),
-
-        const SizedBox(height: 16),
-
-        // Credential Vault Card
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 8,
-                offset: Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.workspace_premium_outlined,
-                        size: 22,
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Credential Vault',
-                            style: AppTypography.labelMd(color: AppColors.onSurface),
-                          ),
-                          Text(
-                            '2 Verifiable PDF Diplomas',
-                            style: AppTypography.bodySm(
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.error,
+                  shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: AppColors.surfaceContainerLow,
-                  foregroundColor: AppColors.secondary,
-                  side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  'Download',
-                  style: AppTypography.labelMd(color: AppColors.secondary),
-                ),
+              const SizedBox(width: 6),
+              Text(
+                'CRITICAL ACTION',
+                style: AppTypography.labelSm(color: AppColors.errorContainer),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          if (actions.isEmpty)
+            Text(
+              'Nothing due — every assignment and quiz is submitted.',
+              style: AppTypography.bodySm(color: AppColors.primaryFixedDim),
+            )
+          else
+            for (var i = 0; i < actions.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _actionRow(actions[i]),
+            ],
+        ],
+      ),
+    );
+  }
+
+  Widget _actionRow(CriticalActionItem item) {
+    final isExam = item.type == 'exam';
+    return InkWell(
+      onTap: onOpenAction == null ? null : () => onOpenAction!(item),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
         ),
-      ],
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(isExam ? Icons.quiz_outlined : Icons.assignment_outlined, size: 18, color: AppColors.secondaryFixed),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: AppTypography.bodyMd(color: AppColors.onPrimary).copyWith(fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    item.courseTitle,
+                    style: AppTypography.bodySm(color: AppColors.primaryFixedDim),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(4)),
+              child: Text(_dueText(item), style: AppTypography.labelSm(color: AppColors.onError)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

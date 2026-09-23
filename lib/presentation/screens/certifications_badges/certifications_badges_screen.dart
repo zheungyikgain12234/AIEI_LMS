@@ -81,7 +81,7 @@ class CertificationsBadgesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: PortalHeader(onSearch: (_) {}),
+      appBar: const PortalHeader(),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -27,27 +27,18 @@ class MobileCourseCard extends StatelessWidget {
           _buildImage(c),
           const SizedBox(height: 8),
           Text(c.title, style: AppTypography.headlineSm(color: AppColors.primary)),
+          if (c.classCode != null) ...[
+            const SizedBox(height: 2),
+            Text('Class: ${c.classCode}', style: AppTypography.labelSm(color: AppColors.onSurfaceVariant)),
+          ],
           const SizedBox(height: 6),
           _buildInfoRow(c),
           const SizedBox(height: 8),
           _buildStatusPanel(c),
           const SizedBox(height: 8),
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Text(
-                c.isCompleted
-                    ? 'Certified • Verified'
-                    : (c.isWarningNextLesson ? 'Due in ${c.deadlineDays} days' : 'In progress'),
-                style: AppTypography.labelSm(
-                  color: c.isWarningNextLesson ? AppColors.error : AppColors.outline,
-                ).copyWith(fontWeight: c.isWarningNextLesson ? FontWeight.w700 : FontWeight.w400),
-              ),
-              _buildCtaButton(context, c),
-            ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: _buildCtaButton(context, c),
           ),
         ],
       ),
@@ -87,18 +78,20 @@ class MobileCourseCard extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
+                  // Fixed amber/black styling for every tag shown on the
+                  // thumbnail, regardless of the tag's own stored color.
                   for (final tag in c.tags)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: tag.backgroundColor, borderRadius: BorderRadius.circular(9999)),
+                      decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(9999)),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (tag.hasCheckIcon) ...[
-                            Icon(Icons.check, size: 11, color: tag.textColor),
+                            const Icon(Icons.check, size: 11, color: Colors.black),
                             const SizedBox(width: 3),
                           ],
-                          Text(tag.label, style: AppTypography.labelSm(color: tag.textColor).copyWith(fontSize: 10)),
+                          Text(tag.label, style: AppTypography.labelSm(color: Colors.black).copyWith(fontSize: 10)),
                         ],
                       ),
                     ),
@@ -136,7 +129,7 @@ class MobileCourseCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            c.isCompleted ? '${c.completedLessons}/${c.totalLessons} Lessons Validated' : c.category.label,
+                            c.isCompleted ? 'Completed' : c.category.label,
                             style: AppTypography.labelSm(color: Colors.white).copyWith(fontSize: 10),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -144,9 +137,8 @@ class MobileCourseCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (!c.isCompleted)
-                    Text('${c.completedLessons}/${c.totalLessons} Lessons',
-                        style: AppTypography.labelSm(color: const Color(0xFF6FFBBE)).copyWith(fontSize: 10, fontWeight: FontWeight.w700)),
+                  Text('${c.progressPercentage}%',
+                      style: AppTypography.labelSm(color: const Color(0xFF6FFBBE)).copyWith(fontSize: 10, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -157,39 +149,26 @@ class MobileCourseCard extends StatelessWidget {
   }
 
   Widget _buildInfoRow(EnrolledCourse c) {
+    if (c.badgeCount == 0) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-      child: c.isCompleted
-          ? Row(
-              children: [
-                Icon(c.unlockBadgeIcon, size: 18, color: AppColors.onTertiaryContainer),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(c.unlockBadgeTitle, style: AppTypography.bodySm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                ),
-                Text('VERIFIED', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-              ],
-            )
-          : Row(
-              children: [
-                const Icon(Icons.fast_forward, size: 16, color: AppColors.secondary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: RichText(
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    text: TextSpan(
-                      style: AppTypography.bodySm(color: AppColors.onSurfaceVariant),
-                      children: [
-                        TextSpan(text: 'Next: ', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
-                        TextSpan(text: c.nextLessonOrStatus.replaceFirst('Next: ', '')),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+      child: Tooltip(
+        message: c.badgeNames.join(', '),
+        child: Row(
+          children: [
+            Icon(Icons.military_tech_outlined, size: 18, color: c.isCompleted ? AppColors.onTertiaryContainer : AppColors.secondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${c.badgeCount} Badge${c.badgeCount == 1 ? '' : 's'} to Unlock',
+                style: AppTypography.bodySm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w600),
+              ),
             ),
+            if (c.isCompleted) Text('VERIFIED', style: AppTypography.labelSm(color: AppColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
     );
   }
 

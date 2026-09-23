@@ -16,6 +16,7 @@ import 'widgets/student_roster_panel.dart';
 import 'my_assigned_courses_screen.dart';
 import 'course_syllabus_screen.dart';
 import 'grade_assignment_screen.dart';
+import 'grading_queue_screen.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 
 // ---------------------------------------------------------------------------
@@ -57,7 +58,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _quizNonSubmissions = 0;
   int _flaggedCount = 0;
   int _moduleCount = 0;
-  int _materialCount = 0;
+  int _sessionCount = 0;
   int _totalAssignmentBlocks = 0;
   List<RosterRow> _rosterRows = const [];
   List<CourseAnnouncement> _announcements = const [];
@@ -84,7 +85,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     // pages agree on the same number for the same class.
     final students = await _rosterRepository.getSectionRoster(widget.sectionId);
     final modules = await _facultyRepository.getCourseModules(widget.sectionId);
-    final materials = await _facultyRepository.getCourseMaterials(widget.sectionId);
     final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
 
     // ── Real class-wide assessment coverage (course_modules -> sessions ->
@@ -202,7 +202,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _quizNonSubmissions = quizNonSubmissions;
       _flaggedCount = flaggedCount;
       _moduleCount = modules.length;
-      _materialCount = materials.length;
+      _sessionCount = sessionIds.length;
       _totalAssignmentBlocks = totalAssignmentBlocks;
       _rosterRows = rosterRows;
       _announcements = announcements;
@@ -238,7 +238,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
         break;
       case FacultyNavDestination.gradingAndSubmissions:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradeAssignmentScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
         break;
     }
   }
@@ -457,16 +457,14 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('RESOURCE OVERVIEW', style: FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 2),
-          Text('Quick Access Hub', style: FacultyTypography.headlineMd()),
+          Text('Manage Course Contents', style: FacultyTypography.headlineMd()),
           const SizedBox(height: 16),
           _hubRow(
             icon: Icons.folder_copy_outlined,
             iconBg: FacultyColors.primary,
             iconColor: Colors.white,
-            title: 'Curriculum & Materials',
-            subtitle: '$_moduleCount core modules • $_materialCount assets uploaded',
+            title: 'Modules & Sessions',
+            subtitle: '$_moduleCount modules • $_sessionCount sessions',
             ctaLabel: 'Edit Syllabus',
             onTap: _openSyllabusEditor,
           ),
@@ -952,7 +950,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             const Icon(Icons.hub, size: 20, color: FacultyColors.secondary),
             const SizedBox(width: 6),
             Expanded(
-              child: Text('Quick Access', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
+              child: Text('Manage Course Contents', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
             ),
           ],
         ),
@@ -961,8 +959,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
           icon: Icons.menu_book,
           iconBg: FacultyColors.surfaceContainer,
           iconColor: FacultyColors.secondary,
-          title: 'Curriculum & Materials',
-          subtitle: '$_moduleCount core modules • $_materialCount assets uploaded',
+          title: 'Modules & Sessions',
+          subtitle: '$_moduleCount modules • $_sessionCount sessions',
           buttonLabel: 'Edit Syllabus',
           onTap: _openSyllabusEditor,
         ),

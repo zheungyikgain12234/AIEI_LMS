@@ -1098,7 +1098,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
     final filters = [
       ('All Faculty', total, true),
       ('Optimal (80-99%)', optimal, false),
-      ('Underutilized', underutilized, false),
+      ('Underutilised', underutilized, false),
       ('Overloaded', overloaded, false),
     ];
     return SizedBox(

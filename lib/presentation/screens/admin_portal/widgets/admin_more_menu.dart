@@ -39,7 +39,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
             _tile(context, sheetContext, Icons.swap_horiz_outlined, 'Role ↔ Course Mapping', (ctx) => const RoleCourseMappingScreen()),
             _tile(context, sheetContext, Icons.account_tree_outlined, 'Department ↔ Course Mapping', (ctx) => const DepartmentCourseMappingScreen()),
             _tile(context, sheetContext, Icons.alt_route, 'Track ↔ Course Mapping', (ctx) => const TrackCourseMappingScreen()),
-            _tile(context, sheetContext, Icons.school_outlined, 'Course Enrollment', (ctx) => const CourseEnrollmentScreen()),
+            _tile(context, sheetContext, Icons.school_outlined, 'Course Enrolment', (ctx) => const CourseEnrollmentScreen()),
             ExpansionTile(
               leading: const Icon(Icons.dataset_outlined, color: AdminColors.onSurfaceVariant),
               title: Text('Master Data', style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
@@ -49,7 +49,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
                 _tile(context, sheetContext, Icons.alt_route_outlined, 'Manage Program Tracks', (ctx) => const ManageProgramTracksScreen()),
                 _tile(context, sheetContext, Icons.hub_outlined, 'Manage Cohorts', (ctx) => const ManageCohortsScreen()),
                 _tile(context, sheetContext, Icons.corporate_fare_outlined, 'Manage Lecturer Depts', (ctx) => const ManageLecturerDepartmentsScreen()),
-                _tile(context, sheetContext, Icons.psychology_outlined, 'Manage Specialization', (ctx) => const ManageSpecializationsScreen()),
+                _tile(context, sheetContext, Icons.psychology_outlined, 'Manage Specialisation', (ctx) => const ManageSpecializationsScreen()),
                 _tile(context, sheetContext, Icons.work_outline, 'Manage Roles', (ctx) => const ManageRolesScreen()),
               ],
             ),

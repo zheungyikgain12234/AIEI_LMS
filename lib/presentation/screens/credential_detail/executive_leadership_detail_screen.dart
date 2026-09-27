@@ -503,7 +503,7 @@ class ExecutiveLeadershipDetailScreen extends StatelessWidget {
             _emerald600,
           ),
           _metricTile(
-            'Capstone Defense',
+            'Capstone Defence',
             (credential.metrics['panelResultLabel'] as String?) ?? '',
             (credential.metrics['panelResultSubtitle'] as String?) ?? '',
             AppColors.onSurfaceVariant,

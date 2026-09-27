@@ -81,7 +81,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.groups_outlined,
-                          label: 'Manage and Enroll Students',
+                          label: 'Manage and Enrol Students',
                           isSelected:
                               selected == AdminNavDestination.manageStudents,
                           onTap: () => onDestinationSelected?.call(
@@ -146,7 +146,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.psychology_alt_outlined,
-                          label: 'Specialization ↔ Course Mapping',
+                          label: 'Specialisation ↔ Course Mapping',
                           isSelected:
                               selected ==
                               AdminNavDestination.specializationCourseMapping,
@@ -211,7 +211,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.psychology_outlined,
-                          label: 'Manage Specialization',
+                          label: 'Manage Specialisation',
                           isSelected:
                               selected ==
                               AdminNavDestination.manageSpecializations,

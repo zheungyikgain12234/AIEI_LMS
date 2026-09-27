@@ -450,7 +450,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Institutional learner registry, enrollment status, credential tracking, and cohort management across enterprise academies.', style: AdminTypography.bodyMd()),
+              child: Text('Institutional learner registry, enrolment status, credential tracking, and cohort management across enterprise academies.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -496,8 +496,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 children: [
                   TextSpan(text: 'Tip: ', style: AdminTypography.titleSm(color: AdminColors.onPrimaryFixed)),
                   const TextSpan(text: 'Check the boxes next to student rows to select them, then click '),
-                  TextSpan(text: 'Bulk Enroll', style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
-                  const TextSpan(text: ' to enroll them into a class.'),
+                  TextSpan(text: 'Bulk Enrol', style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
+                  const TextSpan(text: ' to enrol them into a class.'),
                 ],
               ),
             ),
@@ -588,7 +588,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                     ),
                   ]),
                   Wrap(spacing: 6, children: [
-                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enroll')),
+                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enrol')),
                     OutlinedButton.icon(
                       onPressed: _deleteSelected,
                       icon: const Icon(Icons.delete_outline, size: 16),
@@ -805,7 +805,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         children: [
           Text('Learners by Academy Track', style: AdminTypography.titleMd()),
           const SizedBox(height: 4),
-          Text('Distribution across active institutional specializations.', style: AdminTypography.bodySm()),
+          Text('Distribution across active institutional specialisations.', style: AdminTypography.bodySm()),
           const SizedBox(height: 12),
           for (final t in _tracks)
             Padding(
@@ -943,7 +943,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Institutional learner registry, enrollment status, credential tracking, and cohort management across enterprise academies.',
+                'Institutional learner registry, enrolment status, credential tracking, and cohort management across enterprise academies.',
                 style: AdminTypography.bodyMd(),
               ),
               const SizedBox(height: 16),
@@ -978,7 +978,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                   onDeselectAll: () => setState(_selected.clear),
                   onDelete: _deleteSelected,
                   extraActions: [
-                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enroll')),
+                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enrol')),
                   ],
                 ),
               ],
@@ -1468,7 +1468,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
     final profileFilters = _profileFilters;
     final sections = _sectionsForSelection;
     return AlertDialog(
-      title: Text('Enroll $count student${count == 1 ? '' : 's'}'),
+      title: Text('Enrol $count student${count == 1 ? '' : 's'}'),
       content: SizedBox(
         width: 420,
         child: Column(
@@ -1476,7 +1476,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Select a cohort, optionally narrow by track/department/role, then a class, to enroll ${count == 1 ? 'this student' : 'these students'} into.',
+              'Select a cohort, optionally narrow by track/department/role, then a class, to enrol ${count == 1 ? 'this student' : 'these students'} into.',
               style: AdminTypography.bodySm(),
             ),
             const SizedBox(height: 14),

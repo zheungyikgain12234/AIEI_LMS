@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
@@ -38,6 +39,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
+  final _assignmentRepository = SupabaseAssignmentRepositoryImpl(Supabase.instance.client);
   final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
@@ -60,6 +62,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _moduleCount = 0;
   int _sessionCount = 0;
   int _totalAssignmentBlocks = 0;
+  List<({String id, String title})> _assessmentColumns = const [];
   List<RosterRow> _rosterRows = const [];
   List<CourseAnnouncement> _announcements = const [];
 
@@ -109,6 +112,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         (
           id: row['id'] as String,
           type: row['block_type'] as String,
+          title: (row['block_content'] as Map<String, dynamic>?)?['title'] as String?,
           dueDate: DateTime.tryParse((row['block_content'] as Map<String, dynamic>?)?['dueDate'] as String? ?? ''),
         ),
     ];
@@ -124,6 +128,19 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     for (final id in examBlockIds) {
       examMaxMarks[id] = await _examRepository.getTotalMarks(id);
     }
+    final assignmentBlockIds = [for (final b in assessmentBlocks) if (b.type == 'assignment') b.id];
+    final assignmentMaxMarks = <String, double>{};
+    for (final id in assignmentBlockIds) {
+      assignmentMaxMarks[id] = await _assignmentRepository.getTotalMarks(id);
+    }
+    final maxMarksByBlock = {...examMaxMarks, ...assignmentMaxMarks};
+    final assessmentColumns = [
+      for (var i = 0; i < assessmentBlocks.length; i++)
+        (
+          id: assessmentBlocks[i].id,
+          title: assessmentBlocks[i].title ?? '${assessmentBlocks[i].type == 'exam' ? 'Exam' : 'Assignment'} ${i + 1}',
+        ),
+    ];
 
     final blockIds = [for (final b in assessmentBlocks) b.id];
     final submissionRows = blockIds.isEmpty
@@ -148,6 +165,26 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     for (final s in students) {
       final subs = submissionsByStudent[s.studentId] ?? const <ContentBlockSubmission>[];
       final submittedBlockIds = {for (final sub in subs) sub.contentBlockId};
+      final gradedByBlock = {
+        for (final sub in subs)
+          if (sub.status == 'graded') sub.contentBlockId: sub,
+      };
+      final assessmentMarks = <String, String>{};
+      var gradedScoreSum = 0.0;
+      var gradedMaxSum = 0.0;
+      for (final block in assessmentBlocks) {
+        final sub = gradedByBlock[block.id];
+        final maxMarks = maxMarksByBlock[block.id] ?? 0;
+        if (sub != null && maxMarks > 0) {
+          final pct = (sub.totalScore ?? 0) / maxMarks * 100;
+          assessmentMarks[block.id] = '${pct.toStringAsFixed(1)}%';
+          gradedScoreSum += sub.totalScore ?? 0;
+          gradedMaxSum += maxMarks;
+        } else {
+          assessmentMarks[block.id] = '—';
+        }
+      }
+      final totalMark = gradedMaxSum > 0 ? '${(gradedScoreSum / gradedMaxSum * 100).toStringAsFixed(1)}%' : '—';
       final graded = subs.where((sub) => sub.status == 'graded').toList();
       final pending = subs.where((sub) => sub.status == 'submitted').toList();
       final gradedAssignments = graded.where((sub) => typeByBlock[sub.contentBlockId] == 'assignment').length;
@@ -185,6 +222,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         quizAvgPercent: quizAvgPercent,
         hasPendingSubmission: pending.isNotEmpty,
         hasOverdueSubmission: hasOverdue,
+        assessmentMarks: assessmentMarks,
+        totalMark: totalMark,
       ));
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
@@ -204,6 +243,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _moduleCount = modules.length;
       _sessionCount = sessionIds.length;
       _totalAssignmentBlocks = totalAssignmentBlocks;
+      _assessmentColumns = assessmentColumns;
       _rosterRows = rosterRows;
       _announcements = announcements;
       _isLoading = false;
@@ -565,7 +605,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 ),
               ),
             ),
-            StudentRosterTable(rows: _rosterRows, onAction: _rosterRowAction),
+            StudentRosterTable(rows: _rosterRows, onAction: _rosterRowAction, assessmentColumns: _assessmentColumns),
           ],
         ],
       ),

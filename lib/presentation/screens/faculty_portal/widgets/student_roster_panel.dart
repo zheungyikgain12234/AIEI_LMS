@@ -25,6 +25,8 @@ class RosterRow {
   final Color statusBg;
   final bool flagged;
   final bool hasSubmission;
+  final Map<String, String> assessmentMarks;
+  final String totalMark;
 
   Color get statusColor => flagged ? FacultyColors.error : (status == 'Top Performer' ? FacultyColors.primary : FacultyColors.tertiary);
 
@@ -45,6 +47,8 @@ class RosterRow {
     required this.statusBg,
     this.flagged = false,
     this.hasSubmission = false,
+    this.assessmentMarks = const {},
+    this.totalMark = '—',
   });
 
   /// [progress] is the student's graded-submission coverage across every
@@ -65,6 +69,8 @@ class RosterRow {
     required double? quizAvgPercent,
     required bool hasPendingSubmission,
     required bool hasOverdueSubmission,
+    Map<String, String> assessmentMarks = const {},
+    String totalMark = '—',
   }) {
     final (progressTag, progressColor) = _paceFor(hasOverdueSubmission);
     final (status, statusBg) = _standingFor(hasOverdueSubmission);
@@ -108,6 +114,8 @@ class RosterRow {
       statusBg: statusBg,
       flagged: hasOverdueSubmission,
       hasSubmission: hasPendingSubmission,
+      assessmentMarks: assessmentMarks,
+      totalMark: totalMark,
     );
   }
 
@@ -135,15 +143,23 @@ class StudentRosterTable extends StatelessWidget {
   final List<RosterRow> rows;
   final void Function(RosterRow row, String action) onAction;
   final double minWidth;
+  final List<({String id, String title})> assessmentColumns;
 
-  const StudentRosterTable({super.key, required this.rows, required this.onAction, this.minWidth = 1100});
+  const StudentRosterTable({
+    super.key,
+    required this.rows,
+    required this.onAction,
+    this.assessmentColumns = const [],
+    double? minWidth,
+  }) : minWidth = minWidth ?? 1100;
 
   @override
   Widget build(BuildContext context) {
+    final width = minWidth + assessmentColumns.length * 90 + (assessmentColumns.isEmpty ? 0 : 100);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SizedBox(
-        width: minWidth,
+        width: width,
         child: Column(
           children: [
             _headerRow(),
@@ -167,6 +183,13 @@ class StudentRosterTable extends StatelessWidget {
           Expanded(flex: 1, child: Text('ASSIGN.', style: s())),
           Expanded(flex: 1, child: Text('QUIZ AVG', style: s(), textAlign: TextAlign.right)),
           Expanded(flex: 2, child: Text('STATUS', style: s(), textAlign: TextAlign.center)),
+          for (final col in assessmentColumns)
+            Expanded(
+              flex: 1,
+              child: Text(col.title.toUpperCase(), style: s(), textAlign: TextAlign.right, overflow: TextOverflow.ellipsis),
+            ),
+          if (assessmentColumns.isNotEmpty)
+            Expanded(flex: 1, child: Text('TOTAL', style: s(), textAlign: TextAlign.right)),
         ],
       ),
     );
@@ -257,6 +280,24 @@ class StudentRosterTable extends StatelessWidget {
               ),
             ),
           ),
+          for (final col in assessmentColumns)
+            Expanded(
+              flex: 1,
+              child: Text(
+                s.assessmentMarks[col.id] ?? '—',
+                textAlign: TextAlign.right,
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              ),
+            ),
+          if (assessmentColumns.isNotEmpty)
+            Expanded(
+              flex: 1,
+              child: Text(
+                s.totalMark,
+                textAlign: TextAlign.right,
+                style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
         ],
       ),
     );

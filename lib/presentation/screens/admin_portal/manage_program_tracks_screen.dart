@@ -12,7 +12,7 @@ class ManageProgramTracksScreen extends StatelessWidget {
     final repository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
     return MasterDataScreen(
       title: 'Manage Program Tracks',
-      description: 'Academy specialization tracks students can be enrolled into.',
+      description: 'Academy specialisation tracks students can be enrolled into.',
       itemLabel: 'Program Track',
       navDestination: AdminNavDestination.manageProgramTracks,
       load: () async => [

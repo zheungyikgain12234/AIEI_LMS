@@ -162,7 +162,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Manage course enrollment caps, register students into course sections, and monitor student academic performance per course.', style: AdminTypography.bodyMd()),
+              child: Text('Manage course enrolment caps, register students into course sections, and monitor student academic performance per course.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -182,7 +182,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen())),
             icon: const Icon(Icons.person_add_outlined, size: 16),
-            label: const Text('+ Enroll Students'),
+            label: const Text('+ Enrol Students'),
             style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
         ]),
@@ -512,7 +512,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> {
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen())),
             icon: const Icon(Icons.person_add, size: 18),
-            label: const Text('+ Enroll Students'),
+            label: const Text('+ Enrol Students'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AdminColors.secondary,
               foregroundColor: AdminColors.onSecondary,

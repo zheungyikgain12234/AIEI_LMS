@@ -11,9 +11,9 @@ class ManageSpecializationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
     return MasterDataScreen(
-      title: 'Manage Specialization',
-      description: 'Faculty specialization areas assignable to lecturers during onboarding.',
-      itemLabel: 'Specialization',
+      title: 'Manage Specialisation',
+      description: 'Faculty specialisation areas assignable to lecturers during onboarding.',
+      itemLabel: 'Specialisation',
       navDestination: AdminNavDestination.manageSpecializations,
       load: () async => [
         for (final s in await repository.getSpecializations())

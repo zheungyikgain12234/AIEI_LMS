@@ -229,8 +229,8 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                           ),
                           const SizedBox(height: 14),
                           _dropdown(
-                            label: 'Specialization',
-                            hint: 'Select a specialization',
+                            label: 'Specialisation',
+                            hint: 'Select a specialisation',
                             value: _selectedSpecialization,
                             options: _specializations,
                             onChanged: (v) => setState(() => _selectedSpecialization = v),

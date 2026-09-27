@@ -81,7 +81,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete badges?'),
-        content: Text('This will permanently delete $count badge${count == 1 ? '' : 's'} from the catalog and any course that awards it. This cannot be undone.'),
+        content: Text('This will permanently delete $count badge${count == 1 ? '' : 's'} from the catalogue and any course that awards it. This cannot be undone.'),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           FilledButton(
@@ -135,7 +135,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('The badge catalog courses can be configured to award on completion.', style: AdminTypography.bodyMd()),
+              child: Text('The badge catalogue courses can be configured to award on completion.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -262,7 +262,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('The badge catalog courses can be configured to award on completion.', style: AdminTypography.bodyMd()),
+              Text('The badge catalogue courses can be configured to award on completion.', style: AdminTypography.bodyMd()),
               const SizedBox(height: 16),
               SizedBox(
                 height: 44,

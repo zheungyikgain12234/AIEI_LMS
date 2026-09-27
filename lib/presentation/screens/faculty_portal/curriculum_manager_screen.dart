@@ -858,7 +858,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Curriculum Manifest Synchronized', style: FacultyTypography.titleSm()),
+                  Text('Curriculum Manifest Synchronised', style: FacultyTypography.titleSm()),
                   Text('Last automated cloud snapshot saved at 14:32 EST to AWS S3 (eu-west-1).', style: FacultyTypography.labelXs()),
                 ],
               ),
@@ -1589,7 +1589,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                 const Icon(Icons.cloud_done, size: 18, color: FacultyColors.onTertiaryFixedVariant),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('Curriculum Manifest Synchronized to AWS S3',
+                  child: Text('Curriculum Manifest Synchronised to AWS S3',
                       style: FacultyTypography.labelXs(color: FacultyColors.onTertiaryFixedVariant).copyWith(fontWeight: FontWeight.w600),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),

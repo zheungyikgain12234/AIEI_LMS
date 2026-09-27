@@ -189,7 +189,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
             prompt: _q4Data['prompt'] as String? ?? '',
             submissionMeta: '35 words • 3 key phases',
             submission:
-                '"First, trigger an automated partition rollback utilizing snapshot time-travel queries to restore the partition to state t-1. Second, freeze the ingestion worker pool. Third, run audit delta reconciliation against the raw landing bucket."',
+                '"First, trigger an automated partition rollback utilising snapshot time-travel queries to restore the partition to state t-1. Second, freeze the ingestion worker pool. Third, run audit delta reconciliation against the raw landing bucket."',
             rubricIntro: _q4Data['rubricIntro'] as String? ?? '',
             rubricTags: List<String>.from(_q4Data['rubricTags'] as List? ?? const []),
             feedbackController: _q4Feedback,
@@ -1539,7 +1539,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
             prompt: _q4Data['prompt'] as String? ?? '',
             wordCount: '35 words',
             submission:
-                '"First, trigger an automated partition rollback utilizing snapshot time-travel queries to restore the partition to state t-1. Second, freeze the ingestion worker pool. Third, run audit delta reconciliation against the raw landing bucket."',
+                '"First, trigger an automated partition rollback utilising snapshot time-travel queries to restore the partition to state t-1. Second, freeze the ingestion worker pool. Third, run audit delta reconciliation against the raw landing bucket."',
             rubricTags: List<String>.from(_q4Data['rubricTags'] as List? ?? const []),
             feedbackController: _q4Feedback,
             score: _q4Score,

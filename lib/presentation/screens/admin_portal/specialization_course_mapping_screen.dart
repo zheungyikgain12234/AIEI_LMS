@@ -137,7 +137,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     }
     if (_errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Specialization ↔ Course Mapping')),
+        appBar: AppBar(title: const Text('Specialisation ↔ Course Mapping')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -169,12 +169,12 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Specialization ↔ Course Mapping', style: AdminTypography.headlineLg()),
+        Text('Specialisation ↔ Course Mapping', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Text(
-            'Assign courses to lecturer specializations — drives the "not related to specialization" warning when assigning courses to a lecturer.',
+            'Assign courses to lecturer specialisations — drives the "not related to specialisation" warning when assigning courses to a lecturer.',
             style: AdminTypography.bodyMd(),
           ),
         ),
@@ -187,7 +187,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No specializations exist yet. Create one from Manage Specializations first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No specialisations exist yet. Create one from Manage Specialisations first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(
@@ -195,7 +195,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
       child: Row(
         children: [
-          Text('Specialization', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+          Text('Specialisation', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonFormField<String>(
@@ -257,7 +257,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedSpecialization?.name ?? 'this specialization'}',
+                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedSpecialization?.name ?? 'this specialisation'}',
                 style: AdminTypography.bodySm(),
               ),
             ),
@@ -302,7 +302,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     final courses = _filteredCourses;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Specialization ↔ Course Mapping'),
+      appBar: const AdminMobileTopBar.detail(title: 'Specialisation ↔ Course Mapping'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -311,7 +311,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Assign courses to lecturer specializations — drives the "not related to specialization" warning when assigning courses to a lecturer.',
+                'Assign courses to lecturer specialisations — drives the "not related to specialisation" warning when assigning courses to a lecturer.',
                 style: AdminTypography.bodyMd(),
               ),
               const SizedBox(height: 16),
@@ -344,7 +344,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
                 ),
               const SizedBox(height: 12),
               Text(
-                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedSpecialization?.name ?? 'this specialization'}',
+                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedSpecialization?.name ?? 'this specialisation'}',
                 style: AdminTypography.bodySm(),
               ),
             ],

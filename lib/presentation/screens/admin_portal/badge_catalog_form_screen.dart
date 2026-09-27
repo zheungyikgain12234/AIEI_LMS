@@ -150,8 +150,8 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                         children: [
                           Text(
                             widget.isEditing
-                                ? 'Update this badge\'s catalog information.'
-                                : 'Add a new badge to the catalog. Courses can then be configured to award it on completion.',
+                                ? 'Update this badge\'s catalogue information.'
+                                : 'Add a new badge to the catalogue. Courses can then be configured to award it on completion.',
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),
@@ -167,7 +167,7 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                           const SizedBox(height: 14),
                           _field(controller: _titleController, label: 'Badge Name', hint: 'Python Automation Specialist'),
                           const SizedBox(height: 14),
-                          _field(controller: _descriptionController, label: 'Description', hint: 'What this badge recognizes...', maxLines: 4),
+                          _field(controller: _descriptionController, label: 'Description', hint: 'What this badge recognises...', maxLines: 4),
                           const SizedBox(height: 14),
                           _field(controller: _issuingBodyController, label: 'Issuing Party', hint: 'AIEI Enterprise Learning'),
                           const SizedBox(height: 24),

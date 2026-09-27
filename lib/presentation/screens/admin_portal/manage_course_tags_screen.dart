@@ -177,7 +177,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
           children: [
             Text('Manage Course Tags', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
-            Text('Tags courses can be labeled with — at least one is required per course.', style: AdminTypography.bodyMd()),
+            Text('Tags courses can be labelled with — at least one is required per course.', style: AdminTypography.bodyMd()),
           ],
         ),
         ElevatedButton.icon(
@@ -290,7 +290,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Tags courses can be labeled with — at least one is required per course.', style: AdminTypography.bodyMd()),
+              Text('Tags courses can be labelled with — at least one is required per course.', style: AdminTypography.bodyMd()),
               const SizedBox(height: 16),
               SizedBox(
                 height: 44,

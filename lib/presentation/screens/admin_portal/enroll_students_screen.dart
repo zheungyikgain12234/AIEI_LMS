@@ -202,7 +202,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         children: [
           _buildTopBar(),
           const SizedBox(height: 12),
-          Text('Enroll Students into Course', style: AdminTypography.headlineLg()),
+          Text('Enrol Students into Course', style: AdminTypography.headlineLg()),
           const SizedBox(height: 2),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 620),
@@ -556,7 +556,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         children: [
           Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Enrollment Batch Summary', style: AdminTypography.titleMd()),
+              Text('Enrolment Batch Summary', style: AdminTypography.titleMd()),
               Text('${_staged.length} students queued for commit', style: AdminTypography.bodySm()),
             ])),
             Container(
@@ -573,7 +573,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('Capacity Post-Enrollment:', style: AdminTypography.titleSm()),
+                  Text('Capacity Post-Enrolment:', style: AdminTypography.titleSm()),
                   Text('$postCapacity / $_capacity', style: AdminTypography.titleSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w800)),
                 ]),
                 const SizedBox(height: 6),
@@ -596,7 +596,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                       );
                     },
               icon: const Icon(Icons.person_add_alt_1, size: 18),
-              label: Text('Confirm & Enroll ${_staged.length} Students'),
+              label: Text('Confirm & Enrol ${_staged.length} Students'),
               style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             ),
           ),
@@ -624,7 +624,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     final postCapacity = _baseEnrolled + _staged.length;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Enroll Students'),
+      appBar: const AdminMobileTopBar.detail(title: 'Enrol Students'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -664,7 +664,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 Text('ACADEMIC REGISTRATIONS', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.6)),
               ]),
               const SizedBox(height: 4),
-              Text('Enroll Students', style: AdminTypography.headlineLg()),
+              Text('Enrol Students', style: AdminTypography.headlineLg()),
               const SizedBox(height: 4),
               Text('Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this cohort.', style: AdminTypography.bodySm()),
               const SizedBox(height: 16),
@@ -1060,8 +1060,8 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Enrollment Batch Summary (${_staged.length} Staged)', style: AdminTypography.headlineSm(), overflow: TextOverflow.ellipsis),
-                Text('Capacity Post-Enrollment: $postCapacity / $_capacity', style: AdminTypography.bodySm()),
+                Text('Enrolment Batch Summary (${_staged.length} Staged)', style: AdminTypography.headlineSm(), overflow: TextOverflow.ellipsis),
+                Text('Capacity Post-Enrolment: $postCapacity / $_capacity', style: AdminTypography.bodySm()),
               ]),
             ),
           ]),
@@ -1097,7 +1097,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                       );
                     },
               icon: const Icon(Icons.how_to_reg, size: 18),
-              label: Text('Confirm & Enroll ${_staged.length} Students', overflow: TextOverflow.ellipsis),
+              label: Text('Confirm & Enrol ${_staged.length} Students', overflow: TextOverflow.ellipsis),
               style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             ),
           ),

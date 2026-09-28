@@ -82,4 +82,8 @@ abstract class AdminStudentsRepository {
   /// `student_courses`, filtered to `sectionId`) — the "Manage Classes"
   /// detail screen's enrollment checklist.
   Future<List<RosterStudent>> getSectionRoster(String sectionId);
+
+  /// Persists a lecturer's manual moderation adjustment for one student's
+  /// `student_courses` row (Course Dashboard's Student Directory table).
+  Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore);
 }

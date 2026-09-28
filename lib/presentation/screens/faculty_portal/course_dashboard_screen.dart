@@ -14,6 +14,7 @@ import 'widgets/announcements_panel.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/student_roster_panel.dart';
+import 'widgets/score_distribution_card.dart';
 import 'my_assigned_courses_screen.dart';
 import 'course_syllabus_screen.dart';
 import 'grade_assignment_screen.dart';
@@ -230,6 +231,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         assessmentScores: assessmentScores,
         totalAchievedPct: totalAchievedPct,
         totalPossiblePct: totalWeightagePct,
+        moderatedScore: s.moderatedScore,
       ));
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
@@ -295,6 +297,22 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     );
     if (!mounted) return;
     _load();
+  }
+
+  Future<void> _saveModeratedScore(RosterRow s, double value) async {
+    final index = _rosterRows.indexWhere((row) => row.studentId == s.studentId);
+    if (index == -1) return;
+    final previous = _rosterRows[index];
+    setState(() => _rosterRows[index] = previous.copyWithModeratedScore(value));
+    try {
+      await _rosterRepository.updateModeratedScore(s.studentId, widget.courseId, value);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _rosterRows[index] = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save moderated score for ${s.name}.')),
+      );
+    }
   }
 
   void _rosterRowAction(RosterRow s, String action) {
@@ -419,6 +437,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             footer: '$_quizNonSubmissions non-submissions'),
         _kpiCard('AVERAGE STUDENT PROGRESS', '$_avgProgress%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
             progress: _avgProgress / 100),
+        ScoreDistributionCard(
+          rawScores: [for (final r in _rosterRows) r.totalAchievedPct],
+          moderatedScores: [for (final r in _rosterRows) r.finalTotalPct],
+        ),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -611,7 +633,12 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 ),
               ),
             ),
-            StudentRosterTable(rows: _rosterRows, onAction: _rosterRowAction, assessmentColumns: _assessmentColumns),
+            StudentRosterTable(
+              rows: _rosterRows,
+              onAction: _rosterRowAction,
+              assessmentColumns: _assessmentColumns,
+              onModeratedScoreSave: _saveModeratedScore,
+            ),
           ],
         ],
       ),

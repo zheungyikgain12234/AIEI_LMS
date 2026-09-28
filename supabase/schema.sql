@@ -476,6 +476,7 @@ create table student_courses (
   progress_percentage int not null default 0,
   grade text,
   overall_score numeric(5, 2),
+  moderated_score numeric(5, 2) not null default 0,
   attendance_percentage int not null default 100,
   risk_status text not null default 'on_track' check (risk_status in ('on_track', 'at_risk', 'critical')),
   sponsorship text not null default 'Self-Enrolled',

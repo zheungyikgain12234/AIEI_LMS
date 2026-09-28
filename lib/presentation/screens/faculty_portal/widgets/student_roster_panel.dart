@@ -48,12 +48,45 @@ class RosterRow {
   final Map<String, double?> assessmentScores;
   final double totalAchievedPct;
   final double totalPossiblePct;
+  /// Lecturer's manual moderation adjustment (`student_courses.moderated_score`),
+  /// added on top of [totalAchievedPct] to produce [finalTotalPct].
+  final double moderatedScore;
 
   Color get statusColor => flagged ? FacultyColors.error : (status == 'Top Performer' ? FacultyColors.primary : FacultyColors.tertiary);
 
-  String get totalLabel => '${_formatPct(totalAchievedPct)}%/${_formatPct(totalPossiblePct)}%';
+  /// "RAW SCORE" column: weighted marks achieved vs. total weightage.
+  String get rawScoreLabel => '${_formatPct(totalAchievedPct)}%/${_formatPct(totalPossiblePct)}%';
+
+  /// "TOTAL" column: raw score + moderation, capped at 100%.
+  double get finalTotalPct => (totalAchievedPct + moderatedScore).clamp(0, 100);
+
+  String get finalTotalLabel => '${_formatPct(finalTotalPct)}%';
 
   static String _formatPct(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+
+  RosterRow copyWithModeratedScore(double moderatedScore) => RosterRow(
+        studentId: studentId,
+        name: name,
+        role: role,
+        studentCode: studentCode,
+        progress: progress,
+        progressTag: progressTag,
+        progressColor: progressColor,
+        assignments: assignments,
+        assignmentsTag: assignmentsTag,
+        assignmentsTagBg: assignmentsTagBg,
+        quizAvg: quizAvg,
+        hasQuizScore: hasQuizScore,
+        lastActive: lastActive,
+        status: status,
+        statusBg: statusBg,
+        flagged: flagged,
+        hasSubmission: hasSubmission,
+        assessmentScores: assessmentScores,
+        totalAchievedPct: totalAchievedPct,
+        totalPossiblePct: totalPossiblePct,
+        moderatedScore: moderatedScore,
+      );
 
   const RosterRow({
     required this.studentId,
@@ -76,6 +109,7 @@ class RosterRow {
     this.assessmentScores = const {},
     this.totalAchievedPct = 0,
     this.totalPossiblePct = 0,
+    this.moderatedScore = 0,
   });
 
   /// [progress] is the student's graded-submission coverage across every
@@ -99,6 +133,7 @@ class RosterRow {
     Map<String, double?> assessmentScores = const {},
     double totalAchievedPct = 0,
     double totalPossiblePct = 0,
+    double moderatedScore = 0,
   }) {
     final (progressTag, progressColor) = _paceFor(hasOverdueSubmission);
     final (status, statusBg) = _standingFor(hasOverdueSubmission);
@@ -146,6 +181,7 @@ class RosterRow {
       assessmentScores: assessmentScores,
       totalAchievedPct: totalAchievedPct,
       totalPossiblePct: totalPossiblePct,
+      moderatedScore: moderatedScore,
     );
   }
 
@@ -173,16 +209,39 @@ class StudentRosterTable extends StatelessWidget {
   final List<RosterRow> rows;
   final void Function(RosterRow row, String action) onAction;
   final List<AssessmentColumn> assessmentColumns;
+  final void Function(RosterRow row, double value)? onModeratedScoreSave;
   final double? minWidth;
 
   static const double _assessmentColWidth = 84;
   static const double _totalColWidth = 90;
+  static const double _moderatedColWidth = 140;
   static const double _colGap = 16;
 
-  const StudentRosterTable({super.key, required this.rows, required this.onAction, this.assessmentColumns = const [], this.minWidth});
+  const StudentRosterTable({
+    super.key,
+    required this.rows,
+    required this.onAction,
+    this.assessmentColumns = const [],
+    this.onModeratedScoreSave,
+    this.minWidth,
+  });
 
   double get _resolvedMinWidth =>
-      minWidth ?? (1100 + assessmentColumns.length * (_assessmentColWidth + _colGap) + _totalColWidth + _colGap);
+      minWidth ??
+      (1100 + assessmentColumns.length * (_assessmentColWidth + _colGap) + _totalColWidth + _colGap + _moderatedColWidth + _colGap);
+
+  /// Applies one moderation value to every row at once (the header's bulk
+  /// input) — each row still gets its own headroom clamp, same as an
+  /// individual cell save, so no student's total can be pushed past 100%.
+  void _applyBulkModeratedScore(double value) {
+    final onSave = onModeratedScoreSave;
+    if (onSave == null) return;
+    for (final row in rows) {
+      final maxAllowed = (100 - row.totalAchievedPct).clamp(0, 100);
+      final clamped = value.clamp(0, maxAllowed).toDouble();
+      onSave(row, clamped);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,6 +283,25 @@ class StudentRosterTable extends StatelessWidget {
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(width: _totalColWidth, child: Text('RAW SCORE', style: s(), textAlign: TextAlign.right)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(
+              width: _moderatedColWidth,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('MODERATED SCORE', style: s(), textAlign: TextAlign.right),
+                  const SizedBox(height: 4),
+                  _BulkModeratedScoreHeader(onApplyAll: onModeratedScoreSave == null ? null : _applyBulkModeratedScore),
+                ],
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
             child: SizedBox(width: _totalColWidth, child: Text('TOTAL', style: s(), textAlign: TextAlign.right)),
@@ -338,7 +416,28 @@ class StudentRosterTable extends StatelessWidget {
             child: SizedBox(
               width: _totalColWidth,
               child: Text(
-                s.totalLabel,
+                s.rawScoreLabel,
+                textAlign: TextAlign.right,
+                style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(
+              width: _moderatedColWidth,
+              child: _ModeratedScoreCell(
+                row: s,
+                onSave: onModeratedScoreSave == null ? null : (value) => onModeratedScoreSave!(s, value),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(
+              width: _totalColWidth,
+              child: Text(
+                s.finalTotalLabel,
                 textAlign: TextAlign.right,
                 style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
               ),
@@ -346,6 +445,176 @@ class StudentRosterTable extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Editable moderated-score input for one roster row — a number field plus
+/// an inline "tick" button that commits the value via [onSave] (persisted to
+/// `student_courses.moderated_score` by the caller). The total this feeds
+/// into is capped at 100%, so a save that would push the row's raw score +
+/// moderation past 100 is clamped down to the remaining headroom first.
+class _ModeratedScoreCell extends StatefulWidget {
+  final RosterRow row;
+  final void Function(double value)? onSave;
+
+  const _ModeratedScoreCell({required this.row, required this.onSave});
+
+  @override
+  State<_ModeratedScoreCell> createState() => _ModeratedScoreCellState();
+}
+
+class _ModeratedScoreCellState extends State<_ModeratedScoreCell> {
+  late final TextEditingController _controller;
+  bool _dirty = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: RosterRow._formatPct(widget.row.moderatedScore));
+  }
+
+  @override
+  void didUpdateWidget(covariant _ModeratedScoreCell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_dirty && oldWidget.row.moderatedScore != widget.row.moderatedScore) {
+      _controller.text = RosterRow._formatPct(widget.row.moderatedScore);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final onSave = widget.onSave;
+    if (onSave == null) return;
+    final parsed = double.tryParse(_controller.text.trim());
+    if (parsed == null) return;
+    final maxAllowed = (100 - widget.row.totalAchievedPct).clamp(0, 100);
+    final clamped = parsed.clamp(0, maxAllowed).toDouble();
+    _controller.text = RosterRow._formatPct(clamped);
+    setState(() => _dirty = false);
+    onSave(clamped);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 30,
+            child: TextField(
+              controller: _controller,
+              textAlign: TextAlign.right,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              onChanged: (_) => setState(() => _dirty = true),
+              onSubmitted: (_) => _save(),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: FacultyColors.surfaceContainerLow,
+                suffixText: '%',
+                suffixStyle: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        InkWell(
+          onTap: widget.onSave == null ? null : _save,
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: _dirty ? FacultyColors.primary : FacultyColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(Icons.check, size: 16, color: _dirty ? Colors.white : FacultyColors.onSurfaceVariant),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Header-row bulk input for the "MODERATED SCORE" column — applies one
+/// value to every student's row at once via [onApplyAll] (which still
+/// clamps per-student to that row's remaining headroom under 100%).
+class _BulkModeratedScoreHeader extends StatefulWidget {
+  final void Function(double value)? onApplyAll;
+
+  const _BulkModeratedScoreHeader({required this.onApplyAll});
+
+  @override
+  State<_BulkModeratedScoreHeader> createState() => _BulkModeratedScoreHeaderState();
+}
+
+class _BulkModeratedScoreHeaderState extends State<_BulkModeratedScoreHeader> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _apply() {
+    final onApplyAll = widget.onApplyAll;
+    if (onApplyAll == null) return;
+    final parsed = double.tryParse(_controller.text.trim());
+    if (parsed == null) return;
+    onApplyAll(parsed.clamp(0, 100).toDouble());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 26,
+            child: TextField(
+              controller: _controller,
+              textAlign: TextAlign.right,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: FacultyColors.surfaceContainerLowest,
+                hintText: 'All',
+                hintStyle: FacultyTypography.labelXs(color: FacultyColors.outline),
+                suffixText: '%',
+                suffixStyle: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+              ),
+              onSubmitted: (_) => _apply(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        InkWell(
+          onTap: widget.onApplyAll == null ? null : _apply,
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(6)),
+            child: const Icon(Icons.check, size: 14, color: FacultyColors.onSurfaceVariant),
+          ),
+        ),
+      ],
     );
   }
 }

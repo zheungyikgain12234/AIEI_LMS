@@ -208,4 +208,13 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
         .order('enrolled_at');
     return [for (final row in rows as List) RosterStudent.fromMap(row as Map<String, dynamic>)];
   }
+
+  @override
+  Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore) async {
+    await _client
+        .from('student_courses')
+        .update({'moderated_score': moderatedScore})
+        .eq('student_id', studentId)
+        .eq('course_id', courseId);
+  }
 }

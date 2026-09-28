@@ -158,7 +158,7 @@ class _EnrolledCoursesCatalogueScreenState
                               Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
                               const SizedBox(height: 4),
                               Text(
-                                'Required for your department — not yet on your enrolled list.',
+                                'Required for your role — not yet on your enrolled list.',
                                 style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant),
                               ),
                               const SizedBox(height: 16),
@@ -276,7 +276,7 @@ class _EnrolledCoursesCatalogueScreenState
                       Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 18)),
                       const SizedBox(height: 4),
                       Text(
-                        'Required for your department — not yet on your enrolled list.',
+                        'Required for your role — not yet on your enrolled list.',
                         style: AppTypography.bodySm(color: AppColors.onSurfaceVariant),
                       ),
                       const SizedBox(height: 12),

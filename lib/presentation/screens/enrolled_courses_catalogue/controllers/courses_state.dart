@@ -17,8 +17,8 @@ class CoursesState {
   final CourseStats? stats;
   final List<CriticalActionItem> criticalActions;
 
-  /// Courses mapped to an Internal student's department (`department_courses`)
-  /// that they aren't enrolled in yet — shown in a separate "Compulsory for
+  /// Courses mapped to an Internal student's role (`role_courses`) that
+  /// they aren't enrolled in yet — shown in a separate "Compulsory for
   /// You" section on the catalogue, distinct from [allCourses].
   final List<EnrolledCourse> compulsoryCourses;
 

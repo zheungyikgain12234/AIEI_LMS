@@ -3,6 +3,18 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 
+/// One quiz/assignment content block, as a column in [StudentRosterTable].
+/// [weightage] is the percentage of the final grade this block is worth —
+/// each student's cell shows their share of it (marks scored / max marks *
+/// [weightage]) against this total.
+class AssessmentColumn {
+  final String blockId;
+  final String label;
+  final double weightage;
+
+  const AssessmentColumn({required this.blockId, required this.label, required this.weightage});
+}
+
 /// A single roster line, shared by [StudentRosterTable] (desktop) and
 /// [StudentRosterMobileList] (mobile) — built from a [RosterStudent] plus
 /// that student's real graded-submission coverage against every
@@ -20,13 +32,28 @@ class RosterRow {
   final String assignmentsTag;
   final Color assignmentsTagBg;
   final String quizAvg;
+  /// Whether [quizAvg] reflects at least one graded exam — [quizAvg] itself
+  /// always renders a number (never a dash), so callers that need to
+  /// distinguish "genuinely 0%" from "no graded quiz yet" (e.g. averaging
+  /// only scored students) should check this instead of parsing [quizAvg].
+  final bool hasQuizScore;
   final String lastActive;
   final String status;
   final Color statusBg;
   final bool flagged;
   final bool hasSubmission;
+  /// Per assessment block: the student's weighted-percentage share of that
+  /// block's [AssessmentColumn.weightage] (score / max marks * weightage),
+  /// or null when it isn't graded yet.
+  final Map<String, double?> assessmentScores;
+  final double totalAchievedPct;
+  final double totalPossiblePct;
 
   Color get statusColor => flagged ? FacultyColors.error : (status == 'Top Performer' ? FacultyColors.primary : FacultyColors.tertiary);
+
+  String get totalLabel => '${_formatPct(totalAchievedPct)}%/${_formatPct(totalPossiblePct)}%';
+
+  static String _formatPct(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
   const RosterRow({
     required this.studentId,
@@ -40,11 +67,15 @@ class RosterRow {
     required this.assignmentsTag,
     required this.assignmentsTagBg,
     required this.quizAvg,
+    this.hasQuizScore = false,
     required this.lastActive,
     required this.status,
     required this.statusBg,
     this.flagged = false,
     this.hasSubmission = false,
+    this.assessmentScores = const {},
+    this.totalAchievedPct = 0,
+    this.totalPossiblePct = 0,
   });
 
   /// [progress] is the student's graded-submission coverage across every
@@ -65,6 +96,9 @@ class RosterRow {
     required double? quizAvgPercent,
     required bool hasPendingSubmission,
     required bool hasOverdueSubmission,
+    Map<String, double?> assessmentScores = const {},
+    double totalAchievedPct = 0,
+    double totalPossiblePct = 0,
   }) {
     final (progressTag, progressColor) = _paceFor(hasOverdueSubmission);
     final (status, statusBg) = _standingFor(hasOverdueSubmission);
@@ -102,12 +136,16 @@ class RosterRow {
       assignments: '$gradedAssignments/$totalAssignments',
       assignmentsTag: assignmentsTag,
       assignmentsTagBg: assignmentsTagBg,
-      quizAvg: quizAvgPercent != null ? '${quizAvgPercent.toStringAsFixed(1)}%' : '—',
+      quizAvg: '${(quizAvgPercent ?? 0).toStringAsFixed(1)}%',
+      hasQuizScore: quizAvgPercent != null,
       lastActive: _formatLastActive(s.lastActivityAt),
       status: status,
       statusBg: statusBg,
       flagged: hasOverdueSubmission,
       hasSubmission: hasPendingSubmission,
+      assessmentScores: assessmentScores,
+      totalAchievedPct: totalAchievedPct,
+      totalPossiblePct: totalPossiblePct,
     );
   }
 
@@ -134,16 +172,24 @@ class RosterRow {
 class StudentRosterTable extends StatelessWidget {
   final List<RosterRow> rows;
   final void Function(RosterRow row, String action) onAction;
-  final double minWidth;
+  final List<AssessmentColumn> assessmentColumns;
+  final double? minWidth;
 
-  const StudentRosterTable({super.key, required this.rows, required this.onAction, this.minWidth = 1100});
+  static const double _assessmentColWidth = 84;
+  static const double _totalColWidth = 90;
+  static const double _colGap = 16;
+
+  const StudentRosterTable({super.key, required this.rows, required this.onAction, this.assessmentColumns = const [], this.minWidth});
+
+  double get _resolvedMinWidth =>
+      minWidth ?? (1100 + assessmentColumns.length * (_assessmentColWidth + _colGap) + _totalColWidth + _colGap);
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SizedBox(
-        width: minWidth,
+        width: _resolvedMinWidth,
         child: Column(
           children: [
             _headerRow(),
@@ -167,6 +213,21 @@ class StudentRosterTable extends StatelessWidget {
           Expanded(flex: 1, child: Text('ASSIGN.', style: s())),
           Expanded(flex: 1, child: Text('QUIZ AVG', style: s(), textAlign: TextAlign.right)),
           Expanded(flex: 2, child: Text('STATUS', style: s(), textAlign: TextAlign.center)),
+          for (final col in assessmentColumns)
+            Padding(
+              padding: const EdgeInsets.only(left: _colGap),
+              child: SizedBox(
+                width: _assessmentColWidth,
+                child: Tooltip(
+                  message: col.label,
+                  child: Text(col.label.toUpperCase(), style: s(), textAlign: TextAlign.right, maxLines: 2, overflow: TextOverflow.ellipsis),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(width: _totalColWidth, child: Text('TOTAL', style: s(), textAlign: TextAlign.right)),
+          ),
         ],
       ),
     );
@@ -254,6 +315,32 @@ class StudentRosterTable extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(color: s.statusBg, borderRadius: BorderRadius.circular(4)),
                 child: Text(s.status, style: FacultyTypography.labelXs(color: s.statusColor).copyWith(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ),
+          for (final col in assessmentColumns)
+            Padding(
+              padding: const EdgeInsets.only(left: _colGap),
+              child: SizedBox(
+                width: _assessmentColWidth,
+                child: Builder(builder: (context) {
+                  final pct = s.assessmentScores[col.blockId] ?? 0;
+                  return Text(
+                    '${RosterRow._formatPct(pct)}%/${RosterRow._formatPct(col.weightage)}%',
+                    textAlign: TextAlign.right,
+                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                  );
+                }),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(
+              width: _totalColWidth,
+              child: Text(
+                s.totalLabel,
+                textAlign: TextAlign.right,
+                style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ),

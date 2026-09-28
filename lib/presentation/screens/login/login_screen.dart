@@ -411,7 +411,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('ENTERPRISE LEARNING', style: _text(size: 10, weight: FontWeight.w700, color: const Color(0xFFCBD5E1), letterSpacing: 0.8), overflow: TextOverflow.ellipsis),
+                                    Text('LEARNING MANAGEMENT', style: _text(size: 10, weight: FontWeight.w700, color: const Color(0xFFCBD5E1), letterSpacing: 0.8), overflow: TextOverflow.ellipsis),
                                     Text('SYSTEM', style: _text(size: 9, weight: FontWeight.w400, color: const Color(0xFF94A3B8), letterSpacing: 1)),
                                   ],
                                 ),
@@ -419,7 +419,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Text('Advance Your Career in AI & Enterprise Systems', style: _text(size: 20, weight: FontWeight.w700, color: Colors.white, height: 1.25)),
+                          Text('Advance Your Career in AI Systems', style: _text(size: 20, weight: FontWeight.w700, color: Colors.white, height: 1.25)),
                           const SizedBox(height: 8),
                           Text(
                             'Unified access portal for corporate learners, faculty researchers, and academic administrators.',
@@ -515,7 +515,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(width: 12),
                     Container(width: 1, height: 18, color: _LoginColors.slate200),
                     const SizedBox(width: 12),
-                    Text('ENTERPRISE LEARNING SYSTEM', style: _text(size: 11, weight: FontWeight.w700, color: _LoginColors.slate500, letterSpacing: 0.8)),
+                    Text('LEARNING MANAGEMENT SYSTEM', style: _text(size: 11, weight: FontWeight.w700, color: _LoginColors.slate500, letterSpacing: 0.8)),
                   ],
                 ),
                 Row(
@@ -586,7 +586,7 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           _logoBadge(height: 30),
           const SizedBox(height: 28),
-          Text('Advance Your Career in\nAI & Enterprise Systems', style: _text(size: 28, weight: FontWeight.w800, color: Colors.white, height: 1.2)),
+          Text('Advance Your Career in\nAI Systems', style: _text(size: 28, weight: FontWeight.w800, color: Colors.white, height: 1.2)),
           const SizedBox(height: 14),
           Text(
             'Unified access portal for corporate learners, faculty researchers, and academic administrators.',
@@ -600,11 +600,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 32),
           Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: Text('Academic Term: Fall 2025', style: _text(size: 11, color: const Color(0xFF94A3B8)), overflow: TextOverflow.ellipsis)),
-            ],
-          ),
+          
         ],
       ),
     );

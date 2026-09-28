@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
@@ -38,6 +39,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
+  final _assignmentRepository = SupabaseAssignmentRepositoryImpl(Supabase.instance.client);
   final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
@@ -61,6 +63,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _sessionCount = 0;
   int _totalAssignmentBlocks = 0;
   List<RosterRow> _rosterRows = const [];
+  List<AssessmentColumn> _assessmentColumns = const [];
   List<CourseAnnouncement> _announcements = const [];
 
   @override
@@ -109,6 +112,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         (
           id: row['id'] as String,
           type: row['block_type'] as String,
+          title: (row['block_content'] as Map<String, dynamic>?)?['title'] as String?,
+          weightage: ((row['block_content'] as Map<String, dynamic>?)?['weightage'] as num?)?.toDouble() ?? 0.0,
           dueDate: DateTime.tryParse((row['block_content'] as Map<String, dynamic>?)?['dueDate'] as String? ?? ''),
         ),
     ];
@@ -117,6 +122,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     final totalAssignmentBlocks = assessmentBlocks.where((b) => b.type == 'assignment').length;
     final totalExamBlocks = assessmentBlocks.where((b) => b.type == 'exam').length;
     final examBlockIds = [for (final b in assessmentBlocks) if (b.type == 'exam') b.id];
+    final assignmentBlockIds = [for (final b in assessmentBlocks) if (b.type == 'assignment') b.id];
     final now = DateTime.now();
     final overdueBlockIds = {for (final b in assessmentBlocks) if (b.dueDate != null && b.dueDate!.isBefore(now)) b.id};
 
@@ -124,6 +130,31 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     for (final id in examBlockIds) {
       examMaxMarks[id] = await _examRepository.getTotalMarks(id);
     }
+    final assignmentMaxMarks = <String, double>{};
+    for (final id in assignmentBlockIds) {
+      assignmentMaxMarks[id] = await _assignmentRepository.getTotalMarks(id);
+    }
+    final maxMarksByBlock = {...examMaxMarks, ...assignmentMaxMarks};
+
+    // One column per quiz (exam block) and per assignment block, in the
+    // order they were queried, followed by a running TOTAL column in the
+    // Student Directory table.
+    var quizNumber = 0;
+    var assignmentNumber = 0;
+    final assessmentColumns = <AssessmentColumn>[];
+    for (final b in assessmentBlocks) {
+      final title = b.title?.trim();
+      String label;
+      if (b.type == 'exam') {
+        quizNumber++;
+        label = (title != null && title.isNotEmpty) ? title : 'Quiz $quizNumber';
+      } else {
+        assignmentNumber++;
+        label = (title != null && title.isNotEmpty) ? title : 'Assignment $assignmentNumber';
+      }
+      assessmentColumns.add(AssessmentColumn(blockId: b.id, label: label, weightage: b.weightage));
+    }
+    final totalWeightagePct = assessmentColumns.fold<double>(0, (sum, c) => sum + c.weightage);
 
     final blockIds = [for (final b in assessmentBlocks) b.id];
     final submissionRows = blockIds.isEmpty
@@ -177,6 +208,17 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         if (pcts.isNotEmpty) quizAvgPercent = pcts.reduce((a, b) => a + b) / pcts.length;
       }
 
+      // Each column shows the student's share of that block's weightage:
+      // (marks scored / max marks) * weightage%.
+      final gradedScoreByBlock = {for (final sub in graded) sub.contentBlockId: sub.totalScore ?? 0};
+      final assessmentScores = <String, double?>{
+        for (final col in assessmentColumns)
+          col.blockId: gradedScoreByBlock.containsKey(col.blockId) && (maxMarksByBlock[col.blockId] ?? 0) > 0
+              ? gradedScoreByBlock[col.blockId]! / maxMarksByBlock[col.blockId]! * col.weightage
+              : (gradedScoreByBlock.containsKey(col.blockId) ? 0.0 : null),
+      };
+      final totalAchievedPct = assessmentScores.values.fold<double>(0, (sum, v) => sum + (v ?? 0));
+
       rosterRows.add(RosterRow.fromRoster(
         s,
         progress: progress,
@@ -185,6 +227,9 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         quizAvgPercent: quizAvgPercent,
         hasPendingSubmission: pending.isNotEmpty,
         hasOverdueSubmission: hasOverdue,
+        assessmentScores: assessmentScores,
+        totalAchievedPct: totalAchievedPct,
+        totalPossiblePct: totalWeightagePct,
       ));
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
@@ -205,6 +250,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _sessionCount = sessionIds.length;
       _totalAssignmentBlocks = totalAssignmentBlocks;
       _rosterRows = rosterRows;
+      _assessmentColumns = assessmentColumns;
       _announcements = announcements;
       _isLoading = false;
     });
@@ -477,7 +523,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
 
   Widget _buildStudentRosterCard() {
     final total = _rosterRows.length;
-    final scored = _rosterRows.where((s) => s.quizAvg != '—').toList();
+    final scored = _rosterRows.where((s) => s.hasQuizScore).toList();
     final avgQuiz = scored.isEmpty
         ? null
         : scored.fold<double>(0, (sum, s) => sum + double.parse(s.quizAvg.replaceAll('%', ''))) / scored.length;
@@ -565,7 +611,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 ),
               ),
             ),
-            StudentRosterTable(rows: _rosterRows, onAction: _rosterRowAction),
+            StudentRosterTable(rows: _rosterRows, onAction: _rosterRowAction, assessmentColumns: _assessmentColumns),
           ],
         ],
       ),

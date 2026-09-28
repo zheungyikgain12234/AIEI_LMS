@@ -326,19 +326,18 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
   Future<List<EnrolledCourse>> getCompulsoryCourses() async {
     final studentRow = await _client
         .from('students')
-        .select('student_type, department')
+        .select('student_type, role')
         .eq('id', DemoIdentity.studentId)
         .maybeSingle();
     if (studentRow == null || studentRow['student_type'] != 'Internal') return [];
-    final departmentName = studentRow['department'] as String?;
-    if (departmentName == null) return [];
+    final roleName = studentRow['role'] as String?;
+    if (roleName == null) return [];
 
-    final departmentRow =
-        await _client.from('departments').select('id').eq('name', departmentName).maybeSingle();
-    final departmentId = departmentRow?['id'] as String?;
-    if (departmentId == null) return [];
+    final roleRow = await _client.from('roles').select('id').eq('name', roleName).maybeSingle();
+    final roleId = roleRow?['id'] as String?;
+    if (roleId == null) return [];
 
-    final mappedRows = await _client.from('department_courses').select('course_id').eq('department_id', departmentId);
+    final mappedRows = await _client.from('role_courses').select('course_id').eq('role_id', roleId);
     final mappedCourseIds = {for (final row in mappedRows as List) row['course_id'] as String};
     if (mappedCourseIds.isEmpty) return [];
 

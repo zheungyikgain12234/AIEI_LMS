@@ -20,6 +20,7 @@ import '../manage_specializations_screen.dart';
 import '../manage_roles_screen.dart';
 import '../manage_badge_catalog_screen.dart';
 import '../manage_course_tags_screen.dart';
+import '../admin_settings_screen.dart';
 
 /// Centralized sidebar navigation for every Admin Portal screen — pushes the
 /// screen for [dest], or does nothing if it's already the [current] screen.
@@ -45,6 +46,7 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.manageRoles => const ManageRolesScreen(),
     AdminNavDestination.manageBadgeCatalog => const ManageBadgeCatalogScreen(),
     AdminNavDestination.manageCourseTags => const ManageCourseTagsScreen(),
+    AdminNavDestination.settings => const AdminSettingsScreen(),
   };
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 }

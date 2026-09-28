@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
@@ -289,6 +293,172 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     if (saved != null) _load();
   }
 
+  static const _csvColumns = ['name', 'studentCode', 'email', 'studentType', 'department', 'title', 'programTrack', 'role', 'registrationDate'];
+
+  Future<void> _downloadCsvTemplate() async {
+    final header = _csvColumns.join(',');
+    const staffExample = 'Jane Doe,EMP-90001,jane.doe@enterprise.com,Staff,Operations,Product Analyst,,Data Analyst,2025-01-15';
+    const publicExample = 'John Smith,EMP-90002,john.smith@enterprise.com,Public,,Logistics Analyst,AI Engineering Track,,2025-01-15';
+    final csv = '$header\n$staffExample\n$publicExample\n';
+    final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save student import template',
+      fileName: 'student_import_template.csv',
+      bytes: Uint8List.fromList(utf8.encode(csv)),
+    );
+    if (!mounted || path == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template saved.')));
+  }
+
+  List<List<String>> _parseCsv(String content) {
+    final rows = <List<String>>[];
+    var row = <String>[];
+    final buffer = StringBuffer();
+    var inQuotes = false;
+    for (var i = 0; i < content.length; i++) {
+      final char = content[i];
+      if (inQuotes) {
+        if (char == '"') {
+          if (i + 1 < content.length && content[i + 1] == '"') {
+            buffer.write('"');
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          buffer.write(char);
+        }
+      } else if (char == '"') {
+        inQuotes = true;
+      } else if (char == ',') {
+        row.add(buffer.toString());
+        buffer.clear();
+      } else if (char == '\n' || char == '\r') {
+        if (char == '\r' && i + 1 < content.length && content[i + 1] == '\n') i++;
+        row.add(buffer.toString());
+        buffer.clear();
+        rows.add(row);
+        row = [];
+      } else {
+        buffer.write(char);
+      }
+    }
+    if (buffer.isNotEmpty || row.isNotEmpty) {
+      row.add(buffer.toString());
+      rows.add(row);
+    }
+    return rows.where((r) => r.any((c) => c.trim().isNotEmpty)).toList();
+  }
+
+  Future<void> _importFromCsv() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['csv'], withData: true);
+    if (result == null || result.files.isEmpty) return;
+    final bytes = result.files.single.bytes;
+    if (bytes == null) return;
+
+    final rows = _parseCsv(utf8.decode(bytes));
+    if (rows.length < 2) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV has no data rows.')));
+      return;
+    }
+
+    final header = rows.first.map((h) => h.trim().toLowerCase()).toList();
+    int colIndex(String name) => header.indexOf(name.toLowerCase());
+    final iName = colIndex('name');
+    final iCode = colIndex('studentCode');
+    final iEmail = colIndex('email');
+    final iType = colIndex('studentType');
+    final iDept = colIndex('department');
+    final iTitle = colIndex('title');
+    final iTrack = colIndex('programTrack');
+    final iRole = colIndex('role');
+    final iRegDate = colIndex('registrationDate');
+    if ([iName, iCode, iEmail, iType, iRegDate].any((i) => i == -1)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('CSV is missing required columns (name, studentCode, email, studentType, registrationDate).')),
+      );
+      return;
+    }
+
+    var succeeded = 0;
+    final errors = <String>[];
+    for (var r = 1; r < rows.length; r++) {
+      final row = rows[r];
+      String cell(int i) => (i >= 0 && i < row.length) ? row[i].trim() : '';
+      final name = cell(iName);
+      final codeSuffix = cell(iCode);
+      final email = cell(iEmail);
+      final typeLabel = cell(iType);
+      final registrationDateStr = cell(iRegDate);
+      if (name.isEmpty && codeSuffix.isEmpty && email.isEmpty) continue; // blank row
+      if (name.isEmpty || codeSuffix.isEmpty || email.isEmpty || registrationDateStr.isEmpty) {
+        errors.add('Row ${r + 1}: missing required field(s).');
+        continue;
+      }
+      final matchingType = StudentType.values.where((t) => t.label.toLowerCase() == typeLabel.toLowerCase());
+      if (matchingType.isEmpty) {
+        errors.add('Row ${r + 1}: unknown studentType "$typeLabel" (expected Staff or Public).');
+        continue;
+      }
+      final studentType = matchingType.first;
+      final registrationDate = DateTime.tryParse(registrationDateStr);
+      if (registrationDate == null) {
+        errors.add('Row ${r + 1}: invalid registrationDate "$registrationDateStr" (expected YYYY-MM-DD).');
+        continue;
+      }
+      final department = cell(iDept);
+      final title = cell(iTitle);
+      final programTrack = cell(iTrack);
+      final role = cell(iRole);
+      try {
+        await _repository.createStudent(
+          name: name,
+          studentCode: '${tenantPrefix()}${codeSuffix.toUpperCase()}',
+          email: email,
+          studentType: studentType,
+          department: studentType == StudentType.internal && department.isNotEmpty ? department : null,
+          title: title.isNotEmpty ? title : null,
+          programTrack: studentType == StudentType.external && programTrack.isNotEmpty ? programTrack : null,
+          role: studentType == StudentType.internal && role.isNotEmpty ? role : null,
+          registrationDate: registrationDate,
+        );
+        succeeded++;
+      } catch (e) {
+        errors.add('Row ${r + 1}: $e');
+      }
+    }
+
+    if (!mounted) return;
+    await _load();
+    if (!mounted) return;
+    final summary =
+        '$succeeded student${succeeded == 1 ? '' : 's'} imported.${errors.isEmpty ? '' : ' ${errors.length} row${errors.length == 1 ? '' : 's'} failed.'}';
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import complete'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(summary),
+                if (errors.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  for (final e in errors) Text(e, style: AdminTypography.bodySm(color: AdminColors.error)),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+      ),
+    );
+  }
+
   Future<void> _openEditStudent(Student s) async {
     final saved = await Navigator.of(context).push<Student>(
       MaterialPageRoute(builder: (_) => StudentFormScreen(studentId: s.id)),
@@ -454,17 +624,44 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             ),
           ],
         ),
-        ElevatedButton.icon(
-          onPressed: _openRegisterStudent,
-          icon: const Icon(Icons.person_add_outlined, size: 18),
-          label: const Text('Register New Student'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AdminColors.primaryContainer,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _downloadCsvTemplate,
+              icon: const Icon(Icons.download_outlined, size: 18),
+              label: const Text('Download CSV Template'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AdminColors.onSurface,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: _importFromCsv,
+              icon: const Icon(Icons.upload_file_outlined, size: 18),
+              label: const Text('Import from CSV'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AdminColors.onSurface,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: _openRegisterStudent,
+              icon: const Icon(Icons.person_add_outlined, size: 18),
+              label: const Text('Register New Student'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminColors.primaryContainer,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -961,6 +1158,28 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                     textStyle: AdminTypography.titleSm(color: AdminColors.onSecondary),
                   ),
                 ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _downloadCsvTemplate,
+                      icon: const Icon(Icons.download_outlined, size: 18),
+                      label: const Text('CSV Template'),
+                      style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurface),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _importFromCsv,
+                      icon: const Icon(Icons.upload_file_outlined, size: 18),
+                      label: const Text('Import CSV'),
+                      style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurface),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               _buildInstructionBanner(),

@@ -22,6 +22,7 @@ enum AdminNavDestination {
   manageRoles,
   manageBadgeCatalog,
   manageCourseTags,
+  settings,
 }
 
 class AdminSidebar extends StatelessWidget {
@@ -244,6 +245,31 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageCourseTags,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageCourseTags,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'SYSTEM',
+                      style: AdminTypography.labelSm(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _NavItem(
+                          icon: Icons.settings_outlined,
+                          label: 'Settings',
+                          isSelected: selected == AdminNavDestination.settings,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.settings,
                           ),
                         ),
                       ],

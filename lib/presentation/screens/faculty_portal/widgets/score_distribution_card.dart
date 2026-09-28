@@ -79,12 +79,14 @@ class _ScoreDistributionCardState extends State<ScoreDistributionCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      height: 16,
+                      height: 28,
                       child: _showStats
-                          ? Row(
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                if (rawStats != null) Expanded(child: _statLabel('Raw', rawStats, FacultyColors.secondary)),
-                                if (modStats != null) Expanded(child: _statLabel('Moderated', modStats, FacultyColors.primary)),
+                                if (rawStats != null) _statLabel('Raw', rawStats, FacultyColors.secondary),
+                                if (modStats != null) _statLabel('Moderated', modStats, FacultyColors.primary),
                               ],
                             )
                           : null,

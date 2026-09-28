@@ -1,15 +1,18 @@
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
+import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/downloadable_file.dart';
 
 // ---------------------------------------------------------------------------
@@ -41,12 +44,43 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
   final _syllabusRepository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
   final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
   final _gradingRepository = SupabaseSubmissionGradingRepositoryImpl(Supabase.instance.client);
+  final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _submitting = false;
+  bool _singleAttemptEnabled = false;
+  Timer? _countdownTimer;
+  int? _remainingSeconds;
   ContentBlock? _block;
   List<ExamQuestion> _questions = const [];
   ContentBlockSubmission? _submission;
+
+  bool get _graded => _submission?.isGraded ?? false;
+
+  /// Exams with a time limit are always effectively single-attempt — once
+  /// the clock runs out (or the student submits early), reopening the exam
+  /// must not hand them a fresh countdown to redo it with.
+  bool get _timedExam => (_block?.timeLimitMinutes ?? 0) > 0;
+
+  bool get _notYetOpen {
+    final from = _block?.availableFrom;
+    return from != null && DateTime.now().isBefore(from);
+  }
+
+  bool get _overdue {
+    final due = _block?.dueDate;
+    return due != null && DateTime.now().isAfter(due);
+  }
+
+  /// True once no further attempt should be accepted — because attempts
+  /// haven't opened yet, the due date has passed, or (once graded submission
+  /// aside) the student already used their one permitted attempt under the
+  /// "Single Exam Attempt" setting or this exam's own time limit.
+  bool get _locked {
+    if (_graded) return false;
+    if (_notYetOpen || _overdue) return true;
+    return (_singleAttemptEnabled || _timedExam) && _submission != null;
+  }
 
   final Map<String, Set<String>> _selectedOptions = {};
   final Map<String, TextEditingController> _textControllers = {};
@@ -66,6 +100,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     for (final c in _textControllers.values) {
       c.dispose();
     }
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -77,6 +112,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
       for (final section in sections) ...await _examRepository.getQuestions(section.id),
     ];
     final submission = await _gradingRepository.getSubmission(widget.contentBlockId, widget.studentId);
+    final settings = await _settingsRepository.getSettings();
     if (!mounted) return;
 
     final rawAnswers = (submission?.submission['answers'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
@@ -98,7 +134,51 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
       _block = block;
       _questions = questions;
       _submission = submission;
+      _singleAttemptEnabled = settings[AppSettingKeys.singleExamAttempt] ?? false;
       _isLoading = false;
+    });
+    if (block != null) _startCountdown(block);
+  }
+
+  /// Starts (or restarts, on reload) the exam's countdown from its full
+  /// time limit — nothing persists the start time server-side, so this is
+  /// "time remaining since this page was opened", not a wall-clock deadline
+  /// survivable across app restarts. Doesn't run once the attempt is locked
+  /// (already graded, already used, not yet open, or overdue) — timed exams
+  /// are always single-attempt (see [_locked]), so a student can't dodge a
+  /// missed countdown by leaving and reopening the exam. Never runs past
+  /// the due date either, even if the full time limit hasn't elapsed.
+  void _startCountdown(ContentBlock block) {
+    _countdownTimer?.cancel();
+    final limitMinutes = block.timeLimitMinutes;
+    if (limitMinutes == null || limitMinutes <= 0 || _locked) {
+      setState(() => _remainingSeconds = null);
+      return;
+    }
+    var seconds = limitMinutes * 60;
+    final due = block.dueDate;
+    if (due != null) {
+      final untilDue = due.difference(DateTime.now()).inSeconds;
+      if (untilDue <= 0) {
+        setState(() => _remainingSeconds = null);
+        return;
+      }
+      if (untilDue < seconds) seconds = untilDue;
+    }
+    setState(() => _remainingSeconds = seconds);
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final remaining = _remainingSeconds ?? 0;
+      if (remaining <= 1) {
+        timer.cancel();
+        setState(() => _remainingSeconds = 0);
+        _submit(force: true);
+        return;
+      }
+      setState(() => _remainingSeconds = remaining - 1);
     });
   }
 
@@ -168,8 +248,10 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     );
   }
 
-  Future<void> _submit() async {
-    if (!_canSubmit) return;
+  Future<void> _submit({bool force = false}) async {
+    if (_locked) return;
+    if (!force && !_canSubmit) return;
+    _countdownTimer?.cancel();
     setState(() => _submitting = true);
     final answers = [
       for (final q in _questions)
@@ -215,54 +297,148 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context, block);
     }
-    final graded = _submission?.isGraded ?? false;
+    final graded = _graded;
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1440),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildTopUtilityBar(),
-                    const SizedBox(height: 16),
-                    _buildBanner(block),
-                    const SizedBox(height: 16),
-                    if (graded) ...[_gradeBanner(_submission!), const SizedBox(height: 16)],
-                    LayoutBuilder(builder: (context, constraints) {
-                      final isWide = constraints.maxWidth >= 900;
-                      final left = _buildQuestionsColumn(graded);
-                      final palette = _buildPaletteCard(graded);
-                      if (isWide) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(flex: 8, child: left),
-                            const SizedBox(width: 16),
-                            SizedBox(width: 340, child: palette),
-                          ],
-                        );
-                      }
-                      return Column(children: [left, const SizedBox(height: 16), palette]);
-                    }),
-                    const SizedBox(height: 48),
-                  ],
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1440),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildTopUtilityBar(),
+                        const SizedBox(height: 16),
+                        _buildBanner(block),
+                        const SizedBox(height: 16),
+                        if (graded) ...[_gradeBanner(_submission!), const SizedBox(height: 16)],
+                        if (_locked) ...[
+                          _lockedBanner(),
+                          const SizedBox(height: 48),
+                        ] else ...[
+                          LayoutBuilder(builder: (context, constraints) {
+                            final isWide = constraints.maxWidth >= 900;
+                            final left = _buildQuestionsColumn(graded);
+                            final palette = _buildPaletteCard(graded);
+                            if (isWide) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 8, child: left),
+                                  const SizedBox(width: 16),
+                                  SizedBox(width: 340, child: palette),
+                                ],
+                              );
+                            }
+                            return Column(children: [left, const SizedBox(height: 16), palette]);
+                          }),
+                          const SizedBox(height: 48),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
+          if (_remainingSeconds != null) _floatingTimer(),
+        ],
+      ),
+    );
+  }
+
+  /// Large, always-visible countdown chip pinned to the viewport (not the
+  /// scrollable content), so it stays on screen regardless of scroll
+  /// position — turns red in the final minute.
+  Widget _floatingTimer() {
+    final remaining = _remainingSeconds ?? 0;
+    final mm = (remaining ~/ 60).toString().padLeft(2, '0');
+    final ss = (remaining % 60).toString().padLeft(2, '0');
+    final urgent = remaining <= 60;
+    return Positioned(
+      top: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: urgent ? AppColors.error : AppColors.primary,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 12, offset: Offset(0, 4))],
         ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.timer_outlined, color: Colors.white, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              '$mm:$ss',
+              style: AppTypography.headlineXl(color: Colors.white).copyWith(fontWeight: FontWeight.w800, fontSize: 26),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Shown instead of the (interactive or read-only) question list whenever
+  /// [_locked] is true and the submission isn't graded yet — deliberately
+  /// doesn't reuse the `readOnly` question rendering, which reveals correct
+  /// answers once graded; nothing about answer correctness should leak
+  /// before this submission is graded. Picks its title/message/icon from
+  /// whichever lock reason applies (checked in the same priority order as
+  /// [_locked] itself).
+  Widget _lockedBanner() {
+    late final IconData icon;
+    late final String title;
+    late final String message;
+    final from = _block?.availableFrom;
+    final due = _block?.dueDate;
+    if (_notYetOpen && from != null) {
+      icon = Icons.event_available_outlined;
+      title = 'Not open yet';
+      message = 'This exam opens ${formatDueDate(from)}. Come back then to begin your attempt.';
+    } else if (_overdue) {
+      icon = Icons.event_busy_outlined;
+      title = 'Overdue';
+      message = due != null
+          ? 'The due date (${formatDueDate(due)}) has passed. Attempts are no longer accepted.'
+          : 'The due date has passed. Attempts are no longer accepted.';
+    } else {
+      icon = Icons.lock_outline;
+      title = 'Already submitted';
+      message = 'Only one attempt is permitted for this exam. Your answers were submitted and are awaiting grading.';
+    }
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: AppColors.surfaceContainer, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppColors.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTypography.headlineSm(color: AppColors.onSurface)),
+                const SizedBox(height: 4),
+                Text(message, style: AppTypography.bodySm(color: AppColors.onSurfaceVariant)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // ── Mobile layout ─────────────────────────────────────────────────────────
   Widget _buildMobileScaffold(BuildContext context, ContentBlock block) {
-    final graded = _submission?.isGraded ?? false;
+    final graded = _graded;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -272,24 +448,33 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
         leading: IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back, color: AppColors.onSurface)),
         title: Text(block.title?.isNotEmpty == true ? block.title! : 'Exam', style: AppTypography.headlineSm(color: AppColors.onSurface)),
       ),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildMobileMetaCard(block),
-              if (graded) ...[const SizedBox(height: 12), _gradeBanner(_submission!)],
-              const SizedBox(height: 12),
-              if (_questions.isNotEmpty) _buildMobileQuestionStrip(),
-              const SizedBox(height: 12),
-              _buildQuestionsColumn(graded),
-              const SizedBox(height: 12),
-              if (!graded) _submitButton(fullWidth: true),
-            ],
+      body: Stack(
+        children: [
+          SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildMobileMetaCard(block),
+                  if (graded) ...[const SizedBox(height: 12), _gradeBanner(_submission!)],
+                  const SizedBox(height: 12),
+                  if (_locked)
+                    _lockedBanner()
+                  else ...[
+                    if (_questions.isNotEmpty) _buildMobileQuestionStrip(),
+                    const SizedBox(height: 12),
+                    _buildQuestionsColumn(graded),
+                    const SizedBox(height: 12),
+                    if (!graded) _submitButton(fullWidth: true),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
+          if (_remainingSeconds != null) _floatingTimer(),
+        ],
       ),
     );
   }

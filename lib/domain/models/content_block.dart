@@ -60,6 +60,10 @@ class ContentBlock {
   String? get instructions => content['instructions'] as String?;
   String? get mode => content['mode'] as String?;
 
+  /// Exam time limit in minutes — the exam-answering screen shows a
+  /// persistent countdown and auto-submits at zero. Null means no limit.
+  int? get timeLimitMinutes => (content['timeLimitMinutes'] as num?)?.toInt();
+
   /// Percentage (0–100) this exam/assignment counts toward the class's
   /// final grade. Only meaningful for [ContentBlockType.exam]/
   /// [ContentBlockType.assignment] blocks — null if unset.
@@ -73,6 +77,15 @@ class ContentBlock {
 
   DateTime? get dueDate {
     final raw = content['dueDate'] as String?;
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  /// Exam-only: when attempts open. Before this, the exam-answering screen
+  /// shows a "not yet open" state instead of the question form. Null means
+  /// open immediately.
+  DateTime? get availableFrom {
+    final raw = content['availableFrom'] as String?;
     if (raw == null || raw.isEmpty) return null;
     return DateTime.tryParse(raw);
   }

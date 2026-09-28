@@ -348,8 +348,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         const SizedBox(height: 6),
         SegmentedButton<StudentType>(
           segments: const [
-            ButtonSegment(value: StudentType.internal, label: Text('Internal')),
-            ButtonSegment(value: StudentType.external, label: Text('External')),
+            ButtonSegment(value: StudentType.internal, label: Text('Staff')),
+            ButtonSegment(value: StudentType.external, label: Text('Public')),
           ],
           selected: {_studentType},
           onSelectionChanged: (selection) => setState(() {

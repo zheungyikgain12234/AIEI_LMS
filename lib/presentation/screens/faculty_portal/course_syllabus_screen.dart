@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
 import 'package:stitch_aiei_lms/domain/models/syllabus_template.dart';
+import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'assignment_editor_screen.dart';
 import 'exam_editor_screen.dart';
 import 'mark_assignment_screen.dart';
@@ -46,8 +48,10 @@ class CourseSyllabusScreen extends StatefulWidget {
 
 class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   final _repository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
+  final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
+  bool _hideMarkButtons = false;
   List<CourseModule> _modules = [];
   final Map<String, List<CourseSession>> _sessionsByModule = {};
   final Map<String, List<ContentBlock>> _blocksBySession = {};
@@ -65,9 +69,11 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     final modules = await _repository.getModules(widget.sectionId);
+    final settings = await _settingsRepository.getSettings();
     if (!mounted) return;
     setState(() {
       _modules = modules;
+      _hideMarkButtons = settings[AppSettingKeys.hideMarkButtonsInSyllabus] ?? false;
       _isLoading = false;
     });
   }
@@ -909,8 +915,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                 ],
               ),
             ),
-            OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
-            const SizedBox(width: 6),
+            if (!_hideMarkButtons) ...[
+              OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
+              const SizedBox(width: 6),
+            ],
             OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Manage Contents')),
           ],
         );
@@ -932,8 +940,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                 ],
               ),
             ),
-            OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
-            const SizedBox(width: 6),
+            if (!_hideMarkButtons) ...[
+              OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
+              const SizedBox(width: 6),
+            ],
             OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
           ],
         );
@@ -1038,8 +1048,10 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   late final _descriptionController = TextEditingController(text: widget.existing?.description ?? '');
   late final _instructionsController = TextEditingController(text: widget.existing?.instructions ?? '');
   late final _weightageController = TextEditingController(text: widget.existing?.weightage?.toString() ?? '');
+  late final _timeLimitController = TextEditingController(text: widget.existing?.timeLimitMinutes?.toString() ?? '');
   late String _mode = widget.existing?.mode ?? 'normal';
   DateTime? _dueDate;
+  DateTime? _availableFrom;
   String? _uploadedFileName;
   bool _uploading = false;
   bool _uploadingThumbnail = false;
@@ -1056,6 +1068,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     super.initState();
     _richTextController.addListener(() => setState(() {}));
     _dueDate = widget.existing?.dueDate;
+    _availableFrom = widget.existing?.availableFrom;
     _uploadedFileName = widget.existing?.fileName;
     _loadWeightageBudget();
   }
@@ -1080,10 +1093,12 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     _descriptionController.dispose();
     _instructionsController.dispose();
     _weightageController.dispose();
+    _timeLimitController.dispose();
     super.dispose();
   }
 
   double? get _parsedWeightage => double.tryParse(_weightageController.text.trim());
+  int? get _parsedTimeLimit => int.tryParse(_timeLimitController.text.trim());
 
   /// How much weightage is still available for this block — the class's
   /// 100% budget minus every *other* exam/assignment's weightage.
@@ -1123,6 +1138,30 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     });
   }
 
+  Future<void> _pickAvailableFromDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _availableFrom ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    final existingTime = _availableFrom;
+    setState(() {
+      _availableFrom = DateTime(picked.year, picked.month, picked.day, existingTime?.hour ?? 0, existingTime?.minute ?? 0);
+    });
+  }
+
+  Future<void> _pickAvailableFromTime() async {
+    final base = _availableFrom ?? DateTime.now();
+    final picked = await showTimePicker(context: context, initialTime: TimeOfDay(hour: base.hour, minute: base.minute));
+    if (picked == null) return;
+    setState(() {
+      final date = _availableFrom ?? DateTime.now();
+      _availableFrom = DateTime(date.year, date.month, date.day, picked.hour, picked.minute);
+    });
+  }
+
   bool get _canSave {
     switch (_type) {
       case ContentBlockType.text:
@@ -1133,6 +1172,14 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.file:
         return _urlController.text.trim().isNotEmpty;
       case ContentBlockType.exam:
+        return _titleController.text.trim().isNotEmpty &&
+            _descriptionController.text.trim().isNotEmpty &&
+            _instructionsController.text.trim().isNotEmpty &&
+            _dueDate != null &&
+            !_loadingWeightage &&
+            _parsedWeightage != null &&
+            _weightageError == null &&
+            _availableFromError == null;
       case ContentBlockType.assignment:
         return _titleController.text.trim().isNotEmpty &&
             _descriptionController.text.trim().isNotEmpty &&
@@ -1142,6 +1189,12 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             _parsedWeightage != null &&
             _weightageError == null;
     }
+  }
+
+  String? get _availableFromError {
+    if (_availableFrom == null || _dueDate == null) return null;
+    if (!_availableFrom!.isBefore(_dueDate!)) return 'Must be before the due date.';
+    return null;
   }
 
   Future<void> _pickAndUpload({required FileType fileType}) async {
@@ -1260,6 +1313,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           'dueDate': _dueDate!.toIso8601String(),
           'mode': _mode,
           'weightage': _parsedWeightage,
+          if (_parsedTimeLimit != null) 'timeLimitMinutes': _parsedTimeLimit,
+          if (_availableFrom != null) 'availableFrom': _availableFrom!.toIso8601String(),
           'instructionFiles': _instructionFiles,
         };
       case ContentBlockType.assignment:
@@ -1448,6 +1503,18 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             onChanged: (v) => setState(() => _mode = v ?? 'normal'),
           ),
           const SizedBox(height: 12),
+          TextField(
+            controller: _timeLimitController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Time limit (minutes, optional)',
+              helperText: 'Shows a countdown timer on the exam page and auto-submits at zero. Leave blank for no limit.',
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _availableFromRow(),
+          const SizedBox(height: 12),
           _dueDateTimeRow(),
           const SizedBox(height: 12),
           _weightageField(),
@@ -1542,6 +1609,52 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             icon: const Icon(Icons.close, size: 16),
             tooltip: 'Clear due date',
             visualDensity: VisualDensity.compact,
+          ),
+      ],
+    );
+  }
+
+  /// Exam-only: when attempts open. Left blank, the exam is open as soon as
+  /// it's published. The exam-answering screen refuses to submit — and
+  /// refuses new attempts — before this, and after the due date.
+  Widget _availableFromRow() {
+    final from = _availableFrom;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickAvailableFromDate,
+                icon: const Icon(Icons.event_available_outlined, size: 16),
+                label: Text(
+                  from == null ? 'Available from (optional)' : '${from.year}-${from.month.toString().padLeft(2, '0')}-${from.day.toString().padLeft(2, '0')}',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: from == null ? null : _pickAvailableFromTime,
+                icon: const Icon(Icons.schedule_outlined, size: 16),
+                label: Text(from == null ? 'Time' : '${from.hour.toString().padLeft(2, '0')}:${from.minute.toString().padLeft(2, '0')}'),
+              ),
+            ),
+            if (from != null)
+              IconButton(
+                onPressed: () => setState(() => _availableFrom = null),
+                icon: const Icon(Icons.close, size: 16),
+                tooltip: 'Clear',
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
+        ),
+        if (_availableFromError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(_availableFromError!, style: FacultyTypography.labelXs(color: FacultyColors.error)),
           ),
       ],
     );

@@ -11,6 +11,7 @@
 -- set into a real production deployment with real user data.
 
 drop table if exists
+  app_settings,
   enrollment_candidates, course_announcements, course_sections,
   badge_awards, course_badges, student_certifications, student_materials, student_courses,
   specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
@@ -541,6 +542,17 @@ create table course_announcements (
   created_at timestamptz not null default now()
 );
 
+-- Global admin-toggleable feature flags (Admin "Settings" screen). Row-per-key
+-- rather than a single JSON blob so each toggle is a plain boolean column read.
+create table app_settings (
+  key text primary key,
+  value boolean not null default false
+);
+
+insert into app_settings (key, value) values
+  ('single_exam_attempt', false),
+  ('hide_mark_buttons_in_syllabus', false);
+
 create table enrollment_candidates (
   id uuid primary key default gen_random_uuid(),
   student_name text not null,
@@ -601,6 +613,7 @@ alter table badge_awards enable row level security;
 alter table course_sections enable row level security;
 alter table enrollment_candidates enable row level security;
 alter table course_announcements enable row level security;
+alter table app_settings enable row level security;
 
 do $$
 declare
@@ -616,7 +629,8 @@ begin
     'assignment_criteria', 'content_block_submissions',
     'tags', 'course_tags', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
-    'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates', 'course_announcements'
+    'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates', 'course_announcements',
+    'app_settings'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

@@ -56,7 +56,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
         ? <dynamic>[]
         : await _client
             .from('course_sections')
-            .select('id, section_code, lecturers(name)')
+            .select('id, section_code, lecturers(name), cohorts(name)')
             .inFilter('id', sectionIds);
     final lecturerNameBySection = <String, String>{
       for (final row in sectionRows)
@@ -64,6 +64,10 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     };
     final classCodeBySection = <String, String>{
       for (final row in sectionRows) row['id'] as String: displayCode(row['section_code'] as String),
+    };
+    final cohortNameBySection = <String, String>{
+      for (final row in sectionRows)
+        if (row['cohorts'] != null) row['id'] as String: row['cohorts']['name'] as String,
     };
 
     return [
@@ -75,6 +79,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
             sectionByCourse[course['id']],
             lecturerNameBySection[sectionByCourse[course['id']]],
             classCodeBySection[sectionByCourse[course['id']]],
+            cohortNameBySection[sectionByCourse[course['id']]],
           ),
     ];
   }
@@ -144,7 +149,8 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     Map<String, int> progressByCourse,
     String? sectionId,
     String? lecturerName,
-    String? classCode, {
+    String? classCode,
+    String? cohort, {
     String? ctaOverride,
   }) {
     final id = course['id'] as String;
@@ -182,6 +188,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       category: category,
       sectionId: sectionId,
       classCode: classCode,
+      cohort: cohort,
       instructorOrBoard: lecturerName ?? 'AIEI Faculty',
       instructorIcon: categoryIcon,
       instructorIconColor: AppColors.secondary,
@@ -190,7 +197,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       progressPercentage: progress,
       badgeCount: badgeNames.length,
       badgeNames: badgeNames,
-      ctaButtonText: ctaOverride ?? (isCompleted ? 'Review Course / View Badge' : 'View Course'),
+      ctaButtonText: ctaOverride ?? (isCompleted ? 'Review Course' : 'View Course'),
       isCompleted: isCompleted,
     );
   }
@@ -250,11 +257,21 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
   @override
   Future<CourseStats> getCourseStats() async {
     final courses = await getEnrolledCourses();
+    // Real count from `badge_awards` (excluding revoked), matching the
+    // "Total Badges Earned" figure on the My Badges page — previously this
+    // just counted completed courses, which drifted from the actual badge
+    // count whenever a completed course had zero or more than one badge
+    // configured on it.
+    final badgeRows = await _client
+        .from('badge_awards')
+        .select('id')
+        .eq('student_id', DemoIdentity.studentId)
+        .eq('is_revoked', false);
     return CourseStats(
       enrolledCourses: courses.length,
       inProgressCourses: courses.where((c) => !c.isCompleted).length,
       completedCourses: courses.where((c) => c.isCompleted).length,
-      badgesEarned: courses.where((c) => c.isCompleted).length,
+      badgesEarned: (badgeRows as List).length,
     );
   }
 
@@ -362,6 +379,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
         _mapCourse(
           course as Map<String, dynamic>,
           progressByCourse,
+          null,
           null,
           null,
           null,

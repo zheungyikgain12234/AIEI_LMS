@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
-import 'package:stitch_aiei_lms/main.dart' show routeObserver;
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
@@ -31,7 +30,7 @@ class EnrolledCoursesCatalogueScreen extends ConsumerStatefulWidget {
 }
 
 class _EnrolledCoursesCatalogueScreenState
-    extends ConsumerState<EnrolledCoursesCatalogueScreen> with RouteAware {
+    extends ConsumerState<EnrolledCoursesCatalogueScreen> {
   int _sidebarIndex = 0;
 
   @override
@@ -43,23 +42,15 @@ class _EnrolledCoursesCatalogueScreenState
     Future.microtask(() => ref.read(coursesControllerProvider.notifier).loadInitialData());
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    routeObserver.subscribe(this, ModalRoute.of(context)!);
-  }
-
-  @override
-  void dispose() {
-    routeObserver.unsubscribe(this);
-    super.dispose();
-  }
-
-  @override
-  void didPopNext() {
-    // A pushed screen (e.g. viewing course content) popped back to this
-    // one — progress/badges may have changed server-side since this
-    // screen's provider state was last loaded, so refresh it.
+  /// Reloads after returning from a screen that may have changed
+  /// progress/badges server-side (e.g. viewing course content). Deliberately
+  /// NOT done via RouteObserver.didPopNext — that also fires when a
+  /// same-screen popup route pops (a DropdownButton's menu is itself a
+  /// pushed route), which was wiping the student's Year/Cohort selection
+  /// back to its default every time they picked a dropdown value.
+  Future<void> _pushAndReload(Widget screen) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    if (!mounted) return;
     ref.read(coursesControllerProvider.notifier).loadInitialData();
   }
 
@@ -137,10 +128,18 @@ class _EnrolledCoursesCatalogueScreenState
                                   ),
                                 ),
                                 const SizedBox(width: 16),
-                                CourseFiltersBar(
-                                  onSearchChanged: notifier.setSearchQuery,
-                                  selectedSort: state.sortOption,
-                                  onSortChanged: notifier.setSortOption,
+                                Flexible(
+                                  child: CourseFiltersBar(
+                                    onSearchChanged: notifier.setSearchQuery,
+                                    selectedSort: state.sortOption,
+                                    onSortChanged: notifier.setSortOption,
+                                    availableYears: state.availableYears,
+                                    selectedYear: state.selectedYear,
+                                    onYearChanged: notifier.selectYear,
+                                    cohortNames: state.selectedYear == null ? const [] : state.cohortNamesForYear(state.selectedYear!),
+                                    selectedCohort: state.selectedCohort,
+                                    onCohortChanged: notifier.selectCohort,
+                                  ),
                                 ),
                               ],
                             ),
@@ -200,17 +199,11 @@ class _EnrolledCoursesCatalogueScreenState
       );
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => CourseContentScreen(sectionId: sectionId, courseTitle: course.title)),
-    );
+    _pushAndReload(CourseContentScreen(sectionId: sectionId, courseTitle: course.title));
   }
 
   void _openCriticalAction(BuildContext context, CriticalActionItem action) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CourseContentScreen(sectionId: action.sectionId, courseTitle: action.courseTitle),
-      ),
-    );
+    _pushAndReload(CourseContentScreen(sectionId: action.sectionId, courseTitle: action.courseTitle));
   }
 
   Widget _buildMobileScaffold(BuildContext context, CoursesState state, CoursesNotifier notifier) {
@@ -266,6 +259,33 @@ class _EnrolledCoursesCatalogueScreenState
                       selectedTag: state.selectedTag,
                       onSelectTag: notifier.selectTag,
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _mobileYearCohortDropdown<int>(
+                            hint: 'Year',
+                            value: state.availableYears.contains(state.selectedYear) ? state.selectedYear : null,
+                            items: state.availableYears,
+                            labelOf: (y) => '$y',
+                            onChanged: notifier.selectYear,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _mobileYearCohortDropdown<String>(
+                            hint: 'Cohort',
+                            value: () {
+                              final names = state.selectedYear == null ? const <String>[] : state.cohortNamesForYear(state.selectedYear!);
+                              return names.contains(state.selectedCohort) ? state.selectedCohort : null;
+                            }(),
+                            items: state.selectedYear == null ? const [] : state.cohortNamesForYear(state.selectedYear!),
+                            labelOf: (c) => c,
+                            onChanged: notifier.selectCohort,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     for (final course in state.filteredAndSortedCourses) ...[
                       MobileCourseCard(course: course, onAction: () => _openCourse(context, course)),
@@ -292,6 +312,36 @@ class _EnrolledCoursesCatalogueScreenState
     );
   }
 
+  Widget _mobileYearCohortDropdown<T>({
+    required String hint,
+    required T? value,
+    required List<T> items,
+    required String Function(T) labelOf,
+    required ValueChanged<T> onChanged,
+  }) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1))],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          hint: Text(hint, style: AppTypography.bodySm(color: AppColors.outline)),
+          isExpanded: true,
+          icon: const Icon(Icons.expand_more, size: 18, color: AppColors.outline),
+          style: AppTypography.labelMd(color: AppColors.onSurface),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
+          items: [for (final item in items) DropdownMenuItem(value: item, child: Text(labelOf(item), overflow: TextOverflow.ellipsis))],
+        ),
+      ),
+    );
+  }
 
   Widget _buildMobileTelemetryChips(CourseStats stats) {
     Widget chip(Color dotColor, String label, String value, {IconData? icon}) {

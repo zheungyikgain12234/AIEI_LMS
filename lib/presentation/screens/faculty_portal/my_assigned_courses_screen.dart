@@ -44,6 +44,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   int? _selectedYear;
   String? _selectedCohort;
 
+  // ── Search filter (course name/code only) ───────────────────────────────
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
   // Real per-course KPIs, keyed by `sectionId` — computed for EVERY assigned
   // course (not just one hardcoded demo course), so the table and overall
   // stats both reflect actual roster/grading data for any course a lecturer
@@ -80,14 +84,37 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   }
 
   List<AssignedCourse> get _filteredAssignedCourses {
-    if (_selectedCohort == null) return _assignedCourses;
-    return _assignedCourses.where((c) => c.cohort == _selectedCohort).toList();
+    var courses = _assignedCourses;
+    if (_selectedCohort != null) {
+      courses = courses.where((c) => c.cohort == _selectedCohort).toList();
+    }
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      courses = courses
+          .where((c) => c.title.toLowerCase().contains(query) || c.courseCode.toLowerCase().contains(query))
+          .toList();
+    }
+    return courses;
   }
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _rows = _buildRows();
+      _stats = _computeStats();
+    });
   }
 
   Future<void> _load() async {
@@ -387,12 +414,14 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 340),
             child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
               style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
                 filled: true,
                 fillColor: FacultyColors.surfaceContainerLow,
-                hintText: 'Filter by course name, code, or schedule...',
+                hintText: 'Filter by course name or code...',
                 hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
                 prefixIcon: const Icon(Icons.search, size: 16, color: FacultyColors.outline),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -812,12 +841,14 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
       child: TextField(
+        controller: _searchController,
+        onChanged: _onSearchChanged,
         style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
         decoration: InputDecoration(
           isDense: true,
           filled: true,
           fillColor: Colors.transparent,
-          hintText: 'Search assigned courses or codes...',
+          hintText: 'Search by course name or code...',
           hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
           prefixIcon: const Icon(Icons.search, size: 20, color: FacultyColors.outline),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),

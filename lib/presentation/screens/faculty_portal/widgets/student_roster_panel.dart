@@ -25,6 +25,7 @@ class RosterRow {
   final String name;
   final String role;
   final String studentCode;
+  final String email;
   final int progress;
   final String progressTag;
   final Color progressColor;
@@ -81,6 +82,7 @@ class RosterRow {
         name: name,
         role: role,
         studentCode: studentCode,
+        email: email,
         progress: progress,
         progressTag: progressTag,
         progressColor: progressColor,
@@ -110,6 +112,7 @@ class RosterRow {
     required this.name,
     required this.role,
     required this.studentCode,
+    this.email = '',
     required this.progress,
     required this.progressTag,
     required this.progressColor,
@@ -189,6 +192,7 @@ class RosterRow {
       name: s.name,
       role: s.title ?? 'Enrolled Student',
       studentCode: s.studentCode,
+      email: s.email,
       progress: progress,
       progressTag: progressTag,
       progressColor: progressColor,

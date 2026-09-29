@@ -138,12 +138,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   void _handleNav(AdminNavDestination dest) =>
       handleAdminNav(context, AdminNavDestination.manageLecturers, dest);
 
-  void _notAvailable() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Not wired up in this preview.')),
-    );
-  }
-
   Future<void> _openAssignedCourses(Lecturer l) async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => LecturerCourseAssignmentScreen(lecturerId: l.id)),
@@ -352,51 +346,19 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             color: AdminColors.surfaceContainerLow,
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 320),
-                  child: TextField(
-                    controller: _searchController,
-                    style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: true,
-                      fillColor: AdminColors.surfaceContainerLowest,
-                      hintText: 'Search by faculty name, employee ID, email, or department...',
-                      hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-                      prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(10)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    _statusPill('All Status', true),
-                    _statusPill('Active', false),
-                    _statusPill('Contract', false),
-                  ]),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.tune, size: 16, color: AdminColors.onSurfaceVariant),
-                  label: const Text('More Filters'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AdminColors.onSurface,
-                    backgroundColor: AdminColors.surfaceContainerLowest,
-                    side: BorderSide.none,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    textStyle: AdminTypography.labelSm(),
-                  ),
-                ),
-              ],
+            child: TextField(
+              controller: _searchController,
+              style: AdminTypography.bodySm(color: AdminColors.onSurface),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: AdminColors.surfaceContainerLowest,
+                hintText: 'Search by faculty name, employee ID, email, or department...',
+                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
             ),
           ),
           if (_selected.isNotEmpty)
@@ -456,14 +418,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _statusPill(String label, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: active ? AdminColors.surfaceContainerLowest : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-      child: Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
     );
   }
 
@@ -629,8 +583,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
               _mobileKpiGrid(),
               const SizedBox(height: 16),
               _mobileSearchField(),
-              const SizedBox(height: 10),
-              _mobileFilterChips(),
               if (_selected.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 adminMobileSelectionBar(
@@ -863,73 +815,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
         suffixIcon: const Icon(Icons.qr_code_scanner, size: 18, color: AdminColors.outlineVariant),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
-      ),
-    );
-  }
-
-  Widget _mobileFilterChips() {
-    Widget chip({required Widget child, required Color bg, required Color fg, VoidCallback? onTap}) {
-      return Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: Material(
-          color: bg,
-          borderRadius: BorderRadius.circular(8),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: onTap ?? _notAvailable,
-            child: Container(
-              height: 32,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              alignment: Alignment.center,
-              child: DefaultTextStyle(
-                style: AdminTypography.labelMd(color: fg),
-                child: child,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 32,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          chip(
-            bg: AdminColors.secondary,
-            fg: AdminColors.onPrimary,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Text('All Departments'),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.25), borderRadius: BorderRadius.circular(4)),
-                child: Text('${_lecturers.length}', style: AdminTypography.labelSm(color: AdminColors.onPrimary)),
-              ),
-            ]),
-          ),
-          chip(
-            bg: AdminColors.surfaceContainerLowest,
-            fg: AdminColors.onSurfaceVariant,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Active'),
-              const SizedBox(width: 6),
-              Container(width: 8, height: 8, decoration: BoxDecoration(color: AdminColors.onTertiaryContainer, shape: BoxShape.circle)),
-            ]),
-          ),
-          chip(bg: AdminColors.surfaceContainerLowest, fg: AdminColors.onSurfaceVariant, child: const Text('Contract')),
-          chip(bg: AdminColors.surfaceContainerLowest, fg: AdminColors.onSurfaceVariant, child: const Text('Sabbatical')),
-          chip(
-            bg: AdminColors.surfaceContainerLowest,
-            fg: AdminColors.onSurfaceVariant,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.tune, size: 16),
-              const SizedBox(width: 4),
-              const Text('Filters'),
-            ]),
-          ),
-        ],
       ),
     );
   }

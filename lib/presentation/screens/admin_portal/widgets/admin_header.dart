@@ -43,25 +43,6 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
           ),
           const Spacer(),
           const SizedBox(width: 16),
-          Stack(
-            children: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications_outlined, size: 22, color: AdminColors.onSurfaceVariant),
-                tooltip: 'Notifications',
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(color: AdminColors.error, shape: BoxShape.circle),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 8),
           GestureDetector(
             onTap: () => Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const LoginScreen()),

@@ -11,19 +11,36 @@ class CourseFiltersBar extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final CourseSortOption selectedSort;
   final ValueChanged<CourseSortOption> onSortChanged;
+  final List<int> availableYears;
+  final int? selectedYear;
+  final ValueChanged<int> onYearChanged;
+  final List<String> cohortNames;
+  final String? selectedCohort;
+  final ValueChanged<String> onCohortChanged;
 
   const CourseFiltersBar({
     super.key,
     required this.onSearchChanged,
     required this.selectedSort,
     required this.onSortChanged,
+    required this.availableYears,
+    required this.selectedYear,
+    required this.onYearChanged,
+    required this.cohortNames,
+    required this.selectedCohort,
+    required this.onCohortChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    return Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
       children: [
+        _yearDropdown(),
+        _cohortDropdown(),
         // Search Input
         ConstrainedBox(
           constraints: const BoxConstraints(minWidth: 200, maxWidth: 260),
@@ -60,8 +77,6 @@ class CourseFiltersBar extends StatelessWidget {
             ),
           ),
         ),
-
-        const SizedBox(width: 12),
 
         // Sort Dropdown
         Container(
@@ -104,6 +119,56 @@ class CourseFiltersBar extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _yearDropdown() {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1))],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: availableYears.contains(selectedYear) ? selectedYear : null,
+          hint: Text('Year', style: AppTypography.bodySm(color: AppColors.outline)),
+          icon: const Icon(Icons.expand_more, size: 18, color: AppColors.outline),
+          borderRadius: BorderRadius.circular(8),
+          style: AppTypography.labelMd(color: AppColors.onSurface),
+          onChanged: (year) {
+            if (year != null) onYearChanged(year);
+          },
+          items: [for (final y in availableYears) DropdownMenuItem(value: y, child: Text('$y'))],
+        ),
+      ),
+    );
+  }
+
+  Widget _cohortDropdown() {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1))],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: cohortNames.contains(selectedCohort) ? selectedCohort : null,
+          hint: Text('Cohort', style: AppTypography.bodySm(color: AppColors.outline)),
+          icon: const Icon(Icons.expand_more, size: 18, color: AppColors.outline),
+          borderRadius: BorderRadius.circular(8),
+          style: AppTypography.labelMd(color: AppColors.onSurface),
+          onChanged: (cohort) {
+            if (cohort != null) onCohortChanged(cohort);
+          },
+          items: [for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))],
+        ),
+      ),
     );
   }
 }

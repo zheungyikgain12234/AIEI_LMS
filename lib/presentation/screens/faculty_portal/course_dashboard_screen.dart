@@ -68,6 +68,19 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _totalAssignmentBlocks = 0;
   List<RosterRow> _rosterRows = const [];
   List<AssessmentColumn> _assessmentColumns = const [];
+  final _studentSearchController = TextEditingController();
+  String _studentSearchQuery = '';
+
+  List<RosterRow> get _filteredRosterRows {
+    final query = _studentSearchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _rosterRows;
+    return _rosterRows
+        .where((r) =>
+            r.name.toLowerCase().contains(query) ||
+            r.email.toLowerCase().contains(query) ||
+            r.studentCode.toLowerCase().contains(query))
+        .toList();
+  }
   double? _maxModeratedScore;
   List<CourseAnnouncement> _announcements = const [];
 
@@ -81,6 +94,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   void dispose() {
     _announcementTitleController.dispose();
     _announcementBodyController.dispose();
+    _studentSearchController.dispose();
     super.dispose();
   }
 
@@ -629,12 +643,14 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: TextField(
+                controller: _studentSearchController,
+                onChanged: (v) => setState(() => _studentSearchQuery = v),
                 style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
                   filled: true,
                   fillColor: FacultyColors.surfaceContainerLow,
-                  hintText: 'Search by student name, email, employee ID...',
+                  hintText: 'Search by student name, email and code...',
                   hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
                   prefixIcon: const Icon(Icons.search, size: 18, color: FacultyColors.outline),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -642,13 +658,19 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 ),
               ),
             ),
-            StudentRosterTable(
-              rows: _rosterRows,
-              onAction: _rosterRowAction,
-              assessmentColumns: _assessmentColumns,
-              onModeratedScoreSave: _saveModeratedScore,
-              maxModeratedScore: _maxModeratedScore,
-            ),
+            if (_filteredRosterRows.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Text('No students match your search.', style: FacultyTypography.bodySm()),
+              )
+            else
+              StudentRosterTable(
+                rows: _filteredRosterRows,
+                onAction: _rosterRowAction,
+                assessmentColumns: _assessmentColumns,
+                onModeratedScoreSave: _saveModeratedScore,
+                maxModeratedScore: _maxModeratedScore,
+              ),
           ],
         ],
       ),

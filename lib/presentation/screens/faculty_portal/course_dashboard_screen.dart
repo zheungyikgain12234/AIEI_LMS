@@ -5,11 +5,13 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
+import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'widgets/announcements_panel.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
@@ -42,6 +44,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
   final _assignmentRepository = SupabaseAssignmentRepositoryImpl(Supabase.instance.client);
   final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
+  final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _showAnnouncementForm = false;
@@ -65,6 +68,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _totalAssignmentBlocks = 0;
   List<RosterRow> _rosterRows = const [];
   List<AssessmentColumn> _assessmentColumns = const [];
+  double? _maxModeratedScore;
   List<CourseAnnouncement> _announcements = const [];
 
   @override
@@ -225,6 +229,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         progress: progress,
         totalAssignments: totalAssignmentBlocks,
         gradedAssignments: gradedAssignments,
+        totalQuizzes: totalExamBlocks,
+        gradedQuizzes: gradedExams.length,
         quizAvgPercent: quizAvgPercent,
         hasPendingSubmission: pending.isNotEmpty,
         hasOverdueSubmission: hasOverdue,
@@ -235,6 +241,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       ));
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
+    final numericSettings = await _settingsRepository.getNumericSettings();
+    if (!mounted) return;
 
     setState(() {
       _courseTitle = course?.title ?? 'Course';
@@ -253,6 +261,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _totalAssignmentBlocks = totalAssignmentBlocks;
       _rosterRows = rosterRows;
       _assessmentColumns = assessmentColumns;
+      _maxModeratedScore = numericSettings[AppSettingKeys.maxModeratedScore];
       _announcements = announcements;
       _isLoading = false;
     });
@@ -638,6 +647,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               onAction: _rosterRowAction,
               assessmentColumns: _assessmentColumns,
               onModeratedScoreSave: _saveModeratedScore,
+              maxModeratedScore: _maxModeratedScore,
             ),
           ],
         ],

@@ -16,4 +16,15 @@ class SupabaseAppSettingsRepositoryImpl implements AppSettingsRepository {
   Future<void> updateSetting(String key, bool value) async {
     await _client.from('app_settings').update({'value': value}).eq('key', key);
   }
+
+  @override
+  Future<Map<String, double?>> getNumericSettings() async {
+    final rows = await _client.from('app_settings').select('key, numeric_value');
+    return {for (final row in rows as List) row['key'] as String: (row['numeric_value'] as num?)?.toDouble()};
+  }
+
+  @override
+  Future<void> updateNumericSetting(String key, double? value) async {
+    await _client.from('app_settings').update({'numeric_value': value}).eq('key', key);
+  }
 }

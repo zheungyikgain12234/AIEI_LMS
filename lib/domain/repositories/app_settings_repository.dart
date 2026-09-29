@@ -15,6 +15,11 @@ class AppSettingKeys {
   /// attempt by student code, clearing that student's submission so they
   /// can attempt the exam again.
   static const allowLecturerExamReset = 'allow_lecturer_exam_reset';
+
+  /// Numeric setting (see [AppSettingsRepository.getNumericSettings]): the
+  /// maximum a lecturer may add via the Student Directory's "MODERATED
+  /// SCORE" bulk "Apply All" input. Unset (null) means no limit.
+  static const maxModeratedScore = 'max_moderated_score';
 }
 
 abstract class AppSettingsRepository {
@@ -24,4 +29,12 @@ abstract class AppSettingsRepository {
   Future<Map<String, bool>> getSettings();
 
   Future<void> updateSetting(String key, bool value);
+
+  /// Numeric settings (e.g. [AppSettingKeys.maxModeratedScore]), keyed by
+  /// `app_settings.key` and read from its `numeric_value` column. A key
+  /// absent or null means "no limit configured" — callers should treat
+  /// that as unrestricted.
+  Future<Map<String, double?>> getNumericSettings();
+
+  Future<void> updateNumericSetting(String key, double? value);
 }

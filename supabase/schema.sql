@@ -544,15 +544,19 @@ create table course_announcements (
 
 -- Global admin-toggleable feature flags (Admin "Settings" screen). Row-per-key
 -- rather than a single JSON blob so each toggle is a plain boolean column read.
+-- `numeric_value` backs the handful of settings that are a number rather
+-- than a boolean (e.g. max_moderated_score) — null there means "no limit".
 create table app_settings (
   key text primary key,
-  value boolean not null default false
+  value boolean not null default false,
+  numeric_value numeric
 );
 
 insert into app_settings (key, value) values
   ('single_exam_attempt', false),
   ('hide_mark_buttons_in_syllabus', false),
-  ('allow_lecturer_exam_reset', false);
+  ('allow_lecturer_exam_reset', false),
+  ('max_moderated_score', false);
 
 create table enrollment_candidates (
   id uuid primary key default gen_random_uuid(),

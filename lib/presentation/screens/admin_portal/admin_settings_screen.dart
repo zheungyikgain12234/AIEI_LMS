@@ -25,6 +25,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   final _repository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   Map<String, bool> _settings = {};
+  Map<String, double?> _numericSettings = {};
   final Set<String> _saving = {};
 
   @override
@@ -36,9 +37,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     final settings = await _repository.getSettings();
+    final numericSettings = await _repository.getNumericSettings();
     if (!mounted) return;
     setState(() {
       _settings = settings;
+      _numericSettings = numericSettings;
       _isLoading = false;
     });
   }
@@ -52,6 +55,18 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     });
     try {
       await _repository.updateSetting(key, value);
+    } finally {
+      if (mounted) setState(() => _saving.remove(key));
+    }
+  }
+
+  Future<void> _saveNumeric(String key, double? value) async {
+    setState(() {
+      _numericSettings = {..._numericSettings, key: value};
+      _saving.add(key);
+    });
+    try {
+      await _repository.updateNumericSetting(key, value);
     } finally {
       if (mounted) setState(() => _saving.remove(key));
     }
@@ -104,6 +119,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             description: 'Adds a control to the exam editor\'s "Manage Contents" page letting lecturers type in a student\'s code to clear that student\'s submission, so they can attempt the exam again.',
             settingKey: AppSettingKeys.allowLecturerExamReset,
           ),
+          const Divider(height: 1, color: AdminColors.surfaceContainer),
+          _numericSettingRow(
+            title: 'Max Moderated Score',
+            description: 'Caps how many points a lecturer may add at once via the Student Directory\'s "MODERATED SCORE" bulk "Apply All" input. Leave blank for no limit.',
+            settingKey: AppSettingKeys.maxModeratedScore,
+          ),
         ],
       ),
     );
@@ -141,6 +162,37 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
+  Widget _numericSettingRow({required String title, required String description, required String settingKey}) {
+    final saving = _saving.contains(settingKey);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+                const SizedBox(height: 4),
+                Text(description, style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          if (saving)
+            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+          else
+            _NumericSettingInput(
+              key: ValueKey(settingKey),
+              value: _numericSettings[settingKey],
+              onSave: (value) => _saveNumeric(settingKey, value),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AdminColors.background,
@@ -159,6 +211,90 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Text field + save button for one numeric setting — blank commits null
+/// ("no limit"). Keeps its own draft text so typing doesn't fight the
+/// parent's rebuild-on-save until the value is actually committed.
+class _NumericSettingInput extends StatefulWidget {
+  final double? value;
+  final ValueChanged<double?> onSave;
+
+  const _NumericSettingInput({super.key, required this.value, required this.onSave});
+
+  @override
+  State<_NumericSettingInput> createState() => _NumericSettingInputState();
+}
+
+class _NumericSettingInputState extends State<_NumericSettingInput> {
+  late final TextEditingController _controller = TextEditingController(text: widget.value?.toString() ?? '');
+  bool _dirty = false;
+
+  @override
+  void didUpdateWidget(covariant _NumericSettingInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_dirty && oldWidget.value != widget.value) {
+      _controller.text = widget.value?.toString() ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final text = _controller.text.trim();
+    final value = text.isEmpty ? null : double.tryParse(text);
+    if (text.isNotEmpty && value == null) return;
+    setState(() => _dirty = false);
+    widget.onSave(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 90,
+          child: TextField(
+            controller: _controller,
+            textAlign: TextAlign.right,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: AdminTypography.bodySm(color: AdminColors.onSurface),
+            onChanged: (_) => setState(() => _dirty = true),
+            onSubmitted: (_) => _save(),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: AdminColors.surfaceContainerLow,
+              hintText: 'No limit',
+              hintStyle: AdminTypography.labelSm(color: AdminColors.outline),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        InkWell(
+          onTap: _save,
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _dirty ? AdminColors.primaryContainer : AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(Icons.check, size: 16, color: AdminColors.onSurfaceVariant),
+          ),
+        ),
+      ],
     );
   }
 }

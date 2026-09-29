@@ -31,12 +31,24 @@ class RosterRow {
   final String assignments;
   final String assignmentsTag;
   final Color assignmentsTagBg;
+  /// Raw graded/total counts behind [assignments]/[quiz] — kept alongside
+  /// the formatted strings so the table can sort by them numerically
+  /// instead of re-parsing "x/y" text.
+  final int assignmentsGraded;
+  final int assignmentsTotal;
+  final int quizGraded;
+  final int quizTotal;
   final String quizAvg;
   /// Whether [quizAvg] reflects at least one graded exam — [quizAvg] itself
   /// always renders a number (never a dash), so callers that need to
   /// distinguish "genuinely 0%" from "no graded quiz yet" (e.g. averaging
   /// only scored students) should check this instead of parsing [quizAvg].
   final bool hasQuizScore;
+  /// "QUIZ" column on the desktop Student Directory table: graded/total
+  /// exam-block count, the same "fraction of the class's quizzes" shape as
+  /// [assignments] — distinct from [quizAvg]'s average score percentage,
+  /// which the mobile roster card still shows.
+  final String quiz;
   final String lastActive;
   final String status;
   final Color statusBg;
@@ -75,8 +87,13 @@ class RosterRow {
         assignments: assignments,
         assignmentsTag: assignmentsTag,
         assignmentsTagBg: assignmentsTagBg,
+        assignmentsGraded: assignmentsGraded,
+        assignmentsTotal: assignmentsTotal,
+        quizGraded: quizGraded,
+        quizTotal: quizTotal,
         quizAvg: quizAvg,
         hasQuizScore: hasQuizScore,
+        quiz: quiz,
         lastActive: lastActive,
         status: status,
         statusBg: statusBg,
@@ -99,8 +116,13 @@ class RosterRow {
     required this.assignments,
     required this.assignmentsTag,
     required this.assignmentsTagBg,
+    this.assignmentsGraded = 0,
+    this.assignmentsTotal = 0,
+    this.quizGraded = 0,
+    this.quizTotal = 0,
     required this.quizAvg,
     this.hasQuizScore = false,
+    this.quiz = '0/0',
     required this.lastActive,
     required this.status,
     required this.statusBg,
@@ -127,6 +149,8 @@ class RosterRow {
     required int progress,
     required int totalAssignments,
     required int gradedAssignments,
+    required int totalQuizzes,
+    required int gradedQuizzes,
     required double? quizAvgPercent,
     required bool hasPendingSubmission,
     required bool hasOverdueSubmission,
@@ -171,8 +195,13 @@ class RosterRow {
       assignments: '$gradedAssignments/$totalAssignments',
       assignmentsTag: assignmentsTag,
       assignmentsTagBg: assignmentsTagBg,
+      assignmentsGraded: gradedAssignments,
+      assignmentsTotal: totalAssignments,
+      quizGraded: gradedQuizzes,
+      quizTotal: totalQuizzes,
       quizAvg: '${(quizAvgPercent ?? 0).toStringAsFixed(1)}%',
       hasQuizScore: quizAvgPercent != null,
+      quiz: '$gradedQuizzes/$totalQuizzes',
       lastActive: _formatLastActive(s.lastActivityAt),
       status: status,
       statusBg: statusBg,
@@ -205,17 +234,17 @@ class RosterRow {
 /// Desktop table body (header + rows) for a roster — no search bar or
 /// pagination chrome, so it can be embedded standalone (course dashboard)
 /// or wrapped with that chrome (full Student Directory screen).
-class StudentRosterTable extends StatelessWidget {
+class StudentRosterTable extends StatefulWidget {
   final List<RosterRow> rows;
   final void Function(RosterRow row, String action) onAction;
   final List<AssessmentColumn> assessmentColumns;
   final void Function(RosterRow row, double value)? onModeratedScoreSave;
-  final double? minWidth;
-
-  static const double _assessmentColWidth = 84;
-  static const double _totalColWidth = 90;
-  static const double _moderatedColWidth = 140;
-  static const double _colGap = 16;
+  /// Admin-configured cap (`AppSettingKeys.maxModeratedScore`) on how much
+  /// the "MODERATED SCORE" bulk "Apply All" input may add at once — null
+  /// means no limit is configured. Enforced by [_BulkModeratedScoreHeader]
+  /// itself (it pops up a blocking message instead of applying when
+  /// exceeded); per-row individual saves are not capped by this setting.
+  final double? maxModeratedScore;
 
   const StudentRosterTable({
     super.key,
@@ -223,69 +252,314 @@ class StudentRosterTable extends StatelessWidget {
     required this.onAction,
     this.assessmentColumns = const [],
     this.onModeratedScoreSave,
-    this.minWidth,
+    this.maxModeratedScore,
   });
 
-  double get _resolvedMinWidth =>
-      minWidth ??
-      (1100 + assessmentColumns.length * (_assessmentColWidth + _colGap) + _totalColWidth + _colGap + _moderatedColWidth + _colGap);
+  @override
+  State<StudentRosterTable> createState() => _StudentRosterTableState();
+}
+
+/// STUDENT + STUDENT CODE render in a fixed, un-scrolled left panel so they
+/// stay visible while the rest of the table scrolls horizontally on the
+/// right, with an always-visible [Scrollbar]. The header row itself sits
+/// outside the body's vertical [SingleChildScrollView] entirely, so it stays
+/// pinned regardless of how far the (height-capped) body scrolls; its
+/// horizontal position is mirrored from the body's own horizontal scroll via
+/// [_bodyHScroll]'s listener rather than being independently draggable.
+/// Every column header is tappable to sort the rows by it (ascending, then
+/// descending on a second tap). Both panels use the same fixed
+/// [_headerHeight]/[_rowHeight] per row so the two independently-built
+/// columns of rows stay pixel-aligned without any cross-panel measurement.
+class _StudentRosterTableState extends State<StudentRosterTable> {
+  final _headerHScroll = ScrollController();
+  final _bodyHScroll = ScrollController();
+
+  static const double _headerHeight = 56;
+  static const double _rowHeight = 64;
+  static const double _tableMaxHeight = 560;
+  static const double _studentColWidth = 220;
+  static const double _codeColWidth = 120;
+  static const double _progressColWidth = 170;
+  static const double _assignColWidth = 90;
+  static const double _quizColWidth = 70;
+  static const double _statusColWidth = 130;
+  static const double _assessmentColWidth = 84;
+  static const double _totalColWidth = 90;
+  static const double _moderatedColWidth = 140;
+  static const double _colGap = 16;
+
+  String? _sortColumnId;
+  bool _sortAscending = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _bodyHScroll.addListener(() {
+      if (_headerHScroll.hasClients) _headerHScroll.jumpTo(_bodyHScroll.offset);
+    });
+  }
+
+  @override
+  void dispose() {
+    _headerHScroll.dispose();
+    _bodyHScroll.dispose();
+    super.dispose();
+  }
 
   /// Applies one moderation value to every row at once (the header's bulk
   /// input) — each row still gets its own headroom clamp, same as an
   /// individual cell save, so no student's total can be pushed past 100%.
   void _applyBulkModeratedScore(double value) {
-    final onSave = onModeratedScoreSave;
+    final onSave = widget.onModeratedScoreSave;
     if (onSave == null) return;
-    for (final row in rows) {
+    for (final row in widget.rows) {
       final maxAllowed = (100 - row.totalAchievedPct).clamp(0, 100);
       final clamped = value.clamp(0, maxAllowed).toDouble();
       onSave(row, clamped);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: _resolvedMinWidth,
-        child: Column(
+  void _onHeaderTap(String columnId) {
+    setState(() {
+      if (_sortColumnId == columnId) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumnId = columnId;
+        _sortAscending = true;
+      }
+    });
+  }
+
+  List<RosterRow> get _sortedRows {
+    final columnId = _sortColumnId;
+    if (columnId == null) return widget.rows;
+    final sorted = List<RosterRow>.from(widget.rows)..sort((a, b) => _compareRows(a, b, columnId));
+    return sorted;
+  }
+
+  int _compareRows(RosterRow a, RosterRow b, String columnId) {
+    int cmp;
+    switch (columnId) {
+      case 'student':
+        cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      case 'code':
+        cmp = a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase());
+      case 'progress':
+        cmp = a.progress.compareTo(b.progress);
+      case 'assignment':
+        cmp = a.assignmentsGraded.compareTo(b.assignmentsGraded);
+      case 'quiz':
+        cmp = a.quizGraded.compareTo(b.quizGraded);
+      case 'status':
+        cmp = a.status.compareTo(b.status);
+      case 'raw':
+        cmp = a.totalAchievedPct.compareTo(b.totalAchievedPct);
+      case 'moderated':
+        cmp = a.moderatedScore.compareTo(b.moderatedScore);
+      case 'total':
+        cmp = a.finalTotalPct.compareTo(b.finalTotalPct);
+      default:
+        // An assessment column's blockId.
+        final av = a.assessmentScores[columnId] ?? -1;
+        final bv = b.assessmentScores[columnId] ?? -1;
+        cmp = av.compareTo(bv);
+    }
+    return _sortAscending ? cmp : -cmp;
+  }
+
+  /// A header cell's label plus a sort-direction arrow when [columnId] is
+  /// the active sort column — tapping anywhere on it sorts by that column
+  /// (ascending first, descending on a repeat tap).
+  Widget _sortableHeader(String label, String columnId, TextStyle style, {TextAlign align = TextAlign.left, int maxLines = 1}) {
+    final active = _sortColumnId == columnId;
+    final icon = active ? (_sortAscending ? Icons.arrow_upward : Icons.arrow_downward) : null;
+    final text = Flexible(child: Text(label, style: style, textAlign: align, maxLines: maxLines, overflow: TextOverflow.ellipsis));
+    final mainAxisAlignment = align == TextAlign.right
+        ? MainAxisAlignment.end
+        : (align == TextAlign.center ? MainAxisAlignment.center : MainAxisAlignment.start);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _onHeaderTap(columnId),
+        child: Row(
+          mainAxisAlignment: mainAxisAlignment,
           children: [
-            _headerRow(),
-            for (final s in rows) _row(s),
+            if (icon != null && align == TextAlign.right) ...[Icon(icon, size: 11, color: FacultyColors.primary), const SizedBox(width: 2)],
+            text,
+            if (icon != null && align != TextAlign.right) ...[const SizedBox(width: 2), Icon(icon, size: 11, color: FacultyColors.primary)],
           ],
         ),
       ),
     );
   }
 
-  Widget _headerRow() {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Pinned header — outside the vertical scroll below entirely, so it
+        // never scrolls away; its horizontal offset is mirrored from the
+        // body's own horizontal scroll (see initState).
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _stickyHeaderRow(),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _headerHScroll,
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                child: _scrollableHeaderRow(),
+              ),
+            ),
+          ],
+        ),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: _tableMaxHeight),
+          child: SingleChildScrollView(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _stickyRowsColumn(),
+                Expanded(
+                  child: Scrollbar(
+                    controller: _bodyHScroll,
+                    thumbVisibility: true,
+                    trackVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: _bodyHScroll,
+                      scrollDirection: Axis.horizontal,
+                      child: Column(children: [for (final s in _sortedRows) _scrollableDataRow(s)]),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Sticky left panel: STUDENT + STUDENT CODE ───────────────────────────
+  Widget _stickyRowsColumn() {
+    return DecoratedBox(
+      decoration: const BoxDecoration(border: Border(right: BorderSide(color: FacultyColors.surfaceContainer, width: 1))),
+      child: Column(children: [for (final s in _sortedRows) _stickyDataRow(s)]),
+    );
+  }
+
+  Widget _stickyHeaderRow() {
     TextStyle s() => FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700);
     return Container(
-      color: FacultyColors.surfaceContainerLow,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      height: _headerHeight,
+      decoration: const BoxDecoration(
+        color: FacultyColors.surfaceContainerLow,
+        border: Border(right: BorderSide(color: FacultyColors.surfaceContainer, width: 1)),
+      ),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text('STUDENT', style: s())),
-          Expanded(flex: 2, child: Text('EMPLOYEE ID', style: s())),
-          Expanded(flex: 2, child: Text('PROGRESS', style: s())),
-          Expanded(flex: 1, child: Text('ASSIGN.', style: s())),
-          Expanded(flex: 1, child: Text('QUIZ AVG', style: s(), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text('STATUS', style: s(), textAlign: TextAlign.center)),
-          for (final col in assessmentColumns)
+          SizedBox(
+            width: _studentColWidth,
+            child: Padding(padding: const EdgeInsets.only(left: 16, right: 8), child: _sortableHeader('STUDENT', 'student', s())),
+          ),
+          SizedBox(
+            width: _codeColWidth,
+            child: Padding(padding: const EdgeInsets.only(right: 16), child: _sortableHeader('STUDENT CODE', 'code', s())),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stickyDataRow(RosterRow s) {
+    return Container(
+      height: _rowHeight,
+      decoration: BoxDecoration(
+        color: s.flagged ? FacultyColors.errorContainer.withValues(alpha: 0.15) : FacultyColors.surfaceContainerLowest,
+        border: const Border(bottom: BorderSide(color: FacultyColors.surfaceContainerLow)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: _studentColWidth,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, right: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(color: FacultyColors.surfaceContainerHigh, shape: BoxShape.circle),
+                    child: Icon(Icons.person, color: FacultyColors.primary, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(children: [
+                          Flexible(child: Text(s.name, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                          if (s.flagged) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.flag, size: 14, color: FacultyColors.error)),
+                        ]),
+                        Text(s.role, style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _codeColWidth,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text(s.studentCode, style: FacultyTypography.bodySm(color: FacultyColors.secondary), overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Scrollable right panel: everything else ─────────────────────────────
+  Widget _scrollableHeaderRow() {
+    TextStyle s() => FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700);
+    return Container(
+      height: _headerHeight,
+      color: FacultyColors.surfaceContainerLow,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          SizedBox(width: _progressColWidth, child: _sortableHeader('PROGRESS', 'progress', s())),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(width: _assignColWidth, child: _sortableHeader('ASSIGNMENT', 'assignment', s())),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(width: _quizColWidth, child: _sortableHeader('QUIZ', 'quiz', s(), align: TextAlign.right)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(width: _statusColWidth, child: _sortableHeader('STATUS', 'status', s(), align: TextAlign.center)),
+          ),
+          for (final col in widget.assessmentColumns)
             Padding(
               padding: const EdgeInsets.only(left: _colGap),
               child: SizedBox(
                 width: _assessmentColWidth,
                 child: Tooltip(
                   message: col.label,
-                  child: Text(col.label.toUpperCase(), style: s(), textAlign: TextAlign.right, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  child: _sortableHeader(col.label.toUpperCase(), col.blockId, s(), align: TextAlign.right, maxLines: 2),
                 ),
               ),
             ),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
-            child: SizedBox(width: _totalColWidth, child: Text('RAW SCORE', style: s(), textAlign: TextAlign.right)),
+            child: SizedBox(width: _totalColWidth, child: _sortableHeader('RAW SCORE', 'raw', s(), align: TextAlign.right)),
           ),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
@@ -295,64 +569,43 @@ class StudentRosterTable extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('MODERATED SCORE', style: s(), textAlign: TextAlign.right),
+                  _sortableHeader('MODERATED SCORE', 'moderated', s(), align: TextAlign.right),
                   const SizedBox(height: 4),
-                  _BulkModeratedScoreHeader(onApplyAll: onModeratedScoreSave == null ? null : _applyBulkModeratedScore),
+                  _BulkModeratedScoreHeader(
+                    onApplyAll: widget.onModeratedScoreSave == null ? null : _applyBulkModeratedScore,
+                    maxModeratedScore: widget.maxModeratedScore,
+                  ),
                 ],
               ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
-            child: SizedBox(width: _totalColWidth, child: Text('TOTAL', style: s(), textAlign: TextAlign.right)),
+            child: SizedBox(width: _totalColWidth, child: _sortableHeader('TOTAL', 'total', s(), align: TextAlign.right)),
           ),
         ],
       ),
     );
   }
 
-  Widget _row(RosterRow s) {
+  Widget _scrollableDataRow(RosterRow s) {
     return Container(
+      height: _rowHeight,
       decoration: BoxDecoration(
         color: s.flagged ? FacultyColors.errorContainer.withValues(alpha: 0.15) : null,
         border: const Border(bottom: BorderSide(color: FacultyColors.surfaceContainerLow)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(color: FacultyColors.surfaceContainerHigh, shape: BoxShape.circle),
-                  child: Icon(Icons.person, color: FacultyColors.primary, size: 18),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Flexible(child: Text(s.name, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
-                        if (s.flagged) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.flag, size: 14, color: FacultyColors.error)),
-                      ]),
-                      Text(s.role, style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(flex: 2, child: Text(s.studentCode, style: FacultyTypography.bodySm(color: FacultyColors.secondary))),
-          Expanded(
-            flex: 2,
+          SizedBox(
+            width: _progressColWidth,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Text('${s.progress}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
@@ -367,36 +620,34 @@ class StudentRosterTable extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.assignments, style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                Container(
-                  margin: const EdgeInsets.only(top: 2),
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                  decoration: BoxDecoration(color: s.assignmentsTagBg, borderRadius: BorderRadius.circular(4)),
-                  child: Text(s.assignmentsTag, style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(
+              width: _assignColWidth,
+              child: Text(s.assignments, style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: Text(s.quizAvg, textAlign: TextAlign.right, style: FacultyTypography.titleSm(color: s.flagged ? FacultyColors.error : FacultyColors.onSurface)),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(
+              width: _quizColWidth,
+              child: Text(s.quiz, textAlign: TextAlign.right, style: FacultyTypography.titleSm(color: s.flagged ? FacultyColors.error : FacultyColors.onSurface)),
+            ),
           ),
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(color: s.statusBg, borderRadius: BorderRadius.circular(4)),
-                child: Text(s.status, style: FacultyTypography.labelXs(color: s.statusColor).copyWith(fontWeight: FontWeight.w700)),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(
+              width: _statusColWidth,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(color: s.statusBg, borderRadius: BorderRadius.circular(4)),
+                  child: Text(s.status, style: FacultyTypography.labelXs(color: s.statusColor).copyWith(fontWeight: FontWeight.w700)),
+                ),
               ),
             ),
           ),
-          for (final col in assessmentColumns)
+          for (final col in widget.assessmentColumns)
             Padding(
               padding: const EdgeInsets.only(left: _colGap),
               child: SizedBox(
@@ -428,7 +679,7 @@ class StudentRosterTable extends StatelessWidget {
               width: _moderatedColWidth,
               child: _ModeratedScoreCell(
                 row: s,
-                onSave: onModeratedScoreSave == null ? null : (value) => onModeratedScoreSave!(s, value),
+                onSave: widget.onModeratedScoreSave == null ? null : (value) => widget.onModeratedScoreSave!(s, value),
               ),
             ),
           ),
@@ -548,11 +799,16 @@ class _ModeratedScoreCellState extends State<_ModeratedScoreCell> {
 
 /// Header-row bulk input for the "MODERATED SCORE" column — applies one
 /// value to every student's row at once via [onApplyAll] (which still
-/// clamps per-student to that row's remaining headroom under 100%).
+/// clamps per-student to that row's remaining headroom under 100%). When
+/// [maxModeratedScore] is set (the admin's global cap on moderated score
+/// additions) and the entered value exceeds it, this blocks the apply
+/// entirely and shows a message instead — the per-row clamp above only
+/// protects the 100% ceiling, not this separate admin-configured limit.
 class _BulkModeratedScoreHeader extends StatefulWidget {
   final void Function(double value)? onApplyAll;
+  final double? maxModeratedScore;
 
-  const _BulkModeratedScoreHeader({required this.onApplyAll});
+  const _BulkModeratedScoreHeader({required this.onApplyAll, this.maxModeratedScore});
 
   @override
   State<_BulkModeratedScoreHeader> createState() => _BulkModeratedScoreHeaderState();
@@ -572,6 +828,20 @@ class _BulkModeratedScoreHeaderState extends State<_BulkModeratedScoreHeader> {
     if (onApplyAll == null) return;
     final parsed = double.tryParse(_controller.text.trim());
     if (parsed == null) return;
+    final max = widget.maxModeratedScore;
+    if (max != null && parsed > max) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Exceeds maximum moderated score'),
+          content: Text(
+            'The admin has capped moderated score adjustments at ${RosterRow._formatPct(max)}%. Enter a value at or below this limit.',
+          ),
+          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK'))],
+        ),
+      );
+      return;
+    }
     onApplyAll(parsed.clamp(0, 100).toDouble());
   }
 

@@ -8,6 +8,12 @@ abstract class AdminStudentsRepository {
 
   Future<Student> getStudentById(String id);
 
+  /// Looks up a student by their tenant-prefixed `student_code` (case
+  /// -insensitive on the user-entered suffix) — used by the exam editor's
+  /// "reset a student's attempt" control, which lecturers key in by code
+  /// rather than picking from a roster. Returns null if no student matches.
+  Future<Student?> getStudentByCode(String code);
+
   /// Inserts a new student row (the `id` is auto-assigned by the database's
   /// identity column) and returns it. GPA is not settable at registration —
   /// it defaults to 0 in the database. [department]/[role] are required for

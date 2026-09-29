@@ -98,6 +98,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             description: 'Removes the inline "Mark Assignment"/"Mark Exam" buttons from the Syllabus editor\'s content rows — the faculty sidebar\'s "Grading & Submissions" entry becomes the only way to grade.',
             settingKey: AppSettingKeys.hideMarkButtonsInSyllabus,
           ),
+          const Divider(height: 1, color: AdminColors.surfaceContainer),
+          _settingRow(
+            title: 'Allow Lecturers to Reset Exam Attempts',
+            description: 'Adds a control to the exam editor\'s "Manage Contents" page letting lecturers type in a student\'s code to clear that student\'s submission, so they can attempt the exam again.',
+            settingKey: AppSettingKeys.allowLecturerExamReset,
+          ),
         ],
       ),
     );

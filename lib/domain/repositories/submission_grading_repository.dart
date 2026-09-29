@@ -38,4 +38,11 @@ abstract class SubmissionGradingRepository {
     required double totalScore,
     required String gradedByLecturerId,
   });
+
+  /// Deletes [studentId]'s submission row for [contentBlockId] entirely, so
+  /// the exam-answering screen sees no submission and lets them attempt it
+  /// again — used by the exam editor's admin-gated "reset a student's
+  /// attempt" control. Does not touch `student_courses.progress_percentage`
+  /// or any badges already awarded from a prior grade on this block.
+  Future<void> resetAttempt({required String contentBlockId, required String studentId});
 }

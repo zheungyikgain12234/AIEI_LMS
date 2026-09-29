@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
@@ -20,6 +21,13 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   Future<Student> getStudentById(String id) async {
     final row = await _client.from('students').select().eq('id', id).single();
     return Student.fromMap(row);
+  }
+
+  @override
+  Future<Student?> getStudentByCode(String code) async {
+    final storedCode = '${tenantPrefix()}${code.trim().toUpperCase()}';
+    final row = await _client.from('students').select().eq('student_code', storedCode).maybeSingle();
+    return row == null ? null : Student.fromMap(row);
   }
 
   @override

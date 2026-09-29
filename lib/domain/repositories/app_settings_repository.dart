@@ -9,6 +9,12 @@ class AppSettingKeys {
   /// Syllabus editor's content-block rows are hidden — the faculty
   /// sidebar's "Grading & Submissions" entry becomes the only way in.
   static const hideMarkButtonsInSyllabus = 'hide_mark_buttons_in_syllabus';
+
+  /// When true, the exam editor ("Manage Contents" on an exam content
+  /// block) shows a control letting the lecturer reset one student's exam
+  /// attempt by student code, clearing that student's submission so they
+  /// can attempt the exam again.
+  static const allowLecturerExamReset = 'allow_lecturer_exam_reset';
 }
 
 abstract class AppSettingsRepository {

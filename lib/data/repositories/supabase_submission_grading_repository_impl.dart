@@ -68,6 +68,15 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
     await _syncProgressAndBadges(contentBlockId: contentBlockId, studentId: studentId);
   }
 
+  @override
+  Future<void> resetAttempt({required String contentBlockId, required String studentId}) async {
+    await _client
+        .from('content_block_submissions')
+        .delete()
+        .eq('content_block_id', contentBlockId)
+        .eq('student_id', studentId);
+  }
+
   /// Recomputes [studentId]'s real progress for the course [contentBlockId]
   /// belongs to — graded submissions ÷ every exam/assignment block in that
   /// same class (`course_sections`) — and writes it to

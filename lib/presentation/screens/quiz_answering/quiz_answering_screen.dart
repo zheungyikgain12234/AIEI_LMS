@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
+import 'package:stitch_aiei_lms/core/utils/browser_fullscreen.dart' as browser_fullscreen;
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
@@ -51,6 +52,9 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
   bool _singleAttemptEnabled = false;
   Timer? _countdownTimer;
   int? _remainingSeconds;
+  bool _lockdownActive = false;
+  browser_fullscreen.Unsubscribe? _fullscreenExitSub;
+  browser_fullscreen.Unsubscribe? _pageHiddenSub;
   ContentBlock? _block;
   List<ExamQuestion> _questions = const [];
   ContentBlockSubmission? _submission;
@@ -101,7 +105,42 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
       c.dispose();
     }
     _countdownTimer?.cancel();
+    _exitLockdown();
     super.dispose();
+  }
+
+  /// Enters exam lockdown once a real, unlocked countdown starts: takes the
+  /// browser fullscreen and starts watching for the student leaving it (Esc,
+  /// F11, browser chrome, closing the window) or switching away from the tab
+  /// altogether (Alt+Tab, Win+Tab, minimizing — even the focus loss Windows
+  /// produces the instant Ctrl+Alt+Del is pressed, though that combination
+  /// itself can never be intercepted by any browser page). Either one
+  /// auto-submits the exam immediately, exactly like the countdown reaching
+  /// zero, since there's no way back into the same attempt. Paired with
+  /// [_exitLockdown], called once the exam is submitted/locked or this
+  /// screen is disposed.
+  void _enterLockdown() {
+    if (_lockdownActive) return;
+    _lockdownActive = true;
+    browser_fullscreen.requestFullscreen();
+    _fullscreenExitSub = browser_fullscreen.listenFullscreenChange(() {
+      if (!mounted || !_lockdownActive) return;
+      if (!browser_fullscreen.isFullscreenActive) _submit(force: true);
+    });
+    _pageHiddenSub = browser_fullscreen.listenPageHidden(() {
+      if (!mounted || !_lockdownActive) return;
+      _submit(force: true);
+    });
+  }
+
+  void _exitLockdown() {
+    if (!_lockdownActive) return;
+    _lockdownActive = false;
+    _fullscreenExitSub?.call();
+    _fullscreenExitSub = null;
+    _pageHiddenSub?.call();
+    _pageHiddenSub = null;
+    browser_fullscreen.exitFullscreen();
   }
 
   Future<void> _load() async {
@@ -152,6 +191,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     _countdownTimer?.cancel();
     final limitMinutes = block.timeLimitMinutes;
     if (limitMinutes == null || limitMinutes <= 0 || _locked) {
+      _exitLockdown();
       setState(() => _remainingSeconds = null);
       return;
     }
@@ -160,11 +200,13 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     if (due != null) {
       final untilDue = due.difference(DateTime.now()).inSeconds;
       if (untilDue <= 0) {
+        _exitLockdown();
         setState(() => _remainingSeconds = null);
         return;
       }
       if (untilDue < seconds) seconds = untilDue;
     }
+    _enterLockdown();
     setState(() => _remainingSeconds = seconds);
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -252,6 +294,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     if (_locked) return;
     if (!force && !_canSubmit) return;
     _countdownTimer?.cancel();
+    _exitLockdown();
     setState(() => _submitting = true);
     final answers = [
       for (final q in _questions)
@@ -295,10 +338,10 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
       );
     }
     if (MediaQuery.of(context).size.width < 700) {
-      return _buildMobileScaffold(context, block);
+      return _wrapWithLockdown(_buildMobileScaffold(context, block));
     }
     final graded = _graded;
-    return Scaffold(
+    return _wrapWithLockdown(Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
@@ -312,8 +355,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildTopUtilityBar(),
-                        const SizedBox(height: 16),
+                        if (!_lockdownActive) ...[_buildTopUtilityBar(), const SizedBox(height: 16)],
                         _buildBanner(block),
                         const SizedBox(height: 16),
                         if (graded) ...[_gradeBanner(_submission!), const SizedBox(height: 16)],
@@ -349,6 +391,23 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
           if (_remainingSeconds != null) _floatingTimer(),
         ],
       ),
+    ));
+  }
+
+  /// Wraps [child] with the exam lockdown behavior while [_lockdownActive]:
+  /// blocks in-app/browser back navigation — only submitting (including the
+  /// auto-submit triggered by leaving fullscreen) is allowed to leave.
+  Widget _wrapWithLockdown(Widget child) {
+    return PopScope(
+      canPop: !_lockdownActive,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('This exam is timed and locked — submit your answers to leave.'),
+          backgroundColor: AppColors.error,
+        ));
+      },
+      child: child,
     );
   }
 
@@ -445,7 +504,10 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
         backgroundColor: AppColors.surfaceContainerLowest,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back, color: AppColors.onSurface)),
+        automaticallyImplyLeading: !_lockdownActive,
+        leading: _lockdownActive
+            ? null
+            : IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back, color: AppColors.onSurface)),
         title: Text(block.title?.isNotEmpty == true ? block.title! : 'Exam', style: AppTypography.headlineSm(color: AppColors.onSurface)),
       ),
       body: Stack(

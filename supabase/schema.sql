@@ -551,7 +551,8 @@ create table app_settings (
 
 insert into app_settings (key, value) values
   ('single_exam_attempt', false),
-  ('hide_mark_buttons_in_syllabus', false);
+  ('hide_mark_buttons_in_syllabus', false),
+  ('allow_lecturer_exam_reset', false);
 
 create table enrollment_candidates (
   id uuid primary key default gen_random_uuid(),

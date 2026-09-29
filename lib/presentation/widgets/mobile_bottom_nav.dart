@@ -5,7 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 /// Shared bottom navigation bar for the mobile (< 700px) student layout —
 /// replaces the desktop `PortalSidebar` on narrow screens.
 class MobileBottomNav extends StatelessWidget {
-  final int selectedIndex; // 0 = My Courses, 1 = Certifications & Badges
+  final int selectedIndex; // 0 = My Courses, 1 = My Badges
   final ValueChanged<int> onTap;
 
   const MobileBottomNav({super.key, required this.selectedIndex, required this.onTap});
@@ -23,7 +23,7 @@ class MobileBottomNav extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: _item(Icons.menu_book, 'My Courses', 0)),
-            Expanded(child: _item(Icons.verified_outlined, 'Certifications & Badges', 1)),
+            Expanded(child: _item(Icons.verified_outlined, 'My Badges', 1)),
           ],
         ),
       ),

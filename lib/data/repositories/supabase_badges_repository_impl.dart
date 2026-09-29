@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_stats.dart';
 import 'package:stitch_aiei_lms/domain/models/earned_credential.dart';
@@ -11,7 +12,13 @@ import 'package:stitch_aiei_lms/domain/repositories/courses_repository.dart';
 /// Supabase-backed [BadgesRepository]. "In progress" badges are simply the
 /// demo student's not-yet-completed enrolled courses (reuses
 /// [CoursesRepository] rather than re-deriving the same course/module/
-/// material join), while "earned" credentials come from `student_certifications`.
+/// material join), while "earned" credentials come from `badge_awards` —
+/// the same table the admin "Manage Badges" screen and the auto-award-on-
+/// course-completion flow (`_syncProgressAndBadges` in
+/// SupabaseSubmissionGradingRepositoryImpl) both write to. (An older
+/// `student_certifications` table existed for this previously, but nothing
+/// in the app writes to it any more — reading from it left every course-
+/// completion badge invisible here.)
 class SupabaseBadgesRepositoryImpl implements BadgesRepository {
   SupabaseBadgesRepositoryImpl(this._client, this._coursesRepository);
 
@@ -27,7 +34,7 @@ class SupabaseBadgesRepositoryImpl implements BadgesRepository {
     return BadgeStats(
       totalBadgesEarned: activeCount,
       totalBadgesTag: 'Accredited',
-      totalBadgesSubtitle: 'Top tier compliance verified',
+      totalBadgesSubtitle: '',
       inProgressCount: inProgress.length,
       inProgressTag: 'Active Tracks',
       inProgressSubtitle: inProgress.isEmpty
@@ -39,10 +46,9 @@ class SupabaseBadgesRepositoryImpl implements BadgesRepository {
   @override
   Future<List<EarnedCredential>> getEarnedCredentials() async {
     final rows = await _client
-        .from('student_certifications')
+        .from('badge_awards')
         .select('*, certifications(*)')
-        .eq('student_id', DemoIdentity.studentId)
-        .inFilter('status', ['earned', 'revoked']);
+        .eq('student_id', DemoIdentity.studentId);
 
     return [
       for (final row in rows as List) _mapEarnedCredential(row as Map<String, dynamic>),
@@ -51,19 +57,20 @@ class SupabaseBadgesRepositoryImpl implements BadgesRepository {
 
   EarnedCredential _mapEarnedCredential(Map<String, dynamic> row) {
     final cert = row['certifications'] as Map<String, dynamic>;
-    final isRevoked = row['status'] == 'revoked';
-    final competencies = List<String>.from(cert['competencies'] as List? ?? []);
+    final isRevoked = row['is_revoked'] as bool? ?? false;
 
     return EarnedCredential(
       id: row['id'] as String,
-      categoryTag: cert['title'] as String,
-      statusPillText: isRevoked
-          ? 'Revoked • Incident #${row['case_ref'] ?? 'N/A'}'
-          : 'Verified',
+      statusPillText: isRevoked ? 'Revoked' : 'Verified',
       statusPillIcon: isRevoked ? Icons.cancel : Icons.workspace_premium,
       isRevoked: isRevoked,
       emblemIcon: isRevoked ? Icons.gpp_bad : Icons.military_tech,
-      emblemCode: (cert['id'] as String).substring(0, 8).toUpperCase(),
+      // `certifications.code` (e.g. "TN01-CERT-PYAUTO") is the real,
+      // human-assigned badge code — unlike the row's own uuid, which has no
+      // meaning to show and (in this seed data) misleadingly looks
+      // identical across badges since every certification id happens to
+      // start with the same demo prefix.
+      emblemCode: displayCode(cert['code'] as String),
       emblemSubtext: isRevoked ? 'VOIDED' : 'VERIFIED',
       title: cert['title'] as String,
       titleChipText: isRevoked ? 'Suspended' : null,
@@ -72,26 +79,8 @@ class SupabaseBadgesRepositoryImpl implements BadgesRepository {
       metaText: isRevoked
           ? 'Revoked by ${cert['issuing_body']}'
           : 'Issuer: ${cert['issuing_body']}',
-      hash: cert['hash'] as String? ?? '',
-      incidentBannerText: isRevoked
-          ? 'Incident #${row['case_ref']}: ${row['revocation_reason'] ?? 'Compliance violation'}'
-          : null,
-      incidentLinkText: isRevoked ? 'View Revocation Notice' : null,
-      competenciesLabel: isRevoked ? 'Competencies (Credentials Voided)' : 'Competencies Verified',
-      competencies: competencies,
-      linkedInEnabled: !isRevoked,
-      linkedInButtonText: isRevoked ? 'Add to LinkedIn (Disabled)' : 'Add to LinkedIn',
-      footerLinkText: isRevoked ? 'View Revocation Audit Ledger' : 'View Verification Ledger',
+      incidentBannerText: isRevoked ? 'This badge has been revoked.' : null,
       issuerFullName: cert['issuing_body'] as String,
-      narrative: cert['narrative'] as String? ?? '',
-      accreditingBodies: List<String>.from(cert['accrediting_bodies'] as List? ?? []),
-      metrics: Map<String, dynamic>.from(cert['metrics'] as Map? ?? {}),
-      cohortLabel: row['cohort_label'] as String?,
-      issuedAt: row['issued_at'] != null ? DateTime.parse(row['issued_at'] as String) : null,
-      expiresAt: row['expires_at'] != null ? DateTime.parse(row['expires_at'] as String) : null,
-      revokedAt: row['revoked_at'] != null ? DateTime.parse(row['revoked_at'] as String) : null,
-      caseRef: row['case_ref'] as String?,
-      inspectingOfficer: row['inspecting_officer'] as String?,
     );
   }
 

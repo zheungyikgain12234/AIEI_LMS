@@ -7,24 +7,15 @@ import 'package:stitch_aiei_lms/domain/models/earned_credential.dart';
 
 class EarnedCredentialCard extends StatelessWidget {
   final EarnedCredential credential;
-  final VoidCallback? onAddToLinkedIn;
-  final VoidCallback? onDownloadPdf;
-  final VoidCallback? onViewLedger;
-  final VoidCallback? onViewIncidentNotice;
 
   const EarnedCredentialCard({
     super.key,
     required this.credential,
-    this.onAddToLinkedIn,
-    this.onDownloadPdf,
-    this.onViewLedger,
-    this.onViewIncidentNotice,
   });
 
   @override
   Widget build(BuildContext context) {
     final c = credential;
-    final accent = c.isRevoked ? AppColors.error : AppColors.secondary;
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -50,17 +41,6 @@ class EarnedCredentialCard extends StatelessWidget {
                   const SizedBox(height: 16),
                   _buildIncidentBanner(c),
                 ],
-                const SizedBox(height: 16),
-                _buildCompetencies(c),
-                const SizedBox(height: 24),
-                Divider(
-                  color: c.isRevoked
-                      ? Colors.transparent
-                      : AppColors.outlineVariant.withValues(alpha: 0.3),
-                  height: 1,
-                ),
-                const SizedBox(height: 16),
-                _buildFooter(c, accent),
               ],
             ),
           ),
@@ -93,59 +73,42 @@ class EarnedCredentialCard extends StatelessWidget {
   }
 
   Widget _buildTopTagBar(EarnedCredential c) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: c.isRevoked
-                ? AppColors.surfaceContainerHigh
-                : AppColors.primaryFixed,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            c.categoryTag.toUpperCase(),
-            style: AppTypography.labelSm(color: AppColors.primary),
-          ),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: c.isRevoked
+              ? AppColors.errorContainer
+              : AppColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(999),
+          border: c.isRevoked
+              ? Border.all(color: AppColors.error.withValues(alpha: 0.4))
+              : null,
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: c.isRevoked
-                ? AppColors.errorContainer
-                : AppColors.surfaceContainer,
-            borderRadius: BorderRadius.circular(999),
-            border: c.isRevoked
-                ? Border.all(color: AppColors.error.withValues(alpha: 0.4))
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                c.statusPillIcon,
-                size: 16,
-                color: c.isRevoked ? AppColors.error : AppColors.secondary,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              c.statusPillIcon,
+              size: 16,
+              color: c.isRevoked ? AppColors.error : AppColors.secondary,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                c.statusPillText,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.labelSm(
+                  color: c.isRevoked
+                      ? AppColors.onErrorContainer
+                      : AppColors.onSurface,
+                ).copyWith(fontWeight: c.isRevoked ? FontWeight.w700 : FontWeight.w600),
               ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  c.statusPillText,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.labelSm(
-                    color: c.isRevoked
-                        ? AppColors.onErrorContainer
-                        : AppColors.onSurface,
-                  ).copyWith(fontWeight: c.isRevoked ? FontWeight.w700 : FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -320,21 +283,6 @@ class EarnedCredentialCard extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            const Icon(Icons.fingerprint, size: 16, color: AppColors.outline),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                'Hash: ${c.hash}',
-                style: AppTypography.labelSm(color: AppColors.outline)
-                    .copyWith(fontFamily: 'monospace'),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -347,184 +295,21 @@ class EarnedCredentialCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        alignment: WrapAlignment.spaceBetween,
-        spacing: 8,
-        runSpacing: 8,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.report, size: 20, color: AppColors.error),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  c.incidentBannerText!,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                  style: AppTypography.bodySm(color: AppColors.onSurface)
-                      .copyWith(fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-          GestureDetector(
-            onTap: onViewIncidentNotice,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      c.incidentLinkText ?? '',
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.labelMd(color: AppColors.error)
-                          .copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward, size: 16, color: AppColors.error),
-                ],
-              ),
+          const Icon(Icons.report, size: 20, color: AppColors.error),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              c.incidentBannerText!,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: AppTypography.bodySm(color: AppColors.onSurface)
+                  .copyWith(fontWeight: FontWeight.w500),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCompetencies(EarnedCredential c) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          c.competenciesLabel.toUpperCase(),
-          style: AppTypography.labelSm(color: AppColors.onSurfaceVariant),
-        ),
-        const SizedBox(height: 6),
-        Opacity(
-          opacity: c.isRevoked ? 0.6 : 1,
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: c.competencies.map((label) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  label,
-                  style: AppTypography.labelSm(color: AppColors.onSurface).copyWith(
-                    decoration: c.isRevoked ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFooter(EarnedCredential c, Color accent) {
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      alignment: WrapAlignment.spaceBetween,
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _buildLinkedInButton(c),
-            _buildPdfButton(),
-          ],
-        ),
-        GestureDetector(
-          onTap: onViewLedger,
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    c.footerLinkText,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.labelMd(color: accent),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.arrow_forward, size: 16, color: accent),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLinkedInButton(EarnedCredential c) {
-    if (!c.linkedInEnabled) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainer,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.block, size: 18, color: AppColors.outline),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                c.linkedInButtonText,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.labelMd(color: AppColors.outline),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return TextButton.icon(
-      onPressed: onAddToLinkedIn,
-      style: TextButton.styleFrom(
-        backgroundColor: AppColors.surfaceContainer,
-        foregroundColor: AppColors.onSurface,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      icon: const Icon(Icons.post_add, size: 18, color: AppColors.secondary),
-      label: Text(c.linkedInButtonText, style: AppTypography.labelMd()),
-    );
-  }
-
-  Widget _buildPdfButton() {
-    return GestureDetector(
-      onTap: onDownloadPdf,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(
-            Icons.picture_as_pdf,
-            size: 18,
-            color: AppColors.onSurfaceVariant,
-          ),
-        ),
       ),
     );
   }

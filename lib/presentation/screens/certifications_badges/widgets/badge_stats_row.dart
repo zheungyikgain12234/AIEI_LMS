@@ -12,48 +12,13 @@ class BadgeStatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = stats;
 
-    final totalCard = _StatCard(
+    return _StatCard(
       icon: Icons.military_tech,
       label: 'Total Badges Earned',
       value: '${s?.totalBadgesEarned ?? 0}',
       tag: s?.totalBadgesTag ?? '',
       tagColor: AppColors.tertiaryContainer,
       subtitle: s?.totalBadgesSubtitle ?? '',
-    );
-
-    final progressCard = _StatCard(
-      icon: Icons.trending_up,
-      label: 'In Progress',
-      value: '${s?.inProgressCount ?? 0}',
-      tag: s?.inProgressTag ?? '',
-      tagColor: AppColors.secondary,
-      subtitle: s?.inProgressSubtitle ?? '',
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 640) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              totalCard,
-              const SizedBox(height: 16),
-              progressCard,
-            ],
-          );
-        }
-
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: totalCard),
-              const SizedBox(width: 16),
-              Expanded(child: progressCard),
-            ],
-          ),
-        );
-      },
     );
   }
 }
@@ -110,8 +75,10 @@ class _StatCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(subtitle, style: AppTypography.bodySm()),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: AppTypography.bodySm()),
+                ],
               ],
             ),
           ),

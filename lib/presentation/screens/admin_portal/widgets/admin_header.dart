@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stitch_aiei_lms/core/session/current_user_profile.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
@@ -12,6 +13,7 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(adminProfileProvider).value;
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -57,8 +59,8 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('Marcus Vance', style: AdminTypography.titleSm(color: AdminColors.onSurface)),
-                      Text('Chief Academic Administrator', style: AdminTypography.labelSm()),
+                      Text(profile?.name ?? '', style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+                      Text(profile?.subtitle ?? '', style: AdminTypography.labelSm()),
                     ],
                   ),
                   const SizedBox(width: 10),

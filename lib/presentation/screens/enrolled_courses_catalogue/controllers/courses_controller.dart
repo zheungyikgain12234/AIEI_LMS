@@ -105,12 +105,16 @@ class CoursesNotifier extends Notifier<CoursesState> {
     state = state.copyWith(selectedCohort: cohort);
   }
 
-  /// Enrolls the student into [courseId] via any available class. Returns
-  /// false (nothing changed) if the course has no class yet; on success,
-  /// reloads so the course moves out of "Compulsory for You" into the
-  /// enrolled list.
+  /// Enrolls the student into [courseId] via a class belonging to the
+  /// currently selected cohort. Returns false (nothing changed) if the course
+  /// has no such class yet; on success, reloads so the course moves out of
+  /// "Compulsory for You" into the enrolled list.
   Future<bool> enrollInCompulsoryCourse(String courseId) async {
-    final enrolled = await _repository.enrollInCompulsoryCourse(courseId);
+    final cohortId = [
+      for (final c in state.cohorts)
+        if (c.name == state.selectedCohort && c.year == state.selectedYear) c.id,
+    ].firstOrNull;
+    final enrolled = await _repository.enrollInCompulsoryCourse(courseId, cohortId: cohortId);
     if (enrolled) await loadInitialData();
     return enrolled;
   }

@@ -185,7 +185,7 @@ class _EnrolledCoursesCatalogueScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          enrolled ? 'Enrolled in ${course.title}.' : 'No class available as of now, please try again later.',
+          enrolled ? 'Enrolled in ${course.title}.' : 'No class available for the selected cohort as of now, please try again later.',
         ),
       ),
     );

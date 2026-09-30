@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stitch_aiei_lms/core/session/current_user_profile.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
@@ -12,6 +13,7 @@ class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(lecturerProfileProvider).value;
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -71,8 +73,9 @@ class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Dr Emmett Brown', style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                      Text('Lead Data Architect • Faculty Instructor', style: FacultyTypography.labelXs()),
+                      Text(profile?.name ?? '', style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                      Text(profile?.subtitle ?? '', style: FacultyTypography.labelXs()),
+                      if (profile?.code != null) Text(profile!.code!, style: FacultyTypography.labelXs()),
                     ],
                   ),
                 ],

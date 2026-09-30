@@ -389,14 +389,10 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
-  Future<bool> enrollInCompulsoryCourse(String courseId) async {
-    final sectionRow = await _client
-        .from('course_sections')
-        .select('id')
-        .eq('course_id', courseId)
-        .order('section_code')
-        .limit(1)
-        .maybeSingle();
+  Future<bool> enrollInCompulsoryCourse(String courseId, {String? cohortId}) async {
+    var query = _client.from('course_sections').select('id').eq('course_id', courseId);
+    if (cohortId != null) query = query.eq('cohort_id', cohortId);
+    final sectionRow = await query.order('section_code').limit(1).maybeSingle();
     final sectionId = sectionRow?['id'] as String?;
     if (sectionId == null) return false;
 

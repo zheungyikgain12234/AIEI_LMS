@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_rep
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // ManageClassDetailScreen — "Manage" detail/edit page for a single class
@@ -540,7 +541,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
+        SearchableDropdownFormField<String>(
           initialValue: value,
           isExpanded: true,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -570,7 +571,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
+        SearchableDropdownFormField<String>(
           initialValue: value,
           isExpanded: true,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),

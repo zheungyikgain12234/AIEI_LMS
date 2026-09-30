@@ -11,6 +11,7 @@ import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // TrackCourseMappingScreen — "which courses belong to a given program
@@ -163,7 +164,7 @@ class _TrackCourseMappingScreenState extends State<TrackCourseMappingScreen> {
           Text('Track', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
           const SizedBox(width: 12),
           Expanded(
-            child: DropdownButtonFormField<String>(
+            child: SearchableDropdownFormField<String>(
               initialValue: _selectedTrackId,
               isExpanded: true,
               style: AdminTypography.bodyMd(color: AdminColors.onSurface),

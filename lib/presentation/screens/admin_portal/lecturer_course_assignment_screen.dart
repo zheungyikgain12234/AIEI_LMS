@@ -14,6 +14,7 @@ import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show LecturerClassSlot;
 import 'widgets/admin_field_label.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // LecturerCourseAssignmentScreen — "Manage Assigned Courses" for a single
@@ -497,7 +498,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   children: [
                     const AdminFieldLabel('Year'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<int>(
+                    SearchableDropdownFormField<int>(
                       initialValue: years.contains(_selectedYear) ? _selectedYear : null,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -524,7 +525,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   children: [
                     const AdminFieldLabel('Cohort'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
+                    SearchableDropdownFormField<String>(
                       initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -977,7 +978,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   children: [
                     const AdminFieldLabel('Day'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
+                    SearchableDropdownFormField<String>(
                       initialValue: _dayOfWeek,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -1079,7 +1080,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   children: [
                     const AdminFieldLabel('Delivery Mode'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
+                    SearchableDropdownFormField<String>(
                       initialValue: _deliveryMode,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),

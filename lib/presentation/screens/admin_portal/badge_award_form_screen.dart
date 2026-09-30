@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // BadgeAwardFormScreen — shared "Add Badge Award" / "Edit Badge Award" form
@@ -320,7 +321,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
+        SearchableDropdownFormField<String>(
           initialValue: value,
           isExpanded: true,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),

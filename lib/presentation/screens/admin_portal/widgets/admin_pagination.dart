@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'searchable_dropdown.dart';
 
 /// Page-size choices offered by every paginated admin table.
 const List<int> adminPageSizeOptions = [10, 20, 50];
@@ -62,7 +63,7 @@ class AdminPagination extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
+        child: SearchableDropdownButton<int>(
           value: pageSize,
           isDense: true,
           style: AdminTypography.labelSm(color: AdminColors.onSurface),

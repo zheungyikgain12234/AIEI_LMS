@@ -9,6 +9,7 @@ import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // LecturerAllocationScreen – Stitch "Lecturer Course Allocation" faithful
@@ -817,7 +818,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
         border: Border.all(color: AdminColors.outlineVariant),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: SearchableDropdownButton<String>(
           isExpanded: true,
           value: options.first,
           icon: const Icon(Icons.expand_more, color: AdminColors.onSurfaceVariant),
@@ -1593,7 +1594,7 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: SearchableDropdownButton<String>(
               isExpanded: true,
               value: _lecturerId,
               hint: const Text('No faculty with spare capacity'),
@@ -1625,7 +1626,7 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: SearchableDropdownButton<String>(
               isExpanded: true,
               value: _sectionId,
               hint: const Text('No unassigned sections'),
@@ -1657,7 +1658,7 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: SearchableDropdownButton<String>(
               isExpanded: true,
               value: value,
               items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: AdminTypography.bodySm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis))).toList(),

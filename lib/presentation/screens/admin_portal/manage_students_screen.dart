@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
+import 'package:stitch_aiei_lms/core/utils/file_download.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
@@ -25,6 +28,7 @@ import 'widgets/admin_mobile_selection_bar.dart';
 import 'widgets/admin_pagination.dart';
 import 'student_form_screen.dart';
 import 'student_enrolled_courses_screen.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // ManageStudentsScreen – Stitch "Manage Students" faithful Flutter
@@ -299,14 +303,40 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final header = _csvColumns.join(',');
     const staffExample = 'Jane Doe,EMP-90001,jane.doe@enterprise.com,Staff,Operations,Product Analyst,,Data Analyst,2025-01-15';
     const publicExample = 'John Smith,EMP-90002,john.smith@enterprise.com,Public,,Logistics Analyst,AI Engineering Track,,2025-01-15';
-    final csv = '$header\n$staffExample\n$publicExample\n';
-    final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save student import template',
-      fileName: 'student_import_template.csv',
-      bytes: Uint8List.fromList(utf8.encode(csv)),
-    );
-    if (!mounted || path == null) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template saved.')));
+    const notes = [
+      '# Lines starting with # are instructions and are ignored on import. You may delete them.',
+      '# Required: name, studentCode, email, studentType, registrationDate.',
+      '# registrationDate format: YYYY-MM-DD (e.g. 2025-01-15).',
+      '# studentType: Staff or Public. department and role apply to Staff only; programTrack applies to Public only.',
+      '# Example rows below - replace them with your own students.',
+    ];
+    final csv = '${notes.join('\n')}\n$header\n$staffExample\n$publicExample\n';
+    final bytes = Uint8List.fromList(utf8.encode(csv));
+    try {
+      if (supportsBrowserDownload) {
+        downloadBytes('student_import_template.csv', bytes);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template downloaded.')));
+        return;
+      }
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save student import template',
+        fileName: 'student_import_template.csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        bytes: bytes,
+      );
+      if (path == null) return;
+      // On desktop, file_picker only returns the chosen path; it doesn't write the bytes.
+      if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+        await File(path.toLowerCase().endsWith('.csv') ? path : '$path.csv').writeAsBytes(bytes);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template saved.')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save template: $e')));
+    }
   }
 
   List<List<String>> _parseCsv(String content) {
@@ -355,7 +385,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     final bytes = result.files.single.bytes;
     if (bytes == null) return;
 
-    final rows = _parseCsv(utf8.decode(bytes));
+    final rows = _parseCsv(utf8.decode(bytes)).where((r) => !r.first.trimLeft().startsWith('#')).toList();
     if (rows.length < 2) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV has no data rows.')));
@@ -861,7 +891,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: flagged ? AdminColors.errorContainer.withValues(alpha: 0.12) : null,
+        color: null,
         border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
       ),
       child: Row(
@@ -889,7 +919,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                   Row(
                     children: [
                       Flexible(
-                        child: Text(s.name, style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+                        child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
                       ),
                       if (courseMismatch) ...[
                         const SizedBox(width: 4),
@@ -1702,7 +1732,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
             if (widget.sections.isEmpty)
               Text('No classes exist yet. Create one from Manage Assigned Courses first.', style: AdminTypography.bodySm(color: AdminColors.error))
             else ...[
-              DropdownButtonFormField<String>(
+              SearchableDropdownFormField<String>(
                 initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
                 isExpanded: true,
                 decoration: InputDecoration(
@@ -1720,7 +1750,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                 }),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              SearchableDropdownFormField<String>(
                 initialValue: profileFilters.any((f) => f.key == _selectedProfileFilterKey) ? _selectedProfileFilterKey : null,
                 isExpanded: true,
                 decoration: InputDecoration(
@@ -1738,7 +1768,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                 }),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              SearchableDropdownFormField<String>(
                 initialValue: sections.any((s) => s.id == _selectedSectionId) ? _selectedSectionId : null,
                 isExpanded: true,
                 decoration: InputDecoration(

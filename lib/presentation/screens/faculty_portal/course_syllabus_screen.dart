@@ -129,10 +129,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _addModule() async {
     final result = await showDialog<(String, String)>(
       context: context,
-      builder: (_) => const _NameDescriptionDialog(dialogTitle: 'Add Module', nameLabel: 'Module name'),
+      builder: (_) => _NameDescriptionDialog(dialogTitle: 'Add Module', nameLabel: 'Module name', prefix: _numberedPrefix('Module', _modules.length + 1)),
     );
     if (result == null) return;
-    await _repository.createModule(sectionId: widget.sectionId, name: result.$1, description: result.$2);
+    await _repository.createModule(sectionId: widget.sectionId, name: _bareName(result.$1), description: result.$2);
     await _load();
   }
 
@@ -142,19 +142,20 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       builder: (_) => _NameDescriptionDialog(
         dialogTitle: 'Edit Module',
         nameLabel: 'Module name',
-        existingName: m.name,
+        existingName: _bareName(m.name),
+        prefix: _numberedPrefix('Module', _modules.indexOf(m) + 1),
         existingDescription: m.description,
       ),
     );
     if (result == null) return;
-    await _repository.updateModule(m.id, name: result.$1, description: result.$2, isPublished: m.isPublished);
+    await _repository.updateModule(m.id, name: _bareName(result.$1), description: result.$2, isPublished: m.isPublished);
     await _load();
   }
 
   Future<void> _deleteModule(CourseModule m) async {
     final confirmed = await _confirmDelete(
       title: 'Delete module?',
-      message: 'This deletes "${m.name}" and every session and content block inside it. This cannot be undone.',
+      message: 'This deletes "${_bareName(m.name)}" and every session and content block inside it. This cannot be undone.',
     );
     if (confirmed != true) return;
     await _repository.deleteModule(m.id);
@@ -197,10 +198,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _addSession(String moduleId) async {
     final result = await showDialog<(String, String)>(
       context: context,
-      builder: (_) => const _NameDescriptionDialog(dialogTitle: 'Add Session', nameLabel: 'Session name'),
+      builder: (_) => _NameDescriptionDialog(dialogTitle: 'Add Session', nameLabel: 'Session name', prefix: _numberedPrefix('Lesson', (_sessionsByModule[moduleId]?.length ?? 0) + 1)),
     );
     if (result == null) return;
-    await _repository.createSession(moduleId: moduleId, name: result.$1, description: result.$2);
+    await _repository.createSession(moduleId: moduleId, name: _bareName(result.$1), description: result.$2);
     await _refreshSessionsFor(moduleId);
   }
 
@@ -210,19 +211,20 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       builder: (_) => _NameDescriptionDialog(
         dialogTitle: 'Edit Session',
         nameLabel: 'Session name',
-        existingName: s.name,
+        existingName: _bareName(s.name),
+        prefix: _numberedPrefix('Lesson', (_sessionsByModule[moduleId]?.indexOf(s) ?? 0) + 1),
         existingDescription: s.description,
       ),
     );
     if (result == null) return;
-    await _repository.updateSession(s.id, name: result.$1, description: result.$2, isPublished: s.isPublished);
+    await _repository.updateSession(s.id, name: _bareName(result.$1), description: result.$2, isPublished: s.isPublished);
     await _refreshSessionsFor(moduleId);
   }
 
   Future<void> _deleteSession(String moduleId, CourseSession s) async {
     final confirmed = await _confirmDelete(
       title: 'Delete session?',
-      message: 'This deletes "${s.name}" and every content block inside it. This cannot be undone.',
+      message: 'This deletes "${_bareName(s.name)}" and every content block inside it. This cannot be undone.',
     );
     if (confirmed != true) return;
     await _repository.deleteSession(s.id);
@@ -382,7 +384,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: FacultyColors.background,
-      appBar: const FacultyMobileTopBar(title: 'Syllabus'),
+      appBar: const FacultyMobileTopBar(title: 'Modules and Sessions'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -444,7 +446,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Syllabus', style: FacultyTypography.headlineLg()),
+              Text('Modules and Sessions', style: FacultyTypography.headlineLg()),
               const SizedBox(height: 2),
               Text(widget.courseTitle, style: FacultyTypography.bodyLg(color: FacultyColors.onSurfaceVariant)),
               const SizedBox(height: 4),
@@ -581,7 +583,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(m.name, style: FacultyTypography.titleSm()),
+                        Text('${_numberedPrefix('Module', index + 1)}${_bareName(m.name)}', style: FacultyTypography.titleSm()),
                         if (m.description.isNotEmpty)
                           Text(m.description, style: FacultyTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis),
                       ],
@@ -684,7 +686,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.name, style: FacultyTypography.bodyLg(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                        Text('${_numberedPrefix('Lesson', index + 1)}${_bareName(s.name)}', style: FacultyTypography.bodyLg(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
                         if (s.description.isNotEmpty)
                           Text(s.description, style: FacultyTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ],
@@ -961,11 +963,15 @@ class _NameDescriptionDialog extends StatefulWidget {
   final String? existingName;
   final String? existingDescription;
 
+  /// Read-only "Module 3 : " label shown in front of the name field.
+  final String? prefix;
+
   const _NameDescriptionDialog({
     required this.dialogTitle,
     required this.nameLabel,
     this.existingName,
     this.existingDescription,
+    this.prefix,
   });
 
   @override
@@ -996,7 +1002,7 @@ class _NameDescriptionDialogState extends State<_NameDescriptionDialog> {
             TextField(
               controller: _nameController,
               autofocus: true,
-              decoration: InputDecoration(label: requiredLabel(widget.nameLabel)),
+              decoration: InputDecoration(label: requiredLabel(widget.nameLabel), prefixText: widget.prefix),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
@@ -1851,3 +1857,13 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
     );
   }
 }
+
+// Module / session numbering is derived from position, never stored in the
+// name — so adding, deleting or dragging an item renumbers the rest for free.
+String _numberedPrefix(String kind, int n) => '$kind $n : ';
+
+final _labelPrefixPattern = RegExp(r'^\s*(Module|Lesson)\s*\d*\s*:\s*', caseSensitive: false);
+
+/// [name] without any leading "Module n :" / "Lesson n :" label (typed by the
+/// user, or left over from older data), so it isn't shown or saved twice.
+String _bareName(String name) => name.replaceFirst(_labelPrefixPattern, '').trim();

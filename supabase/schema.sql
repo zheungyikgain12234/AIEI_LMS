@@ -14,14 +14,14 @@ drop table if exists
   app_settings,
   enrollment_candidates, course_announcements, course_sections,
   badge_awards, course_badges, student_certifications, student_materials, student_courses,
-  specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
+  course_programmes, specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags,
   template_content_blocks, template_sessions, template_modules, syllabus_templates,
   content_block_submissions, assignment_criteria,
   exam_question_options, exam_questions, exam_sections,
   content_blocks, sessions, module_materials, course_modules, courses,
   admins, students, lecturers,
-  departments, program_tracks, cohorts,
+  departments, programmes, program_tracks, cohorts,
   lecturer_departments, specializations, roles
 cascade;
 
@@ -58,6 +58,17 @@ create table departments (
   created_at timestamptz not null default now()
 );
 create unique index departments_name_ci_idx on departments (lower(name));
+
+-- Academic programmes (e.g. a diploma or degree a course may belong to).
+-- `code` is the Programme ID shown in the admin portal.
+create table programmes (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  name text not null unique,
+  description text not null default '',
+  created_at timestamptz not null default now()
+);
+create unique index programmes_name_ci_idx on programmes (lower(name));
 
 create table program_tracks (
   id uuid primary key default gen_random_uuid(),
@@ -430,6 +441,14 @@ create table department_courses (
   primary key (department_id, course_id)
 );
 
+-- Which programmes a course belongs to — drives the Programme ↔ Course
+-- Mapping screen. Optional: a course may map to zero, one or many programmes.
+create table course_programmes (
+  programme_id uuid not null references programmes(id) on delete cascade,
+  course_id uuid not null references courses(id) on delete cascade,
+  primary key (programme_id, course_id)
+);
+
 -- Which courses are relevant to which program track — drives the Track ↔
 -- Course Mapping screen.
 create table track_courses (
@@ -579,6 +598,8 @@ create table enrollment_candidates (
 -- ── RLS (demo-only, see warning above) ──────────────────────────────────
 
 alter table departments enable row level security;
+alter table programmes enable row level security;
+alter table course_programmes enable row level security;
 alter table program_tracks enable row level security;
 alter table cohorts enable row level security;
 alter table lecturer_departments enable row level security;
@@ -625,7 +646,7 @@ declare
   t text;
 begin
   foreach t in array array[
-    'departments', 'program_tracks', 'cohorts',
+    'departments', 'programmes', 'course_programmes', 'program_tracks', 'cohorts',
     'lecturer_departments', 'specializations', 'roles',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'sessions', 'content_blocks',

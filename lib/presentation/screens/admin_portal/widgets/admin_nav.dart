@@ -13,6 +13,8 @@ import '../track_course_mapping_screen.dart';
 import '../specialization_course_mapping_screen.dart';
 import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
+import '../manage_programmes_screen.dart';
+import '../programme_course_mapping_screen.dart';
 import '../manage_program_tracks_screen.dart';
 import '../manage_cohorts_screen.dart';
 import '../manage_lecturer_departments_screen.dart';
@@ -38,7 +40,9 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.trackCourseMapping => const TrackCourseMappingScreen(),
     AdminNavDestination.specializationCourseMapping => const SpecializationCourseMappingScreen(),
     AdminNavDestination.courseEnrollment => const CourseEnrollmentScreen(),
+    AdminNavDestination.programmeCourseMapping => const ProgrammeCourseMappingScreen(),
     AdminNavDestination.manageDepartments => const ManageDepartmentsScreen(),
+    AdminNavDestination.manageProgrammes => const ManageProgrammesScreen(),
     AdminNavDestination.manageProgramTracks => const ManageProgramTracksScreen(),
     AdminNavDestination.manageCohorts => const ManageCohortsScreen(),
     AdminNavDestination.manageLecturerDepartments => const ManageLecturerDepartmentsScreen(),

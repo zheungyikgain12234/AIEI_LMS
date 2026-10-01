@@ -17,8 +17,10 @@ class CourseFiltersBar extends StatelessWidget {
   final List<String> cohortNames;
   final String? selectedCohort;
   final ValueChanged<String> onCohortChanged;
+  final bool showYearCohort;
 
   const CourseFiltersBar({
+    this.showYearCohort = true,
     super.key,
     required this.onSearchChanged,
     required this.selectedSort,
@@ -39,8 +41,7 @@ class CourseFiltersBar extends StatelessWidget {
       spacing: 12,
       runSpacing: 8,
       children: [
-        _yearDropdown(),
-        _cohortDropdown(),
+        if (showYearCohort) ...[_yearDropdown(), _cohortDropdown()],
         // Search Input
         ConstrainedBox(
           constraints: const BoxConstraints(minWidth: 200, maxWidth: 260),

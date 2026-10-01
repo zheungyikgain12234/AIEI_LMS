@@ -8,6 +8,8 @@ import '../department_course_mapping_screen.dart';
 import '../track_course_mapping_screen.dart';
 import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
+import '../manage_programmes_screen.dart';
+import '../programme_course_mapping_screen.dart';
 import '../manage_program_tracks_screen.dart';
 import '../manage_cohorts_screen.dart';
 import '../manage_lecturer_departments_screen.dart';
@@ -38,6 +40,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
             _tile(context, sheetContext, Icons.military_tech_outlined, 'Badge Award Management', (ctx) => const ManageBadgesScreen()),
             _tile(context, sheetContext, Icons.swap_horiz_outlined, 'Role ↔ Course Mapping', (ctx) => const RoleCourseMappingScreen()),
             _tile(context, sheetContext, Icons.account_tree_outlined, 'Department ↔ Course Mapping', (ctx) => const DepartmentCourseMappingScreen()),
+            _tile(context, sheetContext, Icons.school_outlined, 'Programme ↔ Course Mapping', (ctx) => const ProgrammeCourseMappingScreen()),
             _tile(context, sheetContext, Icons.alt_route, 'Track ↔ Course Mapping', (ctx) => const TrackCourseMappingScreen()),
             _tile(context, sheetContext, Icons.school_outlined, 'Course Enrollment', (ctx) => const CourseEnrollmentScreen()),
             ExpansionTile(
@@ -46,6 +49,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
               childrenPadding: const EdgeInsets.only(left: 12),
               children: [
                 _tile(context, sheetContext, Icons.apartment_outlined, 'Manage Departments', (ctx) => const ManageDepartmentsScreen()),
+                _tile(context, sheetContext, Icons.workspace_premium_outlined, 'Manage Programmes', (ctx) => const ManageProgrammesScreen()),
                 _tile(context, sheetContext, Icons.alt_route_outlined, 'Manage Program Tracks', (ctx) => const ManageProgramTracksScreen()),
                 _tile(context, sheetContext, Icons.hub_outlined, 'Manage Cohorts', (ctx) => const ManageCohortsScreen()),
                 _tile(context, sheetContext, Icons.corporate_fare_outlined, 'Manage Lecturer Depts', (ctx) => const ManageLecturerDepartmentsScreen()),

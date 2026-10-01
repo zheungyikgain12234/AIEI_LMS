@@ -14,7 +14,9 @@ enum AdminNavDestination {
   trackCourseMapping,
   specializationCourseMapping,
   courseEnrollment,
+  programmeCourseMapping,
   manageDepartments,
+  manageProgrammes,
   manageProgramTracks,
   manageCohorts,
   manageLecturerDepartments,
@@ -136,6 +138,16 @@ class AdminSidebar extends StatelessWidget {
                           ),
                         ),
                         _NavItem(
+                          icon: Icons.school_outlined,
+                          label: 'Programme ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.programmeCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.programmeCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
                           icon: Icons.alt_route,
                           label: 'Track ↔ Course Mapping',
                           isSelected:
@@ -179,6 +191,15 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageDepartments,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageDepartments,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.workspace_premium_outlined,
+                          label: 'Manage Programmes',
+                          isSelected:
+                              selected == AdminNavDestination.manageProgrammes,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageProgrammes,
                           ),
                         ),
                         _NavItem(

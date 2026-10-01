@@ -14,6 +14,7 @@ import 'widgets/portal_sidebar.dart';
 import 'widgets/telemetry_banner.dart';
 import 'widgets/course_filters_bar.dart';
 import 'widgets/tags_filter_row.dart';
+import 'widgets/enroll_target_picker.dart';
 import 'widgets/course_grid.dart';
 import 'widgets/mobile_course_card.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
@@ -120,12 +121,10 @@ class _EnrolledCoursesCatalogueScreenState
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Expanded(
-                                  child: TagsFilterRow(
-                                    tags: state.availableTags,
-                                    selectedTag: state.selectedTag,
-                                    onSelectTag: notifier.selectTag,
-                                  ),
+                                TagsFilterRow(
+                                  tags: state.availableTags,
+                                  selectedTag: state.selectedTag,
+                                  onSelectTag: notifier.selectTag,
                                 ),
                                 const SizedBox(width: 16),
                                 Flexible(
@@ -161,8 +160,36 @@ class _EnrolledCoursesCatalogueScreenState
                                 style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant),
                               ),
                               const SizedBox(height: 16),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  TagsFilterRow(
+                                    tags: state.availableCompulsoryTags,
+                                    selectedTag: state.selectedCompulsoryTag,
+                                    onSelectTag: notifier.selectCompulsoryTag,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Flexible(
+                                    child: CourseFiltersBar(
+                                      showYearCohort: false,
+                                      onSearchChanged: notifier.setCompulsorySearchQuery,
+                                      selectedSort: state.compulsorySortOption,
+                                      onSortChanged: notifier.setCompulsorySortOption,
+                                      availableYears: const [],
+                                      selectedYear: null,
+                                      onYearChanged: (_) {},
+                                      cohortNames: const [],
+                                      selectedCohort: null,
+                                      onCohortChanged: (_) {},
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Align(alignment: Alignment.centerLeft, child: _enrollTargetPicker(state, notifier)),
+                              const SizedBox(height: 24),
                               CourseGrid(
-                                courses: state.compulsoryCourses,
+                                courses: state.filteredCompulsoryCourses,
                                 onCourseAction: (course) => _enrollInCompulsoryCourse(context, course),
                               ),
                             ],
@@ -230,21 +257,7 @@ class _EnrolledCoursesCatalogueScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      height: 40,
-                      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4)]),
-                      child: TextField(
-                        onChanged: notifier.setSearchQuery,
-                        style: AppTypography.bodyMd(color: AppColors.onSurface),
-                        decoration: InputDecoration(
-                          hintText: 'Search courses, lessons and certifications',
-                          hintStyle: AppTypography.bodyMd(color: AppColors.outline),
-                          prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.outline),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                      ),
-                    ),
+                    _mobileSearchBox(notifier.setSearchQuery),
                     const SizedBox(height: 16),
                     Text('My Enrolled Courses', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
                     const SizedBox(height: 8),
@@ -258,6 +271,7 @@ class _EnrolledCoursesCatalogueScreenState
                       tags: state.availableTags,
                       selectedTag: state.selectedTag,
                       onSelectTag: notifier.selectTag,
+                      expand: true,
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -300,7 +314,18 @@ class _EnrolledCoursesCatalogueScreenState
                         style: AppTypography.bodySm(color: AppColors.onSurfaceVariant),
                       ),
                       const SizedBox(height: 12),
-                      for (final course in state.compulsoryCourses) ...[
+                      _mobileSearchBox(notifier.setCompulsorySearchQuery),
+                      const SizedBox(height: 12),
+                      TagsFilterRow(
+                        tags: state.availableCompulsoryTags,
+                        selectedTag: state.selectedCompulsoryTag,
+                        onSelectTag: notifier.selectCompulsoryTag,
+                        expand: true,
+                      ),
+                      const SizedBox(height: 12),
+                      _enrollTargetPicker(state, notifier),
+                      const SizedBox(height: 12),
+                      for (final course in state.filteredCompulsoryCourses) ...[
                         MobileCourseCard(course: course, onAction: () => _enrollInCompulsoryCourse(context, course)),
                         const SizedBox(height: 16),
                       ],
@@ -309,6 +334,36 @@ class _EnrolledCoursesCatalogueScreenState
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _enrollTargetPicker(CoursesState state, CoursesNotifier notifier) {
+    final year = state.effectiveCompulsoryYear;
+    return EnrollTargetPicker(
+      years: state.availableCompulsoryYears,
+      selectedYear: year,
+      onYearChanged: notifier.selectCompulsoryYear,
+      cohortNames: year == null ? const [] : state.compulsoryCohortNamesForYear(year),
+      selectedCohort: state.effectiveCompulsoryCohort,
+      onCohortChanged: notifier.selectCompulsoryCohort,
+    );
+  }
+
+  Widget _mobileSearchBox(ValueChanged<String> onChanged) {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4)]),
+      child: TextField(
+        onChanged: onChanged,
+        style: AppTypography.bodyMd(color: AppColors.onSurface),
+        decoration: InputDecoration(
+          hintText: 'Search courses, lessons and certifications',
+          hintStyle: AppTypography.bodyMd(color: AppColors.outline),
+          prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.outline),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        ),
+      ),
     );
   }
 

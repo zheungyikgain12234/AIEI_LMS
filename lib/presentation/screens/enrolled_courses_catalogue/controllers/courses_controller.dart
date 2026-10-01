@@ -84,6 +84,39 @@ class CoursesNotifier extends Notifier<CoursesState> {
     }
   }
 
+  void selectCompulsoryTag(String? tag) {
+    if (tag == null || state.selectedCompulsoryTag == tag) {
+      state = state.copyWith(clearSelectedCompulsoryTag: true);
+    } else {
+      state = state.copyWith(selectedCompulsoryTag: tag);
+    }
+  }
+
+  void setCompulsorySearchQuery(String query) {
+    state = state.copyWith(compulsorySearchQuery: query);
+  }
+
+  void setCompulsorySortOption(CourseSortOption option) {
+    state = state.copyWith(compulsorySortOption: option);
+  }
+
+  void selectCompulsoryYear(int year) {
+    final names = state.compulsoryCohortNamesForYear(year);
+    state = state.copyWith(
+      selectedCompulsoryYear: year,
+      selectedCompulsoryCohort: names.isEmpty ? null : names.first,
+      clearSelectedCompulsoryCohort: names.isEmpty,
+    );
+  }
+
+  void selectCompulsoryCohort(String cohort) {
+    // Pin the year too, so the pair stays independent of the main selection.
+    state = state.copyWith(
+      selectedCompulsoryYear: state.effectiveCompulsoryYear,
+      selectedCompulsoryCohort: cohort,
+    );
+  }
+
   void setSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);
   }
@@ -106,13 +139,13 @@ class CoursesNotifier extends Notifier<CoursesState> {
   }
 
   /// Enrolls the student into [courseId] via a class belonging to the
-  /// currently selected cohort. Returns false (nothing changed) if the course
+  /// cohort chosen in the "Compulsory for You" filters. Returns false (nothing changed) if the course
   /// has no such class yet; on success, reloads so the course moves out of
   /// "Compulsory for You" into the enrolled list.
   Future<bool> enrollInCompulsoryCourse(String courseId) async {
     final cohortId = [
       for (final c in state.cohorts)
-        if (c.name == state.selectedCohort && c.year == state.selectedYear) c.id,
+        if (c.name == state.effectiveCompulsoryCohort && c.year == state.effectiveCompulsoryYear) c.id,
     ].firstOrNull;
     final enrolled = await _repository.enrollInCompulsoryCourse(courseId, cohortId: cohortId);
     if (enrolled) await loadInitialData();

@@ -45,6 +45,13 @@ class MasterDataScreen extends ConsumerStatefulWidget {
   /// about where this list is sourced from).
   final String? note;
 
+  /// Optional label overrides (e.g. Programme ID / Programme Name / Description)
+  /// and a table column for the remarks text.
+  final String? codeLabel;
+  final String? nameLabel;
+  final String? remarksLabel;
+  final bool showRemarksColumn;
+
   const MasterDataScreen({
     super.key,
     required this.title,
@@ -57,6 +64,10 @@ class MasterDataScreen extends ConsumerStatefulWidget {
     required this.delete,
     this.showYear = false,
     this.note,
+    this.codeLabel,
+    this.nameLabel,
+    this.remarksLabel,
+    this.showRemarksColumn = false,
   });
 
   @override
@@ -168,7 +179,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
                     ),
                     const SizedBox(height: 12),
                   ],
-                  AdminFieldLabel('${widget.itemLabel} Code'),
+                  AdminFieldLabel(widget.codeLabel ?? '${widget.itemLabel} Code'),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: codeController,
@@ -177,7 +188,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Code is required' : null,
                   ),
                   const SizedBox(height: 12),
-                  AdminFieldLabel(widget.itemLabel),
+                  AdminFieldLabel(widget.nameLabel ?? widget.itemLabel),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: nameController,
@@ -200,7 +211,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  const AdminFieldLabel('Remarks', required: false),
+                  AdminFieldLabel(widget.remarksLabel ?? 'Remarks', required: false),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: remarksController,
@@ -528,8 +539,9 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
       child: Row(
         children: [
           const SizedBox(width: 40),
-          Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
-          Expanded(flex: 3, child: _sortHeader(widget.itemLabel, _SortColumn.name)),
+          Expanded(flex: 2, child: _sortHeader(widget.codeLabel ?? 'Code', _SortColumn.code)),
+          Expanded(flex: 3, child: _sortHeader(widget.nameLabel ?? widget.itemLabel, _SortColumn.name)),
+          if (widget.showRemarksColumn) Expanded(flex: 4, child: Text(widget.remarksLabel ?? 'Remarks', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
           if (widget.showYear) SizedBox(width: 90, child: _sortHeader('Year', _SortColumn.year)),
           const SizedBox(width: 88),
         ],
@@ -570,6 +582,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
           ),
           Expanded(flex: 2, child: Text(row.code, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
           Expanded(flex: 3, child: Text(row.name, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
+          if (widget.showRemarksColumn) Expanded(flex: 4, child: Padding(padding: const EdgeInsets.only(right: 12), child: Text(row.remarks, style: AdminTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis))),
           if (widget.showYear) SizedBox(width: 90, child: Text('${row.year}', style: AdminTypography.bodySm())),
           SizedBox(
             width: 88,

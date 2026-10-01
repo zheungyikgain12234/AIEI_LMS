@@ -6,6 +6,7 @@ import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
@@ -33,6 +34,8 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _programmesRepository = SupabaseProgrammesRepositoryImpl(Supabase.instance.client);
+  Map<String, List<String>> _programmesByCourse = const {};
 
   bool _isLoading = true;
   List<_CourseRow> _rows = const [];
@@ -121,6 +124,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
     final lecturers = await _lecturersRepository.getLecturers();
     final cohorts = await _masterDataRepository.getCohorts();
+    final programmesByCourse = await _programmesRepository.getProgrammeNamesByCourse();
     final sectionIds = [for (final c in assignedCourses) c.sectionId];
 
     // Real per-course module/session counts, computed for every assigned
@@ -143,6 +147,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     setState(() {
       _assignedCourses = assignedCourses;
       _cohorts = cohorts;
+      _programmesByCourse = programmesByCourse;
       _moduleCountBySection = moduleCountBySection;
       _sessionCountBySection = sessionCountBySection;
       _avgProgressBySection = {for (final e in assessmentStats.entries) e.key: e.value.avgProgress};
@@ -248,6 +253,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     final pendingCount = (_pendingAssignmentsBySection[c.sectionId] ?? 0) + (_pendingQuizzesBySection[c.sectionId] ?? 0);
     return _CourseRow(
       courseId: c.courseId,
+      programmes: _programmesByCourse[c.courseId] ?? const [],
       sectionId: c.sectionId,
       initials: initials,
       accent: accent,
@@ -528,6 +534,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                       ]),
                     ],
                   ),
+                  if (c.programmes.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    _programmePills(c),
+                  ],
                   const SizedBox(height: 6),
                   Text(c.title, style: FacultyTypography.titleSm()),
                   const SizedBox(height: 2),
@@ -625,6 +635,26 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  /// One pill per programme the course is mapped to.
+  Widget _programmePills(_CourseRow c) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: [
+        for (final name in c.programmes)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.workspace_premium_outlined, size: 12, color: FacultyColors.secondary),
+              const SizedBox(width: 4),
+              Flexible(child: Text(name, style: FacultyTypography.labelXs(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+            ]),
+          ),
+      ],
     );
   }
 
@@ -959,6 +989,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
         children: [
           _mobileCourseMediaHeader(c),
           const SizedBox(height: 12),
+          if (c.programmes.isNotEmpty) ...[
+            _programmePills(c),
+            const SizedBox(height: 8),
+          ],
           Text(c.title, style: FacultyTypography.titleSm(), maxLines: 2, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
           Text(c.description, style: FacultyTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -1261,6 +1295,7 @@ class _Stat {
 
 class _CourseRow {
   final String courseId;
+  final List<String> programmes;
   final String sectionId;
   final String initials;
   final Color accent;
@@ -1279,6 +1314,7 @@ class _CourseRow {
 
   const _CourseRow({
     required this.courseId,
+    required this.programmes,
     required this.sectionId,
     required this.initials,
     required this.accent,

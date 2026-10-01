@@ -17,7 +17,7 @@ truncate table
   module_materials, course_modules, courses,
   certifications, tags,
   lecturers, students, admins,
-  departments, program_tracks, cohorts,
+  departments, programmes, course_programmes, program_tracks, cohorts,
   lecturer_departments, specializations, roles
 restart identity cascade;
 
@@ -937,6 +937,26 @@ insert into track_courses (track_id, course_id) values
   ((select id from program_tracks where name = 'Financial Analytics Track'), '44444444-4444-4444-4444-444444444418'),
   ((select id from program_tracks where name = 'Product & UX Track'), '44444444-4444-4444-4444-444444444419'),
   ((select id from program_tracks where name = 'Product & UX Track'), '44444444-4444-4444-4444-444444444420');
+
+-- ── Programmes + Programme → Course mapping (optional per course; a course
+-- may belong to several programmes, or none) ───────────────────────────────
+
+insert into programmes (code, name, description) values
+  ('TN01-PRG-DIT', 'Diploma in Information Technology', 'Core computing, cloud and data skills for IT practitioners.'),
+  ('TN01-PRG-DAI', 'Diploma in Applied AI', 'Hands-on machine learning and AI tooling for the workplace.'),
+  ('TN01-PRG-WSH', 'Workplace Safety & Health Certificate', 'Compliance and safety training for operational staff.');
+
+insert into course_programmes (programme_id, course_id) values
+  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444401'),
+  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444407'),
+  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444416'),
+  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444408'),
+  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444408'),
+  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444410'),
+  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444411'),
+  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444402'),
+  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444409'),
+  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444422');
 
 -- ── Tags for a few of the new courses ─────────────────────────────────
 

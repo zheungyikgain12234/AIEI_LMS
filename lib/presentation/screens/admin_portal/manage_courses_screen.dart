@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'widgets/admin_scaffold.dart';
@@ -26,7 +27,7 @@ class ManageCoursesScreen extends StatefulWidget {
   State<ManageCoursesScreen> createState() => _ManageCoursesScreenState();
 }
 
-enum _SortColumn { code, title, category, credits }
+enum _SortColumn { code, title, tags, credits }
 
 class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   final _repository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
@@ -40,12 +41,31 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   int _page = 1;
   int _pageSize = adminPageSizeOptions.first;
 
-  static const _categoryLabels = {
-    'techData': 'Technical & Data',
-    'compliance': 'Compliance',
-    'aiTools': 'AI & Tools',
-    'productivity': 'Productivity & Soft Skills',
-  };
+  final _tagsRepository = SupabaseAdminCourseTagsRepositoryImpl(Supabase.instance.client);
+  Map<String, String> _tagLabels = {};
+
+  List<String> _tagLabelsOf(AdminCourse c) {
+    final labels = [for (final id in c.tagIds) if (_tagLabels[id] != null) _tagLabels[id]!];
+    labels.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return labels;
+  }
+
+  Widget _tagPills(AdminCourse c) {
+    final labels = _tagLabelsOf(c);
+    if (labels.isEmpty) return Text('—', style: AdminTypography.labelSm());
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final label in labels)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
+            child: Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+          ),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -63,9 +83,11 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     final courses = await _repository.getCourses();
+    final tags = await _tagsRepository.getTags();
     if (!mounted) return;
     setState(() {
       _courses = courses;
+      _tagLabels = {for (final t in tags) t.id: t.label};
       _isLoading = false;
     });
   }
@@ -82,8 +104,8 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
           cmp = a.courseCode.toLowerCase().compareTo(b.courseCode.toLowerCase());
         case _SortColumn.title:
           cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
-        case _SortColumn.category:
-          cmp = (_categoryLabels[a.category] ?? a.category).toLowerCase().compareTo((_categoryLabels[b.category] ?? b.category).toLowerCase());
+        case _SortColumn.tags:
+          cmp = _tagLabelsOf(a).join(', ').toLowerCase().compareTo(_tagLabelsOf(b).join(', ').toLowerCase());
         case _SortColumn.credits:
           cmp = a.credits.compareTo(b.credits);
       }
@@ -323,14 +345,11 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
             spacing: 8,
             runSpacing: 6,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-                child: Text(_categoryLabels[c.category] ?? c.category, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
-              ),
               Text('${c.credits} cr', style: AdminTypography.labelSm()),
             ],
           ),
+          const SizedBox(height: 6),
+          _tagPills(c),
         ],
       ),
     );
@@ -468,7 +487,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
           const SizedBox(width: 40),
           Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
           Expanded(flex: 5, child: _sortHeader('Course', _SortColumn.title)),
-          Expanded(flex: 3, child: _sortHeader('Category', _SortColumn.category)),
+          Expanded(flex: 3, child: _sortHeader('Tags', _SortColumn.tags)),
           Expanded(flex: 2, child: _sortHeader('Credits', _SortColumn.credits)),
         ],
       ),
@@ -519,15 +538,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-                child: Text(
-                  _categoryLabels[c.category] ?? c.category,
-                  style: AdminTypography.labelSm(color: AdminColors.onSurface),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+              child: _tagPills(c),
             ),
           ),
           Expanded(

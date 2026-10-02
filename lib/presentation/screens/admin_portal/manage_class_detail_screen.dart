@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
+import 'widgets/admin_date_time_field.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
 
@@ -35,6 +36,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
   final _locationController = TextEditingController();
   final _capacityController = TextEditingController();
+  final _overrideCodeController = TextEditingController();
+  DateTime? _editStartAt;
+  DateTime? _editEndAt;
 
   static const _dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   static const _deliveryModeOptions = [('physical', 'Physical'), ('online', 'Online')];
@@ -72,6 +76,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   void dispose() {
     _locationController.dispose();
     _capacityController.dispose();
+    _overrideCodeController.dispose();
     super.dispose();
   }
 
@@ -101,6 +106,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         _endTime = _parseTime(section.endTime);
         _locationController.text = section.location ?? '';
         _capacityController.text = section.capacity.toString();
+        _editStartAt = section.editStartAt;
+        _editEndAt = section.editEndAt;
+        _overrideCodeController.text = section.editOverrideLecturerCode ?? '';
         _deliveryMode = section.deliveryMode;
         _selectedCohort = _cohorts.contains(section.cohort) ? section.cohort : null;
         _status = section.status;
@@ -141,6 +149,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       setState(() => _errorMessage = 'Capacity must be a positive number.');
       return;
     }
+    if (_editStartAt == null || _editEndAt == null || !_editEndAt!.isAfter(_editStartAt!)) {
+      setState(() => _errorMessage = 'Set a syllabus edit period — the end must be after the start.');
+      return;
+    }
     setState(() {
       _isSaving = true;
       _errorMessage = null;
@@ -158,6 +170,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         deliveryMode: _deliveryMode,
         cohort: _selectedCohort ?? _section!.cohort ?? '',
         status: _status,
+        editStartAt: _editStartAt!,
+        editEndAt: _editEndAt!,
+        editOverrideLecturerCode: _overrideCodeController.text,
       );
       if (!mounted) return;
       setState(() {
@@ -168,7 +183,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = friendlyErrorMessage(e);
+        _errorMessage = e is StateError ? e.message : friendlyErrorMessage(e);
         _isSaving = false;
       });
     }
@@ -208,6 +223,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           status: _section!.status,
           startDate: _section!.startDate,
           endDate: _section!.endDate,
+          editStartAt: _section!.editStartAt,
+          editEndAt: _section!.editEndAt,
+          editOverrideLecturerCode: _section!.editOverrideLecturerCode,
         );
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unenrolled ${s.name}.')));
@@ -326,6 +344,37 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           ),
           const SizedBox(height: 14),
           _textField(label: 'Location', controller: _locationController, hint: 'Innovation Hall 204'),
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          Text('Syllabus Edit Period *', style: AdminTypography.titleSm()),
+          const SizedBox(height: 2),
+          Text(
+            'The lecturer can add, edit and delete sessions and contents only between these two moments. Outside it their syllabus is read-only.',
+            style: AdminTypography.bodySm(),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: AdminDateTimeField(label: 'Edit Start', value: _editStartAt, onChanged: (v) => setState(() => _editStartAt = v))),
+              const SizedBox(width: 12),
+              Expanded(child: AdminDateTimeField(label: 'Edit End', value: _editEndAt, defaultHour: 23, onChanged: (v) => setState(() => _editEndAt = v))),
+            ],
+          ),
+          if (_editStartAt != null && _editEndAt != null && !_editEndAt!.isAfter(_editStartAt!)) ...[
+            const SizedBox(height: 8),
+            Text('Edit end must be after edit start.', style: AdminTypography.labelSm(color: AdminColors.error)),
+          ],
+          const SizedBox(height: 14),
+          _textField(label: 'Edit Override — Lecturer Code (optional)', controller: _overrideCodeController, hint: 'e.g. LEC-0042'),
+          const SizedBox(height: 4),
+          Text(
+            'Type a lecturer\'s unique code to let that lecturer edit this syllabus at any time, inside or outside the period. Leave blank for none.',
+            style: AdminTypography.bodySm(),
+          ),
+          const SizedBox(height: 20),
+          const Divider(height: 1),
           const SizedBox(height: 14),
           Row(
             children: [

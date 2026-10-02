@@ -1,11 +1,14 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
@@ -52,10 +55,29 @@ class CourseSyllabusScreen extends StatefulWidget {
 class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   final _repository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
   final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _hideMarkButtons = false;
   bool _modulesLocked = false;
+  CourseSection? _section;
+  bool _overrideMatches = false;
+
+  /// True while the lecturer may edit this class's syllabus: inside the
+  /// admin-set edit period, or when the admin entered their lecturer code as
+  /// an override. Classes with no period set are unrestricted.
+  bool get _canEdit {
+    final s = _section;
+    if (s == null || _overrideMatches) return true;
+    final start = s.editStartAt;
+    final end = s.editEndAt;
+    if (start == null || end == null) return true;
+    final now = DateTime.now();
+    return !now.isBefore(start) && !now.isAfter(end);
+  }
+
+  /// Module add/rename/delete/rearrange is off when the admin locked modules or the edit period is closed.
+  bool get _modulesReadOnly => _modulesLocked || !_canEdit;
   List<CourseModule> _modules = [];
   final Map<String, List<CourseSession>> _sessionsByModule = {};
   final Map<String, List<ContentBlock>> _blocksBySession = {};
@@ -74,11 +96,16 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     setState(() => _isLoading = true);
     final modules = await _repository.getModules(widget.sectionId);
     final settings = await _settingsRepository.getSettings();
+    final section = await _lecturersRepository.getSectionById(widget.sectionId);
+    final lecturer = await _lecturersRepository.getLecturerById(DemoIdentity.lecturerId);
     if (!mounted) return;
     setState(() {
       _modules = modules;
       _hideMarkButtons = settings[AppSettingKeys.hideMarkButtonsInSyllabus] ?? false;
       _modulesLocked = settings[AppSettingKeys.lockModulesForLecturers] ?? false;
+      _section = section;
+      _overrideMatches = section.editOverrideLecturerCode != null &&
+          section.editOverrideLecturerCode!.trim().toLowerCase() == lecturer.lecturerCode.trim().toLowerCase();
       _isLoading = false;
     });
   }
@@ -407,7 +434,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                 style: FacultyTypography.bodySm(),
               ),
               const SizedBox(height: 16),
-              if (_modulesLocked)
+              if (_modulesReadOnly)
                 _viewAsStudentButton()
               else
                 Row(children: [Expanded(child: _viewAsStudentButton()), const SizedBox(width: 10), Expanded(child: _addModuleButton())]),
@@ -415,8 +442,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               Row(
                 children: [
                   Expanded(child: _saveAsTemplateButton()),
-                  const SizedBox(width: 10),
-                  Expanded(child: _copyFromTemplateButton()),
+                  if (_canEdit) const SizedBox(width: 10),
+                  if (_canEdit) Expanded(child: _copyFromTemplateButton()),
                 ],
               ),
               const SizedBox(height: 16),
@@ -473,11 +500,11 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           children: [
             _viewAsStudentButton(),
             const SizedBox(height: 8),
-            if (!_modulesLocked) ...[
+            if (!_modulesReadOnly) ...[
               _addModuleButton(),
               const SizedBox(height: 8),
             ],
-            Row(children: [_saveAsTemplateButton(), const SizedBox(width: 8), _copyFromTemplateButton()]),
+            Row(children: [_saveAsTemplateButton(), if (_canEdit) ...[const SizedBox(width: 8), _copyFromTemplateButton()]]),
           ],
         ),
       ],
@@ -545,12 +572,44 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   }
 
   Widget _buildModuleList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!_canEdit) _editClosedBanner(),
+        _buildModuleListBody(),
+      ],
+    );
+  }
+
+  Widget _editClosedBanner() {
+    final s = _section!;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: FacultyColors.errorContainer, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lock_outline, size: 18, color: FacultyColors.error),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Syllabus editing is closed. This class can only be edited between ${formatDueDate(s.editStartAt!)} and ${formatDueDate(s.editEndAt!)}. Ask an administrator if you need access outside that period.',
+              style: FacultyTypography.bodySm(color: FacultyColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModuleListBody() {
     if (_modules.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12)),
         alignment: Alignment.center,
-        child: Text(_modulesLocked ? 'No modules yet. Modules are managed by your administrator.' : 'No modules yet. Add one to start building the syllabus.', style: FacultyTypography.bodyMd()),
+        child: Text(_modulesReadOnly ? 'No modules yet. Modules are managed by your administrator.' : 'No modules yet. Add one to start building the syllabus.', style: FacultyTypography.bodyMd()),
       );
     }
     return ReorderableListView.builder(
@@ -585,7 +644,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  if (!_modulesLocked) ...[
+                  if (!_modulesReadOnly) ...[
                     ReorderableDragStartListener(
                       index: index,
                       child: const Icon(Icons.drag_indicator, color: FacultyColors.onSurfaceVariant),
@@ -604,7 +663,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                       ],
                     ),
                   ),
-                  if (!_modulesLocked) ...[
+                  if (!_modulesReadOnly) ...[
                     IconButton(
                       onPressed: () => _editModule(m),
                       icon: const Icon(Icons.edit_outlined, size: 18, color: FacultyColors.onSurfaceVariant),
@@ -653,7 +712,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                         },
                       ),
                     const SizedBox(height: 4),
-                    Align(
+                    if (_canEdit) Align(
                       alignment: Alignment.centerLeft,
                       child: OutlinedButton.icon(
                         onPressed: () => _addSession(m.id),
@@ -692,11 +751,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
+                  if (_canEdit) ...[
                   ReorderableDragStartListener(
                     index: index,
                     child: const Icon(Icons.drag_indicator, size: 18, color: FacultyColors.onSurfaceVariant),
                   ),
                   const SizedBox(width: 6),
+                  ],
                   Icon(expanded ? Icons.expand_more : Icons.chevron_right, size: 18, color: FacultyColors.onSurfaceVariant),
                   const SizedBox(width: 6),
                   Expanded(
@@ -709,6 +770,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                       ],
                     ),
                   ),
+                  if (_canEdit) ...[
                   IconButton(
                     onPressed: () => _editSession(moduleId, s),
                     icon: const Icon(Icons.edit_outlined, size: 16, color: FacultyColors.onSurfaceVariant),
@@ -721,6 +783,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                     tooltip: 'Delete session',
                     visualDensity: VisualDensity.compact,
                   ),
+                  ],
                 ],
               ),
             ),
@@ -752,7 +815,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                             KeyedSubtree(key: ValueKey(blocks[index].id), child: _contentBlockRow(s.id, blocks[index], index)),
                       ),
                     const SizedBox(height: 4),
-                    Align(
+                    if (_canEdit) Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(
                         onPressed: () => _addContentBlock(s.id),
@@ -778,14 +841,17 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_canEdit) ...[
           ReorderableDragStartListener(
             index: index,
             child: const Icon(Icons.drag_indicator, size: 18, color: FacultyColors.onSurfaceVariant),
           ),
           const SizedBox(width: 8),
+          ],
           Icon(_iconFor(b.type), size: 18, color: FacultyColors.primary),
           const SizedBox(width: 10),
           Expanded(child: _contentPreview(b)),
+          if (_canEdit) ...[
           IconButton(
             onPressed: () => _editContentBlock(sessionId, b),
             icon: const Icon(Icons.edit_outlined, size: 16, color: FacultyColors.onSurfaceVariant),
@@ -798,6 +864,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
             tooltip: 'Remove',
             visualDensity: VisualDensity.compact,
           ),
+          ],
         ],
       ),
     );
@@ -940,7 +1007,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
               const SizedBox(width: 6),
             ],
-            OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Manage Contents')),
+            if (_canEdit) OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Manage Contents')),
           ],
         );
       case ContentBlockType.assignment:
@@ -965,7 +1032,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
               const SizedBox(width: 6),
             ],
-            OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
+            if (_canEdit) OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
           ],
         );
       case ContentBlockType.physicalClass:

@@ -33,7 +33,19 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     return result;
   }
 
-  static const _sectionSelect = '*, courses(course_code, course_title), lecturers(name), cohorts(code, name, year)';
+  /// Turns the lecturer code an admin typed (without the tenant prefix) into
+  /// the stored, tenant-prefixed code, after checking a lecturer really has
+  /// it. Blank means "no override" and returns null.
+  Future<String?> _resolveOverrideCode(String? typed) async {
+    final trimmed = typed?.trim() ?? '';
+    if (trimmed.isEmpty) return null;
+    final stored = '${tenantPrefix()}$trimmed';
+    final rows = await _client.from('lecturers').select('lecturer_code').ilike('lecturer_code', stored).limit(1);
+    if ((rows as List).isEmpty) throw StateError('No lecturer has the code "$trimmed".');
+    return rows.first['lecturer_code'] as String;
+  }
+
+  static const _sectionSelect ='*, courses(course_code, course_title), lecturers(name), cohorts(code, name, year)';
 
   @override
   Future<List<CourseSection>> getAllSections() async {
@@ -87,11 +99,15 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     required String deliveryMode,
     required String cohort,
     required String status,
+    required DateTime editStartAt,
+    required DateTime editEndAt,
+    String? editOverrideLecturerCode,
   }) async {
     final scheduleText = (dayOfWeek != null && startTime != null && endTime != null && location != null)
         ? '${dayOfWeek.substring(0, 3)} $startTime–$endTime • $location'
         : 'TBD';
     final cohortId = await _cohortIdForName(cohort);
+    final overrideCode = await _resolveOverrideCode(editOverrideLecturerCode);
     final row = await _client
         .from('course_sections')
         .update({
@@ -106,6 +122,9 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'delivery_mode': deliveryMode,
           'cohort_id': cohortId,
           'status': status,
+          'edit_start_at': editStartAt.toUtc().toIso8601String(),
+          'edit_end_at': editEndAt.toUtc().toIso8601String(),
+          'edit_override_lecturer_code': overrideCode,
         })
         .eq('id', id)
         .select(_sectionSelect)
@@ -267,6 +286,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     DateTime? courseStartDate,
     DateTime? courseEndDate,
     required List<String> moduleNames,
+    required DateTime editStartAt,
+    required DateTime editEndAt,
   }) async {
     final dayAbbrev = dayOfWeek.substring(0, 3);
     final cohortId = await _cohortIdForName(cohort);
@@ -289,6 +310,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'start_date': courseStartDate?.toIso8601String().substring(0, 10),
           'end_date': courseEndDate?.toIso8601String().substring(0, 10),
           'status': 'scheduled',
+          'edit_start_at': editStartAt.toUtc().toIso8601String(),
+          'edit_end_at': editEndAt.toUtc().toIso8601String(),
         })
         .select(_sectionSelect)
         .single();

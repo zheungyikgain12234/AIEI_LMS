@@ -26,6 +26,13 @@ class CourseSection {
   final DateTime? startDate;
   final DateTime? endDate;
 
+  /// The window in which the lecturer may edit this class's syllabus; null
+  /// (legacy rows) means unrestricted. [editOverrideLecturerCode] is the
+  /// (display) code of a lecturer who may edit regardless of the window.
+  final DateTime? editStartAt;
+  final DateTime? editEndAt;
+  final String? editOverrideLecturerCode;
+
   const CourseSection({
     required this.id,
     required this.courseId,
@@ -51,6 +58,9 @@ class CourseSection {
     required this.status,
     this.startDate,
     this.endDate,
+    this.editStartAt,
+    this.editEndAt,
+    this.editOverrideLecturerCode,
   });
 
   /// `enrolled_count` is not stored on the `course_sections` row — it's
@@ -85,6 +95,9 @@ class CourseSection {
       status: map['status'] as String,
       startDate: map['start_date'] == null ? null : DateTime.parse(map['start_date'] as String),
       endDate: map['end_date'] == null ? null : DateTime.parse(map['end_date'] as String),
+      editStartAt: map['edit_start_at'] == null ? null : DateTime.parse(map['edit_start_at'] as String).toLocal(),
+      editEndAt: map['edit_end_at'] == null ? null : DateTime.parse(map['edit_end_at'] as String).toLocal(),
+      editOverrideLecturerCode: (map['edit_override_lecturer_code'] as String?)?.isEmpty ?? true ? null : displayCode(map['edit_override_lecturer_code'] as String),
     );
   }
 }

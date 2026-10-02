@@ -209,6 +209,12 @@ create table course_sections (
   cohort_id uuid references cohorts(id) on update cascade,
   start_date date,
   end_date date,
+  -- Syllabus edit window: outside [edit_start_at, edit_end_at] the lecturer
+  -- cannot edit the class's syllabus, unless edit_override_lecturer_code
+  -- (a lecturer_code the admin typed in) matches them. Null = unrestricted.
+  edit_start_at timestamptz,
+  edit_end_at timestamptz,
+  edit_override_lecturer_code text,
   status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
 );
 

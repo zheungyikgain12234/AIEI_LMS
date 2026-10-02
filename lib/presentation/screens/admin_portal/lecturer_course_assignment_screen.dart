@@ -16,6 +16,7 @@ import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' s
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/admin_date_time_field.dart';
 import 'widgets/module_names_editor.dart';
 import 'widgets/searchable_dropdown.dart';
 
@@ -74,6 +75,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   DateTime? _courseEndDate;
   String _deliveryMode = 'physical';
   String? _selectedCohort;
+  DateTime? _editStartAt;
+  DateTime? _editEndAt;
   String? _assignErrorMessage;
 
   @override
@@ -237,6 +240,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   bool get _dateRangeValid =>
       _courseStartDate != null && _courseEndDate != null && _courseEndDate!.isAfter(_courseStartDate!);
+  bool get _editWindowValid => _editStartAt != null && _editEndAt != null && _editEndAt!.isAfter(_editStartAt!);
+
 
   bool get _canAssign =>
       _selectedCourseId != null &&
@@ -249,7 +254,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _classCapacity != null &&
       _classCapacity! > 0 &&
       _selectedCohort != null &&
-      _modules.names.isNotEmpty;
+      _modules.names.isNotEmpty &&
+      _editWindowValid;
 
   int? get _classCapacity => int.tryParse(_capacityController.text.trim());
 
@@ -381,6 +387,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           courseStartDate: _courseStartDate,
           courseEndDate: _courseEndDate,
           moduleNames: _modules.names,
+          editStartAt: _editStartAt!,
+          editEndAt: _editEndAt!,
         );
       }
       await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, [_selectedCourseId!]);
@@ -398,6 +406,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _classCodeController.clear();
       _capacityController.clear();
       _modules.clear();
+      _editStartAt = null;
+      _editEndAt = null;
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -1128,9 +1138,46 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 16),
+          _buildEditPeriodSection(),
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
           _buildModulesSection(),
         ],
       ),
+    );
+  }
+
+  Widget _buildEditPeriodSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Syllabus Edit Period *', style: AdminTypography.titleSm()),
+        const SizedBox(height: 2),
+        Text(
+          'The lecturer can add, edit and delete sessions and contents only between these two moments. Outside it their syllabus is read-only.',
+          style: AdminTypography.bodySm(),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 16,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: 340,
+              child: AdminDateTimeField(label: 'Edit Start', value: _editStartAt, defaultHour: 0, onChanged: (v) => setState(() => _editStartAt = v)),
+            ),
+            SizedBox(
+              width: 340,
+              child: AdminDateTimeField(label: 'Edit End', value: _editEndAt, defaultHour: 23, onChanged: (v) => setState(() => _editEndAt = v)),
+            ),
+          ],
+        ),
+        if (_editStartAt != null && _editEndAt != null && !_editWindowValid) ...[
+          const SizedBox(height: 8),
+          Text('Edit end must be after edit start.', style: AdminTypography.labelSm(color: AdminColors.error)),
+        ],
+      ],
     );
   }
 
@@ -1340,6 +1387,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                                     ? 'Set a class code above.'
                                     : _classCapacity == null || _classCapacity! <= 0
                                         ? 'Set a valid capacity above.'
+                                    : !_editWindowValid
+                                        ? 'Set a valid syllabus edit period above.'
                                     : _modules.names.isEmpty
                                         ? 'Add at least one module above.'
                                         : '1 course selected • $_assignCredits credits',

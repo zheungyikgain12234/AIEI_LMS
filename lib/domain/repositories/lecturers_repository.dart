@@ -39,6 +39,11 @@ abstract class LecturersRepository {
   /// `startTime`, `endTime`, and `location` are combined into a fresh
   /// `schedule_text` display string, the same way [createSectionForCourse]
   /// builds its initial one.
+  ///
+  /// [editStartAt]/[editEndAt] are the window in which the lecturer may edit
+  /// the syllabus. [editOverrideLecturerCode] (the lecturer code as the admin
+  /// sees it; blank = none) lets that lecturer edit regardless of the window;
+  /// throws a [StateError] if no lecturer has that code.
   Future<CourseSection> updateSection(
     String id, {
     DateTime? startDate,
@@ -51,6 +56,9 @@ abstract class LecturersRepository {
     required String deliveryMode,
     required String cohort,
     required String status,
+    required DateTime editStartAt,
+    required DateTime editEndAt,
+    String? editOverrideLecturerCode,
   });
 
   Future<void> assignLecturerToSection(String sectionId, String lecturerId);
@@ -138,6 +146,8 @@ abstract class LecturersRepository {
     DateTime? courseStartDate,
     DateTime? courseEndDate,
     required List<String> moduleNames,
+    required DateTime editStartAt,
+    required DateTime editEndAt,
   });
 
   Future<void> deleteSections(List<String> sectionIds);

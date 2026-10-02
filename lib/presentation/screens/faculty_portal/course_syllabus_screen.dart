@@ -55,6 +55,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
 
   bool _isLoading = true;
   bool _hideMarkButtons = false;
+  bool _modulesLocked = false;
   List<CourseModule> _modules = [];
   final Map<String, List<CourseSession>> _sessionsByModule = {};
   final Map<String, List<ContentBlock>> _blocksBySession = {};
@@ -77,6 +78,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     setState(() {
       _modules = modules;
       _hideMarkButtons = settings[AppSettingKeys.hideMarkButtonsInSyllabus] ?? false;
+      _modulesLocked = settings[AppSettingKeys.lockModulesForLecturers] ?? false;
       _isLoading = false;
     });
   }
@@ -336,10 +338,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _copyFromTemplate() async {
     final template = await showDialog<SyllabusTemplate>(
       context: context,
-      builder: (_) => _CopyFromTemplateDialog(repository: _repository),
+      builder: (_) => _CopyFromTemplateDialog(repository: _repository, classModuleNames: _modulesLocked ? [for (final m in _modules) m.name] : null),
     );
     if (template == null) return;
-    await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id);
+    await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id, intoExistingModules: _modulesLocked);
     await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Copied from template "${template.name}".')));
@@ -405,7 +407,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                 style: FacultyTypography.bodySm(),
               ),
               const SizedBox(height: 16),
-              Row(children: [Expanded(child: _viewAsStudentButton()), const SizedBox(width: 10), Expanded(child: _addModuleButton())]),
+              if (_modulesLocked)
+                _viewAsStudentButton()
+              else
+                Row(children: [Expanded(child: _viewAsStudentButton()), const SizedBox(width: 10), Expanded(child: _addModuleButton())]),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -468,8 +473,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           children: [
             _viewAsStudentButton(),
             const SizedBox(height: 8),
-            _addModuleButton(),
-            const SizedBox(height: 8),
+            if (!_modulesLocked) ...[
+              _addModuleButton(),
+              const SizedBox(height: 8),
+            ],
             Row(children: [_saveAsTemplateButton(), const SizedBox(width: 8), _copyFromTemplateButton()]),
           ],
         ),
@@ -543,7 +550,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12)),
         alignment: Alignment.center,
-        child: Text('No modules yet. Add one to start building the syllabus.', style: FacultyTypography.bodyMd()),
+        child: Text(_modulesLocked ? 'No modules yet. Modules are managed by your administrator.' : 'No modules yet. Add one to start building the syllabus.', style: FacultyTypography.bodyMd()),
       );
     }
     return ReorderableListView.builder(
@@ -578,11 +585,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  ReorderableDragStartListener(
-                    index: index,
-                    child: const Icon(Icons.drag_indicator, color: FacultyColors.onSurfaceVariant),
-                  ),
-                  const SizedBox(width: 8),
+                  if (!_modulesLocked) ...[
+                    ReorderableDragStartListener(
+                      index: index,
+                      child: const Icon(Icons.drag_indicator, color: FacultyColors.onSurfaceVariant),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Icon(expanded ? Icons.expand_more : Icons.chevron_right, color: FacultyColors.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
@@ -595,16 +604,18 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                       ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => _editModule(m),
-                    icon: const Icon(Icons.edit_outlined, size: 18, color: FacultyColors.onSurfaceVariant),
-                    tooltip: 'Edit module',
-                  ),
-                  IconButton(
-                    onPressed: () => _deleteModule(m),
-                    icon: const Icon(Icons.delete_outline, size: 18, color: FacultyColors.error),
-                    tooltip: 'Delete module',
-                  ),
+                  if (!_modulesLocked) ...[
+                    IconButton(
+                      onPressed: () => _editModule(m),
+                      icon: const Icon(Icons.edit_outlined, size: 18, color: FacultyColors.onSurfaceVariant),
+                      tooltip: 'Edit module',
+                    ),
+                    IconButton(
+                      onPressed: () => _deleteModule(m),
+                      icon: const Icon(Icons.delete_outline, size: 18, color: FacultyColors.error),
+                      tooltip: 'Delete module',
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1911,7 +1922,11 @@ class _SaveAsTemplateDialogState extends State<_SaveAsTemplateDialog> {
 class _CopyFromTemplateDialog extends StatefulWidget {
   final SupabaseLecturerSyllabusRepositoryImpl repository;
 
-  const _CopyFromTemplateDialog({required this.repository});
+  /// When non-null (modules are locked), only templates whose modules are
+  /// exactly these — same names, same order — can be copied.
+  final List<String>? classModuleNames;
+
+  const _CopyFromTemplateDialog({required this.repository, this.classModuleNames});
 
   @override
   State<_CopyFromTemplateDialog> createState() => _CopyFromTemplateDialogState();
@@ -1921,6 +1936,7 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
   bool _isLoading = true;
   List<SyllabusTemplate> _templates = [];
   SyllabusTemplate? _selected;
+  final Set<String> _incompatible = {};
 
   @override
   void initState() {
@@ -1930,6 +1946,15 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
 
   Future<void> _load() async {
     final templates = await widget.repository.getTemplates();
+    final required = widget.classModuleNames;
+    if (required != null) {
+      String norm(String s) => s.trim().toLowerCase();
+      for (final t in templates) {
+        final names = await widget.repository.getTemplateModuleNames(t.id);
+        final same = names.length == required.length && [for (var i = 0; i < names.length; i++) i].every((i) => norm(names[i]) == norm(required[i]));
+        if (!same) _incompatible.add(t.id);
+      }
+    }
     if (!mounted) return;
     setState(() {
       _templates = templates;
@@ -1955,13 +1980,14 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
                     separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final t = _templates[index];
+                      final incompatible = _incompatible.contains(t.id);
                       final selected = _selected?.id == t.id;
                       return Material(
                         color: selected ? FacultyColors.secondaryContainer : FacultyColors.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(8),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(8),
-                          onTap: () => setState(() => _selected = t),
+                          onTap: incompatible ? null : () => setState(() => _selected = t),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             child: Row(
@@ -1972,7 +1998,16 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
                                   color: selected ? FacultyColors.primary : FacultyColors.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text(t.name, style: FacultyTypography.bodyMd())),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(t.name, style: FacultyTypography.bodyMd(color: incompatible ? FacultyColors.outline : FacultyColors.onSurfaceVariant)),
+                                      if (incompatible)
+                                        Text('Modules are not identical to this class', style: FacultyTypography.labelXs(color: FacultyColors.error)),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),

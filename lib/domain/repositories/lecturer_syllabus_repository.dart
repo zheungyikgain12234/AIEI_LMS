@@ -72,7 +72,15 @@ abstract class LecturerSyllabusRepository {
 
   /// Deep-copies a template's modules → sessions → content-blocks into the
   /// class, appended after any modules it already has.
-  Future<void> copyFromTemplate({required String sectionId, required String templateId});
+  ///
+  /// With [intoExistingModules] (used when modules are locked for lecturers)
+  /// no modules are created: the template must have exactly the class's
+  /// modules (same names, same order) and only its sessions/content are
+  /// appended into them; otherwise a [StateError] is thrown.
+  Future<void> copyFromTemplate({required String sectionId, required String templateId, bool intoExistingModules = false});
+
+  /// A template's module names in order — to check it against a class's modules.
+  Future<List<String>> getTemplateModuleNames(String templateId);
 
   /// Sum of `weightage` across every exam/assignment content block in this
   /// class's whole syllabus (every module/session, not just loaded ones) —

@@ -120,6 +120,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             settingKey: AppSettingKeys.allowLecturerExamReset,
           ),
           const Divider(height: 1, color: AdminColors.surfaceContainer),
+          _settingRow(
+            title: 'Lock Modules for Lecturers',
+            description: 'Lecturers can no longer add, rename, delete or rearrange a class\'s modules in the Syllabus editor — only admins define them when creating the class. Sessions and their content stay fully editable.',
+            settingKey: AppSettingKeys.lockModulesForLecturers,
+          ),
+          const Divider(height: 1, color: AdminColors.surfaceContainer),
           _numericSettingRow(
             title: 'Max Moderated Score',
             description: 'Caps how many points a lecturer may add at once via the Student Directory\'s "MODERATED SCORE" bulk "Apply All" input. Leave blank for no limit.',

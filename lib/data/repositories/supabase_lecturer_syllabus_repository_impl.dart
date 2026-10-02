@@ -229,13 +229,48 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
   }
 
   @override
-  Future<void> copyFromTemplate({required String sectionId, required String templateId}) async {
-    final existingModules = await _client.from('course_modules').select('id').eq('section_id', sectionId);
-    var moduleSorting = (existingModules as List).length;
+  Future<List<String>> getTemplateModuleNames(String templateId) async {
+    final rows = await _client
+        .from('template_modules')
+        .select('module_name')
+        .eq('template_id', templateId)
+        .order('module_sorting', ascending: true);
+    return [for (final row in rows as List) row['module_name'] as String];
+  }
+
+  @override
+  Future<void> copyFromTemplate({required String sectionId, required String templateId, bool intoExistingModules = false}) async {
+    final existingModules = await _client.from('course_modules').select('id, module_name').eq('section_id', sectionId).order('module_sorting', ascending: true);
+    final existing = existingModules as List;
 
     final templateModules =
         await _client.from('template_modules').select().eq('template_id', templateId).order('module_sorting', ascending: true);
-    for (final tm in templateModules as List) {
+    final templateList = templateModules as List;
+
+    if (intoExistingModules) {
+      // Modules are locked: the template's modules must be exactly the
+      // class's modules (same names, same order); only sessions are copied.
+      final matches = existing.length == templateList.length &&
+          [for (var i = 0; i < existing.length; i++) i].every(
+            (i) => _sameModuleName(existing[i]['module_name'] as String, templateList[i]['module_name'] as String),
+          );
+      if (!matches) {
+        throw StateError('This template\'s modules are not exactly the same as this class\'s modules.');
+      }
+      for (var i = 0; i < existing.length; i++) {
+        final moduleId = existing[i]['id'] as String;
+        final sessionRows = await _client.from('sessions').select('id').eq('module_id', moduleId);
+        await _copyTemplateSessions(
+          templateModuleId: (templateList[i] as Map<String, dynamic>)['id'] as String,
+          newModuleId: moduleId,
+          startSorting: (sessionRows as List).length,
+        );
+      }
+      return;
+    }
+
+    var moduleSorting = existing.length;
+    for (final tm in templateList) {
       final tmMap = tm as Map<String, dynamic>;
       final newModule = await _client
           .from('course_modules')
@@ -249,42 +284,48 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
           })
           .select()
           .single();
-      final newModuleId = newModule['id'] as String;
+      await _copyTemplateSessions(templateModuleId: tmMap['id'] as String, newModuleId: newModule['id'] as String, startSorting: 0);
+    }
+  }
 
-      final templateSessions = await _client
-          .from('template_sessions')
+  bool _sameModuleName(String a, String b) => a.trim().toLowerCase() == b.trim().toLowerCase();
+
+  /// Copies every session (and its content blocks) of one template module
+  /// into [newModuleId], numbering them from [startSorting].
+  Future<void> _copyTemplateSessions({required String templateModuleId, required String newModuleId, required int startSorting}) async {
+    final templateSessions = await _client
+        .from('template_sessions')
+        .select()
+        .eq('template_module_id', templateModuleId)
+        .order('session_sorting', ascending: true);
+    for (final ts in templateSessions as List) {
+      final tsMap = ts as Map<String, dynamic>;
+      final newSession = await _client
+          .from('sessions')
+          .insert({
+            'module_id': newModuleId,
+            'session_name': tsMap['session_name'],
+            'session_description': tsMap['session_description'],
+            'session_sorting': startSorting + (tsMap['session_sorting'] as int),
+            'is_published': tsMap['is_published'],
+          })
           .select()
-          .eq('template_module_id', tmMap['id'])
-          .order('session_sorting', ascending: true);
-      for (final ts in templateSessions as List) {
-        final tsMap = ts as Map<String, dynamic>;
-        final newSession = await _client
-            .from('sessions')
-            .insert({
-              'module_id': newModuleId,
-              'session_name': tsMap['session_name'],
-              'session_description': tsMap['session_description'],
-              'session_sorting': tsMap['session_sorting'],
-              'is_published': tsMap['is_published'],
-            })
-            .select()
-            .single();
-        final newSessionId = newSession['id'] as String;
+          .single();
+      final newSessionId = newSession['id'] as String;
 
-        final templateBlocks = await _client
-            .from('template_content_blocks')
-            .select()
-            .eq('template_session_id', tsMap['id'])
-            .order('block_sorting', ascending: true);
-        for (final tb in templateBlocks as List) {
-          final tbMap = tb as Map<String, dynamic>;
-          await _client.from('content_blocks').insert({
-            'session_id': newSessionId,
-            'block_type': tbMap['block_type'],
-            'block_content': tbMap['block_content'],
-            'block_sorting': tbMap['block_sorting'],
-          });
-        }
+      final templateBlocks = await _client
+          .from('template_content_blocks')
+          .select()
+          .eq('template_session_id', tsMap['id'])
+          .order('block_sorting', ascending: true);
+      for (final tb in templateBlocks as List) {
+        final tbMap = tb as Map<String, dynamic>;
+        await _client.from('content_blocks').insert({
+          'session_id': newSessionId,
+          'block_type': tbMap['block_type'],
+          'block_content': tbMap['block_content'],
+          'block_sorting': tbMap['block_sorting'],
+        });
       }
     }
   }

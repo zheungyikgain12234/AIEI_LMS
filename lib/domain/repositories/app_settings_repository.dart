@@ -20,6 +20,11 @@ class AppSettingKeys {
   /// maximum a lecturer may add via the Student Directory's "MODERATED
   /// SCORE" bulk "Apply All" input. Unset (null) means no limit.
   static const maxModeratedScore = 'max_moderated_score';
+
+  /// When true, lecturers cannot add, rename, delete or rearrange a class's
+  /// modules from the Syllabus editor (admins define them when creating the
+  /// class). Sessions and content inside modules stay fully editable.
+  static const lockModulesForLecturers = 'lock_modules_for_lecturers';
 }
 
 abstract class AppSettingsRepository {

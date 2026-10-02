@@ -179,18 +179,35 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
-  Future<void> enrollStudentsInSection(
+  Future<EnrollOutcome> enrollStudentsInSection(
     List<String> studentIds, {
     required String sectionId,
     required String courseId,
   }) async {
-    await _client.from('student_courses').upsert(
-      [
-        for (final studentId in studentIds)
-          {'student_id': studentId, 'course_id': courseId, 'section_id': sectionId},
-      ],
-      onConflict: 'student_id,course_id',
-    );
+    final existing = await _client
+        .from('student_courses')
+        .select('student_id, section_id, course_sections(section_code)')
+        .eq('course_id', courseId)
+        .inFilter('student_id', studentIds);
+    final alreadyInThisClass = <String>[];
+    final inOtherClass = <String, String>{};
+    for (final row in existing as List) {
+      final id = (row['student_id'] as num).toString();
+      if (row['section_id'] == sectionId) {
+        alreadyInThisClass.add(id);
+      } else {
+        final code = (row['course_sections'] as Map<String, dynamic>?)?['section_code'] as String?;
+        inOtherClass[id] = code == null ? 'another class' : displayCode(code);
+      }
+    }
+    final skipped = {...alreadyInThisClass, ...inOtherClass.keys};
+    final toEnroll = [for (final id in studentIds) if (!skipped.contains(id)) id];
+    if (toEnroll.isNotEmpty) {
+      await _client.from('student_courses').insert([
+        for (final studentId in toEnroll) {'student_id': studentId, 'course_id': courseId, 'section_id': sectionId},
+      ]);
+    }
+    return (enrolled: toEnroll, alreadyInThisClass: alreadyInThisClass, inOtherClass: inOtherClass);
   }
 
   @override

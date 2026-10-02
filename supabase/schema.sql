@@ -215,6 +215,12 @@ create table course_sections (
   edit_start_at timestamptz,
   edit_end_at timestamptz,
   edit_override_lecturer_code text,
+  -- Syllabus approval: students only see the class's syllabus when 'approved'.
+  -- Any lecturer edit puts it back to 'draft'; the lecturer submits it
+  -- ('submitted') and an admin approves it.
+  syllabus_status text not null default 'draft' check (syllabus_status in ('draft', 'submitted', 'approved')),
+  syllabus_submitted_at timestamptz,
+  syllabus_approved_at timestamptz,
   status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
 );
 

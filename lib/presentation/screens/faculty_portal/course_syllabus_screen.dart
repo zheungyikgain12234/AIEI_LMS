@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
+import 'package:stitch_aiei_lms/core/utils/numbered_labels.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
@@ -46,7 +47,11 @@ class CourseSyllabusScreen extends StatefulWidget {
   final String sectionId;
   final String courseTitle;
 
-  const CourseSyllabusScreen({super.key, required this.sectionId, required this.courseTitle});
+  /// Admin mode (Manage Syllabi): full editing regardless of the edit period
+  /// or module lock, an Approve button, and edits do not reset approval.
+  final bool isAdmin;
+
+  const CourseSyllabusScreen({super.key, required this.sectionId, required this.courseTitle, this.isAdmin = false});
 
   @override
   State<CourseSyllabusScreen> createState() => _CourseSyllabusScreenState();
@@ -62,13 +67,14 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   bool _modulesLocked = false;
   CourseSection? _section;
   bool _overrideMatches = false;
+  String _syllabusStatus = SyllabusStatus.draft;
 
   /// True while the lecturer may edit this class's syllabus: inside the
   /// admin-set edit period, or when the admin entered their lecturer code as
   /// an override. Classes with no period set are unrestricted.
   bool get _canEdit {
     final s = _section;
-    if (s == null || _overrideMatches) return true;
+    if (widget.isAdmin || s == null || _overrideMatches) return true;
     final start = s.editStartAt;
     final end = s.editEndAt;
     if (start == null || end == null) return true;
@@ -77,7 +83,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   }
 
   /// Module add/rename/delete/rearrange is off when the admin locked modules or the edit period is closed.
-  bool get _modulesReadOnly => _modulesLocked || !_canEdit;
+  bool get _modulesReadOnly => !widget.isAdmin && (_modulesLocked || !_canEdit);
   List<CourseModule> _modules = [];
   final Map<String, List<CourseSession>> _sessionsByModule = {};
   final Map<String, List<ContentBlock>> _blocksBySession = {};
@@ -104,6 +110,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       _hideMarkButtons = settings[AppSettingKeys.hideMarkButtonsInSyllabus] ?? false;
       _modulesLocked = settings[AppSettingKeys.lockModulesForLecturers] ?? false;
       _section = section;
+      _syllabusStatus = section.syllabusStatus;
       _overrideMatches = section.editOverrideLecturerCode != null &&
           section.editOverrideLecturerCode!.trim().toLowerCase() == lecturer.lecturerCode.trim().toLowerCase();
       _isLoading = false;
@@ -165,6 +172,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (result == null) return;
     await _repository.createModule(sectionId: widget.sectionId, name: _bareName(result.$1), description: result.$2);
+    await _markEdited();
     await _load();
   }
 
@@ -181,6 +189,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (result == null) return;
     await _repository.updateModule(m.id, name: _bareName(result.$1), description: result.$2, isPublished: m.isPublished);
+    await _markEdited();
     await _load();
   }
 
@@ -191,6 +200,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (confirmed != true) return;
     await _repository.deleteModule(m.id);
+    await _markEdited();
     _expandedModules.remove(m.id);
     _sessionsByModule.remove(m.id);
     await _load();
@@ -205,6 +215,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     });
     try {
       await _repository.reorderModules(widget.sectionId, [for (final m in _modules) m.id]);
+      await _markEdited();
       _showReorderSaved();
     } catch (e, st) {
       debugPrint('reorderModules failed: $e\n$st');
@@ -234,6 +245,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (result == null) return;
     await _repository.createSession(moduleId: moduleId, name: _bareName(result.$1), description: result.$2);
+    await _markEdited();
     await _refreshSessionsFor(moduleId);
   }
 
@@ -250,6 +262,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (result == null) return;
     await _repository.updateSession(s.id, name: _bareName(result.$1), description: result.$2, isPublished: s.isPublished);
+    await _markEdited();
     await _refreshSessionsFor(moduleId);
   }
 
@@ -260,6 +273,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (confirmed != true) return;
     await _repository.deleteSession(s.id);
+    await _markEdited();
     _expandedSessions.remove(s.id);
     _blocksBySession.remove(s.id);
     await _refreshSessionsFor(moduleId);
@@ -274,6 +288,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     setState(() => _sessionsByModule[moduleId] = sessions);
     try {
       await _repository.reorderSessions(moduleId, [for (final s in sessions) s.id]);
+      await _markEdited();
       _showReorderSaved();
     } catch (e, st) {
       debugPrint('reorderSessions failed: $e\n$st');
@@ -292,6 +307,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (result == null) return;
     await _repository.addContentBlock(sessionId: sessionId, type: result.type, content: result.content);
+    await _markEdited();
     await _refreshBlocksFor(sessionId);
   }
 
@@ -302,11 +318,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (result == null) return;
     await _repository.updateContentBlock(b.id, content: result.content);
+    await _markEdited();
     await _refreshBlocksFor(sessionId);
   }
 
   Future<void> _deleteContentBlock(String sessionId, ContentBlock b) async {
     await _repository.deleteContentBlock(b.id);
+    await _markEdited();
     await _refreshBlocksFor(sessionId);
   }
 
@@ -319,6 +337,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     setState(() => _blocksBySession[sessionId] = blocks);
     try {
       await _repository.reorderContentBlocks(sessionId, [for (final b in blocks) b.id]);
+      await _markEdited();
       _showReorderSaved();
     } catch (e, st) {
       debugPrint('reorderContentBlocks failed: $e\n$st');
@@ -369,9 +388,89 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (template == null) return;
     await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id, intoExistingModules: _modulesLocked);
+    await _markEdited();
     await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Copied from template "${template.name}".')));
+  }
+
+  // ── Approval ─────────────────────────────────────────────────────────
+
+  /// Changes are saved as they happen, but any lecturer edit takes the
+  /// syllabus out of "submitted"/"approved" — it must be (re)submitted and
+  /// approved before students see it. Admin edits never reset approval.
+  Future<void> _markEdited() async {
+    if (widget.isAdmin || _syllabusStatus == SyllabusStatus.draft) return;
+    await _repository.setSyllabusStatus(widget.sectionId, SyllabusStatus.draft);
+    if (!mounted) return;
+    setState(() => _syllabusStatus = SyllabusStatus.draft);
+  }
+
+  Future<void> _setStatus(String status, String message) async {
+    await _repository.setSyllabusStatus(widget.sectionId, status);
+    if (!mounted) return;
+    setState(() => _syllabusStatus = status);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _approvalBar() {
+    final (label, detail, color) = switch (_syllabusStatus) {
+      SyllabusStatus.approved => ('Approved', 'Visible to students.', const Color(0xFF2E7D32)),
+      SyllabusStatus.submitted => ('Pending approval', 'Submitted — students cannot see this syllabus until an admin approves it.', const Color(0xFFB26A00)),
+      _ => ('Draft', 'Not submitted — students cannot see this syllabus yet. Your changes are saved automatically.', FacultyColors.onSurfaceVariant),
+    };
+    final Widget? action;
+    if (widget.isAdmin) {
+      action = _syllabusStatus == SyllabusStatus.approved
+          ? null
+          : FilledButton.icon(
+              onPressed: () => _setStatus(SyllabusStatus.approved, 'Syllabus approved — students can now see it.'),
+              icon: const Icon(Icons.verified_outlined),
+              label: const Text('Approve Syllabus'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                textStyle: FacultyTypography.titleSm(color: Colors.white),
+              ),
+            );
+    } else {
+      action = _syllabusStatus == SyllabusStatus.draft && _canEdit
+          ? FilledButton.icon(
+              onPressed: () => _setStatus(SyllabusStatus.submitted, 'Submitted for approval.'),
+              icon: const Icon(Icons.send_outlined, size: 18),
+              label: const Text('Submit for Approval'),
+            )
+          : null;
+    }
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16,
+        runSpacing: 10,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Status: $label', style: FacultyTypography.titleSm(color: color)),
+                const SizedBox(height: 2),
+                Text(detail, style: FacultyTypography.bodySm()),
+              ],
+            ),
+          ),
+          ?action,
+        ],
+      ),
+    );
   }
 
   void _handleNav(FacultyNavDestination dest) {
@@ -391,7 +490,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (MediaQuery.of(context).size.width < 700) {
+    if (widget.isAdmin || MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
     return FacultyScaffold(
@@ -419,9 +518,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: FacultyColors.background,
-      appBar: const FacultyMobileTopBar(title: 'Modules and Sessions'),
+      appBar: FacultyMobileTopBar(title: widget.isAdmin ? 'Syllabus (Admin)' : 'Modules and Sessions'),
       body: SafeArea(
         top: false,
+        child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 820),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -451,6 +554,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
             ],
           ),
         ),
+        ),
+      ),
       ),
     );
   }
@@ -575,6 +680,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _approvalBar(),
         if (!_canEdit) _editClosedBanner(),
         _buildModuleListBody(),
       ],
@@ -894,7 +1000,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   }
 
   void _openExamEditor(ContentBlock b) {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (_) => ExamEditorScreen(
           contentBlockId: b.id,
@@ -906,11 +1013,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           instructionFiles: b.instructionFiles,
         ),
       ),
-    );
+    )
+        .then((_) => _markEdited());
   }
 
   void _openAssignmentEditor(ContentBlock b) {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (_) => AssignmentEditorScreen(
           contentBlockId: b.id,
@@ -921,7 +1030,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           instructionFiles: b.instructionFiles,
         ),
       ),
-    );
+    )
+        .then((_) => _markEdited());
   }
 
   void _openMarkExam(ContentBlock b) {
@@ -2094,12 +2204,6 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
   }
 }
 
-// Module / session numbering is derived from position, never stored in the
-// name — so adding, deleting or dragging an item renumbers the rest for free.
-String _numberedPrefix(String kind, int n) => '$kind $n : ';
+String _numberedPrefix(String kind, int n) => numberedPrefix(kind, n);
 
-final _labelPrefixPattern = RegExp(r'^\s*(Module|Lesson)\s*\d*\s*:\s*', caseSensitive: false);
-
-/// [name] without any leading "Module n :" / "Lesson n :" label (typed by the
-/// user, or left over from older data), so it isn't shown or saved twice.
-String _bareName(String name) => name.replaceFirst(_labelPrefixPattern, '').trim();
+String _bareName(String name) => bareName(name);

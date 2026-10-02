@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
+import 'package:stitch_aiei_lms/domain/models/course_section.dart' show SyllabusStatus;
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
 import 'package:stitch_aiei_lms/domain/models/syllabus_template.dart';
@@ -10,6 +11,16 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
   SupabaseLecturerSyllabusRepositoryImpl(this._client);
 
   final SupabaseClient _client;
+
+  @override
+  Future<void> setSyllabusStatus(String sectionId, String status) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _client.from('course_sections').update({
+      'syllabus_status': status,
+      if (status == SyllabusStatus.submitted) 'syllabus_submitted_at': now,
+      if (status == SyllabusStatus.approved) 'syllabus_approved_at': now,
+    }).eq('id', sectionId);
+  }
 
   @override
   Future<List<CourseModule>> getModules(String sectionId) async {

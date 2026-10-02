@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/numbered_labels.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
@@ -43,6 +44,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
 
   bool _isLoading = true;
   List<_PreviewModule> _modules = [];
+  final Map<String, String> _labels = {};
 
   @override
   void initState() {
@@ -66,6 +68,15 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
     if (!mounted) return;
     setState(() {
       _modules = preview;
+      _labels
+        ..clear()
+        ..addEntries([
+          for (var i = 0; i < preview.length; i++) ...[
+            MapEntry(preview[i].module.id, numberedLabel('Module', i + 1, preview[i].module.name)),
+            for (var j = 0; j < preview[i].sessions.length; j++)
+              MapEntry(preview[i].sessions[j].session.id, numberedLabel('Lesson', j + 1, preview[i].sessions[j].session.name)),
+          ],
+        ]);
       _isLoading = false;
     });
   }
@@ -148,7 +159,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(m.module.name, style: FacultyTypography.titleSm()),
+          Text(_labels[m.module.id] ?? m.module.name, style: FacultyTypography.titleSm()),
           if (m.module.description.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(m.module.description, style: FacultyTypography.bodySm()),
@@ -170,7 +181,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(s.session.name, style: FacultyTypography.bodyLg(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+          Text(_labels[s.session.id] ?? s.session.name, style: FacultyTypography.bodyLg(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
           if (s.session.description.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(s.session.description, style: FacultyTypography.bodySm()),

@@ -226,6 +226,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           editStartAt: _section!.editStartAt,
           editEndAt: _section!.editEndAt,
           editOverrideLecturerCode: _section!.editOverrideLecturerCode,
+          syllabusStatus: _section!.syllabusStatus,
         );
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unenrolled ${s.name}.')));

@@ -569,13 +569,23 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       ),
     );
     if (chosen == null) return;
-    await _repository.enrollStudentsInSection(studentIds, sectionId: chosen.id, courseId: chosen.courseId);
+    final outcome = await _repository.enrollStudentsInSection(studentIds, sectionId: chosen.id, courseId: chosen.courseId);
     if (!mounted) return;
     setState(_selected.clear);
     await _load();
     if (!mounted) return;
+    String nameOf(String id) => _students.where((s) => s.id == id).map((s) => s.name).firstOrNull ?? 'Student $id';
+    final n = outcome.enrolled.length;
+    final lines = <String>[
+      if (n > 0) '$n student${n == 1 ? '' : 's'} successfully enrolled in ${chosen.sectionCode}.',
+      if (outcome.alreadyInThisClass.isNotEmpty)
+        'Already enrolled in ${chosen.sectionCode}: ${outcome.alreadyInThisClass.map(nameOf).join(', ')}.',
+      if (outcome.inOtherClass.isNotEmpty)
+        'Already enrolled in another class of this course (not changed — unenroll them first to move): '
+            '${outcome.inOtherClass.entries.map((e) => '${nameOf(e.key)} (${e.value})').join(', ')}.',
+    ];
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${studentIds.length} student${studentIds.length == 1 ? '' : 's'} successfully enrolled in ${chosen.sectionCode}.')),
+      SnackBar(content: Text(lines.join('\n')), duration: Duration(seconds: lines.length > 1 ? 10 : 4)),
     );
   }
 

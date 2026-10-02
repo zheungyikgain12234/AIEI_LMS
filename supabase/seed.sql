@@ -1610,3 +1610,8 @@ insert into module_list_items (module_list_id, module_name, item_sorting) values
   ('88888888-8888-8888-8888-888888888802', 'Policy Overview', 0),
   ('88888888-8888-8888-8888-888888888802', 'Case Studies', 1),
   ('88888888-8888-8888-8888-888888888802', 'Final Assessment', 2);
+
+-- ── Syllabus approval — every seeded class's syllabus starts approved so
+-- students can see the demo content (new classes start as 'draft'). ──────
+
+update course_sections set syllabus_status = 'approved', syllabus_approved_at = now();

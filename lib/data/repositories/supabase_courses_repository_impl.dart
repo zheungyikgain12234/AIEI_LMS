@@ -396,10 +396,17 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     final sectionId = sectionRow?['id'] as String?;
     if (sectionId == null) return false;
 
-    await _client.from('student_courses').upsert(
-      {'student_id': DemoIdentity.studentId, 'course_id': courseId, 'section_id': sectionId},
-      onConflict: 'student_id,course_id',
-    );
+    // One class per course: if the student is already in this course, leave
+    // their enrollment alone instead of moving them to another class.
+    final existing = await _client
+        .from('student_courses')
+        .select('student_id')
+        .eq('student_id', DemoIdentity.studentId)
+        .eq('course_id', courseId)
+        .maybeSingle();
+    if (existing == null) {
+      await _client.from('student_courses').insert({'student_id': DemoIdentity.studentId, 'course_id': courseId, 'section_id': sectionId});
+    }
     return true;
   }
 }

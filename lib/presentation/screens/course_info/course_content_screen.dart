@@ -4,9 +4,11 @@ import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/numbered_labels.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
+import 'package:stitch_aiei_lms/domain/models/course_section.dart' show SyllabusStatus;
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
@@ -54,6 +56,9 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
   final Set<String> _expandedModuleIds = {};
 
   bool _isLoading = true;
+  bool _approved = true;
+  /// "Module n : Name" / "Lesson n : Name" by id (position among what students see).
+  final Map<String, String> _labels = {};
   List<_ContentModule> _modules = [];
   List<CourseAnnouncement> _announcements = const [];
   String? _activeId;
@@ -74,7 +79,14 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    final modules = (await _repository.getModules(widget.sectionId)).where((m) => m.isPublished).toList();
+    final sectionRow = await _client
+        .from('course_sections')
+        .select('section_code, syllabus_status, lecturers(name)')
+        .eq('id', widget.sectionId)
+        .maybeSingle();
+    // Students only see a syllabus once an admin has approved it.
+    final approved = sectionRow?['syllabus_status'] == SyllabusStatus.approved;
+    final modules = approved ? (await _repository.getModules(widget.sectionId)).where((m) => m.isPublished).toList() : <CourseModule>[];
     final content = <_ContentModule>[];
     for (final m in modules) {
       final sessions = (await _repository.getSessions(m.id)).where((s) => s.isPublished).toList();
@@ -86,14 +98,19 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
       content.add((module: m, sessions: withBlocks));
     }
     final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
-    final sectionRow = await _client
-        .from('course_sections')
-        .select('section_code, lecturers(name)')
-        .eq('id', widget.sectionId)
-        .maybeSingle();
     if (!mounted) return;
     setState(() {
       _modules = content;
+      _labels
+        ..clear()
+        ..addEntries([
+          for (var i = 0; i < content.length; i++) ...[
+            MapEntry(content[i].module.id, numberedLabel('Module', i + 1, content[i].module.name)),
+            for (var j = 0; j < content[i].sessions.length; j++)
+              MapEntry(content[i].sessions[j].session.id, numberedLabel('Lesson', j + 1, content[i].sessions[j].session.name)),
+          ],
+        ]);
+      _approved = approved;
       _announcements = announcements;
       _classCode = sectionRow == null ? null : displayCode(sectionRow['section_code'] as String);
       _lecturerName = (sectionRow?['lecturers'] as Map<String, dynamic>?)?['name'] as String?;
@@ -141,7 +158,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
           children: [
             const Icon(Icons.menu_book_outlined, size: 48, color: FacultyColors.onSurfaceVariant),
             const SizedBox(height: 16),
-            Text('No published course content yet.', style: FacultyTypography.bodyMd()),
+            Text(_approved ? 'No published course content yet.' : 'This course content is not available yet — it is awaiting approval.', style: FacultyTypography.bodyMd(), textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -285,7 +302,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
                   const SizedBox(width: 3),
                   Expanded(
                     child: Text(
-                      m.module.name,
+                      _labels[m.module.id] ?? m.module.name,
                       style: FacultyTypography.bodySm(color: active ? FacultyColors.onPrimaryContainer : FacultyColors.onSurface)
                           .copyWith(fontWeight: FontWeight.w700),
                       maxLines: 2,
@@ -343,7 +360,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    s.session.name,
+                    _labels[s.session.id] ?? s.session.name,
                     style: FacultyTypography.labelMd(color: active ? FacultyColors.onPrimaryContainer : FacultyColors.onSurfaceVariant)
                         .copyWith(fontWeight: active ? FontWeight.w600 : FontWeight.w500),
                     maxLines: 2,
@@ -606,7 +623,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(m.module.name, style: FacultyTypography.headlineMd()),
+                      Text(_labels[m.module.id] ?? m.module.name, style: FacultyTypography.headlineMd()),
                       if (m.module.description.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(m.module.description, style: FacultyTypography.bodyMd(color: FacultyColors.onSurfaceVariant)),
@@ -659,7 +676,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.session.name, style: FacultyTypography.titleSm()),
+                        Text(_labels[s.session.id] ?? s.session.name, style: FacultyTypography.titleSm()),
                         if (s.session.description.isNotEmpty) ...[
                           const SizedBox(height: 2),
                           Text(s.session.description, style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),

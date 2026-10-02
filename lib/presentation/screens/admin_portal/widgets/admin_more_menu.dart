@@ -16,6 +16,7 @@ import '../manage_lecturer_departments_screen.dart';
 import '../manage_specializations_screen.dart';
 import '../manage_roles_screen.dart';
 import '../manage_module_lists_screen.dart';
+import '../manage_syllabi_screen.dart';
 
 /// The mobile "More" sheet — everything in the desktop sidebar that doesn't
 /// fit as its own [AdminMobileBottomNav] tab. Master Data collapses into a
@@ -57,6 +58,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
                 _tile(context, sheetContext, Icons.psychology_outlined, 'Manage Specialization', (ctx) => const ManageSpecializationsScreen()),
                 _tile(context, sheetContext, Icons.work_outline, 'Manage Roles', (ctx) => const ManageRolesScreen()),
                 _tile(context, sheetContext, Icons.view_module_outlined, 'Manage Module Lists', (ctx) => const ManageModuleListsScreen()),
+                _tile(context, sheetContext, Icons.fact_check_outlined, 'Manage Syllabi', (ctx) => const ManageSyllabiScreen()),
               ],
             ),
           ],

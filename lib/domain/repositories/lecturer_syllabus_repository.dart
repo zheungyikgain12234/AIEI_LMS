@@ -22,6 +22,11 @@ abstract class LecturerSyllabusRepository {
   /// every module of the class, in its new top-to-bottom order.
   Future<void> reorderModules(String sectionId, List<String> orderedIds);
 
+  /// Moves a class's syllabus to [status] (a [SyllabusStatus] value),
+  /// stamping `syllabus_submitted_at` / `syllabus_approved_at` as it goes.
+  /// Students only see the syllabus while it is approved.
+  Future<void> setSyllabusStatus(String sectionId, String status);
+
   Future<List<CourseSession>> getSessions(String moduleId);
 
   Future<CourseSession> createSession({required String moduleId, required String name, required String description});

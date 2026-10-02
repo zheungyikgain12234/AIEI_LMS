@@ -23,6 +23,7 @@ import '../manage_roles_screen.dart';
 import '../manage_badge_catalog_screen.dart';
 import '../manage_course_tags_screen.dart';
 import '../manage_module_lists_screen.dart';
+import '../manage_syllabi_screen.dart';
 import '../admin_settings_screen.dart';
 
 /// Centralized sidebar navigation for every Admin Portal screen — pushes the
@@ -52,6 +53,7 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.manageBadgeCatalog => const ManageBadgeCatalogScreen(),
     AdminNavDestination.manageCourseTags => const ManageCourseTagsScreen(),
     AdminNavDestination.manageModuleLists => const ManageModuleListsScreen(),
+    AdminNavDestination.manageSyllabi => const ManageSyllabiScreen(),
     AdminNavDestination.settings => const AdminSettingsScreen(),
   };
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));

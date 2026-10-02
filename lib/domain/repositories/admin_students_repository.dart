@@ -66,11 +66,13 @@ abstract class AdminStudentsRepository {
   Future<List<RosterStudent>> getCourseRoster(String courseId);
   Future<List<EnrollmentCandidate>> getEnrollmentCandidates(String courseId);
 
-  /// Enrolls each student into [courseId] via the class [sectionId] (an
-  /// upsert — re-enrolling an already-enrolled student just moves them to
-  /// this section). A section's enrolled count is always derived from
-  /// `student_courses`, never stored, so nothing else needs updating here.
-  Future<void> enrollStudentsInSection(
+  /// Enrolls each student into [courseId] via the class [sectionId]. A student
+  /// can be in only one class per course, so students who are already
+  /// enrolled in this course — in this class or in another one — are NOT
+  /// touched (nothing is overwritten or moved); they are reported back so the
+  /// caller can tell the admin. A section's enrolled count is always derived
+  /// from `student_courses`, never stored, so nothing else needs updating.
+  Future<EnrollOutcome> enrollStudentsInSection(
     List<String> studentIds, {
     required String sectionId,
     required String courseId,
@@ -93,3 +95,8 @@ abstract class AdminStudentsRepository {
   /// `student_courses` row (Course Dashboard's Student Directory table).
   Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore);
 }
+
+/// Result of [AdminStudentsRepository.enrollStudentsInSection], as student ids.
+/// [inOtherClass] maps a student already in a different class of the course to
+/// that class's code.
+typedef EnrollOutcome = ({List<String> enrolled, List<String> alreadyInThisClass, Map<String, String> inOtherClass});

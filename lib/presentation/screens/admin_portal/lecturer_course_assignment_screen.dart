@@ -13,7 +13,10 @@ import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show LecturerClassSlot;
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/module_list.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/module_names_editor.dart';
 import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +44,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
   final _specializationMappingRepository = SupabaseSpecializationCourseMappingRepositoryImpl(Supabase.instance.client);
+  final _moduleListsRepository = SupabaseAdminModuleListsRepositoryImpl(Supabase.instance.client);
+  final _modules = ModuleNamesController();
 
   bool _isLoading = true;
   bool _isAssigning = false;
@@ -84,6 +89,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     _locationController.dispose();
     _classCodeController.dispose();
     _capacityController.dispose();
+    _modules.dispose();
     super.dispose();
   }
 
@@ -242,7 +248,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _classCodeController.text.trim().isNotEmpty &&
       _classCapacity != null &&
       _classCapacity! > 0 &&
-      _selectedCohort != null;
+      _selectedCohort != null &&
+      _modules.names.isNotEmpty;
 
   int? get _classCapacity => int.tryParse(_capacityController.text.trim());
 
@@ -373,6 +380,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           cohort: _selectedCohort!,
           courseStartDate: _courseStartDate,
           courseEndDate: _courseEndDate,
+          moduleNames: _modules.names,
         );
       }
       await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, [_selectedCourseId!]);
@@ -389,6 +397,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _locationController.clear();
       _classCodeController.clear();
       _capacityController.clear();
+      _modules.clear();
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -1116,9 +1125,135 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             const SizedBox(height: 8),
             Text('Course end date must be after the course start date.', style: AdminTypography.labelSm(color: AdminColors.error)),
           ],
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          _buildModulesSection(),
         ],
       ),
     );
+  }
+
+  Widget _buildModulesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AdminFieldLabel('Modules *'),
+        const SizedBox(height: 2),
+        Text('Type each module this class will teach. At least one is required.', style: AdminTypography.bodySm()),
+        const SizedBox(height: 12),
+        ModuleNamesEditor(controller: _modules, onChanged: () => setState(() {})),
+        const SizedBox(height: 8),
+        // Both buttons are shortcuts, not steps — kept visually distinct
+        // from the required fields and from "Assign to Lecturer".
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Optional shortcuts:', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+            OutlinedButton.icon(
+              onPressed: _importModuleList,
+              icon: const Icon(Icons.download_outlined, size: 16),
+              label: const Text('Import from saved list'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _modules.names.isEmpty ? null : _saveModuleList,
+              icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+              label: const Text('Save as reusable list'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _importModuleList() async {
+    final lists = await _moduleListsRepository.getModuleLists();
+    if (!mounted) return;
+    final picked = await showDialog<ModuleList>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import module list'),
+        content: SizedBox(
+          width: 420,
+          child: lists.isEmpty
+              ? const Text('No saved module lists yet. Create one under Master Data → Manage Module Lists, or use "Save as reusable list".')
+              : ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final l in lists)
+                      ListTile(
+                        title: Text('${l.name} (${l.moduleNames.length})'),
+                        subtitle: Text(l.moduleNames.join(' • '), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        onTap: () => Navigator.of(ctx).pop(l),
+                      ),
+                  ],
+                ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel'))],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _modules.setNames(picked.moduleNames));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported "${picked.name}". You can still edit the modules below.')));
+  }
+
+  Future<void> _saveModuleList() async {
+    final names = _modules.names;
+    if (names.isEmpty) return;
+    final nameController = TextEditingController();
+    String? errorMessage;
+    final saved = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Save as reusable list'),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Saves these ${names.length} module${names.length == 1 ? '' : 's'} so you can import them into other classes.', style: AdminTypography.bodySm()),
+                const SizedBox(height: 12),
+                if (errorMessage != null) ...[
+                  Text(errorMessage!, style: AdminTypography.bodySm(color: AdminColors.error)),
+                  const SizedBox(height: 8),
+                ],
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  decoration: const InputDecoration(labelText: 'List name', hintText: 'e.g. Standard 4-Module Course'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) {
+                  setDialogState(() => errorMessage = 'List name is required.');
+                  return;
+                }
+                try {
+                  await _moduleListsRepository.createModuleList(name, names);
+                  if (ctx.mounted) Navigator.of(ctx).pop(name);
+                } catch (e) {
+                  setDialogState(() => errorMessage = friendlyErrorMessage(e));
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    nameController.dispose();
+    if (saved == null || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved module list "$saved".')));
   }
 
   Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap}) {
@@ -1205,6 +1340,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                                     ? 'Set a class code above.'
                                     : _classCapacity == null || _classCapacity! <= 0
                                         ? 'Set a valid capacity above.'
+                                    : _modules.names.isEmpty
+                                        ? 'Add at least one module above.'
                                         : '1 course selected • $_assignCredits credits',
             style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
           ),

@@ -15,7 +15,7 @@ truncate table
   badge_awards, student_certifications, student_materials, student_courses,
   role_courses, lecturer_courses, module_certs, course_tags,
   module_materials, course_modules, courses,
-  certifications, tags,
+  certifications, tags, module_list_items, module_lists,
   lecturers, students, admins,
   departments, programmes, course_programmes, program_tracks, cohorts,
   lecturer_departments, specializations, roles
@@ -1595,3 +1595,18 @@ insert into content_blocks (id, session_id, block_type, block_content, block_sor
 insert into course_announcements (section_id, lecturer_id, title, body, created_at) values
   ((select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), '11111111-1111-1111-1111-111111111106', 'Office hours moved to Thursday 3 PM', 'Due to the departmental curriculum council meeting, our usual Wednesday slot is moved. Room 402 or via Zoom bridge.', now() - interval '1 day'),
   ((select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), '11111111-1111-1111-1111-111111111106', 'Starter repo updated for Assignment 02', 'A patch was pushed to address the dataset schema parser warning in Python 3.11. Please run git pull before continuing.', now() - interval '8 days');
+
+-- ── Module Lists (master data — importable while creating a class) ──────
+
+insert into module_lists (id, name) values
+  ('88888888-8888-8888-8888-888888888801', 'Standard 4-Module Course'),
+  ('88888888-8888-8888-8888-888888888802', 'Compliance Essentials');
+
+insert into module_list_items (module_list_id, module_name, item_sorting) values
+  ('88888888-8888-8888-8888-888888888801', 'Introduction', 0),
+  ('88888888-8888-8888-8888-888888888801', 'Core Concepts', 1),
+  ('88888888-8888-8888-8888-888888888801', 'Applied Practice', 2),
+  ('88888888-8888-8888-8888-888888888801', 'Assessment & Review', 3),
+  ('88888888-8888-8888-8888-888888888802', 'Policy Overview', 0),
+  ('88888888-8888-8888-8888-888888888802', 'Case Studies', 1),
+  ('88888888-8888-8888-8888-888888888802', 'Final Assessment', 2);

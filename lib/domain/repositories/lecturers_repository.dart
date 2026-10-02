@@ -123,6 +123,7 @@ abstract class LecturersRepository {
   /// class (e.g. `TN01-CLS-OSHE101-01`) — see the "Class Code" field on the
   /// Manage Assigned Courses screen. [startTime] and [endTime] are `HH:mm`
   /// 24-hour strings; [dayOfWeek] is a full day name (e.g. `Monday`).
+  /// [moduleNames] become the new class's initial `course_modules`, in order.
   Future<CourseSection> createSectionForCourse({
     required String courseId,
     required String classCode,
@@ -136,6 +137,7 @@ abstract class LecturersRepository {
     required String cohort,
     DateTime? courseStartDate,
     DateTime? courseEndDate,
+    required List<String> moduleNames,
   });
 
   Future<void> deleteSections(List<String> sectionIds);

@@ -266,6 +266,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     required String cohort,
     DateTime? courseStartDate,
     DateTime? courseEndDate,
+    required List<String> moduleNames,
   }) async {
     final dayAbbrev = dayOfWeek.substring(0, 3);
     final cohortId = await _cohortIdForName(cohort);
@@ -291,6 +292,12 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
         })
         .select(_sectionSelect)
         .single();
+    final sectionId = row['id'] as String;
+    if (moduleNames.isNotEmpty) {
+      await _client.from('course_modules').insert([
+        for (var i = 0; i < moduleNames.length; i++) {'section_id': sectionId, 'module_name': moduleNames[i], 'module_sorting': i},
+      ]);
+    }
     return CourseSection.fromMap(row, enrolledCount: 0);
   }
 

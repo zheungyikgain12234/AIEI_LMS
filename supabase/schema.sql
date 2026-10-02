@@ -15,7 +15,7 @@ drop table if exists
   enrollment_candidates, course_announcements, course_sections,
   badge_awards, course_badges, student_certifications, student_materials, student_courses,
   course_programmes, specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
-  course_tags, tags,
+  course_tags, tags, module_list_items, module_lists,
   template_content_blocks, template_sessions, template_modules, syllabus_templates,
   content_block_submissions, assignment_criteria,
   exam_question_options, exam_questions, exam_sections,
@@ -381,6 +381,25 @@ create table tags (
 -- case-insensitive so "Compliance" and "compliance" can't both be created.
 create unique index tags_label_ci_idx on tags (lower(label));
 
+-- Module Lists master data (admin-managed) — a named, reusable list of
+-- module names that an admin can import while creating a class (the class
+-- gets its own `course_modules` rows copied from the list, so later edits to
+-- a list never change classes already created from it).
+create table module_lists (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create unique index module_lists_name_ci_idx on module_lists (lower(name));
+
+create table module_list_items (
+  id uuid primary key default gen_random_uuid(),
+  module_list_id uuid not null references module_lists(id) on delete cascade,
+  module_name text not null,
+  item_sorting int not null default 0
+);
+
 create table course_tags (
   course_id uuid not null references courses(id) on delete cascade,
   tag_id uuid not null references tags(id) on delete cascade,
@@ -627,6 +646,8 @@ alter table exam_question_options enable row level security;
 alter table assignment_criteria enable row level security;
 alter table content_block_submissions enable row level security;
 alter table tags enable row level security;
+alter table module_lists enable row level security;
+alter table module_list_items enable row level security;
 alter table course_tags enable row level security;
 alter table certifications enable row level security;
 alter table course_badges enable row level security;
@@ -653,7 +674,7 @@ begin
     'syllabus_templates', 'template_modules', 'template_sessions', 'template_content_blocks',
     'exam_sections', 'exam_questions', 'exam_question_options',
     'assignment_criteria', 'content_block_submissions',
-    'tags', 'course_tags', 'certifications', 'course_badges', 'module_certs',
+    'tags', 'course_tags', 'module_lists', 'module_list_items', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates', 'course_announcements',
     'app_settings'

@@ -24,6 +24,7 @@ enum AdminNavDestination {
   manageRoles,
   manageBadgeCatalog,
   manageCourseTags,
+  manageModuleLists,
   settings,
 }
 
@@ -266,6 +267,15 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageCourseTags,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageCourseTags,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.view_module_outlined,
+                          label: 'Manage Module Lists',
+                          isSelected:
+                              selected == AdminNavDestination.manageModuleLists,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageModuleLists,
                           ),
                         ),
                       ],

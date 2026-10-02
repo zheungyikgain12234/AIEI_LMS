@@ -265,4 +265,19 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
     }
     return items;
   }
+
+  @override
+  Future<List<SyllabusDeadline>> getSyllabusDeadlines(List<String> sectionIds) async {
+    if (sectionIds.isEmpty) return [];
+    final rows = await _client
+        .from('course_sections')
+        .select('id, edit_end_at')
+        .inFilter('id', sectionIds)
+        .eq('syllabus_status', 'draft')
+        .not('edit_end_at', 'is', null);
+    return [
+      for (final row in rows as List)
+        (sectionId: row['id'] as String, editEndAt: DateTime.parse(row['edit_end_at'] as String).toLocal()),
+    ];
+  }
 }

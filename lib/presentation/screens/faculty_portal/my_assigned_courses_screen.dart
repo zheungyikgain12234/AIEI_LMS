@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -10,6 +11,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+import 'package:stitch_aiei_lms/domain/repositories/faculty_repository.dart' show SyllabusDeadline;
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -17,6 +19,7 @@ import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
 import 'grading_queue_screen.dart';
 import 'physical_class_attendance_screen.dart';
+import 'course_syllabus_screen.dart';
 
 const _kAccentPalette = [
   (FacultyColors.primary, Color(0xFFDBEAFE)),
@@ -31,7 +34,7 @@ class MyAssignedCoursesScreen extends StatefulWidget {
   State<MyAssignedCoursesScreen> createState() => _MyAssignedCoursesScreenState();
 }
 
-class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
+class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with WidgetsBindingObserver {
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
@@ -63,6 +66,12 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   Map<String, int> _pendingAssignmentsBySection = const {};
   Map<String, int> _pendingQuizzesBySection = const {};
   Lecturer? _lecturer;
+  Timer? _actionsTimer;
+
+  /// Classes whose syllabus still needs submitting for approval, soonest
+  /// edit-period end first — the Critical Action box (see [_syllabusActionWindowDays]).
+  List<({AssignedCourse course, DateTime due})> _syllabusActions = const [];
+  static const _syllabusActionWindowDays = 5;
 
   Map<String, int> get _cohortYearByName => {for (final c in _cohorts) c.name: c.year};
 
@@ -104,11 +113,17 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    // Admin changes (edit period, approval) are made elsewhere, so poll for the
+    // Critical Action box instead of requiring a page reload.
+    _actionsTimer = Timer.periodic(const Duration(seconds: 15), (_) => _refreshSyllabusActions());
   }
 
   @override
   void dispose() {
+    _actionsTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
   }
@@ -141,6 +156,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     // This is scoped by section (not course), so a student enrolled in the
     // same course through a different section/cohort is correctly excluded.
     final assessmentStats = await _facultyRepository.getSectionAssessmentStats(sectionIds);
+    final deadlines = await _facultyRepository.getSyllabusDeadlines(sectionIds);
     if (!mounted) return;
 
     final lecturer = lecturers.where((l) => l.id == DemoIdentity.lecturerId).firstOrNull;
@@ -155,6 +171,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       _pendingAssignmentsBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingAssignments};
       _pendingQuizzesBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingQuizzes};
       _lecturer = lecturer;
+      _syllabusActions = _syllabusActionsFrom(assignedCourses, deadlines);
 
       // Default to the current calendar year if the lecturer has courses
       // there, else fall back to the most recent year they do have.
@@ -168,6 +185,133 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       _stats = _computeStats();
       _isLoading = false;
     });
+  }
+
+  /// Draft syllabi whose edit period ends within [_syllabusActionWindowDays]
+  /// days (or already has), soonest first.
+  List<({AssignedCourse course, DateTime due})> _syllabusActionsFrom(List<AssignedCourse> courses, List<SyllabusDeadline> deadlines) {
+    final courseBySection = {for (final c in courses) c.sectionId: c};
+    final items = <({AssignedCourse course, DateTime due})>[
+      for (final d in deadlines)
+        if (courseBySection[d.sectionId] != null && _daysLeft(d.editEndAt) <= _syllabusActionWindowDays)
+          (course: courseBySection[d.sectionId]!, due: d.editEndAt),
+    ];
+    items.sort((a, b) => a.due.compareTo(b.due));
+    return items;
+  }
+
+  /// Re-reads just the syllabus deadlines (cheap) so the Critical Action box
+  /// appears/disappears when an admin changes a class's edit period or a
+  /// syllabus is submitted/approved.
+  Future<void> _refreshSyllabusActions() async {
+    if (!mounted || _isLoading || _assignedCourses.isEmpty) return;
+    try {
+      final deadlines = await _facultyRepository.getSyllabusDeadlines([for (final c in _assignedCourses) c.sectionId]);
+      if (!mounted) return;
+      setState(() => _syllabusActions = _syllabusActionsFrom(_assignedCourses, deadlines));
+    } catch (_) {
+      // A failed background refresh just keeps what's already shown.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshSyllabusActions();
+  }
+
+  int _daysLeft(DateTime due) {
+    final now = DateTime.now();
+    return DateTime(due.year, due.month, due.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+  }
+
+  String _dueText(DateTime due) {
+    final diff = _daysLeft(due);
+    if (diff < 0) return 'Overdue by ${-diff} Day${-diff == 1 ? '' : 's'}';
+    if (diff == 0) return 'Due Today';
+    return 'Due in $diff Day${diff == 1 ? '' : 's'}';
+  }
+
+  /// "Critical Action" box (same look as the student portal's) listing every
+  /// class whose syllabus still has to be submitted for approval before its
+  /// edit period closes. Hidden when there is nothing to do.
+  Widget _buildCriticalActions() {
+    if (_syllabusActions.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFF4D4F), shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                Text('CRITICAL ACTION', style: FacultyTypography.labelXs(color: FacultyColors.errorContainer).copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            for (var i = 0; i < _syllabusActions.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _syllabusActionRow(_syllabusActions[i]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _syllabusActionRow(({AssignedCourse course, DateTime due}) item) {
+    final c = item.course;
+    return InkWell(
+      onTap: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => CourseSyllabusScreen(sectionId: c.sectionId, courseTitle: c.title)),
+        );
+        if (mounted) _load();
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.fact_check_outlined, size: 18, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Submit syllabus for approval',
+                    style: FacultyTypography.bodyMd(color: Colors.white).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '${c.courseCode} • ${c.sectionCode} — ${c.title}',
+                    style: FacultyTypography.bodySm(color: Colors.white70),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: FacultyColors.error, borderRadius: BorderRadius.circular(4)),
+              child: Text(_dueText(item.due), style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Fetches this one course's module/session counts from its own section.
@@ -317,7 +461,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          _buildCriticalActions(),
+          const SizedBox(height: 8),
           _buildStatsRow(),
           const SizedBox(height: 24),
           _buildToolbar(),
@@ -709,6 +855,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                 style: FacultyTypography.bodyMd(),
               ),
               const SizedBox(height: 20),
+              _buildCriticalActions(),
               _buildMobileKpiGrid(),
               const SizedBox(height: 20),
               _buildMobileSearchBar(),

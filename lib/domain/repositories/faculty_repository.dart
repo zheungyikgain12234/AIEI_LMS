@@ -34,6 +34,10 @@ typedef PhysicalClassItem = ({
   DateTime? endsAt,
 });
 
+/// A class whose syllabus has not been submitted for approval yet, with the
+/// end of its edit period — the lecturer's deadline to submit it.
+typedef SyllabusDeadline = ({String sectionId, DateTime editEndAt});
+
 abstract class FacultyRepository {
   Future<List<AssignedCourse>> getAssignedCourses(String lecturerId);
 
@@ -71,4 +75,9 @@ abstract class FacultyRepository {
 
   /// Every `physicalClass` content block across [sectionIds].
   Future<List<PhysicalClassItem>> getPhysicalClassItems(List<String> sectionIds);
+
+  /// Every class in [sectionIds] whose syllabus is still a draft (never
+  /// submitted, or edited since) and has an edit period, with that period's
+  /// end — the lecturer portal's "submit syllabus" Critical Action.
+  Future<List<SyllabusDeadline>> getSyllabusDeadlines(List<String> sectionIds);
 }

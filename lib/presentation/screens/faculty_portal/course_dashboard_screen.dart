@@ -332,7 +332,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     final previous = _rosterRows[index];
     setState(() => _rosterRows[index] = previous.copyWithModeratedScore(value));
     try {
-      await _rosterRepository.updateModeratedScore(s.studentId, widget.courseId, value);
+      await _rosterRepository.updateModeratedScore(s.studentId, widget.courseId, value, sectionId: widget.sectionId);
     } catch (_) {
       if (!mounted) return;
       setState(() => _rosterRows[index] = previous);

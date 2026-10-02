@@ -184,19 +184,22 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     required String sectionId,
     required String courseId,
   }) async {
+    final target = await _client.from('course_sections').select('cohort_id').eq('id', sectionId).single();
+    final targetCohort = target['cohort_id'] as String?;
     final existing = await _client
         .from('student_courses')
-        .select('student_id, section_id, course_sections(section_code)')
+        .select('student_id, section_id, course_sections(section_code, cohort_id)')
         .eq('course_id', courseId)
         .inFilter('student_id', studentIds);
     final alreadyInThisClass = <String>[];
     final inOtherClass = <String, String>{};
     for (final row in existing as List) {
       final id = (row['student_id'] as num).toString();
+      final other = row['course_sections'] as Map<String, dynamic>?;
       if (row['section_id'] == sectionId) {
         alreadyInThisClass.add(id);
-      } else {
-        final code = (row['course_sections'] as Map<String, dynamic>?)?['section_code'] as String?;
+      } else if (other == null || other['cohort_id'] == targetCohort) {
+        final code = other?['section_code'] as String?;
         inOtherClass[id] = code == null ? 'another class' : displayCode(code);
       }
     }
@@ -220,8 +223,10 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
-  Future<void> unenrollStudentFromCourse(String studentId, String courseId) async {
-    await _client.from('student_courses').delete().eq('student_id', studentId).eq('course_id', courseId);
+  Future<void> unenrollStudentFromCourse(String studentId, String courseId, {String? sectionId}) async {
+    var query = _client.from('student_courses').delete().eq('student_id', studentId).eq('course_id', courseId);
+    if (sectionId != null) query = query.eq('section_id', sectionId);
+    await query;
   }
 
   @override
@@ -235,11 +240,13 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
-  Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore) async {
-    await _client
+  Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore, {String? sectionId}) async {
+    var query = _client
         .from('student_courses')
         .update({'moderated_score': moderatedScore})
         .eq('student_id', studentId)
         .eq('course_id', courseId);
+    if (sectionId != null) query = query.eq('section_id', sectionId);
+    await query;
   }
 }

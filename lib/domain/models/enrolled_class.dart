@@ -22,6 +22,9 @@ class EnrolledClass {
   /// tied to a specific class; falls back to the course code otherwise.
   String get displayName => sectionCode ?? courseCode;
 
+  /// Unique per enrollment — a student can be in several classes of one course.
+  String get rowKey => sectionId ?? courseId;
+
   factory EnrolledClass.fromMap(Map<String, dynamic> map) {
     final course = map['courses'] as Map<String, dynamic>?;
     final section = map['course_sections'] as Map<String, dynamic>?;

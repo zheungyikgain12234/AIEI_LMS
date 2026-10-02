@@ -36,22 +36,18 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     // Module content is class-scoped: a student's course content is
     // whichever class (`section_id`) they're enrolled in for that course,
     // which may be null if they haven't been assigned to a class yet.
-    final sectionByCourse = <String, String>{
-      for (final row in enrollmentRows as List)
-        if (row['section_id'] != null) row['course_id'] as String: row['section_id'] as String,
-    };
-    final enrolledCourseIds = {for (final row in enrollmentRows) row['course_id'] as String};
+    final enrollments = <({String courseId, String? sectionId})>[
+      for (final row in enrollmentRows as List) (courseId: row['course_id'] as String, sectionId: row['section_id'] as String?),
+    ];
+    final enrolledCourseIds = {for (final e in enrollments) e.courseId};
     // Progress is never read from the stored `student_courses.progress_percentage`
     // column — it's recomputed live from actual gradebook state every time,
     // the same way the lecturer's Student Directory does, so the two views
     // can never disagree and adding/removing assessments or grades is
     // reflected immediately without needing a separate sync step.
-    final liveProgressByCourse = await _liveProgressByCourse(sectionByCourse);
-    final progressByCourse = <String, int>{
-      for (final id in enrolledCourseIds) id: liveProgressByCourse[id] ?? 0,
-    };
+    final liveProgressBySection = await _liveProgressBySection({for (final e in enrollments) if (e.sectionId != null) e.sectionId!});
 
-    final sectionIds = sectionByCourse.values.toSet().toList();
+    final sectionIds = {for (final e in enrollments) if (e.sectionId != null) e.sectionId!}.toList();
     final sectionRows = sectionIds.isEmpty
         ? <dynamic>[]
         : await _client
@@ -70,38 +66,40 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
         if (row['cohorts'] != null) row['id'] as String: row['cohorts']['name'] as String,
     };
 
+    // One card per enrollment: the same course in two different cohorts
+    // shows as two classes, each with its own progress.
+    final courseById = {for (final course in courseRows as List) course['id'] as String: course as Map<String, dynamic>};
     return [
-      for (final course in courseRows as List)
-        if (progressByCourse.containsKey(course['id']))
+      for (final e in enrollments)
+        if (courseById[e.courseId] != null)
           _mapCourse(
-            course as Map<String, dynamic>,
-            progressByCourse,
-            sectionByCourse[course['id']],
-            lecturerNameBySection[sectionByCourse[course['id']]],
-            classCodeBySection[sectionByCourse[course['id']]],
-            cohortNameBySection[sectionByCourse[course['id']]],
+            courseById[e.courseId]!,
+            {e.courseId: e.sectionId == null ? 0 : (liveProgressBySection[e.sectionId] ?? 0)},
+            e.sectionId,
+            lecturerNameBySection[e.sectionId],
+            classCodeBySection[e.sectionId],
+            cohortNameBySection[e.sectionId],
           ),
     ];
   }
 
-  /// Computes each course's progress live as
+  /// Computes each class's progress (keyed by section id) live as
   /// `graded exam/assignment blocks ÷ total exam/assignment blocks` for the
   /// demo student's own section — the same calculation the lecturer's
   /// Student Directory uses — instead of trusting a stored/denormalized
   /// column that can go stale the moment an assessment is added, removed,
   /// or (un)graded.
-  Future<Map<String, int>> _liveProgressByCourse(Map<String, String> sectionByCourse) async {
-    if (sectionByCourse.isEmpty) return {};
-    final courseBySection = {for (final entry in sectionByCourse.entries) entry.value: entry.key};
-    final sectionIds = courseBySection.keys.toList();
+  Future<Map<String, int>> _liveProgressBySection(Set<String> sectionIdSet) async {
+    if (sectionIdSet.isEmpty) return {};
+    final sectionIds = sectionIdSet.toList();
 
     final moduleRows = await _client.from('course_modules').select('id, section_id').inFilter('section_id', sectionIds);
     final sectionByModule = {for (final row in moduleRows as List) row['id'] as String: row['section_id'] as String};
-    if (sectionByModule.isEmpty) return {for (final id in sectionByCourse.keys) id: 0};
+    if (sectionByModule.isEmpty) return {for (final id in sectionIds) id: 0};
 
     final sessionRows = await _client.from('sessions').select('id, module_id').inFilter('module_id', sectionByModule.keys.toList());
     final moduleBySession = {for (final row in sessionRows as List) row['id'] as String: row['module_id'] as String};
-    if (moduleBySession.isEmpty) return {for (final id in sectionByCourse.keys) id: 0};
+    if (moduleBySession.isEmpty) return {for (final id in sectionIds) id: 0};
 
     final blockRows = await _client
         .from('content_blocks')
@@ -118,7 +116,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       sectionByBlock[blockId] = sectionId;
       totalAssessmentsBySection[sectionId] = (totalAssessmentsBySection[sectionId] ?? 0) + 1;
     }
-    if (sectionByBlock.isEmpty) return {for (final id in sectionByCourse.keys) id: 0};
+    if (sectionByBlock.isEmpty) return {for (final id in sectionIds) id: 0};
 
     final gradedRows = await _client
         .from('content_block_submissions')
@@ -134,8 +132,8 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     }
 
     return {
-      for (final sectionId in sectionByCourse.keys.map((courseId) => sectionByCourse[courseId]!).toSet())
-        courseBySection[sectionId]!: () {
+      for (final sectionId in sectionIds)
+        sectionId: () {
           final total = totalAssessmentsBySection[sectionId] ?? 0;
           if (total == 0) return 0;
           final graded = gradedCountBySection[sectionId] ?? 0;
@@ -211,6 +209,8 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
         .select('section_id')
         .eq('student_id', DemoIdentity.studentId)
         .eq('course_id', courseId)
+        .order('enrolled_at', ascending: false)
+        .limit(1)
         .maybeSingle();
     final sectionId = enrollment?['section_id'] as String?;
     if (sectionId == null) return [];
@@ -390,21 +390,26 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
 
   @override
   Future<bool> enrollInCompulsoryCourse(String courseId, {String? cohortId}) async {
-    var query = _client.from('course_sections').select('id').eq('course_id', courseId);
+    var query = _client.from('course_sections').select('id, cohort_id').eq('course_id', courseId);
     if (cohortId != null) query = query.eq('cohort_id', cohortId);
     final sectionRow = await query.order('section_code').limit(1).maybeSingle();
     final sectionId = sectionRow?['id'] as String?;
     if (sectionId == null) return false;
 
-    // One class per course: if the student is already in this course, leave
-    // their enrollment alone instead of moving them to another class.
+    // One class per course per cohort: if the student already has a class of
+    // this course in this cohort, leave it alone instead of moving them. A
+    // class in a different cohort is fine and is added alongside.
+    final targetCohort = sectionRow?['cohort_id'] as String?;
     final existing = await _client
         .from('student_courses')
-        .select('student_id')
+        .select('section_id, course_sections(cohort_id)')
         .eq('student_id', DemoIdentity.studentId)
-        .eq('course_id', courseId)
-        .maybeSingle();
-    if (existing == null) {
+        .eq('course_id', courseId);
+    final alreadyInCohort = (existing as List).any((row) {
+      final other = row['course_sections'] as Map<String, dynamic>?;
+      return row['section_id'] == sectionId || other == null || other['cohort_id'] == targetCohort;
+    });
+    if (!alreadyInCohort) {
       await _client.from('student_courses').insert({'student_id': DemoIdentity.studentId, 'course_id': courseId, 'section_id': sectionId});
     }
     return true;

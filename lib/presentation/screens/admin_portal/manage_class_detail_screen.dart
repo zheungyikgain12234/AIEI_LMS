@@ -193,7 +193,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     final courseId = _section!.courseId;
     setState(() => _unenrolling.add(s.studentId));
     try {
-      await _studentsRepository.unenrollStudentFromCourse(s.studentId, courseId);
+      await _studentsRepository.unenrollStudentFromCourse(s.studentId, courseId, sectionId: widget.sectionId);
       if (!mounted) return;
       setState(() {
         _roster.removeWhere((r) => r.studentId == s.studentId);

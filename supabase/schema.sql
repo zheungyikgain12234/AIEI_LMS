@@ -520,7 +520,11 @@ create trigger lecturer_courses_recalc_credits
   after insert or delete on lecturer_courses
   for each row execute function recalc_lecturer_credits_used();
 
+-- One row per (student, class). A student may take the same course in several
+-- classes only if those classes are in different cohorts — the app refuses a
+-- second class of the same course within the same cohort.
 create table student_courses (
+  id uuid primary key default gen_random_uuid(),
   student_id bigint not null references students(id) on delete cascade,
   course_id uuid not null references courses(id) on delete cascade,
   section_id uuid references course_sections(id) on delete set null,
@@ -534,7 +538,7 @@ create table student_courses (
   last_activity_at timestamptz not null default now(),
   is_online_now boolean not null default false,
   enrolled_at timestamptz not null default now(),
-  primary key (student_id, course_id)
+  unique (student_id, section_id)
 );
 
 create table student_materials (

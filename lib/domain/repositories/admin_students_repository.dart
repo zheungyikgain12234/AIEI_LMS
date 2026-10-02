@@ -67,8 +67,10 @@ abstract class AdminStudentsRepository {
   Future<List<EnrollmentCandidate>> getEnrollmentCandidates(String courseId);
 
   /// Enrolls each student into [courseId] via the class [sectionId]. A student
-  /// can be in only one class per course, so students who are already
-  /// enrolled in this course — in this class or in another one — are NOT
+  /// can be in only one class of a course per cohort (classes in different
+  /// cohorts are fine), so students who are already
+  /// enrolled in this course — in this class or in another one of the same
+  /// cohort — are NOT
   /// touched (nothing is overwritten or moved); they are reported back so the
   /// caller can tell the admin. A section's enrolled count is always derived
   /// from `student_courses`, never stored, so nothing else needs updating.
@@ -82,9 +84,11 @@ abstract class AdminStudentsRepository {
   /// Courses screen.
   Future<List<EnrolledClass>> getEnrolledClasses(String studentId);
 
-  /// Removes the student_courses row for (studentId, courseId). A section's
+  /// Removes the student_courses row for (studentId, courseId) — only the one in
+  /// [sectionId] when given, since a student can be in several classes of a
+  /// course (in different cohorts). A section's
   /// enrolled count is always derived from `student_courses`, never stored.
-  Future<void> unenrollStudentFromCourse(String studentId, String courseId);
+  Future<void> unenrollStudentFromCourse(String studentId, String courseId, {String? sectionId});
 
   /// Students currently enrolled in one class section (from
   /// `student_courses`, filtered to `sectionId`) — the "Manage Classes"
@@ -93,10 +97,10 @@ abstract class AdminStudentsRepository {
 
   /// Persists a lecturer's manual moderation adjustment for one student's
   /// `student_courses` row (Course Dashboard's Student Directory table).
-  Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore);
+  Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore, {String? sectionId});
 }
 
 /// Result of [AdminStudentsRepository.enrollStudentsInSection], as student ids.
 /// [inOtherClass] maps a student already in a different class of the course to
-/// that class's code.
+/// that class's code (same cohort only).
 typedef EnrollOutcome = ({List<String> enrolled, List<String> alreadyInThisClass, Map<String, String> inOtherClass});

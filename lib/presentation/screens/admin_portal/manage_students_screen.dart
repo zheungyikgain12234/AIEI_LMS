@@ -581,7 +581,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       if (outcome.alreadyInThisClass.isNotEmpty)
         'Already enrolled in ${chosen.sectionCode}: ${outcome.alreadyInThisClass.map(nameOf).join(', ')}.',
       if (outcome.inOtherClass.isNotEmpty)
-        'Already enrolled in another class of this course (not changed — unenroll them first to move): '
+        'Already enrolled in another class of this course in the same cohort (not changed — unenroll them first to move): '
             '${outcome.inOtherClass.entries.map((e) => '${nameOf(e.key)} (${e.value})').join(', ')}.',
     ];
     ScaffoldMessenger.of(context).showSnackBar(

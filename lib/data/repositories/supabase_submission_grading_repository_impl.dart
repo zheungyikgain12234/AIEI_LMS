@@ -129,7 +129,8 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
         .from('student_courses')
         .update({'progress_percentage': progress})
         .eq('student_id', studentId)
-        .eq('course_id', courseId);
+        .eq('course_id', courseId)
+        .eq('section_id', sectionId);
 
     if (progress < 100) return;
 

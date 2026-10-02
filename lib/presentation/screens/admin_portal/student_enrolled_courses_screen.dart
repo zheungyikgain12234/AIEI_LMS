@@ -47,20 +47,20 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
   }
 
   Future<void> _unenroll(EnrolledClass c) async {
-    setState(() => _unenrolling.add(c.courseId));
+    setState(() => _unenrolling.add(c.rowKey));
     try {
-      await _repository.unenrollStudentFromCourse(widget.studentId, c.courseId);
+      await _repository.unenrollStudentFromCourse(widget.studentId, c.courseId, sectionId: c.sectionId);
       if (!mounted) return;
       setState(() {
-        _classes.removeWhere((e) => e.courseId == c.courseId);
-        _unenrolling.remove(c.courseId);
+        _classes.removeWhere((e) => e.rowKey == c.rowKey);
+        _unenrolling.remove(c.rowKey);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Unenrolled from ${c.displayName}.')),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _unenrolling.remove(c.courseId));
+      setState(() => _unenrolling.remove(c.rowKey));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to unenroll: $e'), backgroundColor: AdminColors.error),
       );
@@ -145,7 +145,7 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
   }
 
   Widget _classRow(EnrolledClass c) {
-    final busy = _unenrolling.contains(c.courseId);
+    final busy = _unenrolling.contains(c.rowKey);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),

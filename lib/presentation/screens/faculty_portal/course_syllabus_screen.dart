@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
@@ -14,10 +15,12 @@ import 'assignment_editor_screen.dart';
 import 'exam_editor_screen.dart';
 import 'mark_assignment_screen.dart';
 import 'mark_exam_screen.dart';
+import 'physical_class_attendees_screen.dart';
 import 'widgets/clickable_link.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/embedded_image.dart';
 import 'widgets/embedded_video_player.dart';
+import 'physical_class_attendance_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -346,6 +349,9 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     switch (dest) {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
+      case FacultyNavDestination.physicalClassAttendance:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhysicalClassAttendanceScreen()));
+        break;
       case FacultyNavDestination.gradingAndSubmissions:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
     }
@@ -804,6 +810,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         return Icons.quiz_outlined;
       case ContentBlockType.assignment:
         return Icons.assignment_outlined;
+      case ContentBlockType.physicalClass:
+        return Icons.meeting_room_outlined;
     }
   }
 
@@ -949,6 +957,44 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
             OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
           ],
         );
+      case ContentBlockType.physicalClass:
+        return Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    b.title?.isNotEmpty == true ? b.title! : 'Physical Class',
+                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                  ),
+                  if (b.scheduledAt != null) ...[
+                    const SizedBox(height: 2),
+                    Text(formatDateRange(b.scheduledAt!, b.endsAt), style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+                  ],
+                  if (b.description?.isNotEmpty == true) ...[
+                    const SizedBox(height: 2),
+                    Text(b.description!, style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+                  ],
+                ],
+              ),
+            ),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PhysicalClassAttendeesScreen(
+                    contentBlockId: b.id,
+                    sectionId: widget.sectionId,
+                    title: b.title?.isNotEmpty == true ? b.title! : 'Physical Class',
+                    scheduledAt: b.scheduledAt,
+                    endsAt: b.endsAt,
+                  ),
+                ),
+              ),
+              child: const Text('Attendance'),
+            ),
+          ],
+        );
     }
   }
 }
@@ -1058,6 +1104,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   late String _mode = widget.existing?.mode ?? 'normal';
   DateTime? _dueDate;
   DateTime? _availableFrom;
+  DateTime? _classStart;
+  DateTime? _classEnd;
   String? _uploadedFileName;
   bool _uploading = false;
   bool _uploadingThumbnail = false;
@@ -1074,6 +1122,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     super.initState();
     _richTextController.addListener(() => setState(() {}));
     _dueDate = widget.existing?.dueDate;
+    _classStart = widget.existing?.scheduledAt;
+    _classEnd = widget.existing?.endsAt;
     _availableFrom = widget.existing?.availableFrom;
     _uploadedFileName = widget.existing?.fileName;
     _loadWeightageBudget();
@@ -1194,6 +1244,12 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             !_loadingWeightage &&
             _parsedWeightage != null &&
             _weightageError == null;
+      case ContentBlockType.physicalClass:
+        return _titleController.text.trim().isNotEmpty &&
+            _descriptionController.text.trim().isNotEmpty &&
+            _classStart != null &&
+            _classEnd != null &&
+            _classEnd!.isAfter(_classStart!);
     }
   }
 
@@ -1332,6 +1388,13 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           'weightage': _parsedWeightage,
           'instructionFiles': _instructionFiles,
         };
+      case ContentBlockType.physicalClass:
+        return {
+          'title': _titleController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'scheduledAt': _classStart!.toIso8601String(),
+          'endsAt': _classEnd!.toIso8601String(),
+        };
     }
   }
 
@@ -1393,6 +1456,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return 'Exam';
       case ContentBlockType.assignment:
         return 'Assignment';
+      case ContentBlockType.physicalClass:
+        return 'Physical Class';
     }
   }
 
@@ -1565,6 +1630,34 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
           ),
         ];
+      case ContentBlockType.physicalClass:
+        return [
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(label: requiredLabel('Name')),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _descriptionController,
+            decoration: InputDecoration(label: requiredLabel('Description')),
+            maxLines: 2,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _scheduleRow('Start', _classStart, (v) => setState(() => _classStart = v), defaultHour: 9),
+          const SizedBox(height: 12),
+          _scheduleRow('End', _classEnd, (v) => setState(() => _classEnd = v), defaultHour: 12),
+          if (_classStart != null && _classEnd != null && !_classEnd!.isAfter(_classStart!)) ...[
+            const SizedBox(height: 6),
+            Text('The end must be after the start.', style: FacultyTypography.labelXs(color: FacultyColors.error)),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'Students can tick their attendance between the start and end date/time.',
+            style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+          ),
+        ];
     }
   }
 
@@ -1586,6 +1679,47 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         errorText: _weightageError,
       ),
       onChanged: (_) => setState(() {}),
+    );
+  }
+
+  /// A "<label> date" + time picker pair for one end of a physical class's
+  /// window. Picking a date first defaults the time to [defaultHour]:00.
+  Widget _scheduleRow(String label, DateTime? value, ValueChanged<DateTime?> onChanged, {required int defaultHour}) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: value ?? _classStart ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (picked == null) return;
+              onChanged(DateTime(picked.year, picked.month, picked.day, value?.hour ?? defaultHour, value?.minute ?? 0));
+            },
+            icon: const Icon(Icons.event_outlined, size: 16),
+            label: Text(value == null ? '$label date *' : '${value.year}-${two(value.month)}-${two(value.day)}'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: value == null
+                ? null
+                : () async {
+                    final picked = await showTimePicker(context: context, initialTime: TimeOfDay(hour: value.hour, minute: value.minute));
+                    if (picked == null) return;
+                    onChanged(DateTime(value.year, value.month, value.day, picked.hour, picked.minute));
+                  },
+            icon: const Icon(Icons.schedule_outlined, size: 16),
+            label: Text(value == null ? '$label time' : '${two(value.hour)}:${two(value.minute)}'),
+          ),
+        ),
+      ],
     );
   }
 

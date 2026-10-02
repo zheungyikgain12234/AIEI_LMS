@@ -13,6 +13,7 @@ import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'widgets/announcements_panel.dart';
+import 'physical_class_attendance_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/student_roster_panel.dart';
@@ -307,6 +308,9 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     switch (dest) {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
+        break;
+      case FacultyNavDestination.physicalClassAttendance:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhysicalClassAttendanceScreen()));
         break;
       case FacultyNavDestination.gradingAndSubmissions:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));

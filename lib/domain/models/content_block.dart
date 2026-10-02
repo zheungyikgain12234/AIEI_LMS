@@ -8,7 +8,8 @@ enum ContentBlockType {
   link,
   file,
   exam,
-  assignment;
+  assignment,
+  physicalClass;
 
   static ContentBlockType fromKey(String key) =>
       ContentBlockType.values.firstWhere((t) => t.name == key, orElse: () => ContentBlockType.text);
@@ -27,6 +28,9 @@ enum ContentBlockType {
 /// - assignment: `{"title": "...", "description": "...", "instructions":
 ///   "...", "dueDate": "ISO 8601 string"}` — points at the assignment
 ///   editor, keyed by [id].
+/// - physicalClass: `{"title": "...", "description": "...", "scheduledAt":
+///   "ISO 8601 string"}` — students tick attendance once while it's on;
+///   each tick is a `content_block_submissions` row (status `submitted`).
 class ContentBlock {
   final String id;
   final String sessionId;
@@ -79,6 +83,29 @@ class ContentBlock {
     final raw = content['dueDate'] as String?;
     if (raw == null || raw.isEmpty) return null;
     return DateTime.tryParse(raw);
+  }
+
+  /// Physical-class-only: the date and time the class takes place.
+  DateTime? get scheduledAt {
+    final raw = content['scheduledAt'] as String?;
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  /// Physical-class-only: when the class ends. Classes created before an end
+  /// was captured fall back to the end of their start day.
+  DateTime? get endsAt {
+    final raw = content['endsAt'] as String?;
+    if (raw != null && raw.isNotEmpty) return DateTime.tryParse(raw);
+    final start = scheduledAt;
+    return start == null ? null : DateTime(start.year, start.month, start.day + 1);
+  }
+
+  /// Physical-class-only: attendance can be ticked from [scheduledAt] until
+  /// [endsAt]; after that the class is over.
+  bool get isPhysicalClassOver {
+    final end = endsAt;
+    return end != null && !DateTime.now().isBefore(end);
   }
 
   /// Exam-only: when attempts open. Before this, the exam-answering screen

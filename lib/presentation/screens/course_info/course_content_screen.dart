@@ -10,6 +10,7 @@ import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/physical_class_attendance_card.dart';
 import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/quiz_answering/quiz_answering_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/announcements_panel.dart';
@@ -722,6 +723,8 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
         return Icons.quiz_outlined;
       case ContentBlockType.assignment:
         return Icons.assignment_outlined;
+      case ContentBlockType.physicalClass:
+        return Icons.meeting_room_outlined;
     }
   }
 
@@ -761,6 +764,8 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
         return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Exam', onTap: () => _openExam(b));
       case ContentBlockType.assignment:
         return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Assignment', onTap: () => _openAssignment(b));
+      case ContentBlockType.physicalClass:
+        return PhysicalClassAttendanceCard(block: b, studentId: DemoIdentity.studentId);
     }
   }
 

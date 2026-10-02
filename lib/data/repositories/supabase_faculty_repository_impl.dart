@@ -228,4 +228,41 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
         ),
     ];
   }
+
+  @override
+  Future<List<PhysicalClassItem>> getPhysicalClassItems(List<String> sectionIds) async {
+    if (sectionIds.isEmpty) return [];
+
+    final moduleRows = await _client.from('course_modules').select('id, section_id').inFilter('section_id', sectionIds);
+    final sectionByModule = {for (final row in moduleRows as List) row['id'] as String: row['section_id'] as String};
+    if (sectionByModule.isEmpty) return [];
+
+    final sessionRows = await _client.from('sessions').select('id, module_id').inFilter('module_id', sectionByModule.keys.toList());
+    final moduleBySession = {for (final row in sessionRows as List) row['id'] as String: row['module_id'] as String};
+    if (moduleBySession.isEmpty) return [];
+
+    final blockRows = await _client
+        .from('content_blocks')
+        .select('id, block_content, session_id')
+        .inFilter('session_id', moduleBySession.keys.toList())
+        .eq('block_type', 'physicalClass');
+
+    final items = <PhysicalClassItem>[];
+    for (final row in blockRows as List) {
+      final moduleId = moduleBySession[row['session_id'] as String];
+      final sectionId = moduleId == null ? null : sectionByModule[moduleId];
+      if (sectionId == null) continue;
+      final content = (row['block_content'] as Map<String, dynamic>?) ?? const {};
+      final rawDate = content['scheduledAt'] as String?;
+      items.add((
+        sectionId: sectionId,
+        contentBlockId: row['id'] as String,
+        title: content['title'] as String? ?? 'Untitled',
+        description: content['description'] as String? ?? '',
+        scheduledAt: rawDate == null ? null : DateTime.tryParse(rawDate),
+        endsAt: content['endsAt'] is String ? DateTime.tryParse(content['endsAt'] as String) : null,
+      ));
+    }
+    return items;
+  }
 }

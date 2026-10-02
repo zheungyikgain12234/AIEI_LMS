@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/domain/repositories/faculty_repository.dart' sho
 import 'mark_assignment_screen.dart';
 import 'mark_exam_screen.dart';
 import 'my_assigned_courses_screen.dart';
+import 'physical_class_attendance_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -109,6 +110,9 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
     switch (dest) {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
+        break;
+      case FacultyNavDestination.physicalClassAttendance:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhysicalClassAttendanceScreen()));
         break;
       case FacultyNavDestination.gradingAndSubmissions:
         break;

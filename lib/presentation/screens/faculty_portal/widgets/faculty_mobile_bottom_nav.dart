@@ -45,6 +45,13 @@ class FacultyMobileBottomNav extends StatelessWidget {
                 badge: pendingCount,
               ),
             ),
+            Expanded(
+              child: _item(
+                icon: Icons.meeting_room_outlined,
+                label: 'Attendance',
+                dest: FacultyNavDestination.physicalClassAttendance,
+              ),
+            ),
           ],
         ),
       ),

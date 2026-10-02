@@ -16,6 +16,7 @@ import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
 import 'grading_queue_screen.dart';
+import 'physical_class_attendance_screen.dart';
 
 const _kAccentPalette = [
   (FacultyColors.primary, Color(0xFFDBEAFE)),
@@ -283,7 +284,16 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
 
   void _handleNav(FacultyNavDestination dest) {
     if (dest == FacultyNavDestination.myCourses) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
+    switch (dest) {
+      case FacultyNavDestination.myCourses:
+        break;
+      case FacultyNavDestination.gradingAndSubmissions:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
+        break;
+      case FacultyNavDestination.physicalClassAttendance:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhysicalClassAttendanceScreen()));
+        break;
+    }
   }
 
   void _openDashboard(_CourseRow c) {

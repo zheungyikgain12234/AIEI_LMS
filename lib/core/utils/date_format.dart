@@ -9,3 +9,13 @@ String formatDueDate(DateTime dt) {
   final period = dt.hour < 12 ? 'AM' : 'PM';
   return '$month ${dt.day}, ${dt.year}, $hour12:$minute $period';
 }
+
+/// "Jan 5, 2026, 9:00 AM – 12:00 PM" for a same-day range, otherwise both
+/// full date/times.
+String formatDateRange(DateTime start, DateTime? end) {
+  if (end == null) return formatDueDate(start);
+  final sameDay = start.year == end.year && start.month == end.month && start.day == end.day;
+  if (!sameDay) return '${formatDueDate(start)} – ${formatDueDate(end)}';
+  final endText = formatDueDate(end);
+  return '${formatDueDate(start)} – ${endText.substring(endText.indexOf(',', endText.indexOf(',') + 1) + 2)}';
+}

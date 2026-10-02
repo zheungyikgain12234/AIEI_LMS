@@ -24,6 +24,16 @@ typedef PendingGradingItem = ({
   int pendingCount,
 });
 
+/// One physical class session (a `physicalClass` content block) in a class.
+typedef PhysicalClassItem = ({
+  String sectionId,
+  String contentBlockId,
+  String title,
+  String description,
+  DateTime? scheduledAt,
+  DateTime? endsAt,
+});
+
 abstract class FacultyRepository {
   Future<List<AssignedCourse>> getAssignedCourses(String lecturerId);
 
@@ -58,4 +68,7 @@ abstract class FacultyRepository {
   /// queue. A block with zero pending submissions is simply absent from the
   /// result, not present with a zero count.
   Future<List<PendingGradingItem>> getPendingGradingItems(List<String> sectionIds);
+
+  /// Every `physicalClass` content block across [sectionIds].
+  Future<List<PhysicalClassItem>> getPhysicalClassItems(List<String> sectionIds);
 }

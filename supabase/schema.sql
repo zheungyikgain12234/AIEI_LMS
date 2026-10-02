@@ -263,7 +263,7 @@ create table sessions (
 create table content_blocks (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references sessions(id) on delete cascade,
-  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment')),
+  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment', 'physicalClass')),
   block_content jsonb not null default '{}'::jsonb,
   block_sorting int not null default 0,
   created_at timestamptz not null default now()
@@ -301,7 +301,7 @@ create table template_sessions (
 create table template_content_blocks (
   id uuid primary key default gen_random_uuid(),
   template_session_id uuid not null references template_sessions(id) on delete cascade,
-  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment')),
+  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment', 'physicalClass')),
   block_content jsonb not null default '{}'::jsonb,
   block_sorting int not null default 0
 );

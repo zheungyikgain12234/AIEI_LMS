@@ -314,12 +314,7 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Grading and Submissions', style: FacultyTypography.headlineLg(color: FacultyColors.primary)),
-              const SizedBox(height: 8),
-              Text(
-                'Quizzes and assignments awaiting grading, by cohort and class.',
-                style: FacultyTypography.bodyMd(),
-              ),
+              _buildHeader(),
               const SizedBox(height: 16),
               _buildBody(),
             ],
@@ -328,7 +323,6 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
       ),
       bottomNavigationBar: FacultyMobileBottomNav(
         selected: FacultyNavDestination.gradingAndSubmissions,
-        pendingCount: _totalPending,
         onDestinationSelected: _handleNav,
       ),
     );

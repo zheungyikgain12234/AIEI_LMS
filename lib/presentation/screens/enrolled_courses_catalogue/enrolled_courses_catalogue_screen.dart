@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
-import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
 import 'package:stitch_aiei_lms/domain/models/critical_action_item.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_content_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
@@ -16,7 +15,6 @@ import 'widgets/course_filters_bar.dart';
 import 'widgets/tags_filter_row.dart';
 import 'widgets/enroll_target_picker.dart';
 import 'widgets/course_grid.dart';
-import 'widgets/mobile_course_card.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_top_bar.dart';
 
@@ -233,6 +231,11 @@ class _EnrolledCoursesCatalogueScreenState
     _pushAndReload(CourseContentScreen(sectionId: action.sectionId, courseTitle: action.courseTitle));
   }
 
+  // Mobile (< 700px) layout — the same sections as desktop (telemetry banner +
+  // critical actions, tag/search/sort/year/cohort filters, the course grid and
+  // the "Compulsory for You" block). Each desktop widget is already
+  // responsive, so they are reused as-is; only the shell (compact top bar and
+  // bottom nav instead of header + sidebar) differs.
   Widget _buildMobileScaffold(BuildContext context, CoursesState state, CoursesNotifier notifier) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -257,16 +260,12 @@ class _EnrolledCoursesCatalogueScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _mobileSearchBox(notifier.setSearchQuery),
-                    const SizedBox(height: 16),
-                    Text('My Enrolled Courses', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
-                    const SizedBox(height: 8),
-                    if (state.stats != null) _buildMobileTelemetryChips(state.stats!),
-                    const SizedBox(height: 16),
-                    if (state.criticalActions.isNotEmpty) ...[
-                      _buildMobileCriticalActionsCard(context, state.criticalActions),
-                      const SizedBox(height: 16),
-                    ],
+                    TelemetryBanner(
+                      stats: state.stats,
+                      criticalActions: state.criticalActions,
+                      onOpenAction: (action) => _openCriticalAction(context, action),
+                    ),
+                    const SizedBox(height: 24),
                     TagsFilterRow(
                       tags: state.availableTags,
                       selectedTag: state.selectedTag,
@@ -274,48 +273,32 @@ class _EnrolledCoursesCatalogueScreenState
                       expand: true,
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _mobileYearCohortDropdown<int>(
-                            hint: 'Year',
-                            value: state.availableYears.contains(state.selectedYear) ? state.selectedYear : null,
-                            items: state.availableYears,
-                            labelOf: (y) => '$y',
-                            onChanged: notifier.selectYear,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _mobileYearCohortDropdown<String>(
-                            hint: 'Cohort',
-                            value: () {
-                              final names = state.selectedYear == null ? const <String>[] : state.cohortNamesForYear(state.selectedYear!);
-                              return names.contains(state.selectedCohort) ? state.selectedCohort : null;
-                            }(),
-                            items: state.selectedYear == null ? const [] : state.cohortNamesForYear(state.selectedYear!),
-                            labelOf: (c) => c,
-                            onChanged: notifier.selectCohort,
-                          ),
-                        ),
-                      ],
+                    CourseFiltersBar(
+                      alignment: WrapAlignment.start,
+                      onSearchChanged: notifier.setSearchQuery,
+                      selectedSort: state.sortOption,
+                      onSortChanged: notifier.setSortOption,
+                      availableYears: state.availableYears,
+                      selectedYear: state.selectedYear,
+                      onYearChanged: notifier.selectYear,
+                      cohortNames: state.selectedYear == null ? const [] : state.cohortNamesForYear(state.selectedYear!),
+                      selectedCohort: state.selectedCohort,
+                      onCohortChanged: notifier.selectCohort,
                     ),
-                    const SizedBox(height: 16),
-                    for (final course in state.filteredAndSortedCourses) ...[
-                      MobileCourseCard(course: course, onAction: () => _openCourse(context, course)),
-                      const SizedBox(height: 16),
-                    ],
+                    const SizedBox(height: 24),
+                    CourseGrid(
+                      courses: state.filteredAndSortedCourses,
+                      onCourseAction: (course) => _openCourse(context, course),
+                    ),
                     if (state.compulsoryCourses.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 18)),
+                      const SizedBox(height: 40),
+                      Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
                       const SizedBox(height: 4),
                       Text(
                         'Required for your role — not yet on your enrolled list.',
-                        style: AppTypography.bodySm(color: AppColors.onSurfaceVariant),
+                        style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant),
                       ),
-                      const SizedBox(height: 12),
-                      _mobileSearchBox(notifier.setCompulsorySearchQuery),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       TagsFilterRow(
                         tags: state.availableCompulsoryTags,
                         selectedTag: state.selectedCompulsoryTag,
@@ -323,13 +306,28 @@ class _EnrolledCoursesCatalogueScreenState
                         expand: true,
                       ),
                       const SizedBox(height: 12),
-                      _enrollTargetPicker(state, notifier),
+                      CourseFiltersBar(
+                        showYearCohort: false,
+                        alignment: WrapAlignment.start,
+                        onSearchChanged: notifier.setCompulsorySearchQuery,
+                        selectedSort: state.compulsorySortOption,
+                        onSortChanged: notifier.setCompulsorySortOption,
+                        availableYears: const [],
+                        selectedYear: null,
+                        onYearChanged: (_) {},
+                        cohortNames: const [],
+                        selectedCohort: null,
+                        onCohortChanged: (_) {},
+                      ),
                       const SizedBox(height: 12),
-                      for (final course in state.filteredCompulsoryCourses) ...[
-                        MobileCourseCard(course: course, onAction: () => _enrollInCompulsoryCourse(context, course)),
-                        const SizedBox(height: 16),
-                      ],
+                      Align(alignment: Alignment.centerLeft, child: _enrollTargetPicker(state, notifier)),
+                      const SizedBox(height: 24),
+                      CourseGrid(
+                        courses: state.filteredCompulsoryCourses,
+                        onCourseAction: (course) => _enrollInCompulsoryCourse(context, course),
+                      ),
                     ],
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -348,147 +346,4 @@ class _EnrolledCoursesCatalogueScreenState
       onCohortChanged: notifier.selectCompulsoryCohort,
     );
   }
-
-  Widget _mobileSearchBox(ValueChanged<String> onChanged) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4)]),
-      child: TextField(
-        onChanged: onChanged,
-        style: AppTypography.bodyMd(color: AppColors.onSurface),
-        decoration: InputDecoration(
-          hintText: 'Search courses, lessons and certifications',
-          hintStyle: AppTypography.bodyMd(color: AppColors.outline),
-          prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.outline),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-        ),
-      ),
-    );
-  }
-
-  Widget _mobileYearCohortDropdown<T>({
-    required String hint,
-    required T? value,
-    required List<T> items,
-    required String Function(T) labelOf,
-    required ValueChanged<T> onChanged,
-  }) {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1))],
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          hint: Text(hint, style: AppTypography.bodySm(color: AppColors.outline)),
-          isExpanded: true,
-          icon: const Icon(Icons.expand_more, size: 18, color: AppColors.outline),
-          style: AppTypography.labelMd(color: AppColors.onSurface),
-          onChanged: (v) {
-            if (v != null) onChanged(v);
-          },
-          items: [for (final item in items) DropdownMenuItem(value: item, child: Text(labelOf(item), overflow: TextOverflow.ellipsis))],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileTelemetryChips(CourseStats stats) {
-    Widget chip(Color dotColor, String label, String value, {IconData? icon}) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        margin: const EdgeInsets.only(right: 8),
-        decoration: BoxDecoration(color: AppColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4)]),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null)
-              Icon(icon, size: 14, color: AppColors.outline)
-            else
-              Container(width: 8, height: 8, decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Text(label, style: AppTypography.labelSm(color: AppColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(width: 4),
-            Text(value, style: AppTypography.labelMd(color: AppColors.primary).copyWith(fontWeight: FontWeight.w700)),
-          ],
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 40,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          chip(AppColors.secondary, 'ENROLLED', '${stats.enrolledCourses}'),
-          chip(AppColors.secondaryContainer, 'IN PROGRESS', '${stats.inProgressCourses}'),
-          chip(AppColors.onTertiaryContainer, 'COMPLETED', '${stats.completedCourses}'),
-          chip(Colors.transparent, 'BADGES', '${stats.badgesEarned}', icon: Icons.military_tech_outlined),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileCriticalActionsCard(BuildContext context, List<CriticalActionItem> actions) {
-    String dueText(CriticalActionItem item) {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final due = DateTime(item.dueDate.year, item.dueDate.month, item.dueDate.day);
-      final diff = due.difference(today).inDays;
-      if (diff < 0) return 'Overdue by ${-diff}d';
-      if (diff == 0) return 'Due Today';
-      return 'Due in ${diff}d';
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x26000000), blurRadius: 12, offset: Offset(0, 4))]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle)),
-              const SizedBox(width: 6),
-              Text('CRITICAL ACTION', style: AppTypography.labelSm(color: AppColors.errorContainer)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (var i = 0; i < actions.length; i++) ...[
-            if (i > 0) const SizedBox(height: 8),
-            InkWell(
-              onTap: () => _openCriticalAction(context, actions[i]),
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
-                child: Row(
-                  children: [
-                    Icon(actions[i].type == 'exam' ? Icons.quiz_outlined : Icons.assignment_outlined, size: 16, color: const Color(0xFF6FFBBE)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(actions[i].title, style: AppTypography.bodySm(color: Colors.white).copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text(actions[i].courseTitle, style: AppTypography.labelSm(color: const Color(0xFFBCC7DE)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-                    Text(dueText(actions[i]), style: AppTypography.labelSm(color: const Color(0xFFBCC7DE)).copyWith(fontWeight: FontWeight.w700)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
 }

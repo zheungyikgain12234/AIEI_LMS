@@ -8,14 +8,12 @@ import 'faculty_sidebar.dart' show FacultyNavDestination;
 /// as a bottom nav, matching the Stitch mobile mockups.
 class FacultyMobileBottomNav extends StatelessWidget {
   final FacultyNavDestination selected;
-  final int pendingCount;
   final ValueChanged<FacultyNavDestination> onDestinationSelected;
 
   const FacultyMobileBottomNav({
     super.key,
     required this.selected,
     required this.onDestinationSelected,
-    this.pendingCount = 14,
   });
 
   @override
@@ -40,15 +38,14 @@ class FacultyMobileBottomNav extends StatelessWidget {
             Expanded(
               child: _item(
                 icon: Icons.assignment_turned_in_outlined,
-                label: 'Grading',
+                label: 'Grading & Submissions',
                 dest: FacultyNavDestination.gradingAndSubmissions,
-                badge: pendingCount,
               ),
             ),
             Expanded(
               child: _item(
                 icon: Icons.meeting_room_outlined,
-                label: 'Attendance',
+                label: 'Physical Class Attendance',
                 dest: FacultyNavDestination.physicalClassAttendance,
               ),
             ),
@@ -58,7 +55,7 @@ class FacultyMobileBottomNav extends StatelessWidget {
     );
   }
 
-  Widget _item({required IconData icon, required String label, required FacultyNavDestination dest, int? badge}) {
+  Widget _item({required IconData icon, required String label, required FacultyNavDestination dest}) {
     final active = selected == dest;
     final color = active ? FacultyColors.primary : FacultyColors.onSurfaceVariant;
     return InkWell(
@@ -66,29 +63,17 @@ class FacultyMobileBottomNav extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(icon, size: 22, color: color),
-              if (badge != null && badge > 0)
-                Positioned(
-                  top: -4,
-                  right: -10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(color: FacultyColors.primary, borderRadius: BorderRadius.circular(9999)),
-                    child: Text(
-                      '$badge',
-                      style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontSize: 9, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          Icon(icon, size: 22, color: color),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: FacultyTypography.labelXs(color: color).copyWith(fontWeight: active ? FontWeight.w700 : FontWeight.w400),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              label,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: FacultyTypography.labelXs(color: color).copyWith(fontWeight: active ? FontWeight.w700 : FontWeight.w400, fontSize: 10, height: 1.1),
+            ),
           ),
         ],
       ),

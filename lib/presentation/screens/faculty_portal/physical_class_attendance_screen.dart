@@ -133,9 +133,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Physical Class Attendance', style: FacultyTypography.headlineLg(color: FacultyColors.primary)),
-                const SizedBox(height: 8),
-                Text('Physical classes, exams and assignments by cohort and class, latest first.', style: FacultyTypography.bodyMd()),
+                _buildHeader(),
                 const SizedBox(height: 16),
                 _buildBody(),
               ],
@@ -144,7 +142,6 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
         ),
         bottomNavigationBar: FacultyMobileBottomNav(
           selected: FacultyNavDestination.physicalClassAttendance,
-          pendingCount: 0,
           onDestinationSelected: _handleNav,
         ),
       );
@@ -155,16 +152,25 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Physical Class Attendance', style: FacultyTypography.headlineLg()),
-          const SizedBox(height: 6),
-          Text(
-            'Every physical class session, exam and assignment across your cohorts and classes, latest first. Select one to see who attended.',
-            style: FacultyTypography.bodyMd(),
-          ),
+          _buildHeader(),
           const SizedBox(height: 24),
           _buildBody(),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Physical Class Attendance', style: FacultyTypography.headlineLg()),
+        const SizedBox(height: 6),
+        Text(
+          'Every physical class session, exam and assignment across your cohorts and classes, latest first. Select one to see who attended.',
+          style: FacultyTypography.bodyMd(),
+        ),
+      ],
     );
   }
 

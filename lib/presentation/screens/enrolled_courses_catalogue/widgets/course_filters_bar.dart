@@ -18,9 +18,13 @@ class CourseFiltersBar extends StatelessWidget {
   final String? selectedCohort;
   final ValueChanged<String> onCohortChanged;
   final bool showYearCohort;
+  /// How the controls align when they wrap — end beside the tags row on
+  /// desktop, start when stacked under it on a phone.
+  final WrapAlignment alignment;
 
   const CourseFiltersBar({
     this.showYearCohort = true,
+    this.alignment = WrapAlignment.end,
     super.key,
     required this.onSearchChanged,
     required this.selectedSort,
@@ -36,7 +40,7 @@ class CourseFiltersBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      alignment: WrapAlignment.end,
+      alignment: alignment,
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 12,
       runSpacing: 8,

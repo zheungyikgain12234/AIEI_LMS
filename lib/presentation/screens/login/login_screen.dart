@@ -475,16 +475,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (i > 0) const SizedBox(height: 10),
                       _roleGuidanceCard(_kRoles[i], dense: true),
                     ],
-                    const SizedBox(height: 24),
-                    Container(height: 1, color: _LoginColors.slate200),
-                    const SizedBox(height: 14),
-                    Center(
-                      child: Column(
-                        children: [
-                          Text('Academic Term: Fall 2025', style: _text(size: 11, weight: FontWeight.w600, color: _LoginColors.slate600), textAlign: TextAlign.center),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),

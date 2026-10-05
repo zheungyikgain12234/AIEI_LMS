@@ -8,8 +8,7 @@ import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 /// Two variants mirror the Stitch mobile mockups:
 /// - `FacultyMobileTopBar(title: ...)`: back arrow + page title + avatar,
 ///   used on drill-in screens (course dashboard, curriculum, grading).
-/// - `FacultyMobileTopBar.root()`: logo + FACULTY badge + notification bell +
-///   avatar, used on the bottom-nav root tabs (My Courses, Students).
+/// - `FacultyMobileTopBar.root()`: logo + FACULTY badge + avatar, used on the bottom-nav root tabs (My Courses, Students).
 class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final bool isRoot;
@@ -81,31 +80,13 @@ class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget
           child: Text('FACULTY', style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
         ),
         const Spacer(),
-        Stack(
-          children: [
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications_outlined, color: FacultyColors.onSurfaceVariant),
-            ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: FacultyColors.error, shape: BoxShape.circle),
-              ),
-            ),
-          ],
-        ),
         GestureDetector(
           onTap: () => _goToLogin(context),
           child: Container(
             width: 32,
             height: 32,
             decoration: const BoxDecoration(color: FacultyColors.primary, shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Text('SL', style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
+            child: const Icon(Icons.person, color: FacultyColors.onPrimary, size: 18),
           ),
         ),
       ],

@@ -8,7 +8,6 @@ import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
-import 'widgets/admin_mobile_selection_bar.dart';
 import 'widgets/admin_field_label.dart';
 
 /// A single row of master data: id + tenant-prefixed unique code + display
@@ -326,11 +325,11 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
 
   // ---------------------------------------------------------------------
   // Mobile (<700px) layout — a drill-in screen (back-arrow top bar, no
-  // bottom nav; reached from the "More" menu).
+  // bottom nav; reached from the "More" menu). Same content as desktop: the
+  // header and the list card are reused as-is.
   // ---------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {
-    final rows = _filtered;
     return Scaffold(
       backgroundColor: AdminColors.background,
       appBar: AdminMobileTopBar.detail(title: widget.title),
@@ -340,67 +339,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(widget.description, style: AdminTypography.bodyMd()),
-              if (widget.note != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  widget.note!,
-                  style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
-                ),
-              ],
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: () => _openForm(),
-                  icon: const Icon(Icons.add, size: 20),
-                  label: Text('Add ${widget.itemLabel}'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AdminColors.primaryContainer,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _searchController,
-                style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: true,
-                  fillColor: AdminColors.surfaceContainerLowest,
-                  hintText: 'Search ${widget.itemLabel.toLowerCase()}s...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-              if (_selected.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                adminMobileSelectionBar(
-                  count: _selected.length,
-                  itemLabel: widget.itemLabel.toLowerCase(),
-                  onDeselectAll: () => setState(_selected.clear),
-                  onDelete: () => _confirmAndDelete(_selected.toList()),
-                ),
-              ],
-              const SizedBox(height: 12),
-              if (rows.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text('No ${widget.itemLabel.toLowerCase()}s found.', style: AdminTypography.bodyMd()),
-                )
-              else
-                Container(
-                  decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(children: [for (final r in rows) _row(r)]),
-                ),
-            ],
+            children: [_buildTopBar(), const SizedBox(height: 16), _buildListCard()],
           ),
         ),
       ),

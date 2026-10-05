@@ -102,15 +102,24 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Settings', style: AdminTypography.headlineLg()),
-          const SizedBox(height: 2),
-          Text('Global feature flags applied across every course and portal.', style: AdminTypography.bodyMd()),
+          _buildHeader(),
           const SizedBox(height: 20),
           _settingsCard(),
           const SizedBox(height: 20),
           _gradeScaleCard(),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Settings', style: AdminTypography.headlineLg()),
+        const SizedBox(height: 2),
+        Text('Global feature flags applied across every course and portal.', style: AdminTypography.bodyMd()),
+      ],
     );
   }
 
@@ -237,7 +246,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Global feature flags applied across every course and portal.', style: AdminTypography.bodyMd()),
+              _buildHeader(),
               const SizedBox(height: 16),
               _settingsCard(),
               const SizedBox(height: 16),

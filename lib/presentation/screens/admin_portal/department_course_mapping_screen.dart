@@ -276,10 +276,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Assign courses to departments — e.g. which courses belong under Information Technology or Engineering.',
-                style: AdminTypography.bodyMd(),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildDepartmentSelector(),
               const SizedBox(height: 16),

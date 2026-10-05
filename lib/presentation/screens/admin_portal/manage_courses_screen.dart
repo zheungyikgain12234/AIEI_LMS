@@ -237,22 +237,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Institutional course catalogue. Lecturer and section assignment can be done afterward.', style: AdminTypography.bodyMd()),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: _openAddCourse,
-                  icon: const Icon(Icons.add, size: 20),
-                  label: const Text('Add New Course'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AdminColors.primaryContainer,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,

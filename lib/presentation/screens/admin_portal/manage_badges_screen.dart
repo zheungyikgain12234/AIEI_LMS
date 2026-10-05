@@ -206,22 +206,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Per-course badge awards — which student earned or had revoked which badge.', style: AdminTypography.bodyMd()),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: _openAdd,
-                  icon: const Icon(Icons.add, size: 20),
-                  label: const Text('Add Badge Award'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AdminColors.primaryContainer,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,

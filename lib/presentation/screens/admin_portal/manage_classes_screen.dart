@@ -206,10 +206,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Class sections created when a lecturer is assigned to a course, from Manage Assigned Courses.',
-                style: AdminTypography.bodyMd(),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
@@ -218,7 +215,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
                   isDense: true,
                   filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
-                  hintText: 'Search by section, course, or lecturer...',
+                  hintText: 'Search class by section code, course, or lecturer...',
                   hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),

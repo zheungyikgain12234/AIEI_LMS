@@ -274,10 +274,7 @@ class _ProgrammeCourseMappingScreenState extends State<ProgrammeCourseMappingScr
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Map courses to programmes. A course does not need a programme, and can belong to more than one.',
-                style: AdminTypography.bodyMd(),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildProgrammeSelector(),
               const SizedBox(height: 16),

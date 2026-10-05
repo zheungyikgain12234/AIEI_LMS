@@ -276,10 +276,7 @@ class _TrackCourseMappingScreenState extends State<TrackCourseMappingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Assign courses to program tracks — e.g. which courses belong under the AI Engineering Track or the Cloud & Distributed Systems track.',
-                style: AdminTypography.bodyMd(),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildTrackSelector(),
               const SizedBox(height: 16),

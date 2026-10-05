@@ -52,7 +52,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<Student> _students = [];
-  Map<String, int> _enrollmentCounts = {};
   Map<String, List<String>> _credentialTitles = {};
   List<(String, int)> _tracks = [];
   List<(String, int)> _trend = [];
@@ -225,7 +224,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     });
     try {
       final students = await _repository.getStudents();
-      final counts = await _repository.getEnrollmentCounts();
       final credentials = await _repository.getEarnedCredentialTitles();
       final tracks = await _repository.getProgramTracks();
       final trend = await _badgesRepository.getMonthlyIssueCounts();
@@ -244,7 +242,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       if (!mounted) return;
       setState(() {
         _students = students;
-        _enrollmentCounts = counts;
         _credentialTitles = credentials;
         _tracks = tracks;
         _trend = trend;
@@ -1225,10 +1222,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   }
 
   // -------------------------------------------------------------------------
-  // Mobile (<700px) layout — separate Scaffold, shared AdminMobileTopBar /
-  // AdminMobileBottomNav shell. Reuses the existing `_students` data list and
-  // the desktop `_buildTracksCard` / `_buildCredentialTrendCard` analytics
-  // widgets (already overflow-safe at 170px chart height).
+  // Mobile (<700px) layout — the same content as desktop (title + actions,
+  // tip, metrics, search, filters, bulk-select, directory, pagination and the
+  // two analytics cards); only the table becomes one card per student with
+  // the same fields as a table row.
   // -------------------------------------------------------------------------
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
@@ -1247,52 +1244,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Institutional learner registry, enrollment status, credential tracking, and cohort management across enterprise academies.',
-                style: AdminTypography.bodyMd(),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: _openRegisterStudent,
-                  icon: const Icon(Icons.person_add, size: 20),
-                  label: const Text('Register New Student'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AdminColors.secondary,
-                    foregroundColor: AdminColors.onSecondary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    textStyle: AdminTypography.titleSm(color: AdminColors.onSecondary),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _downloadCsvTemplate,
-                      icon: const Icon(Icons.download_outlined, size: 18),
-                      label: const Text('CSV Template'),
-                      style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurface),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _importFromCsv,
-                      icon: const Icon(Icons.upload_file_outlined, size: 18),
-                      label: const Text('Import CSV'),
-                      style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurface),
-                    ),
-                  ),
-                ],
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildInstructionBanner(),
               const SizedBox(height: 16),
-              _buildMobileKpiGrid(),
+              _buildMetrics(),
               const SizedBox(height: 20),
               _buildMobileSearchBar(),
               const SizedBox(height: 12),
@@ -1339,120 +1295,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
-  Widget _buildMobileKpiGrid() {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _mobileKpiCard(
-              label: 'TOTAL ENROLLED',
-              icon: Icons.groups,
-              value: '$_totalEnrolled',
-              valueSuffix: 'Active',
-              footerIcon: Icons.trending_up,
-              footerText: 'Registered students',
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _mobileKpiCard(
-              label: 'GRANTED CREDS',
-              icon: Icons.verified,
-              value: '$_totalCredentials',
-              footerIcon: Icons.check_circle,
-              footerText: 'Earned or revoked',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileKpiCard({
-    required String label,
-    required IconData icon,
-    required String value,
-    String? valueSuffix,
-    required IconData footerIcon,
-    required String footerText,
-    bool urgent = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: urgent ? AdminColors.errorContainer : AdminColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: AdminTypography.labelSm(color: urgent ? AdminColors.onErrorContainer : AdminColors.onSurfaceVariant),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: urgent ? AdminColors.surfaceContainerLowest.withValues(alpha: 0.8) : AdminColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: urgent ? AdminColors.error : AdminColors.secondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Flexible(
-                child: Text(
-                  value,
-                  style: AdminTypography.headlineMd(color: urgent ? AdminColors.onErrorContainer : AdminColors.onSurface),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (valueSuffix != null) ...[
-                const SizedBox(width: 4),
-                Text(
-                  valueSuffix,
-                  style: AdminTypography.labelSm(color: urgent ? AdminColors.onErrorContainer : AdminColors.onTertiaryContainer).copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          if (urgent)
-            Text(
-              footerText,
-              style: AdminTypography.labelSm(color: AdminColors.onErrorContainer).copyWith(fontWeight: FontWeight.w700),
-              overflow: TextOverflow.ellipsis,
-            )
-          else
-            Row(
-              children: [
-                Icon(footerIcon, size: 14, color: AdminColors.onTertiaryContainer),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(footerText, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildMobileSearchBar() {
     return TextField(
       controller: _searchController,
@@ -1461,7 +1303,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         isDense: true,
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
-        hintText: 'Search student by name, ID, email...',
+        hintText: 'Search student by name, student ID, email, or company...',
         hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -1471,26 +1313,19 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   }
 
   Widget _buildMobileStudentCard(Student s) {
-    final enrollments = _enrollmentCounts[s.id] ?? 0;
     final credentials = _credentialTitles[s.id] ?? const [];
-    final flagged = _isFlagged(s);
-    final standing = flagged ? 'Under Review' : 'Good Standing';
-    final progress = (s.gpa / 4.0).clamp(0.0, 1.0);
     final selected = _selected.contains(s.id);
     final courseMismatch = _courseMismatchStudentIds.contains(s.id);
-    final cohortSuffix = s.cohort == null ? '' : ' (${s.cohort})';
-    final profileLine = s.studentType == StudentType.external
-        ? '${s.studentType.label} • ${s.programTrack ?? '—'}$cohortSuffix'
-        : '${s.studentType.label} • ${s.department ?? '—'} / ${s.role ?? '—'}$cohortSuffix';
+    final internal = s.studentType == StudentType.internal;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AdminColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1500,150 +1335,111 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
                 activeColor: AdminColors.primaryContainer,
               ),
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-                child: Icon(flagged ? Icons.person_off : Icons.person, color: flagged ? AdminColors.error : AdminColors.primary, size: 22),
-              ),
-              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 6,
-                      runSpacing: 4,
+                    Text(s.studentCode, style: AdminTypography.labelSm()),
+                    Row(
                       children: [
-                        Text(
-                          s.name,
-                          style: AdminTypography.headlineSm(color: flagged ? AdminColors.error : AdminColors.onSurface),
-                        ),
-                        if (courseMismatch)
+                        Flexible(child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis)),
+                        if (courseMismatch) ...[
+                          const SizedBox(width: 4),
                           Tooltip(
                             message: s.studentType == StudentType.external
                                 ? 'One or more enrolled course is not mapped to this student\'s track'
                                 : 'One or more enrolled course is not mapped to this student\'s role or department',
-                            child: Icon(Icons.error, size: 16, color: AdminColors.error),
+                            child: Icon(Icons.error, size: 15, color: AdminColors.error),
                           ),
+                        ],
+                        const SizedBox(width: 4),
                         InkWell(
                           onTap: () => _openEditStudent(s),
                           borderRadius: BorderRadius.circular(6),
                           child: Padding(
                             padding: const EdgeInsets.all(2),
-                            child: Icon(Icons.edit_outlined, size: 16, color: AdminColors.onSurfaceVariant),
+                            child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(4)),
-                          child: Text(s.studentCode, style: AdminTypography.labelSm()),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
                     Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
                   ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: internal ? AdminColors.primaryFixed : AdminColors.tertiaryFixed,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  s.studentType.label,
+                  style: AdminTypography.labelSm(color: internal ? AdminColors.onPrimaryFixed : AdminColors.onTertiaryFixedVariant),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.alt_route, size: 16, color: AdminColors.secondary),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  profileLine,
-                  style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  standing,
-                  style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
+              Expanded(child: _mobileLabeled('Track', s.programTrack ?? '—')),
+              const SizedBox(width: 12),
+              Expanded(child: _mobileLabeled('Department / Role', s.department ?? '—', second: s.role ?? '—')),
             ],
           ),
           const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('$enrollments Enrolled Courses', style: AdminTypography.labelSm()),
-                    Text('GPA ${s.gpa.toStringAsFixed(2)}', style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(9999),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: AdminColors.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(flagged ? AdminColors.error : AdminColors.secondaryContainer),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: credentials.map((c) {
-              final revoked = c.contains('(Revoked)');
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: revoked ? AdminColors.errorContainer : AdminColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(revoked ? Icons.error : Icons.verified, size: 14, color: revoked ? AdminColors.onErrorContainer : AdminColors.onTertiaryContainer),
-                  const SizedBox(width: 4),
-                  Text(c, style: AdminTypography.labelSm(color: revoked ? AdminColors.onErrorContainer : AdminColors.onSurface)),
-                ]),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 36,
-            child: ElevatedButton.icon(
-              onPressed: () => _openEnrolledCourses(s),
-              icon: const Icon(Icons.menu_book, size: 18),
-              label: const Text('Manage Enrolled Courses'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
-                foregroundColor: flagged ? AdminColors.onErrorContainer : AdminColors.secondary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                textStyle: AdminTypography.labelMd(),
+          Row(
+            children: [
+              Expanded(
+                child: credentials.isEmpty
+                    ? Text('No badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Tooltip(
+                          message: credentials.join('\n'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.workspace_premium_outlined, size: 14, color: AdminColors.onSurface),
+                              const SizedBox(width: 4),
+                              Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+                            ]),
+                          ),
+                        ),
+                      ),
               ),
-            ),
+              OutlinedButton(
+                onPressed: () => _openEnrolledCourses(s),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AdminColors.primary,
+                  backgroundColor: AdminColors.surfaceContainerLow,
+                  side: BorderSide.none,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: AdminTypography.labelSm(),
+                ),
+                child: const Text('Manage Enrolled Courses'),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  Widget _mobileLabeled(String label, String value, {String? second}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+        Text(value, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+        if (second != null) Text(second, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+      ],
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

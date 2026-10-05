@@ -8,7 +8,6 @@ import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
-import 'widgets/admin_mobile_selection_bar.dart';
 import 'badge_catalog_form_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -251,7 +250,8 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
   }
 
   Widget _buildMobileScaffold(BuildContext context) {
-    final badges = _filtered;
+    // Same content as desktop (header + list card); the rows are already
+    // single-column, so they are reused as-is.
     return Scaffold(
       backgroundColor: AdminColors.background,
       appBar: const AdminMobileTopBar.detail(title: 'Manage Badges'),
@@ -261,83 +261,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('The badge catalog courses can be configured to award on completion.', style: AdminTypography.bodyMd()),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: _openAdd,
-                  icon: const Icon(Icons.add, size: 20),
-                  label: const Text('Add New Badge'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AdminColors.primaryContainer,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _searchController,
-                style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: true,
-                  fillColor: AdminColors.surfaceContainerLowest,
-                  hintText: 'Search badge by code or name...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-              if (_selected.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                adminMobileSelectionBar(
-                  count: _selected.length,
-                  itemLabel: 'badge',
-                  onDeselectAll: () => setState(_selected.clear),
-                  onDelete: _deleteSelected,
-                ),
-              ],
-              const SizedBox(height: 16),
-              if (badges.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No badges found.', style: AdminTypography.bodyMd()))
-              else
-                for (final b in badges) ...[
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox(
-                          value: _selected.contains(b.id),
-                          onChanged: (v) => setState(() => v == true ? _selected.add(b.id) : _selected.remove(b.id)),
-                          activeColor: AdminColors.primaryContainer,
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(b.title, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                              Text('${b.code} • ${b.issuingBody}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => _openEdit(b),
-                          icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-            ],
+            children: [_buildTopBar(), const SizedBox(height: 16), _buildListCard()],
           ),
         ),
       ),

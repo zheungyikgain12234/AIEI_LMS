@@ -560,7 +560,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (<700px) layout
+  // Mobile (<700px) layout — the same content as desktop (title, tip,
+  // metrics, search, bulk-select, directory, pagination); only the table
+  // becomes one card per lecturer carrying the same fields as a table row.
   // ---------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {
@@ -574,13 +576,11 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _mobileEyebrowRow(),
-              const SizedBox(height: 8),
-              _mobileTitleRow(),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildInstructionBanner(),
               const SizedBox(height: 16),
-              _mobileKpiGrid(),
+              _buildMetrics(),
               const SizedBox(height: 16),
               _mobileSearchField(),
               if (_selected.isNotEmpty) ...[
@@ -611,8 +611,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                   _page = 1;
                 }),
               ),
-              const SizedBox(height: 12),
-              _mobileFooterBanner(),
             ],
           ),
         ),
@@ -625,194 +623,17 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
     );
   }
 
-  Widget _mobileEyebrowRow() {
-    return Row(
-      children: [
-        Icon(Icons.account_balance, size: 16, color: AdminColors.onSurfaceVariant),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            'FACULTY GOVERNANCE • Q3 ACADEMIC TERM',
-            style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(color: AdminColors.tertiaryFixed, borderRadius: BorderRadius.circular(9999)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 6, height: 6, decoration: BoxDecoration(color: AdminColors.onTertiaryContainer, shape: BoxShape.circle)),
-            const SizedBox(width: 4),
-            Text('Term Active', style: AdminTypography.labelSm(color: AdminColors.onTertiaryContainer)),
-          ]),
-        ),
-      ],
-    );
-  }
-
-  Widget _mobileTitleRow() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Faculty Directory', style: AdminTypography.headlineLg(color: AdminColors.primary)),
-              const SizedBox(height: 2),
-              Text('Capacity telemetry & curriculum allocation', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        ElevatedButton.icon(
-          onPressed: _openAddLecturer,
-          icon: const Icon(Icons.person_add, size: 18),
-          label: const Text('Add Lecturer'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AdminColors.secondary,
-            foregroundColor: AdminColors.onPrimary,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            textStyle: AdminTypography.labelMd(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _mobileKpiGrid() {
-    final total = _lecturers.length;
-    final activeProgress = total == 0 ? 0.0 : _activeFacultyCount / total;
-    final assignedProgress = total == 0 ? 0.0 : (_courseCodesByLecturer.values.where((c) => c.isNotEmpty).length / total);
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _mobileKpiCard(
-              label: 'Active Faculty',
-              icon: Icons.groups,
-              value: '$_activeFacultyCount',
-              delta: 'of $total',
-              footer: 'Total faculty on record',
-              progress: activeProgress,
-              progressColor: AdminColors.secondary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _mobileKpiCard(
-              label: 'Assigned Courses',
-              icon: Icons.domain_verification,
-              value: '$_totalAssignedCourses',
-              delta: '${(assignedProgress * 100).round()}%',
-              footer: 'Faculty with an assignment',
-              progress: assignedProgress,
-              progressColor: AdminColors.onTertiaryContainer,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileKpiCard({
-    required String label,
-    required IconData icon,
-    required String value,
-    required String delta,
-    required String footer,
-    required double progress,
-    required Color progressColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AdminColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(children: [
-            Expanded(
-              child: Text(
-                label.toUpperCase(),
-                style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-              child: Icon(icon, size: 18, color: AdminColors.secondary),
-            ),
-          ]),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Flexible(
-                child: Text(
-                  value,
-                  style: AdminTypography.headlineLg(color: AdminColors.primary).copyWith(fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.trending_up, size: 14, color: AdminColors.onTertiaryContainer),
-                  Flexible(
-                    child: Text(
-                      delta,
-                      style: AdminTypography.labelSm(color: AdminColors.onTertiaryContainer).copyWith(fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ]),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            footer,
-            style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(9999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 4,
-              backgroundColor: AdminColors.surfaceContainerHigh,
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _mobileSearchField() {
     return TextField(
       controller: _searchController,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
+        isDense: true,
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
-        hintText: 'Search by name, ID, or dept...',
+        hintText: 'Search by faculty name, employee ID, email, or department...',
         hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
-        suffixIcon: const Icon(Icons.qr_code_scanner, size: 18, color: AdminColors.outlineVariant),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
@@ -821,7 +642,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
 
   Widget _mobileLecturerCard(Lecturer l) {
     final selected = _selected.contains(l.id);
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -841,41 +661,26 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
                 activeColor: AdminColors.primaryContainer,
               ),
               Container(
-                width: 48,
-                height: 48,
+                width: 40,
+                height: 40,
                 decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-                child: const Icon(Icons.person, color: AdminColors.primary, size: 24),
+                child: const Icon(Icons.person, color: AdminColors.primary, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(l.lecturerCode, style: AdminTypography.labelSm()),
                     Row(children: [
-                      Flexible(
-                        child: Text(
-                          l.name,
-                          style: AdminTypography.headlineSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-                        child: Text(l.lecturerCode, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
-                      ),
+                      Flexible(child: Text(l.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                      if (l.accredited) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AdminColors.secondary)),
                     ]),
-                    Text(
-                      l.title,
-                      style: AdminTypography.labelMd(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      l.department,
-                      style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                    Text(l.email, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 6),
+                    Text(l.department, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                    Text(l.specialization, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
@@ -906,27 +711,19 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   Widget _mobileStatusPill(Lecturer l) {
     final active = l.status == 'Active';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: active ? AdminColors.tertiaryFixed : AdminColors.surfaceContainer,
+        color: active ? AdminColors.surfaceContainerLow : AdminColors.surfaceContainer,
         borderRadius: BorderRadius.circular(9999),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: active ? AdminColors.onTertiaryContainer : AdminColors.onSurfaceVariant,
-            shape: BoxShape.circle,
-          ),
-        ),
+        Container(width: 6, height: 6, decoration: BoxDecoration(color: active ? AdminColors.primary : AdminColors.onSurfaceVariant, shape: BoxShape.circle)),
         const SizedBox(width: 6),
         Flexible(
           child: Text(
             l.status,
-            style: AdminTypography.labelSm(color: active ? AdminColors.onTertiaryContainer : AdminColors.onSurfaceVariant)
-                .copyWith(fontWeight: FontWeight.w600),
             overflow: TextOverflow.ellipsis,
+            style: AdminTypography.labelSm(color: active ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
           ),
         ),
       ]),
@@ -934,41 +731,17 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   }
 
   Widget _mobileCardActionButton(Lecturer l) {
-    return ElevatedButton.icon(
+    return OutlinedButton(
       onPressed: () => _openAssignedCourses(l),
-      icon: const Icon(Icons.menu_book, size: 16),
-      label: const Text('Manage Assigned Courses'),
-      style: ElevatedButton.styleFrom(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AdminColors.primary,
         backgroundColor: AdminColors.surfaceContainerLow,
-        foregroundColor: AdminColors.secondary,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        textStyle: AdminTypography.labelMd(),
+        side: BorderSide.none,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: AdminTypography.labelSm(),
       ),
-    );
-  }
-
-  Widget _mobileFooterBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.verified_user, size: 16, color: AdminColors.secondary),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              'Academic Year 2024–2025 Admin Console Active',
-              style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
+      child: const Text('Manage Assigned Courses'),
     );
   }
 }

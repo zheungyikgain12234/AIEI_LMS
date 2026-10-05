@@ -286,10 +286,7 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Assign courses to job roles — e.g. which courses an IT Support Specialist or an HVAC / Aircon Installer can study.',
-                style: AdminTypography.bodyMd(),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildRoleSelector(),
               const SizedBox(height: 16),

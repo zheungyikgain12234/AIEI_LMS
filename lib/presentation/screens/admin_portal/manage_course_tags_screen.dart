@@ -279,7 +279,8 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
   }
 
   Widget _buildMobileScaffold(BuildContext context) {
-    final tags = _filtered;
+    // Same content as desktop (header + list card); the rows are already
+    // single-column, so they are reused as-is.
     return Scaffold(
       backgroundColor: AdminColors.background,
       appBar: const AdminMobileTopBar.detail(title: 'Manage Course Tags'),
@@ -289,59 +290,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Tags courses can be labeled with — at least one is required per course.', style: AdminTypography.bodyMd()),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: () => _openForm(),
-                  icon: const Icon(Icons.add, size: 20),
-                  label: const Text('Add Tag'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AdminColors.primaryContainer,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _searchController,
-                style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: true,
-                  fillColor: AdminColors.surfaceContainerLowest,
-                  hintText: 'Search tags...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (tags.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No course tags found.', style: AdminTypography.bodyMd()))
-              else
-                for (final t in tags) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(10), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(t.label, style: AdminTypography.bodyMd(color: AdminColors.onSurface))),
-                        IconButton(
-                          onPressed: () => _openForm(tag: t),
-                          icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-            ],
+            children: [_buildTopBar(), const SizedBox(height: 16), _buildListCard()],
           ),
         ),
       ),

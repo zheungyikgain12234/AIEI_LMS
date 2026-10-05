@@ -63,29 +63,6 @@ class AdminMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.search, color: AdminColors.onSurfaceVariant),
-          tooltip: 'Search portal',
-        ),
-        Stack(
-          children: [
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications_outlined, color: AdminColors.onSurfaceVariant),
-              tooltip: 'Operations alerts',
-            ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: AdminColors.secondary, shape: BoxShape.circle),
-              ),
-            ),
-          ],
-        ),
         GestureDetector(
           onTap: () => Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const LoginScreen()),

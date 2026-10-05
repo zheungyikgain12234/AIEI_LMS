@@ -311,10 +311,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Assign courses to lecturer specializations — drives the "not related to specialization" warning when assigning courses to a lecturer.',
-                style: AdminTypography.bodyMd(),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildSpecializationSelector(),
               const SizedBox(height: 16),

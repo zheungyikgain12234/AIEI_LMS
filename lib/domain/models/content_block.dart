@@ -9,7 +9,9 @@ enum ContentBlockType {
   file,
   exam,
   assignment,
-  physicalClass;
+  physicalClass,
+  physicalExam,
+  physicalAssignment;
 
   static ContentBlockType fromKey(String key) =>
       ContentBlockType.values.firstWhere((t) => t.name == key, orElse: () => ContentBlockType.text);
@@ -28,6 +30,11 @@ enum ContentBlockType {
 /// - assignment: `{"title": "...", "description": "...", "instructions":
 ///   "...", "dueDate": "ISO 8601 string"}` — points at the assignment
 ///   editor, keyed by [id].
+/// - physicalExam / physicalAssignment: `{"title": "...", "description": "...",
+///   "dueDate": "ISO 8601 string", "weightage": number, "maxMarks": number}` —
+///   done on paper; there are no questions or student submissions. The lecturer
+///   imports each student's marks from a CSV, stored as `graded`
+///   `content_block_submissions` rows (`total_score` = marks).
 /// - physicalClass: `{"title": "...", "description": "...", "scheduledAt":
 ///   "ISO 8601 string"}` — students tick attendance once while it's on;
 ///   each tick is a `content_block_submissions` row (status `submitted`).
@@ -72,6 +79,12 @@ class ContentBlock {
   /// final grade. Only meaningful for [ContentBlockType.exam]/
   /// [ContentBlockType.assignment] blocks — null if unset.
   double? get weightage => (content['weightage'] as num?)?.toDouble();
+
+  /// Physical exam/assignment only: the marks the paper is out of.
+  double? get maxMarks => (content['maxMarks'] as num?)?.toDouble();
+
+  /// True for [ContentBlockType.physicalExam]/[ContentBlockType.physicalAssignment].
+  bool get isPhysicalAssessment => type == ContentBlockType.physicalExam || type == ContentBlockType.physicalAssignment;
 
   /// Files the lecturer attached alongside the instructions — each
   /// `{"url": "...", "name": "..."}`. Only meaningful for

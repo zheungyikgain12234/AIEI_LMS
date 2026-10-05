@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/repositories/faculty_repository.dart' show PendingGradingItem;
+import 'import_marks_screen.dart';
 import 'mark_assignment_screen.dart';
 import 'mark_exam_screen.dart';
 import 'my_assigned_courses_screen.dart';
@@ -90,7 +91,17 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
     });
   }
 
+  bool _isPhysical(PendingGradingItem item) => item.blockType == 'physicalExam' || item.blockType == 'physicalAssignment';
+
   void _openItem(PendingGradingItem item, String classLabel) {
+    if (_isPhysical(item)) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ImportMarksScreen(contentBlockId: item.contentBlockId, sectionId: item.sectionId, title: item.title),
+        ),
+      ).then((_) => _load());
+      return;
+    }
     if (item.blockType == 'exam') {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -152,7 +163,7 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
               Text('Grading and Submissions', style: FacultyTypography.headlineLg()),
               const SizedBox(height: 6),
               Text(
-                'Every quiz and assignment with at least one submission awaiting grading, grouped by cohort and class.',
+                'Quizzes and assignments awaiting grading, plus every physical exam/assignment (kept here for review once fully marked), grouped by cohort and class.',
                 style: FacultyTypography.bodyMd(),
               ),
             ],
@@ -238,7 +249,8 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
   }
 
   Widget _itemRow(PendingGradingItem item, String classLabel) {
-    final isExam = item.blockType == 'exam';
+    final physical = _isPhysical(item);
+    final isExam = item.blockType == 'exam' || item.blockType == 'physicalExam';
     return InkWell(
       onTap: () => _openItem(item, classLabel),
       child: Container(
@@ -253,11 +265,11 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(item.title, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                  Text(isExam ? 'Quiz' : 'Assignment', style: FacultyTypography.labelXs()),
+                  Text(physical ? (isExam ? 'Physical Exam' : 'Physical Assignment') : (isExam ? 'Quiz' : 'Assignment'), style: FacultyTypography.labelXs()),
                 ],
               ),
             ),
-            _countPill(item.pendingCount, label: item.pendingCount == 1 ? 'student' : 'students'),
+            _countPill(item.pendingCount, label: physical ? 'without marks' : (item.pendingCount == 1 ? 'student' : 'students')),
             const SizedBox(width: 8),
             const Icon(Icons.chevron_right, color: FacultyColors.onSurfaceVariant),
           ],
@@ -267,6 +279,10 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
   }
 
   Widget _countPill(int count, {String label = 'pending'}) {
+    if (count == 0) {
+      // Nothing outstanding (e.g. a fully marked physical exam kept for review).
+      return const Icon(Icons.check_circle, size: 20, color: FacultyColors.tertiary);
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: FacultyColors.errorContainer, borderRadius: BorderRadius.circular(9999)),

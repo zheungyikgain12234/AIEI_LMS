@@ -20,6 +20,8 @@ import 'exam_editor_screen.dart';
 import 'mark_assignment_screen.dart';
 import 'mark_exam_screen.dart';
 import 'physical_class_attendees_screen.dart';
+import 'import_marks_screen.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/physical_assessment_card.dart';
 import 'widgets/clickable_link.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/embedded_image.dart';
@@ -996,6 +998,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         return Icons.assignment_outlined;
       case ContentBlockType.physicalClass:
         return Icons.meeting_room_outlined;
+      case ContentBlockType.physicalExam:
+        return Icons.edit_note;
+      case ContentBlockType.physicalAssignment:
+        return Icons.draw_outlined;
     }
   }
 
@@ -1041,6 +1047,18 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           contentBlockId: b.id,
           sectionId: widget.sectionId,
           title: b.title?.isNotEmpty == true ? b.title! : 'Exam',
+        ),
+      ),
+    );
+  }
+
+  void _openImportMarks(ContentBlock b) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ImportMarksScreen(
+          contentBlockId: b.id,
+          sectionId: widget.sectionId,
+          title: b.title?.isNotEmpty == true ? b.title! : 'Physical assessment',
         ),
       ),
     );
@@ -1143,6 +1161,28 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               const SizedBox(width: 6),
             ],
             if (_canEdit) OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
+          ],
+        );
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PhysicalAssessmentCard(block: b),
+                  if (b.weightage != null) ...[
+                    const SizedBox(height: 2),
+                    Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+                  ],
+                ],
+              ),
+            ),
+            if (!_hideMarkButtons) ...[
+              OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
+              const SizedBox(width: 6),
+            ],
           ],
         );
       case ContentBlockType.physicalClass:
@@ -1289,6 +1329,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   late final _instructionsController = TextEditingController(text: widget.existing?.instructions ?? '');
   late final _weightageController = TextEditingController(text: widget.existing?.weightage?.toString() ?? '');
   late final _timeLimitController = TextEditingController(text: widget.existing?.timeLimitMinutes?.toString() ?? '');
+  late final _maxMarksController = TextEditingController(text: widget.existing?.maxMarks == null ? '' : _formatNumber(widget.existing!.maxMarks!));
   late String _mode = widget.existing?.mode ?? 'normal';
   DateTime? _dueDate;
   DateTime? _availableFrom;
@@ -1338,11 +1379,15 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     _instructionsController.dispose();
     _weightageController.dispose();
     _timeLimitController.dispose();
+    _maxMarksController.dispose();
     super.dispose();
   }
 
   double? get _parsedWeightage => double.tryParse(_weightageController.text.trim());
   int? get _parsedTimeLimit => int.tryParse(_timeLimitController.text.trim());
+  double? get _parsedMaxMarks => double.tryParse(_maxMarksController.text.trim());
+
+  static String _formatNumber(double v) => v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1);
 
   /// How much weightage is still available for this block — the class's
   /// 100% budget minus every *other* exam/assignment's weightage.
@@ -1432,6 +1477,16 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             !_loadingWeightage &&
             _parsedWeightage != null &&
             _weightageError == null;
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return _titleController.text.trim().isNotEmpty &&
+            _descriptionController.text.trim().isNotEmpty &&
+            _dueDate != null &&
+            !_loadingWeightage &&
+            _parsedWeightage != null &&
+            _weightageError == null &&
+            _parsedMaxMarks != null &&
+            _parsedMaxMarks! > 0;
       case ContentBlockType.physicalClass:
         return _titleController.text.trim().isNotEmpty &&
             _descriptionController.text.trim().isNotEmpty &&
@@ -1576,6 +1631,15 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           'weightage': _parsedWeightage,
           'instructionFiles': _instructionFiles,
         };
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return {
+          'title': _titleController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'dueDate': _dueDate!.toIso8601String(),
+          'weightage': _parsedWeightage,
+          'maxMarks': _parsedMaxMarks,
+        };
       case ContentBlockType.physicalClass:
         return {
           'title': _titleController.text.trim(),
@@ -1646,6 +1710,10 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return 'Assignment';
       case ContentBlockType.physicalClass:
         return 'Physical Class';
+      case ContentBlockType.physicalExam:
+        return 'Physical Exam';
+      case ContentBlockType.physicalAssignment:
+        return 'Physical Assignment';
     }
   }
 
@@ -1815,6 +1883,38 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           const SizedBox(height: 8),
           Text(
             'This adds a placeholder — you\'ll build the actual rubric from "Manage Contents" afterwards.',
+            style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+          ),
+        ];
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return [
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(label: requiredLabel(type == ContentBlockType.physicalExam ? 'Exam name' : 'Assignment name')),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _descriptionController,
+            decoration: InputDecoration(label: requiredLabel('Description')),
+            maxLines: 2,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _dueDateTimeRow(),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _maxMarksController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(label: requiredLabel('Maximum marks'), helperText: 'The full marks the paper is out of.'),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _weightageField(),
+          const SizedBox(height: 8),
+          Text(
+            'Done on paper. Marks are imported from a CSV afterwards — via "Import Marks" here or the Grading and Submissions page.',
             style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
           ),
         ];

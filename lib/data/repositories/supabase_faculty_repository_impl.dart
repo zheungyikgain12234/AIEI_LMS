@@ -106,7 +106,7 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
         .from('content_blocks')
         .select('id, block_type, session_id')
         .inFilter('session_id', moduleBySession.keys.toList())
-        .inFilter('block_type', ['exam', 'assignment']);
+        .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
     final sectionByBlock = <String, String>{};
     final typeByBlock = <String, String>{};
     final totalAssessmentsBySection = <String, int>{};
@@ -192,7 +192,7 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
         .from('content_blocks')
         .select('id, block_type, block_content, session_id')
         .inFilter('session_id', moduleBySession.keys.toList())
-        .inFilter('block_type', ['exam', 'assignment']);
+        .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
     final blockRowById = <String, Map<String, dynamic>>{};
     final sectionByBlock = <String, String>{};
     for (final row in blockRows as List) {
@@ -207,14 +207,42 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
 
     final submissionRows = await _client
         .from('content_block_submissions')
-        .select('content_block_id')
-        .inFilter('content_block_id', blockRowById.keys.toList())
-        .eq('status', 'submitted');
+        .select('content_block_id, student_id, status')
+        .inFilter('content_block_id', blockRowById.keys.toList());
 
+    // Online exams/assignments: pending = submissions awaiting grading.
+    // Physical (paper-based) ones: pending = enrolled students who still have
+    // no marks — a student the lecturer hasn't entered a mark for (an absent
+    // student needs an explicit 0) keeps the item on the list.
+    final enrolledRows = await _client.from('student_courses').select('student_id, section_id').inFilter('section_id', sectionIds);
+    final enrolledBySection = <String, Set<String>>{};
+    for (final row in enrolledRows as List) {
+      final sectionId = row['section_id'] as String?;
+      if (sectionId == null) continue;
+      enrolledBySection.putIfAbsent(sectionId, () => {}).add((row['student_id'] as num).toString());
+    }
+    final gradedStudentsByBlock = <String, Set<String>>{};
     final pendingCountByBlock = <String, int>{};
     for (final row in submissionRows as List) {
       final blockId = row['content_block_id'] as String;
-      pendingCountByBlock[blockId] = (pendingCountByBlock[blockId] ?? 0) + 1;
+      final status = row['status'] as String?;
+      if (status == 'graded') {
+        gradedStudentsByBlock.putIfAbsent(blockId, () => {}).add((row['student_id'] as num).toString());
+      } else if (status == 'submitted') {
+        final type = blockRowById[blockId]!['block_type'] as String;
+        if (type == 'exam' || type == 'assignment') {
+          pendingCountByBlock[blockId] = (pendingCountByBlock[blockId] ?? 0) + 1;
+        }
+      }
+    }
+    for (final entry in blockRowById.entries) {
+      final type = entry.value['block_type'] as String;
+      if (type != 'physicalExam' && type != 'physicalAssignment') continue;
+      final enrolled = enrolledBySection[sectionByBlock[entry.key]] ?? const <String>{};
+      final graded = gradedStudentsByBlock[entry.key] ?? const <String>{};
+      final withoutMarks = enrolled.where((id) => !graded.contains(id)).length;
+      // Always listed, even when fully marked, so it stays available for review.
+      pendingCountByBlock[entry.key] = withoutMarks;
     }
 
     return [

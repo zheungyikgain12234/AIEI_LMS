@@ -355,7 +355,7 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
         .from('content_blocks')
         .select('id, block_content')
         .inFilter('session_id', sessionIds)
-        .inFilter('block_type', ['exam', 'assignment']);
+        .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
 
     var total = 0.0;
     for (final row in blockRows as List) {

@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/physical_class_attendance_card.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/physical_assessment_card.dart';
 import 'package:stitch_aiei_lms/presentation/screens/assignment_submission/assignment_submission_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/quiz_answering/quiz_answering_screen.dart';
 import 'widgets/clickable_link.dart';
@@ -229,6 +230,10 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
         return Icons.assignment_outlined;
       case ContentBlockType.physicalClass:
         return Icons.meeting_room_outlined;
+      case ContentBlockType.physicalExam:
+        return Icons.edit_note;
+      case ContentBlockType.physicalAssignment:
+        return Icons.draw_outlined;
     }
   }
 
@@ -270,6 +275,9 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
         return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Assignment', onTap: () => _openAssignment(b));
       case ContentBlockType.physicalClass:
         return PhysicalClassAttendanceCard(block: b, studentId: DemoIdentity.studentId);
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return PhysicalAssessmentCard(block: b);
     }
   }
 

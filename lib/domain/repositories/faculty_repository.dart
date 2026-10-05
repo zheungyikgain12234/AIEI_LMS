@@ -19,7 +19,7 @@ typedef SectionAssessmentStats = ({int pendingAssignments, int pendingQuizzes, i
 typedef PendingGradingItem = ({
   String sectionId,
   String contentBlockId,
-  String blockType, // 'exam' | 'assignment'
+  String blockType, // 'exam' | 'assignment' | 'physicalExam' | 'physicalAssignment'
   String title,
   int pendingCount,
 });

@@ -128,12 +128,17 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             .from('content_blocks')
             .select('id, block_type, block_content')
             .inFilter('session_id', sessionIds)
-            .inFilter('block_type', ['exam', 'assignment']);
+            .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
+    // Physical (paper-based) exams/assignments count as ordinary exam/assignment
+    // columns here; they differ only in having no student submissions to wait
+    // for (so never "overdue") and a stored max marks instead of a question tree.
     final assessmentBlocks = [
       for (final row in assessmentRows)
         (
           id: row['id'] as String,
-          type: row['block_type'] as String,
+          type: (row['block_type'] as String).replaceFirst('physicalExam', 'exam').replaceFirst('physicalAssignment', 'assignment'),
+          physical: (row['block_type'] as String).startsWith('physical'),
+          maxMarks: ((row['block_content'] as Map<String, dynamic>?)?['maxMarks'] as num?)?.toDouble() ?? 0.0,
           title: (row['block_content'] as Map<String, dynamic>?)?['title'] as String?,
           weightage: ((row['block_content'] as Map<String, dynamic>?)?['weightage'] as num?)?.toDouble() ?? 0.0,
           dueDate: DateTime.tryParse((row['block_content'] as Map<String, dynamic>?)?['dueDate'] as String? ?? ''),
@@ -143,10 +148,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     final totalAssessments = assessmentBlocks.length;
     final totalAssignmentBlocks = assessmentBlocks.where((b) => b.type == 'assignment').length;
     final totalExamBlocks = assessmentBlocks.where((b) => b.type == 'exam').length;
-    final examBlockIds = [for (final b in assessmentBlocks) if (b.type == 'exam') b.id];
-    final assignmentBlockIds = [for (final b in assessmentBlocks) if (b.type == 'assignment') b.id];
+    final examBlockIds = [for (final b in assessmentBlocks) if (b.type == 'exam' && !b.physical) b.id];
+    final assignmentBlockIds = [for (final b in assessmentBlocks) if (b.type == 'assignment' && !b.physical) b.id];
     final now = DateTime.now();
-    final overdueBlockIds = {for (final b in assessmentBlocks) if (b.dueDate != null && b.dueDate!.isBefore(now)) b.id};
+    final overdueBlockIds = {for (final b in assessmentBlocks) if (!b.physical && b.dueDate != null && b.dueDate!.isBefore(now)) b.id};
 
     final examMaxMarks = <String, double>{};
     for (final id in examBlockIds) {
@@ -156,7 +161,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     for (final id in assignmentBlockIds) {
       assignmentMaxMarks[id] = await _assignmentRepository.getTotalMarks(id);
     }
-    final maxMarksByBlock = {...examMaxMarks, ...assignmentMaxMarks};
+    final maxMarksByBlock = {
+      ...examMaxMarks,
+      ...assignmentMaxMarks,
+      for (final b in assessmentBlocks) if (b.physical) b.id: b.maxMarks,
+    };
 
     // One column per quiz (exam block) and per assignment block, in the
     // order they were queried, followed by a running TOTAL column in the

@@ -112,7 +112,7 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
             .from('content_blocks')
             .select('id')
             .inFilter('session_id', sessionIds)
-            .inFilter('block_type', ['exam', 'assignment']);
+            .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
     final blockIds = [for (final b in blockRows) b['id'] as String];
     if (blockIds.isEmpty) return;
 

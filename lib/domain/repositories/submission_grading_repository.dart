@@ -22,6 +22,11 @@ abstract class SubmissionGradingRepository {
     required Map<String, dynamic> submission,
   });
 
+  /// Records that [studentId] is attending a physical exam/assignment (sets
+  /// `submission.attended` to true). Unlike [submitAnswer] this never changes
+  /// the row's status, so marks already imported for the student stay graded.
+  Future<void> recordAttendance({required String contentBlockId, required String studentId});
+
   /// Records a lecturer's marks for one student's submission — upserts by
   /// (contentBlockId, studentId), setting status to `graded`. Also
   /// recomputes this student's real `student_courses.progress_percentage`

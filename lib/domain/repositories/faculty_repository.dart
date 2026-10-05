@@ -28,6 +28,10 @@ typedef PendingGradingItem = ({
 typedef PhysicalClassItem = ({
   String sectionId,
   String contentBlockId,
+  // 'physicalClass' | 'physicalExam' | 'physicalAssignment'. The exam/assignment
+  // kinds have no start/end — only a [dueDate] that attendance closes at.
+  String blockType,
+  DateTime? dueDate,
   String title,
   String description,
   DateTime? scheduledAt,
@@ -73,7 +77,7 @@ abstract class FacultyRepository {
   /// result, not present with a zero count.
   Future<List<PendingGradingItem>> getPendingGradingItems(List<String> sectionIds);
 
-  /// Every `physicalClass` content block across [sectionIds].
+  /// Every `physicalClass`, `physicalExam` and `physicalAssignment` content block across [sectionIds].
   Future<List<PhysicalClassItem>> getPhysicalClassItems(List<String> sectionIds);
 
   /// Every class in [sectionIds] whose syllabus is still a draft (never

@@ -20,6 +20,13 @@ class PhysicalClassAttendeesScreen extends StatefulWidget {
   final String title;
   final DateTime? scheduledAt;
   final DateTime? endsAt;
+  /// Physical exam/assignment: the due date attendance closes at (shown instead
+  /// of a class window).
+  final DateTime? dueDate;
+  /// Physical exam/assignment rows also carry imported marks, so only a row
+  /// with `submission.attended` set counts as an attendee. Physical classes
+  /// keep the original rule: any row means the student ticked.
+  final bool requireAttendedFlag;
 
   const PhysicalClassAttendeesScreen({
     super.key,
@@ -28,6 +35,8 @@ class PhysicalClassAttendeesScreen extends StatefulWidget {
     required this.title,
     this.scheduledAt,
     this.endsAt,
+    this.dueDate,
+    this.requireAttendedFlag = false,
   });
 
   @override
@@ -59,6 +68,12 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
     });
   }
 
+  bool _attended(RosterStudent s) {
+    final sub = _submissions[s.studentId];
+    if (sub == null) return false;
+    return !widget.requireAttendedFlag || sub.submission['attended'] == true;
+  }
+
   int _byName(RosterStudent a, RosterStudent b) => a.name.toLowerCase().compareTo(b.name.toLowerCase());
 
   @override
@@ -66,8 +81,8 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final attendees = _roster.where((s) => _submissions.containsKey(s.studentId)).toList()..sort(_byName);
-    final absentees = _roster.where((s) => !_submissions.containsKey(s.studentId)).toList()..sort(_byName);
+    final attendees = _roster.where(_attended).toList()..sort(_byName);
+    final absentees = _roster.where((s) => !_attended(s)).toList()..sort(_byName);
 
     return Scaffold(
       backgroundColor: FacultyColors.background,
@@ -85,7 +100,7 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
                   Text(widget.title, style: FacultyTypography.headlineMd()),
                   const SizedBox(height: 4),
                   Text(
-                    [if (widget.scheduledAt != null) formatDateRange(widget.scheduledAt!, widget.endsAt), '${attendees.length} of ${_roster.length} attended'].join(' • '),
+                    [if (widget.scheduledAt != null) formatDateRange(widget.scheduledAt!, widget.endsAt) else if (widget.dueDate != null) 'Due ${formatDueDate(widget.dueDate!)}', '${attendees.length} of ${_roster.length} attended'].join(' • '),
                     style: FacultyTypography.bodySm(),
                   ),
                   const SizedBox(height: 16),
@@ -137,7 +152,7 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
   }
 
   Widget _studentRow(RosterStudent s, bool present) {
-    final at = _submissions[s.studentId]?.submittedAt;
+    final at = present ? _submissions[s.studentId]?.submittedAt : null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainer))),

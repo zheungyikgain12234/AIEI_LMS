@@ -277,7 +277,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
         return PhysicalClassAttendanceCard(block: b, studentId: DemoIdentity.studentId);
       case ContentBlockType.physicalExam:
       case ContentBlockType.physicalAssignment:
-        return PhysicalAssessmentCard(block: b);
+        return PhysicalAssessmentCard(block: b, studentId: DemoIdentity.studentId);
     }
   }
 

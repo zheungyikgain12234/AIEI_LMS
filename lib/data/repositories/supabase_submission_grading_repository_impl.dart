@@ -44,6 +44,27 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
   }
 
   @override
+  Future<void> recordAttendance({required String contentBlockId, required String studentId}) async {
+    final existing = await getSubmission(contentBlockId, studentId);
+    final now = DateTime.now().toIso8601String();
+    if (existing == null) {
+      await _client.from('content_block_submissions').insert({
+        'content_block_id': contentBlockId,
+        'student_id': studentId,
+        'status': 'submitted',
+        'submission': {'attended': true},
+        'submitted_at': now,
+      });
+    } else {
+      await _client
+          .from('content_block_submissions')
+          .update({'submission': {...existing.submission, 'attended': true}, 'submitted_at': now})
+          .eq('content_block_id', contentBlockId)
+          .eq('student_id', studentId);
+    }
+  }
+
+  @override
   Future<void> saveGrade({
     required String contentBlockId,
     required String studentId,

@@ -207,7 +207,9 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
       clipBehavior: Clip.antiAlias,
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
+        child: Material(
+          type: MaterialType.transparency,
+          child: ExpansionTile(
           initiallyExpanded: true,
           title: Row(
             children: [
@@ -218,6 +220,7 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
             ],
           ),
           children: [for (final classGroup in group.classes) _classTile(classGroup)],
+          ),
         ),
       ),
     );
@@ -231,7 +234,9 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
         clipBehavior: Clip.antiAlias,
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
+          child: Material(
+            type: MaterialType.transparency,
+            child: ExpansionTile(
             initiallyExpanded: true,
             title: Row(
               children: [
@@ -242,6 +247,7 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
               ],
             ),
             children: [for (final item in group.items) _itemRow(item, group.label)],
+            ),
           ),
         ),
       ),

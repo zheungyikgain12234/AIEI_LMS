@@ -188,12 +188,16 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     final totalWeightagePct = assessmentColumns.fold<double>(0, (sum, c) => sum + c.weightage);
 
     final blockIds = [for (final b in assessmentBlocks) b.id];
+    final physicalBlockIds = {for (final b in assessmentBlocks) if (b.physical) b.id};
     final submissionRows = blockIds.isEmpty
         ? const <dynamic>[]
         : await _client.from('content_block_submissions').select().inFilter('content_block_id', blockIds);
     final submissionsByStudent = <String, List<ContentBlockSubmission>>{};
     for (final row in submissionRows) {
       final sub = ContentBlockSubmission.fromMap(row as Map<String, dynamic>);
+      // A physical exam/assignment's non-graded row is just an attendance tick,
+      // not a submission awaiting grading.
+      if (physicalBlockIds.contains(sub.contentBlockId) && sub.status != 'graded') continue;
       submissionsByStudent.putIfAbsent(sub.studentId, () => []).add(sub);
     }
     if (!mounted) return;

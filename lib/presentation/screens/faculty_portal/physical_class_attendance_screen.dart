@@ -69,10 +69,12 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
 
     // Latest on top; sessions without a date sink to the bottom.
     int latestFirst(PhysicalClassItem a, PhysicalClassItem b) {
-      if (a.scheduledAt == null && b.scheduledAt == null) return 0;
-      if (a.scheduledAt == null) return 1;
-      if (b.scheduledAt == null) return -1;
-      return b.scheduledAt!.compareTo(a.scheduledAt!);
+      final da = a.scheduledAt ?? a.dueDate;
+      final db = b.scheduledAt ?? b.dueDate;
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return db.compareTo(da);
     }
 
     setState(() {
@@ -97,6 +99,8 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
     }
   }
 
+  bool _isAssessment(PhysicalClassItem item) => item.blockType != 'physicalClass';
+
   void _openItem(PhysicalClassItem item) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -106,6 +110,8 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
           title: item.title,
           scheduledAt: item.scheduledAt,
           endsAt: item.endsAt,
+          dueDate: item.dueDate,
+          requireAttendedFlag: _isAssessment(item),
         ),
       ),
     );
@@ -129,7 +135,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
               children: [
                 Text('Physical Class Attendance', style: FacultyTypography.headlineLg(color: FacultyColors.primary)),
                 const SizedBox(height: 8),
-                Text('Physical class sessions by cohort and class, latest first.', style: FacultyTypography.bodyMd()),
+                Text('Physical classes, exams and assignments by cohort and class, latest first.', style: FacultyTypography.bodyMd()),
                 const SizedBox(height: 16),
                 _buildBody(),
               ],
@@ -152,7 +158,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
           Text('Physical Class Attendance', style: FacultyTypography.headlineLg()),
           const SizedBox(height: 6),
           Text(
-            'Every physical class session across your cohorts and classes, latest first. Select one to see who attended.',
+            'Every physical class session, exam and assignment across your cohorts and classes, latest first. Select one to see who attended.',
             style: FacultyTypography.bodyMd(),
           ),
           const SizedBox(height: 24),
@@ -169,7 +175,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12)),
         alignment: Alignment.center,
-        child: Text('No physical classes have been created yet.', style: FacultyTypography.bodyMd()),
+        child: Text('No physical classes, exams or assignments have been created yet.', style: FacultyTypography.bodyMd()),
       );
     }
     return Column(
@@ -188,7 +194,9 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
       clipBehavior: Clip.antiAlias,
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
+        child: Material(
+          type: MaterialType.transparency,
+          child: ExpansionTile(
           initiallyExpanded: true,
           title: Row(
             children: [
@@ -198,6 +206,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
             ],
           ),
           children: [for (final classGroup in group.classes) _classTile(classGroup)],
+          ),
         ),
       ),
     );
@@ -211,7 +220,9 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
         clipBehavior: Clip.antiAlias,
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
+          child: Material(
+            type: MaterialType.transparency,
+            child: ExpansionTile(
             initiallyExpanded: true,
             title: Row(
               children: [
@@ -221,6 +232,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
               ],
             ),
             children: [for (final item in group.items) _itemRow(item)],
+            ),
           ),
         ),
       ),
@@ -228,6 +240,11 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
   }
 
   Widget _itemRow(PhysicalClassItem item) {
+    final assessment = _isAssessment(item);
+    final kind = item.blockType == 'physicalExam' ? 'Physical Exam' : (assessment ? 'Physical Assignment' : null);
+    final when = item.scheduledAt != null
+        ? formatDateRange(item.scheduledAt!, item.endsAt)
+        : (item.dueDate != null ? 'Due ${formatDueDate(item.dueDate!)}' : 'No date set');
     return InkWell(
       onTap: () => _openItem(item),
       child: Container(
@@ -235,14 +252,14 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
         decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainer))),
         child: Row(
           children: [
-            const Icon(Icons.meeting_room_outlined, size: 18, color: FacultyColors.primary),
+            Icon(item.blockType == 'physicalExam' ? Icons.edit_note : (assessment ? Icons.draw_outlined : Icons.meeting_room_outlined), size: 18, color: FacultyColors.primary),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(item.title, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                  Text(item.scheduledAt == null ? 'No date set' : formatDateRange(item.scheduledAt!, item.endsAt), style: FacultyTypography.labelXs()),
+                  Text(kind == null ? when : '$kind • $when', style: FacultyTypography.labelXs()),
                 ],
               ),
             ),

@@ -271,9 +271,9 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
 
     final blockRows = await _client
         .from('content_blocks')
-        .select('id, block_content, session_id')
+        .select('id, block_type, block_content, session_id')
         .inFilter('session_id', moduleBySession.keys.toList())
-        .eq('block_type', 'physicalClass');
+        .inFilter('block_type', ['physicalClass', 'physicalExam', 'physicalAssignment']);
 
     final items = <PhysicalClassItem>[];
     for (final row in blockRows as List) {
@@ -285,6 +285,8 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
       items.add((
         sectionId: sectionId,
         contentBlockId: row['id'] as String,
+        blockType: row['block_type'] as String,
+        dueDate: content['dueDate'] is String ? DateTime.tryParse(content['dueDate'] as String) : null,
         title: content['title'] as String? ?? 'Untitled',
         description: content['description'] as String? ?? '',
         scheduledAt: rawDate == null ? null : DateTime.tryParse(rawDate),

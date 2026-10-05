@@ -11,7 +11,7 @@
 -- set into a real production deployment with real user data.
 
 drop table if exists
-  app_settings,
+  app_settings, grade_scale,
   enrollment_candidates, course_announcements, course_sections,
   badge_awards, course_badges, student_certifications, student_materials, student_courses,
   course_programmes, specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
@@ -613,6 +613,27 @@ insert into app_settings (key, value) values
   ('max_moderated_score', false),
   ('lock_modules_for_lecturers', false);
 
+-- Admin-configurable grade scale. A letter applies from min_score up to the
+-- next band's min_score. Letters are derived from marks at display time and
+-- never stored on student rows.
+create table grade_scale (
+  letter text primary key,
+  min_score numeric not null,
+  sort_order int not null unique
+);
+
+insert into grade_scale (letter, min_score, sort_order) values
+  ('F', 0, 0),
+  ('D', 50, 1),
+  ('C', 56, 2),
+  ('C+', 61, 3),
+  ('B-', 66, 4),
+  ('B', 70, 5),
+  ('B+', 74, 6),
+  ('A-', 78, 7),
+  ('A', 82, 8),
+  ('A+', 86, 9);
+
 create table enrollment_candidates (
   id uuid primary key default gen_random_uuid(),
   student_name text not null,
@@ -678,6 +699,7 @@ alter table course_sections enable row level security;
 alter table enrollment_candidates enable row level security;
 alter table course_announcements enable row level security;
 alter table app_settings enable row level security;
+alter table grade_scale enable row level security;
 
 do $$
 declare
@@ -694,7 +716,7 @@ begin
     'tags', 'course_tags', 'module_lists', 'module_list_items', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates', 'course_announcements',
-    'app_settings'
+    'app_settings', 'grade_scale'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

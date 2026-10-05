@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_reposito
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
@@ -83,6 +84,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         .toList();
   }
   double? _maxModeratedScore;
+  GradeScale _gradeScale = GradeScale.defaultScale;
   List<CourseAnnouncement> _announcements = const [];
 
   @override
@@ -237,6 +239,9 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
               ? gradedScoreByBlock[col.blockId]! / maxMarksByBlock[col.blockId]! * col.weightage
               : (gradedScoreByBlock.containsKey(col.blockId) ? 0.0 : null),
       };
+      final assessmentMarks = <String, double?>{
+        for (final col in assessmentColumns) col.blockId: gradedScoreByBlock.containsKey(col.blockId) ? gradedScoreByBlock[col.blockId] : null,
+      };
       final totalAchievedPct = assessmentScores.values.fold<double>(0, (sum, v) => sum + (v ?? 0));
 
       rosterRows.add(RosterRow.fromRoster(
@@ -250,6 +255,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         hasPendingSubmission: pending.isNotEmpty,
         hasOverdueSubmission: hasOverdue,
         assessmentScores: assessmentScores,
+        assessmentMarks: assessmentMarks,
         totalAchievedPct: totalAchievedPct,
         totalPossiblePct: totalWeightagePct,
         moderatedScore: s.moderatedScore,
@@ -257,6 +263,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
     final numericSettings = await _settingsRepository.getNumericSettings();
+    final gradeScale = await _settingsRepository.getGradeScale();
     if (!mounted) return;
 
     setState(() {
@@ -277,6 +284,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _rosterRows = rosterRows;
       _assessmentColumns = assessmentColumns;
       _maxModeratedScore = numericSettings[AppSettingKeys.maxModeratedScore];
+      _gradeScale = gradeScale;
       _announcements = announcements;
       _isLoading = false;
     });
@@ -674,6 +682,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 assessmentColumns: _assessmentColumns,
                 onModeratedScoreSave: _saveModeratedScore,
                 maxModeratedScore: _maxModeratedScore,
+                gradeScale: _gradeScale,
               ),
           ],
         ],

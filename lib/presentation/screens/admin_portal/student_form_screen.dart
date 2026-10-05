@@ -139,7 +139,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           email: _emailController.text.trim(),
           studentType: _studentType,
           department: isInternal ? _selectedDepartment : null,
-          title: title.isEmpty ? null : title,
+          title: isInternal && title.isNotEmpty ? title : null,
           programTrack: isInternal ? null : _selectedProgramTrack,
           role: isInternal ? _selectedRole : null,
           registrationDate: _registrationDate!,
@@ -151,7 +151,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           email: _emailController.text.trim(),
           studentType: _studentType,
           department: isInternal ? _selectedDepartment : null,
-          title: title.isEmpty ? null : title,
+          title: isInternal && title.isNotEmpty ? title : null,
           programTrack: isInternal ? null : _selectedProgramTrack,
           role: isInternal ? _selectedRole : null,
           registrationDate: _registrationDate!,
@@ -225,8 +225,10 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                           const SizedBox(height: 14),
                           _field(controller: _emailController, label: 'Email', hint: 'alex.chen@enterprise.com', keyboardType: TextInputType.emailAddress),
                           const SizedBox(height: 14),
-                          _field(controller: _titleController, label: 'Title (optional)', hint: 'Product Analyst • Operations', required: false),
-                          const SizedBox(height: 14),
+                          if (_studentType == StudentType.internal) ...[
+                            _field(controller: _titleController, label: 'Title (optional)', hint: 'Product Analyst • Operations', required: false),
+                            const SizedBox(height: 14),
+                          ],
                           if (_studentType == StudentType.external) ...[
                             _dropdown(
                               label: 'Program Track',

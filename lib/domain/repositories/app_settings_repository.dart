@@ -1,3 +1,5 @@
+import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
+
 /// Keys for the global, admin-toggleable feature flags stored in
 /// `app_settings` (one boolean row per key).
 class AppSettingKeys {
@@ -42,4 +44,10 @@ abstract class AppSettingsRepository {
   Future<Map<String, double?>> getNumericSettings();
 
   Future<void> updateNumericSetting(String key, double? value);
+
+  /// The admin-configured grade scale (`grade_scale` table), falling back to
+  /// [GradeScale.defaultScale] when it isn't seeded or can't be read.
+  Future<GradeScale> getGradeScale();
+
+  Future<void> saveGradeScale(GradeScale scale);
 }

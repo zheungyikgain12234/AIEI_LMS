@@ -66,15 +66,82 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
 
   final Set<String> _selected = {};
 
+  // '' means "All" (SearchableDropdownButton ignores null picks).
+  String _trackFilter = '';
+  String _departmentFilter = '';
+  String _roleFilter = '';
+  List<String> _trackOptions = [];
+  List<String> _departmentOptions = [];
+  List<String> _roleOptions = [];
+
+  bool get _hasActiveFilters => _trackFilter.isNotEmpty || _departmentFilter.isNotEmpty || _roleFilter.isNotEmpty;
+
   List<Student> get _filteredStudents {
-    if (_query.isEmpty) return _students;
-    return _students.where((s) =>
-        s.name.toLowerCase().contains(_query) ||
-        s.studentCode.toLowerCase().contains(_query) ||
-        s.email.toLowerCase().contains(_query) ||
-        (s.department ?? '').toLowerCase().contains(_query) ||
-        (s.role ?? '').toLowerCase().contains(_query) ||
-        (s.programTrack ?? '').toLowerCase().contains(_query)).toList();
+    return _students.where((s) {
+      if (_trackFilter.isNotEmpty && s.programTrack != _trackFilter) return false;
+      if (_departmentFilter.isNotEmpty && s.department != _departmentFilter) return false;
+      if (_roleFilter.isNotEmpty && s.role != _roleFilter) return false;
+      if (_query.isEmpty) return true;
+      return s.name.toLowerCase().contains(_query) ||
+          s.studentCode.toLowerCase().contains(_query) ||
+          s.email.toLowerCase().contains(_query) ||
+          (s.department ?? '').toLowerCase().contains(_query) ||
+          (s.role ?? '').toLowerCase().contains(_query) ||
+          (s.programTrack ?? '').toLowerCase().contains(_query);
+    }).toList();
+  }
+
+  void _resetFilters() => setState(() {
+        _trackFilter = '';
+        _departmentFilter = '';
+        _roleFilter = '';
+        _page = 1;
+      });
+
+  Widget _filterDropdown({
+    required String label,
+    required String value,
+    required List<String> options,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 170, maxWidth: 240),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      child: SearchableDropdownButton<String>(
+        isDense: true,
+        value: value,
+        style: AdminTypography.bodySm(color: AdminColors.onSurface),
+        items: [
+          DropdownMenuItem(value: '', child: Text('All $label', overflow: TextOverflow.ellipsis)),
+          for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis)),
+        ],
+        onChanged: (v) => setState(() {
+          onChanged(v ?? '');
+          _page = 1;
+        }),
+      ),
+    );
+  }
+
+  Widget _buildFilterRow() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _filterDropdown(label: 'Tracks', value: _trackFilter, options: _trackOptions, onChanged: (v) => _trackFilter = v),
+        _filterDropdown(label: 'Departments', value: _departmentFilter, options: _departmentOptions, onChanged: (v) => _departmentFilter = v),
+        _filterDropdown(label: 'Roles', value: _roleFilter, options: _roleOptions, onChanged: (v) => _roleFilter = v),
+        if (_hasActiveFilters)
+          TextButton.icon(
+            onPressed: _resetFilters,
+            icon: const Icon(Icons.restart_alt, size: 16),
+            label: const Text('Reset'),
+            style: TextButton.styleFrom(foregroundColor: AdminColors.secondary),
+          ),
+      ],
+    );
   }
 
   List<Student> get _sortedStudents {
@@ -182,6 +249,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         _tracks = tracks;
         _trend = trend;
         _courseMismatchStudentIds = mismatches;
+        _trackOptions = programTracks.map((t) => t.name).toList()..sort();
+        _departmentOptions = departments.map((d) => d.name).toList()..sort();
+        _roleOptions = roles.map((r) => r.name).toList()..sort();
         _isLoading = false;
       });
     } catch (e) {
@@ -284,12 +354,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   void _handleNav(AdminNavDestination dest) =>
       handleAdminNav(context, AdminNavDestination.manageStudents, dest);
 
-  void _notAvailable() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Not wired up in this preview.')),
-    );
-  }
-
   Future<void> _openRegisterStudent() async {
     final saved = await Navigator.of(context).push<Student>(
       MaterialPageRoute(builder: (_) => const StudentFormScreen()),
@@ -302,12 +366,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   Future<void> _downloadCsvTemplate() async {
     final header = _csvColumns.join(',');
     const staffExample = 'Jane Doe,EMP-90001,jane.doe@enterprise.com,Staff,Operations,Product Analyst,,Data Analyst,2025-01-15';
-    const publicExample = 'John Smith,EMP-90002,john.smith@enterprise.com,Public,,Logistics Analyst,AI Engineering Track,,2025-01-15';
+    const publicExample = 'John Smith,EMP-90002,john.smith@enterprise.com,Public,,,AI Engineering Track,,2025-01-15';
     const notes = [
       '# Lines starting with # are instructions and are ignored on import. You may delete them.',
       '# Required: name, studentCode, email, studentType, registrationDate.',
       '# registrationDate format: YYYY-MM-DD (e.g. 2025-01-15).',
-      '# studentType: Staff or Public. department and role apply to Staff only; programTrack applies to Public only.',
+      '# studentType: Staff or Public. department, title and role apply to Staff only; programTrack applies to Public only.',
       '# Example rows below - replace them with your own students.',
     ];
     final csv = '${notes.join('\n')}\n$header\n$staffExample\n$publicExample\n';
@@ -448,7 +512,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           email: email,
           studentType: studentType,
           department: studentType == StudentType.internal && department.isNotEmpty ? department : null,
-          title: title.isNotEmpty ? title : null,
+          title: studentType == StudentType.internal && title.isNotEmpty ? title : null,
           programTrack: studentType == StudentType.external && programTrack.isNotEmpty ? programTrack : null,
           role: studentType == StudentType.internal && role.isNotEmpty ? role : null,
           registrationDate: registrationDate,
@@ -802,6 +866,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Align(alignment: Alignment.centerLeft, child: _buildFilterRow()),
           ),
           if (_selected.isNotEmpty)
             Container(
@@ -1228,7 +1296,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               const SizedBox(height: 20),
               _buildMobileSearchBar(),
               const SizedBox(height: 12),
-              _buildMobileFilterPills(),
+              _buildFilterRow(),
               if (_selected.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 adminMobileSelectionBar(
@@ -1398,70 +1466,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
-      ),
-    );
-  }
-
-  Widget _buildMobileFilterPills() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        GestureDetector(
-          onTap: _notAvailable,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AdminColors.secondary,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('All Cohorts', style: AdminTypography.labelMd(color: AdminColors.onSecondary)),
-              const SizedBox(width: 6),
-              Container(
-                width: 16,
-                height: 16,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: AdminColors.onSecondary.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: Text('${_tracks.length}', style: AdminTypography.labelSm(color: AdminColors.onSecondary).copyWith(fontSize: 10)),
-              ),
-            ]),
-          ),
-        ),
-        _mobileFilterOutlinePill('All Statuses'),
-        _mobileFilterOutlinePill('Credentials'),
-        GestureDetector(
-          onTap: _notAvailable,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.restart_alt, size: 16, color: AdminColors.secondary),
-              const SizedBox(width: 4),
-              Text('Reset', style: AdminTypography.labelMd(color: AdminColors.secondary)),
-            ]),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _mobileFilterOutlinePill(String label) {
-    return GestureDetector(
-      onTap: _notAvailable,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AdminColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
-          const SizedBox(width: 4),
-          const Icon(Icons.expand_more, size: 16, color: AdminColors.onSurfaceVariant),
-        ]),
       ),
     );
   }

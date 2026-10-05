@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 
 class SupabaseAppSettingsRepositoryImpl implements AppSettingsRepository {
@@ -26,5 +27,26 @@ class SupabaseAppSettingsRepositoryImpl implements AppSettingsRepository {
   @override
   Future<void> updateNumericSetting(String key, double? value) async {
     await _client.from('app_settings').update({'numeric_value': value}).eq('key', key);
+  }
+
+  @override
+  Future<GradeScale> getGradeScale() async {
+    try {
+      final rows = await _client.from('grade_scale').select('letter, min_score');
+      final bands = [
+        for (final row in rows as List) GradeBand(row['letter'] as String, (row['min_score'] as num).toDouble()),
+      ]..sort((a, b) => a.minScore.compareTo(b.minScore));
+      return bands.isEmpty ? GradeScale.defaultScale : GradeScale(bands);
+    } catch (_) {
+      return GradeScale.defaultScale;
+    }
+  }
+
+  @override
+  Future<void> saveGradeScale(GradeScale scale) async {
+    await _client.from('grade_scale').upsert([
+      for (var i = 0; i < scale.bands.length; i++)
+        {'letter': scale.bands[i].letter, 'min_score': scale.bands[i].minScore, 'sort_order': i},
+    ]);
   }
 }

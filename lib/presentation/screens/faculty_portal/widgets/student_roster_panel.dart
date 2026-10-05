@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 
 /// One quiz/assignment content block, as a column in [StudentRosterTable].
@@ -59,6 +60,9 @@ class RosterRow {
   /// block's [AssessmentColumn.weightage] (score / max marks * weightage),
   /// or null when it isn't graded yet.
   final Map<String, double?> assessmentScores;
+  /// Per assessment block: the raw marks the student scored (not scaled by
+  /// weightage), or null when it isn't graded yet. Display-only.
+  final Map<String, double?> assessmentMarks;
   final double totalAchievedPct;
   final double totalPossiblePct;
   /// Lecturer's manual moderation adjustment (`student_courses.moderated_score`),
@@ -68,9 +72,9 @@ class RosterRow {
   Color get statusColor => flagged ? FacultyColors.error : (status == 'Top Performer' ? FacultyColors.primary : FacultyColors.tertiary);
 
   /// "RAW SCORE" column: weighted marks achieved vs. total weightage.
-  String get rawScoreLabel => '${_formatPct(totalAchievedPct)}%/${_formatPct(totalPossiblePct)}%';
+  String get rawScoreLabel => '${_formatPct(totalAchievedPct)}%';
 
-  /// "TOTAL" column: raw score + moderation, capped at 100%.
+  /// "FINAL SCORE" column: raw score + moderation, capped at 100%.
   double get finalTotalPct => (totalAchievedPct + moderatedScore).clamp(0, 100);
 
   String get finalTotalLabel => '${_formatPct(finalTotalPct)}%';
@@ -102,6 +106,7 @@ class RosterRow {
         flagged: flagged,
         hasSubmission: hasSubmission,
         assessmentScores: assessmentScores,
+        assessmentMarks: assessmentMarks,
         totalAchievedPct: totalAchievedPct,
         totalPossiblePct: totalPossiblePct,
         moderatedScore: moderatedScore,
@@ -132,6 +137,7 @@ class RosterRow {
     this.flagged = false,
     this.hasSubmission = false,
     this.assessmentScores = const {},
+    this.assessmentMarks = const {},
     this.totalAchievedPct = 0,
     this.totalPossiblePct = 0,
     this.moderatedScore = 0,
@@ -158,6 +164,7 @@ class RosterRow {
     required bool hasPendingSubmission,
     required bool hasOverdueSubmission,
     Map<String, double?> assessmentScores = const {},
+    Map<String, double?> assessmentMarks = const {},
     double totalAchievedPct = 0,
     double totalPossiblePct = 0,
     double moderatedScore = 0,
@@ -212,6 +219,7 @@ class RosterRow {
       flagged: hasOverdueSubmission,
       hasSubmission: hasPendingSubmission,
       assessmentScores: assessmentScores,
+      assessmentMarks: assessmentMarks,
       totalAchievedPct: totalAchievedPct,
       totalPossiblePct: totalPossiblePct,
       moderatedScore: moderatedScore,
@@ -249,6 +257,9 @@ class StudentRosterTable extends StatefulWidget {
   /// itself (it pops up a blocking message instead of applying when
   /// exceeded); per-row individual saves are not capped by this setting.
   final double? maxModeratedScore;
+  /// Admin-configured scale used to derive the letter-grade columns from the
+  /// scores at render time (letters are never stored).
+  final GradeScale gradeScale;
 
   const StudentRosterTable({
     super.key,
@@ -257,6 +268,7 @@ class StudentRosterTable extends StatefulWidget {
     this.assessmentColumns = const [],
     this.onModeratedScoreSave,
     this.maxModeratedScore,
+    this.gradeScale = GradeScale.defaultScale,
   });
 
   @override
@@ -287,8 +299,9 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
   static const double _assignColWidth = 90;
   static const double _quizColWidth = 70;
   static const double _statusColWidth = 130;
-  static const double _assessmentColWidth = 84;
+  static const double _assessmentColWidth = 120;
   static const double _totalColWidth = 90;
+  static const double _gradeColWidth = 56;
   static const double _moderatedColWidth = 140;
   static const double _colGap = 16;
 
@@ -374,10 +387,22 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
   /// A header cell's label plus a sort-direction arrow when [columnId] is
   /// the active sort column — tapping anywhere on it sorts by that column
   /// (ascending first, descending on a repeat tap).
-  Widget _sortableHeader(String label, String columnId, TextStyle style, {TextAlign align = TextAlign.left, int maxLines = 1}) {
+  ///
+  /// [suffix] is appended after [label] and is never truncated — only the
+  /// label ellipsizes when space runs out.
+  Widget _sortableHeader(String label, String columnId, TextStyle style,
+      {TextAlign align = TextAlign.left, int maxLines = 1, String? suffix}) {
     final active = _sortColumnId == columnId;
     final icon = active ? (_sortAscending ? Icons.arrow_upward : Icons.arrow_downward) : null;
-    final text = Flexible(child: Text(label, style: style, textAlign: align, maxLines: maxLines, overflow: TextOverflow.ellipsis));
+    final labelText = Text(label, style: style, textAlign: align, maxLines: maxLines, overflow: TextOverflow.ellipsis);
+    final text = suffix == null
+        ? Flexible(child: labelText)
+        : Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [Flexible(child: labelText), Text(' $suffix', style: style, maxLines: 1)],
+            ),
+          );
     final mainAxisAlignment = align == TextAlign.right
         ? MainAxisAlignment.end
         : (align == TextAlign.center ? MainAxisAlignment.center : MainAxisAlignment.start);
@@ -557,13 +582,18 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
                 width: _assessmentColWidth,
                 child: Tooltip(
                   message: col.label,
-                  child: _sortableHeader(col.label.toUpperCase(), col.blockId, s(), align: TextAlign.right, maxLines: 2),
+                  child: _sortableHeader(col.label.toUpperCase(), col.blockId, s(),
+                      align: TextAlign.right, suffix: '(${RosterRow._formatPct(col.weightage)}%)'),
                 ),
               ),
             ),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
             child: SizedBox(width: _totalColWidth, child: _sortableHeader('RAW SCORE', 'raw', s(), align: TextAlign.right)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(width: _gradeColWidth, child: _sortableHeader('GRADE', 'raw', s(), align: TextAlign.center)),
           ),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
@@ -585,7 +615,11 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
           ),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
-            child: SizedBox(width: _totalColWidth, child: _sortableHeader('TOTAL', 'total', s(), align: TextAlign.right)),
+            child: SizedBox(width: _totalColWidth, child: _sortableHeader('FINAL SCORE', 'total', s(), align: TextAlign.right)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: _colGap),
+            child: SizedBox(width: _gradeColWidth, child: _sortableHeader('GRADE', 'total', s(), align: TextAlign.center)),
           ),
         ],
       ),
@@ -657,9 +691,9 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
               child: SizedBox(
                 width: _assessmentColWidth,
                 child: Builder(builder: (context) {
-                  final pct = s.assessmentScores[col.blockId] ?? 0;
+                  final marks = s.assessmentMarks[col.blockId] ?? 0;
                   return Text(
-                    '${RosterRow._formatPct(pct)}%/${RosterRow._formatPct(col.weightage)}%',
+                    RosterRow._formatPct(marks),
                     textAlign: TextAlign.right,
                     style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
                   );
@@ -677,6 +711,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
               ),
             ),
           ),
+          _gradeCell(s.totalAchievedPct),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
             child: SizedBox(
@@ -698,7 +733,24 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
               ),
             ),
           ),
+          _gradeCell(s.finalTotalPct),
         ],
+      ),
+    );
+  }
+
+  /// Letter grade derived from [score] via the admin's scale — computed per
+  /// render, never persisted.
+  Widget _gradeCell(double score) {
+    return Padding(
+      padding: const EdgeInsets.only(left: _colGap),
+      child: SizedBox(
+        width: _gradeColWidth,
+        child: Text(
+          widget.gradeScale.letterFor(score),
+          textAlign: TextAlign.center,
+          style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }

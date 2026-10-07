@@ -25,6 +25,8 @@ typedef LecturerClassSlot = ({
   String? dayOfWeek,
   String? startTime,
   String? endTime,
+  DateTime? startDate,
+  DateTime? endDate,
 });
 
 abstract class LecturersRepository {

@@ -323,7 +323,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
   Future<List<LecturerClassSlot>> getAssignedSchedules(String lecturerId) async {
     final rows = await _client
         .from('course_sections')
-        .select('id, course_id, cohorts(name), section_code, day_of_week, start_time, end_time')
+        .select('id, course_id, cohorts(name), section_code, day_of_week, start_time, end_time, start_date, end_date')
         .eq('lecturer_id', lecturerId);
     return [
       for (final row in rows as List)
@@ -335,6 +335,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           dayOfWeek: row['day_of_week'] as String?,
           startTime: row['start_time'] as String?,
           endTime: row['end_time'] as String?,
+          startDate: _parseDate(row['start_date']),
+          endDate: _parseDate(row['end_date']),
         ),
     ];
   }

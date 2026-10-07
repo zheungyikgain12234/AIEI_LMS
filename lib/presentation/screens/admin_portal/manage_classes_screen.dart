@@ -434,12 +434,10 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
       child: Row(
         children: [
           const SizedBox(width: 48),
-          Expanded(flex: 3, child: _sortHeader('Section', _SortColumn.section)),
-          Expanded(flex: 4, child: _sortHeader('Course', _SortColumn.course)),
+          Expanded(flex: 5, child: _sortHeader('Course / Class', _SortColumn.course)),
           Expanded(flex: 3, child: _sortHeader('Lecturer', _SortColumn.lecturer)),
-          const Expanded(flex: 3, child: SizedBox()),
-          Expanded(flex: 3, child: _sortHeader('Cohort', _SortColumn.cohort)),
-          Expanded(flex: 1, child: _sortHeader('Year', _SortColumn.year)),
+          Expanded(flex: 4, child: Text('Schedule', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          Expanded(flex: 3, child: _sortHeader('Cohort / Year', _SortColumn.cohort)),
           Expanded(flex: 2, child: _sortHeader('Enrolled', _SortColumn.enrolled)),
           const SizedBox(width: 110),
         ],
@@ -447,9 +445,24 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
     );
   }
 
+  String _ymd(DateTime? d) => d == null ? '…' : d.toIso8601String().substring(0, 10);
+
+  String _hm(String t) => t.length >= 5 ? t.substring(0, 5) : t;
+
+  Widget _cell({required int flex, required List<Widget> children}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      ),
+    );
+  }
+
   Widget _sectionRow(CourseSection s) {
     final selected = _selected.contains(s.id);
     final unassigned = s.lecturerId == null;
+    final hasTime = s.dayOfWeek != null && s.startTime != null && s.endTime != null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
@@ -461,60 +474,45 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
             onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
             activeColor: AdminColors.primaryContainer,
           ),
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Text(s.sectionCode, style: AdminTypography.titleSm()),
+          _cell(flex: 5, children: [
+            Text(s.courseTitle, style: AdminTypography.titleSm(), maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text('${s.courseCode} • ${s.sectionCode}', style: AdminTypography.labelSm(), maxLines: 2, overflow: TextOverflow.ellipsis),
+          ]),
+          _cell(flex: 3, children: [
+            Text(
+              unassigned ? 'Unassigned' : (s.lecturerName ?? '—'),
+              style: unassigned ? AdminTypography.labelSm(color: AdminColors.onSurfaceVariant) : AdminTypography.bodySm(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          Expanded(
-            flex: 4,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                  Text(s.courseCode, style: AdminTypography.labelSm()),
-                ],
-              ),
+          ]),
+          _cell(flex: 4, children: [
+            Text(
+              hasTime ? '${s.dayOfWeek!.substring(0, 3)} ${_hm(s.startTime!)}–${_hm(s.endTime!)}' : 'Schedule TBD',
+              style: AdminTypography.bodySm(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: unassigned
-                  ? Text('Unassigned', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
-                  : Text(s.lecturerName ?? '—', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+            if (s.startDate != null || s.endDate != null)
+              Text('${_ymd(s.startDate)} to ${_ymd(s.endDate)}', style: AdminTypography.labelSm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+            if ((s.location ?? '').isNotEmpty)
+              Text(s.location!, style: AdminTypography.labelSm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ]),
+          _cell(flex: 3, children: [
+            Text(
+              s.cohort == null ? '—' : '${s.cohortCode ?? '—'} - ${s.cohort}',
+              style: AdminTypography.bodySm(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Text(s.scheduleText, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Text(
-                s.cohort == null ? '—' : '${s.cohortCode ?? '—'} - ${s.cohort}',
-                style: AdminTypography.bodySm(),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Text(s.cohortYear == null ? '—' : '${s.cohortYear}', style: AdminTypography.bodySm()),
-          ),
+            if (s.cohortYear != null) Text('${s.cohortYear}', style: AdminTypography.labelSm()),
+          ]),
           Expanded(
             flex: 2,
-            child: Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm()),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm()),
+            ),
           ),
           SizedBox(
             width: 110,

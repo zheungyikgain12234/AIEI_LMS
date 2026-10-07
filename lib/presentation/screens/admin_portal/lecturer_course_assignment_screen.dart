@@ -759,6 +759,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   ),
                 ]),
                 Text('${s.cohort ?? 'No cohort'} • $timeLabel', style: AdminTypography.labelSm()),
+                Text(
+                  s.startDate == null && s.endDate == null
+                      ? 'Dates TBD'
+                      : '${s.startDate == null ? '…' : _formatDate(s.startDate!)} to ${s.endDate == null ? '…' : _formatDate(s.endDate!)}',
+                  style: AdminTypography.labelSm(),
+                ),
               ],
             ),
           ),

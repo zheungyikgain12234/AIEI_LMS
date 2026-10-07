@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
@@ -1501,6 +1502,7 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
   String? _sectionId;
   String _role = _roleOptions.first;
   bool _submitting = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -1560,6 +1562,14 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
                 Expanded(child: Text('System will automatically verify prerequisite certifications and notify registrar office upon commit.', style: AdminTypography.bodySm())),
               ]),
             ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(10)),
+                child: Text(_errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+              ),
+            ],
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -1569,8 +1579,19 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
                 ElevatedButton(
                   onPressed: canSubmit
                       ? () async {
-                          setState(() => _submitting = true);
-                          await widget.onConfirm(_sectionId!, _lecturerId!);
+                          setState(() {
+                            _submitting = true;
+                            _errorMessage = null;
+                          });
+                          try {
+                            await widget.onConfirm(_sectionId!, _lecturerId!);
+                          } catch (e) {
+                            if (!mounted) return;
+                            setState(() {
+                              _submitting = false;
+                              _errorMessage = friendlyErrorMessage(e);
+                            });
+                          }
                         }
                       : null,
                   style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),

@@ -135,7 +135,106 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
 
   @override
   Future<void> assignLecturerToSection(String sectionId, String lecturerId) async {
+    final section = await _client
+        .from('course_sections')
+        .select('day_of_week, start_time, end_time, start_date, end_date')
+        .eq('id', sectionId)
+        .single();
+    final day = section['day_of_week'] as String?;
+    final start = section['start_time'] as String?;
+    final end = section['end_time'] as String?;
+    // A class with no day/time yet (TBD) can't clash with anything.
+    if (day != null && start != null && end != null) {
+      await _ensureNoScheduleConflict(
+        lecturerId: lecturerId,
+        dayOfWeek: day,
+        startTime: start,
+        endTime: end,
+        startDate: _parseDate(section['start_date']),
+        endDate: _parseDate(section['end_date']),
+        excludeSectionId: sectionId,
+      );
+    }
     await _client.from('course_sections').update({'lecturer_id': lecturerId}).eq('id', sectionId);
+  }
+
+  DateTime? _parseDate(Object? value) => value == null ? null : DateTime.parse(value as String);
+
+  /// Minutes since midnight for a Postgres `time` (`"09:00:00"`) or `HH:mm`.
+  int _minutes(String hms) => int.parse(hms.substring(0, 2)) * 60 + int.parse(hms.substring(3, 5));
+
+  @override
+  Future<List<CourseSection>> findScheduleConflicts({
+    required String lecturerId,
+    required String dayOfWeek,
+    required String startTime,
+    required String endTime,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? excludeSectionId,
+  }) async {
+    var query = _client
+        .from('course_sections')
+        .select(_sectionSelect)
+        .eq('lecturer_id', lecturerId)
+        .eq('day_of_week', dayOfWeek)
+        .neq('status', 'cancelled');
+    if (excludeSectionId != null) query = query.neq('id', excludeSectionId);
+    final rows = await query;
+
+    final newStart = _minutes(startTime);
+    final newEnd = _minutes(endTime);
+    final conflicts = <CourseSection>[];
+    for (final row in rows as List) {
+      final s = CourseSection.fromMap(row as Map<String, dynamic>, enrolledCount: 0);
+      if (s.startTime == null || s.endTime == null) continue;
+      final timesOverlap = newStart < _minutes(s.endTime!) && _minutes(s.startTime!) < newEnd;
+      // Inclusive on both ends; a missing date means the class is open-ended.
+      final datesOverlap = (startDate == null || s.endDate == null || !startDate.isAfter(s.endDate!)) &&
+          (endDate == null || s.startDate == null || !s.startDate!.isAfter(endDate));
+      if (timesOverlap && datesOverlap) conflicts.add(s);
+    }
+    return conflicts;
+  }
+
+  Future<void> _ensureNoScheduleConflict({
+    required String lecturerId,
+    required String dayOfWeek,
+    required String startTime,
+    required String endTime,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? excludeSectionId,
+  }) async {
+    final conflicts = await findScheduleConflicts(
+      lecturerId: lecturerId,
+      dayOfWeek: dayOfWeek,
+      startTime: startTime,
+      endTime: endTime,
+      startDate: startDate,
+      endDate: endDate,
+      excludeSectionId: excludeSectionId,
+    );
+    if (conflicts.isEmpty) return;
+    String ymd(DateTime? d) => d == null ? '…' : d.toIso8601String().substring(0, 10);
+    final details = conflicts
+        .map((s) => '${s.courseCode} ${s.sectionCode} (${s.dayOfWeek} ${s.startTime!.substring(0, 5)}–${s.endTime!.substring(0, 5)}, '
+            '${ymd(s.startDate)} to ${ymd(s.endDate)})')
+        .join('; ');
+    final who = conflicts.first.lecturerName ?? 'This lecturer';
+    throw ScheduleConflictException('$who already teaches an overlapping class: $details. '
+        'Choose a different day, time or course dates.');
+  }
+
+  @override
+  Future<List<CourseSection>> getSectionsForLecturers(List<String> lecturerIds) async {
+    if (lecturerIds.isEmpty) return [];
+    final rows = await _client
+        .from('course_sections')
+        .select(_sectionSelect)
+        .inFilter('lecturer_id', lecturerIds)
+        .order('section_code');
+    return [for (final row in rows as List) CourseSection.fromMap(row as Map<String, dynamic>, enrolledCount: 0)];
   }
 
   @override
@@ -206,6 +305,11 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
 
   @override
   Future<void> deleteLecturers(List<String> ids) async {
+    final orphaned = await getSectionsForLecturers(ids);
+    if (orphaned.isNotEmpty) {
+      throw StateError('${orphaned.length} class${orphaned.length == 1 ? ' is' : 'es are'} still assigned to these '
+          'lecturers. Reassign them before deleting.');
+    }
     await _client.from('lecturers').delete().inFilter('id', ids);
   }
 
@@ -289,6 +393,14 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     required DateTime editStartAt,
     required DateTime editEndAt,
   }) async {
+    await _ensureNoScheduleConflict(
+      lecturerId: lecturerId,
+      dayOfWeek: dayOfWeek,
+      startTime: startTime,
+      endTime: endTime,
+      startDate: courseStartDate,
+      endDate: courseEndDate,
+    );
     final dayAbbrev = dayOfWeek.substring(0, 3);
     final cohortId = await _cohortIdForName(cohort);
     final row = await _client

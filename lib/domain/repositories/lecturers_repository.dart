@@ -1,10 +1,22 @@
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 
+/// Thrown when assigning a lecturer to a class would overlap another class
+/// they already teach — same day of week, overlapping time range, and
+/// overlapping course date range, regardless of course or cohort.
+class ScheduleConflictException implements Exception {
+  ScheduleConflictException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// One of a lecturer's existing classes — just enough (course, cohort, day,
-/// time) to detect a genuine schedule clash when assigning them to another
-/// class. A lecturer may teach the same course for the same cohort more than
-/// once (e.g. two sections), as long as the day/time don't overlap.
+/// time) to list what they already teach on the Manage Assigned Courses
+/// screen. Schedule clashes themselves are checked by
+/// [LecturersRepository.findScheduleConflicts].
 typedef LecturerClassSlot = ({
   String id,
   String courseId,
@@ -61,7 +73,30 @@ abstract class LecturersRepository {
     String? editOverrideLecturerCode,
   });
 
+  /// Sets [lecturerId] as the section's lecturer. Throws a
+  /// [ScheduleConflictException] if that lecturer already teaches another
+  /// class that overlaps this section's schedule (see [findScheduleConflicts]).
   Future<void> assignLecturerToSection(String sectionId, String lecturerId);
+
+  /// The lecturer's non-cancelled classes that clash with the given slot:
+  /// same [dayOfWeek], time range overlapping [startTime]–[endTime]
+  /// (`HH:mm`; back-to-back is fine) and course date range overlapping
+  /// [startDate]–[endDate] (inclusive; a missing date is open-ended).
+  /// Course and cohort are deliberately ignored. [excludeSectionId] leaves
+  /// out the class being (re)assigned itself.
+  Future<List<CourseSection>> findScheduleConflicts({
+    required String lecturerId,
+    required String dayOfWeek,
+    required String startTime,
+    required String endTime,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? excludeSectionId,
+  });
+
+  /// Every class currently taught by any of [lecturerIds] — the classes that
+  /// would be orphaned if those lecturers were deleted.
+  Future<List<CourseSection>> getSectionsForLecturers(List<String> lecturerIds);
 
   /// Inserts a new lecturer row and returns it. `creditsUsed` defaults to 0
   /// and `manageable` defaults to true — neither is settable at onboarding.
@@ -92,6 +127,9 @@ abstract class LecturersRepository {
     required DateTime joinDate,
   });
 
+  /// Deletes the lecturers. Throws a [StateError] while any class is still
+  /// assigned to one of them — reassign those first (see
+  /// [getSectionsForLecturers]).
   Future<void> deleteLecturers(List<String> ids);
 
   /// Course ids already assigned to this lecturer (from `lecturer_courses`)
@@ -127,6 +165,8 @@ abstract class LecturersRepository {
   Future<void> unassignSection(String sectionId);
 
   /// Creates a new class section for [courseId] taught by [lecturerId].
+  /// Throws a [ScheduleConflictException] if the lecturer already teaches an
+  /// overlapping class (see [findScheduleConflicts]).
   /// [classCode] is the admin-entered, tenant-prefixed unique code for this
   /// class (e.g. `TN01-CLS-OSHE101-01`) — see the "Class Code" field on the
   /// Manage Assigned Courses screen. [startTime] and [endTime] are `HH:mm`

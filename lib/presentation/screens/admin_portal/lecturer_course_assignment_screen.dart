@@ -120,8 +120,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       // Every course can be picked for assignment, including ones the
       // lecturer already teaches — that's how a second class/section is
       // created for the same course, even for the same cohort. Only a
-      // genuine schedule clash (same course, same cohort, overlapping day
-      // and time) is blocked, in _assign().
+      // genuine schedule clash (any course/cohort, same day, overlapping
+      // time and course dates) is blocked, in the repository.
       _availableCourses = allCourses;
       _cohortModels = cohorts;
       _creditsByCourseId = {for (final c in allCourses) c.id: c.credits};
@@ -280,38 +280,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   String _formatTime(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  /// Parses a Postgres `time` value (`"09:00:00"` or `"09:00"`) into minutes
-  /// since midnight, for comparison against [_toMinutes].
-  int? _parseMinutes(String? hms) {
-    if (hms == null || hms.length < 5) return null;
-    final hour = int.tryParse(hms.substring(0, 2));
-    final minute = int.tryParse(hms.substring(3, 5));
-    if (hour == null || minute == null) return null;
-    return hour * 60 + minute;
-  }
-
   String _trimSeconds(String hms) => hms.length >= 5 ? hms.substring(0, 5) : hms;
-
-  /// The lecturer's existing classes for [courseId] and [cohort] whose
-  /// day/time overlaps [dayOfWeek] + [start]–[end] — a genuine schedule
-  /// clash. Same course/cohort at a non-overlapping time is allowed.
-  List<LecturerClassSlot> _clashingSlots({
-    required String courseId,
-    required String cohort,
-    required String dayOfWeek,
-    required TimeOfDay start,
-    required TimeOfDay end,
-  }) {
-    final startMin = _toMinutes(start);
-    final endMin = _toMinutes(end);
-    return _assignedSchedules.where((slot) {
-      if (slot.courseId != courseId || slot.cohort != cohort || slot.dayOfWeek != dayOfWeek) return false;
-      final slotStart = _parseMinutes(slot.startTime);
-      final slotEnd = _parseMinutes(slot.endTime);
-      if (slotStart == null || slotEnd == null) return false;
-      return startMin < slotEnd && slotStart < endMin;
-    }).toList();
-  }
 
   Future<void> _pickTime({required bool isStart}) async {
     final picked = await showTimePicker(
@@ -339,30 +308,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     if (!_canAssign || _lecturer == null) return;
     final courses = _availableCourses.where((c) => c.id == _selectedCourseId).toList();
 
-    // Same course + same cohort is fine as long as the day/time doesn't
-    // overlap an existing class of this lecturer's — only a genuine
-    // schedule clash is blocked.
-    final clashes = <String>[];
-    for (final course in courses) {
-      final slots = _clashingSlots(
-        courseId: course.id,
-        cohort: _selectedCohort!,
-        dayOfWeek: _dayOfWeek!,
-        start: _startTime!,
-        end: _endTime!,
-      );
-      for (final slot in slots) {
-        clashes.add('${course.courseCode} (${slot.sectionCode} • ${slot.dayOfWeek} ${_trimSeconds(slot.startTime!)}–${_trimSeconds(slot.endTime!)})');
-      }
-    }
-    if (clashes.isNotEmpty) {
-      setState(() {
-        _assignErrorMessage = '${_lecturer!.name} already has an overlapping class at that day/time: ${clashes.join(', ')}. '
-            'Pick a different day or time to add another class for the same course and cohort.';
-      });
-      return;
-    }
-
+    // The repository rejects the assignment (ScheduleConflictException) if
+    // this lecturer already teaches a class with the same day, an overlapping
+    // time and overlapping course dates — whatever the course or cohort.
     setState(() {
       _isAssigning = true;
       _assignErrorMessage = null;
@@ -922,7 +870,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             Tooltip(
               message: 'Already assigned to this lecturer:\n'
                   '${existingSlots.map((s) => '${s.cohort ?? '—'} • ${s.dayOfWeek ?? '—'} ${s.startTime == null ? '' : _trimSeconds(s.startTime!)}–${s.endTime == null ? '' : _trimSeconds(s.endTime!)}').join('\n')}\n'
-                  'Selecting it again is fine as long as the new class is a different cohort or a non-overlapping time.',
+                  'Selecting it again is fine as long as the new class doesn\'t overlap the lecturer\'s other classes (day, time and course dates).',
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),

@@ -14,6 +14,7 @@ import 'widgets/admin_mobile_selection_bar.dart';
 import 'widgets/admin_pagination.dart';
 import 'lecturer_form_screen.dart';
 import 'lecturer_course_assignment_screen.dart';
+import 'reassign_orphaned_classes_screen.dart';
 
 // ---------------------------------------------------------------------------
 // ManageLecturersScreen – Stitch "Manage Lecturers" faithful Flutter
@@ -161,11 +162,17 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
 
   Future<void> _deleteSelected() async {
     final count = _selected.length;
+    final orphaned = await _repository.getSectionsForLecturers(_selected.toList());
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete lecturers?'),
-        content: Text('This will permanently delete $count lecturer${count == 1 ? '' : 's'}. This cannot be undone.'),
+        content: Text(
+          'This will permanently delete $count lecturer${count == 1 ? '' : 's'}. This cannot be undone.'
+          '${orphaned.isEmpty ? '' : '\n\nThey still teach ${orphaned.length} class${orphaned.length == 1 ? '' : 'es'}, '
+              'which you will be asked to reassign first. Nobody is deleted until every class has a new lecturer.'}',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           FilledButton(
@@ -176,9 +183,25 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
-    await _repository.deleteLecturers(_selected.toList());
-    if (!mounted) return;
+    if (confirmed != true || !mounted) return;
+    if (orphaned.isNotEmpty) {
+      final deleted = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => ReassignOrphanedClassesScreen(
+            lecturersToDelete: _lecturers.where((l) => _selected.contains(l.id)).toList(),
+          ),
+        ),
+      );
+      if (!mounted) return;
+      // Reassigned classes change regardless of whether the delete finished.
+      if (deleted != true) {
+        await _load();
+        return;
+      }
+    } else {
+      await _repository.deleteLecturers(_selected.toList());
+      if (!mounted) return;
+    }
     setState(_selected.clear);
     await _load();
     if (!mounted) return;

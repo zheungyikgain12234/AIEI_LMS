@@ -1117,96 +1117,79 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       case ContentBlockType.file:
         return DownloadableFile(url: b.url, label: b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.exam:
-        return Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-                  if (b.weightage != null) ...[
-                    const SizedBox(height: 2),
-                    Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                  ],
-                ],
-              ),
-            ),
-            if (!_hideMarkButtons) ...[
-              OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
-              const SizedBox(width: 6),
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+              if (b.weightage != null) ...[
+                const SizedBox(height: 2),
+                Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
             ],
+          ),
+          [
+            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
             if (_canEdit) OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Manage Contents')),
           ],
         );
       case ContentBlockType.assignment:
-        return Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    b.title?.isNotEmpty == true ? b.title! : 'Assignment',
-                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-                  ),
-                  if (b.weightage != null) ...[
-                    const SizedBox(height: 2),
-                    Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                  ],
-                ],
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                b.title?.isNotEmpty == true ? b.title! : 'Assignment',
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               ),
-            ),
-            if (!_hideMarkButtons) ...[
-              OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
-              const SizedBox(width: 6),
+              if (b.weightage != null) ...[
+                const SizedBox(height: 2),
+                Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
             ],
+          ),
+          [
+            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
             if (_canEdit) OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
           ],
         );
       case ContentBlockType.physicalExam:
       case ContentBlockType.physicalAssignment:
-        return Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  PhysicalAssessmentCard(block: b),
-                  if (b.weightage != null) ...[
-                    const SizedBox(height: 2),
-                    Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                  ],
-                ],
-              ),
-            ),
-            if (!_hideMarkButtons) ...[
-              OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
-              const SizedBox(width: 6),
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PhysicalAssessmentCard(block: b),
+              if (b.weightage != null) ...[
+                const SizedBox(height: 2),
+                Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
             ],
+          ),
+          [
+            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
           ],
         );
       case ContentBlockType.physicalClass:
-        return Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    b.title?.isNotEmpty == true ? b.title! : 'Physical Class',
-                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-                  ),
-                  if (b.scheduledAt != null) ...[
-                    const SizedBox(height: 2),
-                    Text(formatDateRange(b.scheduledAt!, b.endsAt), style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                  ],
-                  if (b.description?.isNotEmpty == true) ...[
-                    const SizedBox(height: 2),
-                    Text(b.description!, style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                  ],
-                ],
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                b.title?.isNotEmpty == true ? b.title! : 'Physical Class',
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               ),
-            ),
+              if (b.scheduledAt != null) ...[
+                const SizedBox(height: 2),
+                Text(formatDateRange(b.scheduledAt!, b.endsAt), style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+              if (b.description?.isNotEmpty == true) ...[
+                const SizedBox(height: 2),
+                Text(b.description!, style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+            ],
+          ),
+          [
             OutlinedButton(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
@@ -1224,6 +1207,25 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           ],
         );
     }
+  }
+
+  /// A content row's text plus its action buttons: side by side when there is
+  /// room, otherwise the buttons wrap onto their own line under the text (on
+  /// a phone the buttons would otherwise squeeze the title into a sliver).
+  Widget _infoWithActions(Widget info, List<Widget> actions) {
+    if (actions.isEmpty) return info;
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth >= 520) {
+        return Row(children: [
+          Expanded(child: info),
+          for (final a in actions) ...[const SizedBox(width: 6), a],
+        ]);
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [info, const SizedBox(height: 8), Wrap(spacing: 6, runSpacing: 6, children: actions)],
+      );
+    });
   }
 }
 

@@ -21,6 +21,8 @@ import 'widgets/searchable_dropdown.dart';
 // one unenrolls that student immediately (same pattern as the student-side
 // "Manage Enrolled Courses" screen, inverted to be class-centric).
 // ---------------------------------------------------------------------------
+enum _RosterSort { code, name }
+
 class ManageClassDetailScreen extends StatefulWidget {
   final String sectionId;
 
@@ -56,6 +58,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   List<RosterStudent> _roster = [];
   List<String> _cohorts = [];
   final Set<String> _unenrolling = {};
+  final _rosterSearchController = TextEditingController();
+  String _rosterQuery = '';
+  _RosterSort _rosterSort = _RosterSort.name;
+  bool _rosterAscending = true;
 
   DateTime? _startDate;
   DateTime? _endDate;
@@ -77,6 +83,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     _locationController.dispose();
     _capacityController.dispose();
     _overrideCodeController.dispose();
+    _rosterSearchController.dispose();
     super.dispose();
   }
 
@@ -452,13 +459,88 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               ],
             ),
           ),
+          if (_roster.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: TextField(
+                controller: _rosterSearchController,
+                onChanged: (v) => setState(() => _rosterQuery = v.trim().toLowerCase()),
+                style: AdminTypography.bodySm(color: AdminColors.onSurface),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: AdminColors.surfaceContainerLow,
+                  hintText: 'Search by student code or name...',
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+              child: Row(
+                children: [
+                  const SizedBox(width: 48),
+                  Expanded(flex: 2, child: _rosterSortHeader('Code', _RosterSort.code)),
+                  Expanded(flex: 4, child: _rosterSortHeader('Name', _RosterSort.name)),
+                ],
+              ),
+            ),
+          ],
           if (_roster.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
               child: Text('No students enrolled in this class.', style: AdminTypography.bodyMd()),
             )
+          else if (_visibleRoster.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('No students match your search.', style: AdminTypography.bodyMd()),
+            )
           else
-            Column(children: [for (final s in _roster) _rosterRow(s)]),
+            Column(children: [for (final s in _visibleRoster) _rosterRow(s)]),
+        ],
+      ),
+    );
+  }
+
+  List<RosterStudent> get _visibleRoster {
+    final filtered = _rosterQuery.isEmpty
+        ? [..._roster]
+        : _roster.where((s) => s.name.toLowerCase().contains(_rosterQuery) || s.studentCode.toLowerCase().contains(_rosterQuery)).toList();
+    filtered.sort((a, b) {
+      final cmp = _rosterSort == _RosterSort.code
+          ? a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase())
+          : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return _rosterAscending ? cmp : -cmp;
+    });
+    return filtered;
+  }
+
+  Widget _rosterSortHeader(String label, _RosterSort column) {
+    final active = _rosterSort == column;
+    return InkWell(
+      onTap: () => setState(() {
+        if (active) {
+          _rosterAscending = !_rosterAscending;
+        } else {
+          _rosterSort = column;
+          _rosterAscending = true;
+        }
+      }),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 2),
+          Icon(
+            active && !_rosterAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            size: 12,
+            color: active ? AdminColors.onSurface : AdminColors.outline,
+          ),
         ],
       ),
     );
@@ -480,15 +562,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                   },
                   activeColor: AdminColors.primaryContainer,
                 ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.name, style: AdminTypography.titleSm()),
-                Text(s.studentCode, style: AdminTypography.labelSm()),
-              ],
-            ),
-          ),
+          Expanded(flex: 2, child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+          Expanded(flex: 4, child: Text(s.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );

@@ -11,6 +11,8 @@ import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/department.dart';
 import 'package:stitch_aiei_lms/domain/models/program_track.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -304,31 +306,21 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   }
 
   Future<void> _deleteSelected() async {
-    final count = _selected.length;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete students?'),
-        content: Text('This will permanently delete $count student${count == 1 ? '' : 's'}. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _repository.deleteStudents(_selected.toList());
+    final ids = _selected.toList();
+    final service = SupabaseAdminRelationalDelete(Supabase.instance.client);
+    final note = await service.studentCascadeNote(ids);
     if (!mounted) return;
+    final done = await runRelationalDelete(
+      context,
+      noun: 'student',
+      count: ids.length,
+      dependents: const [],
+      note: note,
+      perform: (_) => _repository.deleteStudents(ids),
+    );
+    if (!done || !mounted) return;
     setState(_selected.clear);
     await _load();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$count student${count == 1 ? '' : 's'} deleted')),
-    );
   }
 
   Future<void> _openBulkEnroll() async {

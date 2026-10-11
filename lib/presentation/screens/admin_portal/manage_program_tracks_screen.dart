@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
 import 'master_data_screen.dart';
 import 'widgets/admin_sidebar.dart';
 
@@ -21,7 +22,7 @@ class ManageProgramTracksScreen extends StatelessWidget {
       ],
       create: (code, name, remarks, year) => repository.createProgramTrack(code, name, remarks),
       update: (id, code, name, remarks, year) => repository.updateProgramTrack(id, code, name, remarks),
-      delete: (ids) => repository.deleteProgramTracks(ids),
+      masterKind: MasterKind.programTrack,
     );
   }
 }

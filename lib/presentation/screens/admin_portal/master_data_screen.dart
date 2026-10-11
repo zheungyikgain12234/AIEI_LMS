@@ -10,6 +10,9 @@ import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_mobile_selection_bar.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/admin_relational_delete.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
 
 /// A single row of master data: id + tenant-prefixed unique code + display
 /// name + free-text remarks (never shown on the table, only in the edit
@@ -36,7 +39,7 @@ class MasterDataScreen extends ConsumerStatefulWidget {
   final Future<List<MasterDataRow>> Function() load;
   final Future<void> Function(String code, String name, String remarks, int? year) create;
   final Future<void> Function(String id, String code, String name, String remarks, int? year) update;
-  final Future<void> Function(List<String> ids) delete;
+  final MasterKind masterKind;
 
   /// Adds a required numeric "Year" field to the form and table (Cohort only).
   final bool showYear;
@@ -54,7 +57,7 @@ class MasterDataScreen extends ConsumerStatefulWidget {
     required this.load,
     required this.create,
     required this.update,
-    required this.delete,
+    required this.masterKind,
     this.showYear = false,
     this.note,
   });
@@ -267,26 +270,17 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
   }
 
   Future<void> _confirmAndDelete(List<String> ids) async {
-    final count = ids.length;
-    final label = widget.itemLabel.toLowerCase();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete $label${count == 1 ? '' : 's'}?'),
-        content: Text('This will permanently delete $count $label${count == 1 ? '' : 's'}. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await widget.delete(ids);
+    final service = SupabaseAdminRelationalDelete(Supabase.instance.client);
+    final dependents = await service.masterDependents(widget.masterKind, ids);
     if (!mounted) return;
+    final done = await runRelationalDelete(
+      context,
+      noun: widget.itemLabel.toLowerCase(),
+      count: ids.length,
+      dependents: dependents,
+      perform: (decisions) => service.deleteMaster(widget.masterKind, ids, decisions),
+    );
+    if (!done || !mounted) return;
     setState(() => _selected.removeAll(ids));
     await _load();
   }

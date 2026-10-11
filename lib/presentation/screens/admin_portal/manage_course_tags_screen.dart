@@ -5,6 +5,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -120,25 +122,18 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
   }
 
   Future<void> _deleteSelected() async {
-    final count = _selected.length;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete course tags?'),
-        content: Text('This will permanently delete $count tag${count == 1 ? '' : 's'} and remove them from any course. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _repository.deleteTags(_selected.toList());
+    final ids = _selected.toList();
+    final service = SupabaseAdminRelationalDelete(Supabase.instance.client);
+    final dependents = await service.tagDependents(ids);
     if (!mounted) return;
+    final done = await runRelationalDelete(
+      context,
+      noun: 'tag',
+      count: ids.length,
+      dependents: dependents,
+      perform: (decisions) => service.deleteTags(ids, decisions),
+    );
+    if (!done || !mounted) return;
     setState(_selected.clear);
     await _load();
   }

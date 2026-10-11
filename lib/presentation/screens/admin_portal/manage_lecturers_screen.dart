@@ -4,6 +4,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -166,31 +168,20 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   }
 
   Future<void> _deleteSelected() async {
-    final count = _selected.length;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete lecturers?'),
-        content: Text('This will permanently delete $count lecturer${count == 1 ? '' : 's'}. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _repository.deleteLecturers(_selected.toList());
+    final ids = _selected.toList();
+    final service = SupabaseAdminRelationalDelete(Supabase.instance.client);
+    final dependents = await service.lecturerDependents(ids);
     if (!mounted) return;
+    final done = await runRelationalDelete(
+      context,
+      noun: 'lecturer',
+      count: ids.length,
+      dependents: dependents,
+      perform: (decisions) => service.deleteLecturers(ids, decisions),
+    );
+    if (!done || !mounted) return;
     setState(_selected.clear);
     await _load();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$count lecturer${count == 1 ? '' : 's'} deleted')),
-    );
   }
 
   @override

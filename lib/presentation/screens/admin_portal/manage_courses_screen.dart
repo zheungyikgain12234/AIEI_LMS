@@ -4,6 +4,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -147,25 +149,20 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   }
 
   Future<void> _deleteSelected() async {
-    final count = _selected.length;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete courses?'),
-        content: Text('This will permanently delete $count course${count == 1 ? '' : 's'}, including any modules and materials under them. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _repository.deleteCourses(_selected.toList());
+    final ids = _selected.toList();
+    final service = SupabaseAdminRelationalDelete(Supabase.instance.client);
+    final dependents = await service.courseDependents(ids);
+    final note = await service.courseCascadeNote(ids);
     if (!mounted) return;
+    final done = await runRelationalDelete(
+      context,
+      noun: 'course',
+      count: ids.length,
+      dependents: dependents,
+      note: note,
+      perform: (decisions) => service.deleteCourses(ids, decisions),
+    );
+    if (!done || !mounted) return;
     setState(_selected.clear);
     await _load();
   }

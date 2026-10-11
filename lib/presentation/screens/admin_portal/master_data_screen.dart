@@ -271,6 +271,23 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
 
   Future<void> _confirmAndDelete(List<String> ids) async {
     final service = SupabaseAdminRelationalDelete(Supabase.instance.client);
+    if (widget.masterKind == MasterKind.cohort) {
+      final impact = await service.cohortImpact(ids);
+      if (!mounted) return;
+      final names = [for (final r in _rows) if (ids.contains(r.id)) r.name];
+      final done = await runTypedNameDelete(
+        context,
+        noun: 'cohort',
+        names: names,
+        warning:
+            'All classes and enrolments under ${ids.length == 1 ? 'this cohort' : 'these cohorts'} will be deleted: ${impact.classes} class${impact.classes == 1 ? '' : 'es'} and ${impact.enrolments} enrolment${impact.enrolments == 1 ? '' : 's'}. This cannot be undone.',
+        perform: () => service.deleteCohorts(ids),
+      );
+      if (!done || !mounted) return;
+      setState(() => _selected.removeAll(ids));
+      await _load();
+      return;
+    }
     final dependents = await service.masterDependents(widget.masterKind, ids);
     if (!mounted) return;
     final done = await runRelationalDelete(

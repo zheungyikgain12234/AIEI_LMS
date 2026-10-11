@@ -160,13 +160,13 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
 
   @override
   Future<List<EnrollmentCandidate>> getEnrollmentCandidates(String courseId) async {
-    final rows = await _client
-        .from('enrollment_candidates')
-        .select()
-        .eq('target_course_id', courseId)
-        .order('requested_at');
+    final enrolled = await _client.from('student_courses').select('student_id').eq('course_id', courseId);
+    final enrolledIds = {for (final r in enrolled as List) '${(r as Map)['student_id']}'};
+    final rows = await _client.from('students').select().order('name');
     return [
-      for (final row in rows as List) EnrollmentCandidate.fromMap(row as Map<String, dynamic>),
+      for (final row in rows as List)
+        if (!enrolledIds.contains('${(row as Map)['id']}'))
+          EnrollmentCandidate.fromStudent(row as Map<String, dynamic>, courseId: courseId),
     ];
   }
 

@@ -11,7 +11,7 @@
 -- set into a real production deployment with real user data.
 
 drop table if exists
-  enrollment_candidates, course_announcements, course_sections,
+  course_announcements, course_sections,
   badge_awards, course_badges, student_certifications, student_materials, student_courses,
   specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags,
@@ -191,7 +191,7 @@ create table course_sections (
   start_time time,
   end_time time,
   location text,
-  lecturer_id uuid references lecturers(id),
+  lecturer_id uuid not null references lecturers(id),
   capacity int not null default 30,
   delivery_mode text not null default 'physical' check (delivery_mode in ('online', 'physical')),
   cohort_id uuid references cohorts(id) on update cascade,
@@ -540,24 +540,6 @@ create table course_announcements (
   created_at timestamptz not null default now()
 );
 
-create table enrollment_candidates (
-  id uuid primary key default gen_random_uuid(),
-  student_name text not null,
-  student_employee_id text,
-  student_email text not null,
-  department text not null default '',
-  cohort text not null default '',
-  role text references roles(name) on update cascade,
-  target_course_id uuid not null references courses(id) on delete cascade,
-  prerequisite_status text not null default 'met' check (prerequisite_status in ('met', 'pending', 'not_met')),
-  prerequisite_detail text not null default '',
-  standing_detail text not null default 'Academic Good Standing',
-  sponsorship text not null default 'Self-Enrolled',
-  queue_tag text,
-  needs_review boolean not null default false,
-  requested_at timestamptz not null default now()
-);
-
 -- ── RLS (demo-only, see warning above) ──────────────────────────────────
 
 alter table departments enable row level security;
@@ -598,7 +580,6 @@ alter table student_materials enable row level security;
 alter table student_certifications enable row level security;
 alter table badge_awards enable row level security;
 alter table course_sections enable row level security;
-alter table enrollment_candidates enable row level security;
 alter table course_announcements enable row level security;
 
 do $$
@@ -615,7 +596,7 @@ begin
     'assignment_criteria', 'content_block_submissions',
     'tags', 'course_tags', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
-    'student_certifications', 'badge_awards', 'course_sections', 'enrollment_candidates', 'course_announcements'
+    'student_certifications', 'badge_awards', 'course_sections', 'course_announcements'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

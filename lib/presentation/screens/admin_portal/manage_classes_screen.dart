@@ -147,16 +147,15 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
   Future<void> _deleteSelected() async {
     final ids = _selected.toList();
     final service = SupabaseAdminRelationalDelete(Supabase.instance.client);
-    final dependents = await service.sectionDependents(ids);
     if (!mounted) return;
     final done = await runRelationalDelete(
       context,
       noun: 'class',
       count: ids.length,
       pluralNoun: 'classes',
-      dependents: dependents,
-      note: 'Its modules, syllabus content and announcements will be deleted too.',
-      perform: (decisions) => service.deleteSections(ids, decisions),
+      dependents: const [],
+      note: 'Their modules, syllabus content and announcements will be deleted too. Enrolled students stay enrolled in the course.',
+      perform: (_) => service.deleteSections(ids),
     );
     if (!done || !mounted) return;
     setState(_selected.clear);

@@ -11,7 +11,7 @@
 -- "January 2025 Intake", "AY2025 Term 2"), not US semester names.
 
 truncate table
-  enrollment_candidates, course_sections,
+  course_sections,
   badge_awards, student_certifications, student_materials, student_courses,
   role_courses, lecturer_courses, module_certs, course_tags,
   module_materials, course_modules, courses,
@@ -229,8 +229,8 @@ insert into course_sections (course_id, section_code, role_label, term, schedule
   ('44444444-4444-4444-4444-444444444417', 'TN01-CLS-AI512-01', 'Primary Instructor', 'AY2025 Term 2', 'Thursday 13:00–16:00 • Autonomy Systems Lab', 'Thursday', '13:00', '16:00', 'Autonomy Systems Lab', '11111111-1111-1111-1111-111111111106', 22, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
   ('44444444-4444-4444-4444-444444444403', 'TN01-CLS-AI330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 10:00–12:00 • AI Studio 2', 'Tuesday', '10:00', '12:00', 'AI Studio 2', '11111111-1111-1111-1111-111111111106', 25, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2025-05-16', 'completed'),
   -- Unassigned sections needing lecturer allocation:
-  ('44444444-4444-4444-4444-444444444415', 'TN01-CLS-CYBER202-02', 'Unassigned', 'AY2025 Term 2', 'TBD', null, null, null, null, null, 34, 'physical', (select id from cohorts where name = 'January 2025 Intake'), null, null, 'scheduled'),
-  ('44444444-4444-4444-4444-444444444416', 'TN01-CLS-CLOUD410-01', 'Unassigned', 'AY2025 Term 2', 'TBD', null, null, null, null, null, 50, 'online', (select id from cohorts where name = 'January 2025 Intake'), null, null, 'scheduled');
+  ('44444444-4444-4444-4444-444444444415', 'TN01-CLS-CYBER202-02', 'Primary Instructor', 'AY2025 Term 2', 'TBD', null, null, null, null, '11111111-1111-1111-1111-111111111108', 34, 'physical', (select id from cohorts where name = 'January 2025 Intake'), null, null, 'scheduled'),
+  ('44444444-4444-4444-4444-444444444416', 'TN01-CLS-CLOUD410-01', 'Primary Instructor', 'AY2025 Term 2', 'TBD', null, null, null, null, '11111111-1111-1111-1111-111111111108', 50, 'online', (select id from cohorts where name = 'January 2025 Intake'), null, null, 'scheduled');
 
 -- ── Modules + Materials ─────────────────────────────────────────────────
 -- Python course (PY-402) — full 10-lesson curriculum matching course_info_screen.dart
@@ -562,20 +562,6 @@ insert into student_courses (student_id, course_id, progress_percentage, grade, 
   (7, '44444444-4444-4444-4444-444444444405', 60, 'C', 73.2, 55, 'at_risk', 'Corporate Sponsored', now() - interval '4 days', false),
   (10, '44444444-4444-4444-4444-444444444405', 84, 'B+', 89.0, 93, 'on_track', 'Corporate Sponsored', now() - interval '5 hours', true);
 
--- ── Admin: Enrollment candidates / waitlist for PY-402 (drives
--- enroll_students_screen.dart — its capacity comes from the PY-402
--- 'Sec A01' course_sections row above; enrolled count is derived live
--- from the `student_courses` rows enrolled in that section) ─────────────
-
-insert into enrollment_candidates (student_name, student_employee_id, student_email, department, cohort, role, target_course_id, prerequisite_status, prerequisite_detail, standing_detail, sponsorship, queue_tag, needs_review) values
-  ('Daniel Ross', 'EMP-61092', 'daniel.ross@enterprise.com', 'Data Architecture', 'January 2025 Intake', 'IT Support Specialist', '44444444-4444-4444-4444-444444444401', 'met', 'CS-101 Met (GPA 3.9)', 'Academic Good Standing', 'Enterprise Full', 'Staged', false),
-  ('Emily Lawson', 'EMP-88231', 'emily.lawson@enterprise.com', 'AI Engineering', 'January 2025 Intake', 'Data Analyst', '44444444-4444-4444-4444-444444444401', 'met', 'MATH-204 Met', 'Academic Good Standing', 'Enterprise Full', 'Waitlist #1', false),
-  -- Cloud Engineer's role→course mapping doesn't include PY-402 — demonstrates the role-mismatch flag.
-  ('Ravi Kumar', 'EMP-54910', 'ravi.kumar@enterprise.com', 'Cloud & Distributed', 'January 2025 Intake', 'Cloud Engineer', '44444444-4444-4444-4444-444444444401', 'met', 'All Prerequisites Met', 'Ready for section assign', 'Enterprise Full', null, false),
-  ('Sophia Martinez', 'EMP-30491', 's.martinez@enterprise.com', 'Data Architecture', 'January 2025 Intake', 'Data Analyst', '44444444-4444-4444-4444-444444444401', 'met', 'Prereq PY-101 Verified', 'Academic Good Standing', 'Self-Enrolled', null, false),
-  -- Executive Manager's role→course mapping doesn't include PY-402 — demonstrates the role-mismatch flag.
-  ('Jason Todd', 'EMP-77182', 'jason.todd@enterprise.com', 'Executive Operations', 'Executive Cohort 2025', 'Executive Manager', '44444444-4444-4444-4444-444444444401', 'pending', 'Prereq Waiver Required', 'Conditional dean approval', 'Enterprise Full', 'Waitlist #2', true);
-
 -- ── Syllabus authoring tree — PY-402 example (drives course_syllabus_screen,
 -- exam_editor_screen, assignment_editor_screen, and the "Mark
 -- Assignment"/"Mark Exam" screens). Two sessions under PY-402's existing
@@ -805,9 +791,8 @@ insert into course_sections (course_id, section_code, role_label, term, schedule
   ('44444444-4444-4444-4444-444444444424', 'TN01-CLS-AI410-A01', 'Primary Instructor', 'AY2025 Term 2', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111103', 30, 'physical', (select id from cohorts where name = 'January 2025 Intake'), 'in_progress'),
   ('44444444-4444-4444-4444-444444444425', 'TN01-CLS-DATA610-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 09:00–11:00 • Data Lab 3B', 'Tuesday', '09:00', '11:00', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 40, 'physical', (select id from cohorts where name = 'September 2025 Intake'), 'in_progress');
 
--- Give Marcus Webb the previously-unassigned CLOUD-410 section too
--- (CYBER-202 is left unassigned — keeps the Lecturer Allocation "needs
--- assignment" demo state meaningful).
+-- Fill in the schedule for Marcus Webb's CLOUD-410 section (every class
+-- must have a lecturer, so CYBER-202 is Marcus's too, schedule still TBD).
 update course_sections set
   lecturer_id = '11111111-1111-1111-1111-111111111108', role_label = 'Primary Instructor', status = 'in_progress',
   schedule_text = 'Thursday 09:00–11:00 • Cloud Infra Lab', day_of_week = 'Thursday', start_time = '09:00', end_time = '11:00', location = 'Cloud Infra Lab'
@@ -825,6 +810,7 @@ insert into lecturer_courses (lecturer_id, course_id) values
   ('11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444421'), -- James Park: SC-330
   ('11111111-1111-1111-1111-111111111108', '44444444-4444-4444-4444-444444444423'), -- Marcus Webb: CLOUD-505
   ('11111111-1111-1111-1111-111111111108', '44444444-4444-4444-4444-444444444416'), -- Marcus Webb: CLOUD-410
+  ('11111111-1111-1111-1111-111111111108', '44444444-4444-4444-4444-444444444415'), -- Marcus Webb: CYBER-202
   ('11111111-1111-1111-1111-111111111103', '44444444-4444-4444-4444-444444444424'), -- Aris Thorne: AI-410
   ('11111111-1111-1111-1111-111111111101', '44444444-4444-4444-4444-444444444425'); -- Sarah Lin: DATA-610
 

@@ -40,23 +40,26 @@ class EnrollmentCandidate {
     return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
   }
 
-  factory EnrollmentCandidate.fromMap(Map<String, dynamic> map) {
+  /// An eligible candidate is simply a registered student not yet enrolled
+  /// in the target course; the review fields have no backing data and keep
+  /// their neutral defaults.
+  factory EnrollmentCandidate.fromStudent(Map<String, dynamic> map, {required String courseId}) {
     return EnrollmentCandidate(
-      id: map['id'] as String,
-      studentName: map['student_name'] as String,
-      studentEmployeeId: map['student_employee_id'] as String?,
-      studentEmail: map['student_email'] as String,
-      department: map['department'] as String? ?? '',
+      id: '${map['id']}',
+      studentName: map['name'] as String,
+      studentEmployeeId: map['student_code'] as String?,
+      studentEmail: map['email'] as String,
+      department: (map['department'] ?? map['program_track']) as String? ?? '',
       cohort: map['cohort'] as String? ?? '',
       role: map['role'] as String?,
-      targetCourseId: map['target_course_id'] as String,
-      prerequisiteStatus: map['prerequisite_status'] as String,
-      prerequisiteDetail: map['prerequisite_detail'] as String? ?? '',
-      standingDetail: map['standing_detail'] as String? ?? 'Academic Good Standing',
-      sponsorship: map['sponsorship'] as String? ?? 'Self-Enrolled',
-      queueTag: map['queue_tag'] as String?,
-      needsReview: map['needs_review'] as bool? ?? false,
-      requestedAt: DateTime.parse(map['requested_at'] as String),
+      targetCourseId: courseId,
+      prerequisiteStatus: 'met',
+      prerequisiteDetail: '',
+      standingDetail: 'Academic Good Standing',
+      sponsorship: 'Self-Enrolled',
+      queueTag: null,
+      needsReview: false,
+      requestedAt: DateTime.now(),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 
 /// Badges master data (`certifications` table) — the catalog of badges a
@@ -23,5 +24,11 @@ abstract class AdminBadgeCatalogRepository {
     required String issuingBody,
   });
 
-  Future<void> deleteBadges(List<String> ids);
+  /// The `badge_awards` that reference any of [ids].
+  Future<List<BadgeAward>> getAwardsForBadges(List<String> ids);
+
+  /// Deletes the badges. [reassignments] maps award id -> the badge that
+  /// award moves to first; any other award on a deleted badge is deleted
+  /// with it.
+  Future<void> deleteBadges(List<String> ids, {Map<String, String> reassignments = const {}});
 }

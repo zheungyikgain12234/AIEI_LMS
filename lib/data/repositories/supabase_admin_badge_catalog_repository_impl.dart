@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'package:stitch_aiei_lms/domain/repositories/admin_badge_catalog_repository.dart';
 
@@ -54,7 +55,22 @@ class SupabaseAdminBadgeCatalogRepositoryImpl implements AdminBadgeCatalogReposi
   }
 
   @override
-  Future<void> deleteBadges(List<String> ids) async {
+  Future<List<BadgeAward>> getAwardsForBadges(List<String> ids) async {
+    final rows = await _client
+        .from('badge_awards')
+        .select('*, students(name), courses(course_code, course_title), certifications(code, title)')
+        .inFilter('badge_id', ids)
+        .order('issue_date', ascending: false);
+    return [for (final row in rows as List) BadgeAward.fromMap(row as Map<String, dynamic>)];
+  }
+
+  @override
+  Future<void> deleteBadges(List<String> ids, {Map<String, String> reassignments = const {}}) async {
+    final byTarget = <String, List<String>>{};
+    reassignments.forEach((awardId, badgeId) => byTarget.putIfAbsent(badgeId, () => []).add(awardId));
+    for (final entry in byTarget.entries) {
+      await _client.from('badge_awards').update({'badge_id': entry.key}).inFilter('id', entry.value);
+    }
     await _client.from('certifications').delete().inFilter('id', ids);
   }
 }

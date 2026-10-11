@@ -163,6 +163,9 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
     await _repository.deleteBadgeAwards(_selected.toList());
     if (!mounted) return;
     setState(_selected.clear);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$count badge award${count == 1 ? '' : 's'} deleted')),
+    );
     await _load();
   }
 

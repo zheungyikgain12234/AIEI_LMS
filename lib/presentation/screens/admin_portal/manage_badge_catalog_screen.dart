@@ -3,8 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'widgets/admin_scaffold.dart';
+import 'widgets/admin_searchable_dropdown.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
@@ -76,26 +78,46 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
   }
 
   Future<void> _deleteSelected() async {
-    final count = _selected.length;
-    final confirmed = await showDialog<bool>(
+    final ids = _selected.toList();
+    final awards = await _repository.getAwardsForBadges(ids);
+    if (!mounted) return;
+    final replacements = _badges.where((b) => !_selected.contains(b.id)).toList();
+    final reassignments = await showDialog<Map<String, String>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete badges?'),
-        content: Text('This will permanently delete $count badge${count == 1 ? '' : 's'} from the catalogue and any course that awards it. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      builder: (ctx) => _DeleteBadgesDialog(badgeCount: ids.length, awards: awards, replacements: replacements),
     );
-    if (confirmed != true) return;
-    await _repository.deleteBadges(_selected.toList());
+    if (reassignments == null || !mounted) return;
+    if (awards.isNotEmpty) {
+      final moved = reassignments.length;
+      final removed = awards.length - moved;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Confirm deletion'),
+          content: Text(
+            'You are about to delete ${ids.length} badge${ids.length == 1 ? '' : 's'}.\n'
+            '• $moved award${moved == 1 ? '' : 's'} will be reassigned\n'
+            '• $removed award${removed == 1 ? '' : 's'} will be deleted\n\n'
+            'This cannot be undone.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Back')),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
+              child: const Text('Confirm & delete'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    await _repository.deleteBadges(ids, reassignments: reassignments);
     if (!mounted) return;
     setState(_selected.clear);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${ids.length} badge${ids.length == 1 ? '' : 's'} deleted')),
+    );
     await _load();
   }
 
@@ -341,6 +363,81 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Confirms a badge delete. Awards still on the badges are listed one by one;
+// each needs its own decision: move to another badge, or delete the award.
+// Pops a map of award id -> new badge id (awards left out are deleted).
+class _DeleteBadgesDialog extends StatefulWidget {
+  const _DeleteBadgesDialog({required this.badgeCount, required this.awards, required this.replacements});
+
+  final int badgeCount;
+  final List<BadgeAward> awards;
+  final List<BadgeCatalogItem> replacements;
+
+  @override
+  State<_DeleteBadgesDialog> createState() => _DeleteBadgesDialogState();
+}
+
+class _DeleteBadgesDialogState extends State<_DeleteBadgesDialog> {
+  static const _deleteAward = '__delete__';
+
+  // award id -> badge id, or [_deleteAward]. Missing = not decided yet.
+  final Map<String, String> _choices = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final noun = widget.badgeCount == 1 ? 'badge' : 'badges';
+    final awards = widget.awards;
+    final undecided = awards.where((a) => !_choices.containsKey(a.id)).length;
+    return AlertDialog(
+      title: Text('Delete $noun?'),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(awards.isEmpty
+                  ? 'This will permanently delete ${widget.badgeCount} $noun from the catalogue and any course that awards it. This cannot be undone.'
+                  : '${awards.length} award${awards.length == 1 ? ' is' : 's are'} still linked to the selected $noun. Choose what happens to each one. Courses that award the $noun will stop awarding it.'),
+              for (final a in awards) ...[
+                const SizedBox(height: 12),
+                Text('${a.studentName} • ${a.courseCode}', style: AdminTypography.titleSm()),
+                Text('Currently: ${a.badgeCode} ${a.badgeTitle}', style: AdminTypography.labelSm()),
+                const SizedBox(height: 4),
+                AdminSearchableDropdown(
+                  key: ValueKey(a.id),
+                  initialValue: _choices[a.id],
+                  hint: 'Choose action',
+                  filled: false,
+                  options: [
+                    (_deleteAward, 'Delete this award'),
+                    for (final b in widget.replacements) (b.id, 'Reassign to ${b.code} • ${b.title}'),
+                  ],
+                  onChanged: (v) => setState(() => _choices[a.id] = v!),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: undecided == 0
+              ? () => Navigator.of(context).pop({
+                    for (final e in _choices.entries)
+                      if (e.value != _deleteAward) e.key: e.value,
+                  })
+              : null,
+          style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
+          child: Text(undecided == 0 ? 'Delete $noun' : '$undecided left to decide'),
+        ),
+      ],
     );
   }
 }

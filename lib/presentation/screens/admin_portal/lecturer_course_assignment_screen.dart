@@ -13,7 +13,12 @@ import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show LecturerClassSlot;
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/module_list.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/admin_date_time_field.dart';
+import 'widgets/module_names_editor.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // LecturerCourseAssignmentScreen — "Manage Assigned Courses" for a single
@@ -40,6 +45,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
   final _specializationMappingRepository = SupabaseSpecializationCourseMappingRepositoryImpl(Supabase.instance.client);
+  final _moduleListsRepository = SupabaseAdminModuleListsRepositoryImpl(Supabase.instance.client);
+  final _modules = ModuleNamesController();
 
   bool _isLoading = true;
   bool _isAssigning = false;
@@ -68,6 +75,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   DateTime? _courseEndDate;
   String _deliveryMode = 'physical';
   String? _selectedCohort;
+  DateTime? _editStartAt;
+  DateTime? _editEndAt;
   String? _assignErrorMessage;
 
   @override
@@ -83,6 +92,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     _locationController.dispose();
     _classCodeController.dispose();
     _capacityController.dispose();
+    _modules.dispose();
     super.dispose();
   }
 
@@ -110,8 +120,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       // Every course can be picked for assignment, including ones the
       // lecturer already teaches — that's how a second class/section is
       // created for the same course, even for the same cohort. Only a
-      // genuine schedule clash (same course, same cohort, overlapping day
-      // and time) is blocked, in _assign().
+      // genuine schedule clash (any course/cohort, same day, overlapping
+      // time and course dates) is blocked, in the repository.
       _availableCourses = allCourses;
       _cohortModels = cohorts;
       _creditsByCourseId = {for (final c in allCourses) c.id: c.credits};
@@ -230,6 +240,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   bool get _dateRangeValid =>
       _courseStartDate != null && _courseEndDate != null && _courseEndDate!.isAfter(_courseStartDate!);
+  bool get _editWindowValid => _editStartAt != null && _editEndAt != null && _editEndAt!.isAfter(_editStartAt!);
+
 
   bool get _canAssign =>
       _selectedCourseId != null &&
@@ -241,7 +253,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _classCodeController.text.trim().isNotEmpty &&
       _classCapacity != null &&
       _classCapacity! > 0 &&
-      _selectedCohort != null;
+      _selectedCohort != null &&
+      _modules.names.isNotEmpty &&
+      _editWindowValid;
 
   int? get _classCapacity => int.tryParse(_capacityController.text.trim());
 
@@ -266,38 +280,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   String _formatTime(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  /// Parses a Postgres `time` value (`"09:00:00"` or `"09:00"`) into minutes
-  /// since midnight, for comparison against [_toMinutes].
-  int? _parseMinutes(String? hms) {
-    if (hms == null || hms.length < 5) return null;
-    final hour = int.tryParse(hms.substring(0, 2));
-    final minute = int.tryParse(hms.substring(3, 5));
-    if (hour == null || minute == null) return null;
-    return hour * 60 + minute;
-  }
-
   String _trimSeconds(String hms) => hms.length >= 5 ? hms.substring(0, 5) : hms;
-
-  /// The lecturer's existing classes for [courseId] and [cohort] whose
-  /// day/time overlaps [dayOfWeek] + [start]–[end] — a genuine schedule
-  /// clash. Same course/cohort at a non-overlapping time is allowed.
-  List<LecturerClassSlot> _clashingSlots({
-    required String courseId,
-    required String cohort,
-    required String dayOfWeek,
-    required TimeOfDay start,
-    required TimeOfDay end,
-  }) {
-    final startMin = _toMinutes(start);
-    final endMin = _toMinutes(end);
-    return _assignedSchedules.where((slot) {
-      if (slot.courseId != courseId || slot.cohort != cohort || slot.dayOfWeek != dayOfWeek) return false;
-      final slotStart = _parseMinutes(slot.startTime);
-      final slotEnd = _parseMinutes(slot.endTime);
-      if (slotStart == null || slotEnd == null) return false;
-      return startMin < slotEnd && slotStart < endMin;
-    }).toList();
-  }
 
   Future<void> _pickTime({required bool isStart}) async {
     final picked = await showTimePicker(
@@ -325,30 +308,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     if (!_canAssign || _lecturer == null) return;
     final courses = _availableCourses.where((c) => c.id == _selectedCourseId).toList();
 
-    // Same course + same cohort is fine as long as the day/time doesn't
-    // overlap an existing class of this lecturer's — only a genuine
-    // schedule clash is blocked.
-    final clashes = <String>[];
-    for (final course in courses) {
-      final slots = _clashingSlots(
-        courseId: course.id,
-        cohort: _selectedCohort!,
-        dayOfWeek: _dayOfWeek!,
-        start: _startTime!,
-        end: _endTime!,
-      );
-      for (final slot in slots) {
-        clashes.add('${course.courseCode} (${slot.sectionCode} • ${slot.dayOfWeek} ${_trimSeconds(slot.startTime!)}–${_trimSeconds(slot.endTime!)})');
-      }
-    }
-    if (clashes.isNotEmpty) {
-      setState(() {
-        _assignErrorMessage = '${_lecturer!.name} already has an overlapping class at that day/time: ${clashes.join(', ')}. '
-            'Pick a different day or time to add another class for the same course and cohort.';
-      });
-      return;
-    }
-
+    // The repository rejects the assignment (ScheduleConflictException) if
+    // this lecturer already teaches a class with the same day, an overlapping
+    // time and overlapping course dates — whatever the course or cohort.
     setState(() {
       _isAssigning = true;
       _assignErrorMessage = null;
@@ -372,6 +334,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           cohort: _selectedCohort!,
           courseStartDate: _courseStartDate,
           courseEndDate: _courseEndDate,
+          moduleNames: _modules.names,
+          editStartAt: _editStartAt!,
+          editEndAt: _editEndAt!,
         );
       }
       await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, [_selectedCourseId!]);
@@ -388,6 +353,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _locationController.clear();
       _classCodeController.clear();
       _capacityController.clear();
+      _modules.clear();
+      _editStartAt = null;
+      _editEndAt = null;
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -497,7 +465,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   children: [
                     const AdminFieldLabel('Year'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<int>(
+                    SearchableDropdownFormField<int>(
                       initialValue: years.contains(_selectedYear) ? _selectedYear : null,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -524,7 +492,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   children: [
                     const AdminFieldLabel('Cohort'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
+                    SearchableDropdownFormField<String>(
                       initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -791,6 +759,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   ),
                 ]),
                 Text('${s.cohort ?? 'No cohort'} • $timeLabel', style: AdminTypography.labelSm()),
+                Text(
+                  s.startDate == null && s.endDate == null
+                      ? 'Dates TBD'
+                      : '${s.startDate == null ? '…' : _formatDate(s.startDate!)} to ${s.endDate == null ? '…' : _formatDate(s.endDate!)}',
+                  style: AdminTypography.labelSm(),
+                ),
               ],
             ),
           ),
@@ -902,7 +876,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             Tooltip(
               message: 'Already assigned to this lecturer:\n'
                   '${existingSlots.map((s) => '${s.cohort ?? '—'} • ${s.dayOfWeek ?? '—'} ${s.startTime == null ? '' : _trimSeconds(s.startTime!)}–${s.endTime == null ? '' : _trimSeconds(s.endTime!)}').join('\n')}\n'
-                  'Selecting it again is fine as long as the new class is a different cohort or a non-overlapping time.',
+                  'Selecting it again is fine as long as the new class doesn\'t overlap the lecturer\'s other classes (day, time and course dates).',
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
@@ -977,7 +951,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   children: [
                     const AdminFieldLabel('Day'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
+                    SearchableDropdownFormField<String>(
                       initialValue: _dayOfWeek,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -1079,7 +1053,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   children: [
                     const AdminFieldLabel('Delivery Mode'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
+                    SearchableDropdownFormField<String>(
                       initialValue: _deliveryMode,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -1115,9 +1089,172 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             const SizedBox(height: 8),
             Text('Course end date must be after the course start date.', style: AdminTypography.labelSm(color: AdminColors.error)),
           ],
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          _buildEditPeriodSection(),
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          _buildModulesSection(),
         ],
       ),
     );
+  }
+
+  Widget _buildEditPeriodSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Syllabus Edit Period *', style: AdminTypography.titleSm()),
+        const SizedBox(height: 2),
+        Text(
+          'The lecturer can add, edit and delete sessions and contents only between these two moments. Outside it their syllabus is read-only.',
+          style: AdminTypography.bodySm(),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 16,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: 340,
+              child: AdminDateTimeField(label: 'Edit Start', value: _editStartAt, defaultHour: 0, onChanged: (v) => setState(() => _editStartAt = v)),
+            ),
+            SizedBox(
+              width: 340,
+              child: AdminDateTimeField(label: 'Edit End', value: _editEndAt, defaultHour: 23, onChanged: (v) => setState(() => _editEndAt = v)),
+            ),
+          ],
+        ),
+        if (_editStartAt != null && _editEndAt != null && !_editWindowValid) ...[
+          const SizedBox(height: 8),
+          Text('Edit end must be after edit start.', style: AdminTypography.labelSm(color: AdminColors.error)),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildModulesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AdminFieldLabel('Modules *'),
+        const SizedBox(height: 2),
+        Text('Type each module this class will teach. At least one is required.', style: AdminTypography.bodySm()),
+        const SizedBox(height: 12),
+        ModuleNamesEditor(controller: _modules, onChanged: () => setState(() {})),
+        const SizedBox(height: 8),
+        // Both buttons are shortcuts, not steps — kept visually distinct
+        // from the required fields and from "Assign to Lecturer".
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Optional shortcuts:', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+            OutlinedButton.icon(
+              onPressed: _importModuleList,
+              icon: const Icon(Icons.download_outlined, size: 16),
+              label: const Text('Import from saved list'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _modules.names.isEmpty ? null : _saveModuleList,
+              icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+              label: const Text('Save as reusable list'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _importModuleList() async {
+    final lists = await _moduleListsRepository.getModuleLists();
+    if (!mounted) return;
+    final picked = await showDialog<ModuleList>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import module list'),
+        content: SizedBox(
+          width: 420,
+          child: lists.isEmpty
+              ? const Text('No saved module lists yet. Create one under Master Data → Manage Module Lists, or use "Save as reusable list".')
+              : ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final l in lists)
+                      ListTile(
+                        title: Text('${l.name} (${l.moduleNames.length})'),
+                        subtitle: Text(l.moduleNames.join(' • '), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        onTap: () => Navigator.of(ctx).pop(l),
+                      ),
+                  ],
+                ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel'))],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _modules.setNames(picked.moduleNames));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported "${picked.name}". You can still edit the modules below.')));
+  }
+
+  Future<void> _saveModuleList() async {
+    final names = _modules.names;
+    if (names.isEmpty) return;
+    final nameController = TextEditingController();
+    String? errorMessage;
+    final saved = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Save as reusable list'),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Saves these ${names.length} module${names.length == 1 ? '' : 's'} so you can import them into other classes.', style: AdminTypography.bodySm()),
+                const SizedBox(height: 12),
+                if (errorMessage != null) ...[
+                  Text(errorMessage!, style: AdminTypography.bodySm(color: AdminColors.error)),
+                  const SizedBox(height: 8),
+                ],
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  decoration: const InputDecoration(labelText: 'List name', hintText: 'e.g. Standard 4-Module Course'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) {
+                  setDialogState(() => errorMessage = 'List name is required.');
+                  return;
+                }
+                try {
+                  await _moduleListsRepository.createModuleList(name, names);
+                  if (ctx.mounted) Navigator.of(ctx).pop(name);
+                } catch (e) {
+                  setDialogState(() => errorMessage = friendlyErrorMessage(e));
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    nameController.dispose();
+    if (saved == null || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved module list "$saved".')));
   }
 
   Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap}) {
@@ -1204,6 +1341,10 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                                     ? 'Set a class code above.'
                                     : _classCapacity == null || _classCapacity! <= 0
                                         ? 'Set a valid capacity above.'
+                                    : !_editWindowValid
+                                        ? 'Set a valid syllabus edit period above.'
+                                    : _modules.names.isEmpty
+                                        ? 'Add at least one module above.'
                                         : '1 course selected • $_assignCredits credits',
             style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
           ),

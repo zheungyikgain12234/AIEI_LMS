@@ -106,7 +106,7 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
         .from('content_blocks')
         .select('id, block_type, session_id')
         .inFilter('session_id', moduleBySession.keys.toList())
-        .inFilter('block_type', ['exam', 'assignment']);
+        .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
     final sectionByBlock = <String, String>{};
     final typeByBlock = <String, String>{};
     final totalAssessmentsBySection = <String, int>{};
@@ -192,7 +192,7 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
         .from('content_blocks')
         .select('id, block_type, block_content, session_id')
         .inFilter('session_id', moduleBySession.keys.toList())
-        .inFilter('block_type', ['exam', 'assignment']);
+        .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
     final blockRowById = <String, Map<String, dynamic>>{};
     final sectionByBlock = <String, String>{};
     for (final row in blockRows as List) {
@@ -207,14 +207,42 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
 
     final submissionRows = await _client
         .from('content_block_submissions')
-        .select('content_block_id')
-        .inFilter('content_block_id', blockRowById.keys.toList())
-        .eq('status', 'submitted');
+        .select('content_block_id, student_id, status')
+        .inFilter('content_block_id', blockRowById.keys.toList());
 
+    // Online exams/assignments: pending = submissions awaiting grading.
+    // Physical (paper-based) ones: pending = enrolled students who still have
+    // no marks — a student the lecturer hasn't entered a mark for (an absent
+    // student needs an explicit 0) keeps the item on the list.
+    final enrolledRows = await _client.from('student_courses').select('student_id, section_id').inFilter('section_id', sectionIds);
+    final enrolledBySection = <String, Set<String>>{};
+    for (final row in enrolledRows as List) {
+      final sectionId = row['section_id'] as String?;
+      if (sectionId == null) continue;
+      enrolledBySection.putIfAbsent(sectionId, () => {}).add((row['student_id'] as num).toString());
+    }
+    final gradedStudentsByBlock = <String, Set<String>>{};
     final pendingCountByBlock = <String, int>{};
     for (final row in submissionRows as List) {
       final blockId = row['content_block_id'] as String;
-      pendingCountByBlock[blockId] = (pendingCountByBlock[blockId] ?? 0) + 1;
+      final status = row['status'] as String?;
+      if (status == 'graded') {
+        gradedStudentsByBlock.putIfAbsent(blockId, () => {}).add((row['student_id'] as num).toString());
+      } else if (status == 'submitted') {
+        final type = blockRowById[blockId]!['block_type'] as String;
+        if (type == 'exam' || type == 'assignment') {
+          pendingCountByBlock[blockId] = (pendingCountByBlock[blockId] ?? 0) + 1;
+        }
+      }
+    }
+    for (final entry in blockRowById.entries) {
+      final type = entry.value['block_type'] as String;
+      if (type != 'physicalExam' && type != 'physicalAssignment') continue;
+      final enrolled = enrolledBySection[sectionByBlock[entry.key]] ?? const <String>{};
+      final graded = gradedStudentsByBlock[entry.key] ?? const <String>{};
+      final withoutMarks = enrolled.where((id) => !graded.contains(id)).length;
+      // Always listed, even when fully marked, so it stays available for review.
+      pendingCountByBlock[entry.key] = withoutMarks;
     }
 
     return [
@@ -226,6 +254,60 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
           title: (blockRowById[entry.key]!['block_content'] as Map<String, dynamic>?)?['title'] as String? ?? 'Untitled',
           pendingCount: entry.value,
         ),
+    ];
+  }
+
+  @override
+  Future<List<PhysicalClassItem>> getPhysicalClassItems(List<String> sectionIds) async {
+    if (sectionIds.isEmpty) return [];
+
+    final moduleRows = await _client.from('course_modules').select('id, section_id').inFilter('section_id', sectionIds);
+    final sectionByModule = {for (final row in moduleRows as List) row['id'] as String: row['section_id'] as String};
+    if (sectionByModule.isEmpty) return [];
+
+    final sessionRows = await _client.from('sessions').select('id, module_id').inFilter('module_id', sectionByModule.keys.toList());
+    final moduleBySession = {for (final row in sessionRows as List) row['id'] as String: row['module_id'] as String};
+    if (moduleBySession.isEmpty) return [];
+
+    final blockRows = await _client
+        .from('content_blocks')
+        .select('id, block_type, block_content, session_id')
+        .inFilter('session_id', moduleBySession.keys.toList())
+        .inFilter('block_type', ['physicalClass', 'physicalExam', 'physicalAssignment']);
+
+    final items = <PhysicalClassItem>[];
+    for (final row in blockRows as List) {
+      final moduleId = moduleBySession[row['session_id'] as String];
+      final sectionId = moduleId == null ? null : sectionByModule[moduleId];
+      if (sectionId == null) continue;
+      final content = (row['block_content'] as Map<String, dynamic>?) ?? const {};
+      final rawDate = content['scheduledAt'] as String?;
+      items.add((
+        sectionId: sectionId,
+        contentBlockId: row['id'] as String,
+        blockType: row['block_type'] as String,
+        dueDate: content['dueDate'] is String ? DateTime.tryParse(content['dueDate'] as String) : null,
+        title: content['title'] as String? ?? 'Untitled',
+        description: content['description'] as String? ?? '',
+        scheduledAt: rawDate == null ? null : DateTime.tryParse(rawDate),
+        endsAt: content['endsAt'] is String ? DateTime.tryParse(content['endsAt'] as String) : null,
+      ));
+    }
+    return items;
+  }
+
+  @override
+  Future<List<SyllabusDeadline>> getSyllabusDeadlines(List<String> sectionIds) async {
+    if (sectionIds.isEmpty) return [];
+    final rows = await _client
+        .from('course_sections')
+        .select('id, edit_end_at')
+        .inFilter('id', sectionIds)
+        .eq('syllabus_status', 'draft')
+        .not('edit_end_at', 'is', null);
+    return [
+      for (final row in rows as List)
+        (sectionId: row['id'] as String, editEndAt: DateTime.parse(row['edit_end_at'] as String).toLocal()),
     ];
   }
 }

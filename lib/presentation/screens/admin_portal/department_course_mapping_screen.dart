@@ -11,6 +11,7 @@ import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // DepartmentCourseMappingScreen — "which courses belong to a given
@@ -163,7 +164,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
           Text('Department', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
           const SizedBox(width: 12),
           Expanded(
-            child: DropdownButtonFormField<String>(
+            child: SearchableDropdownFormField<String>(
               initialValue: _selectedDepartmentId,
               isExpanded: true,
               style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -275,10 +276,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Assign courses to departments — e.g. which courses belong under Information Technology or Engineering.',
-                style: AdminTypography.bodyMd(),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildDepartmentSelector(),
               const SizedBox(height: 16),

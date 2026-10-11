@@ -14,6 +14,7 @@ import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // CourseFormScreen — shared "Add New Course" / "Edit Course" form. Pass
@@ -544,7 +545,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
+        SearchableDropdownFormField<String>(
           initialValue: value,
           isExpanded: true,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),

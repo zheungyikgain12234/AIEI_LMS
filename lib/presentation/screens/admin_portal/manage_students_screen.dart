@@ -1,5 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
+import 'package:stitch_aiei_lms/core/utils/file_download.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
@@ -23,6 +30,7 @@ import 'widgets/admin_mobile_selection_bar.dart';
 import 'widgets/admin_pagination.dart';
 import 'student_form_screen.dart';
 import 'student_enrolled_courses_screen.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // ManageStudentsScreen – Stitch "Manage Students" faithful Flutter
@@ -46,7 +54,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<Student> _students = [];
-  Map<String, int> _enrollmentCounts = {};
   Map<String, List<String>> _credentialTitles = {};
   List<(String, int)> _tracks = [];
   List<(String, int)> _trend = [];
@@ -60,15 +67,82 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
 
   final Set<String> _selected = {};
 
+  // '' means "All" (SearchableDropdownButton ignores null picks).
+  String _trackFilter = '';
+  String _departmentFilter = '';
+  String _roleFilter = '';
+  List<String> _trackOptions = [];
+  List<String> _departmentOptions = [];
+  List<String> _roleOptions = [];
+
+  bool get _hasActiveFilters => _trackFilter.isNotEmpty || _departmentFilter.isNotEmpty || _roleFilter.isNotEmpty;
+
   List<Student> get _filteredStudents {
-    if (_query.isEmpty) return _students;
-    return _students.where((s) =>
-        s.name.toLowerCase().contains(_query) ||
-        s.studentCode.toLowerCase().contains(_query) ||
-        s.email.toLowerCase().contains(_query) ||
-        (s.department ?? '').toLowerCase().contains(_query) ||
-        (s.role ?? '').toLowerCase().contains(_query) ||
-        (s.programTrack ?? '').toLowerCase().contains(_query)).toList();
+    return _students.where((s) {
+      if (_trackFilter.isNotEmpty && s.programTrack != _trackFilter) return false;
+      if (_departmentFilter.isNotEmpty && s.department != _departmentFilter) return false;
+      if (_roleFilter.isNotEmpty && s.role != _roleFilter) return false;
+      if (_query.isEmpty) return true;
+      return s.name.toLowerCase().contains(_query) ||
+          s.studentCode.toLowerCase().contains(_query) ||
+          s.email.toLowerCase().contains(_query) ||
+          (s.department ?? '').toLowerCase().contains(_query) ||
+          (s.role ?? '').toLowerCase().contains(_query) ||
+          (s.programTrack ?? '').toLowerCase().contains(_query);
+    }).toList();
+  }
+
+  void _resetFilters() => setState(() {
+        _trackFilter = '';
+        _departmentFilter = '';
+        _roleFilter = '';
+        _page = 1;
+      });
+
+  Widget _filterDropdown({
+    required String label,
+    required String value,
+    required List<String> options,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 170, maxWidth: 240),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      child: SearchableDropdownButton<String>(
+        isDense: true,
+        value: value,
+        style: AdminTypography.bodySm(color: AdminColors.onSurface),
+        items: [
+          DropdownMenuItem(value: '', child: Text('All $label', overflow: TextOverflow.ellipsis)),
+          for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis)),
+        ],
+        onChanged: (v) => setState(() {
+          onChanged(v ?? '');
+          _page = 1;
+        }),
+      ),
+    );
+  }
+
+  Widget _buildFilterRow() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _filterDropdown(label: 'Tracks', value: _trackFilter, options: _trackOptions, onChanged: (v) => _trackFilter = v),
+        _filterDropdown(label: 'Departments', value: _departmentFilter, options: _departmentOptions, onChanged: (v) => _departmentFilter = v),
+        _filterDropdown(label: 'Roles', value: _roleFilter, options: _roleOptions, onChanged: (v) => _roleFilter = v),
+        if (_hasActiveFilters)
+          TextButton.icon(
+            onPressed: _resetFilters,
+            icon: const Icon(Icons.restart_alt, size: 16),
+            label: const Text('Reset'),
+            style: TextButton.styleFrom(foregroundColor: AdminColors.secondary),
+          ),
+      ],
+    );
   }
 
   List<Student> get _sortedStudents {
@@ -152,7 +226,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     });
     try {
       final students = await _repository.getStudents();
-      final counts = await _repository.getEnrollmentCounts();
       final credentials = await _repository.getEarnedCredentialTitles();
       final tracks = await _repository.getProgramTracks();
       final trend = await _badgesRepository.getMonthlyIssueCounts();
@@ -171,11 +244,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       if (!mounted) return;
       setState(() {
         _students = students;
-        _enrollmentCounts = counts;
         _credentialTitles = credentials;
         _tracks = tracks;
         _trend = trend;
         _courseMismatchStudentIds = mismatches;
+        _trackOptions = programTracks.map((t) => t.name).toList()..sort();
+        _departmentOptions = departments.map((d) => d.name).toList()..sort();
+        _roleOptions = roles.map((r) => r.name).toList()..sort();
         _isLoading = false;
       });
     } catch (e) {
@@ -278,17 +353,203 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   void _handleNav(AdminNavDestination dest) =>
       handleAdminNav(context, AdminNavDestination.manageStudents, dest);
 
-  void _notAvailable() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Not wired up in this preview.')),
-    );
-  }
-
   Future<void> _openRegisterStudent() async {
     final saved = await Navigator.of(context).push<Student>(
       MaterialPageRoute(builder: (_) => const StudentFormScreen()),
     );
     if (saved != null) _load();
+  }
+
+  static const _csvColumns = ['name', 'studentCode', 'email', 'studentType', 'department', 'title', 'programTrack', 'role', 'registrationDate'];
+
+  Future<void> _downloadCsvTemplate() async {
+    final header = _csvColumns.join(',');
+    const staffExample = 'Jane Doe,EMP-90001,jane.doe@enterprise.com,Staff,Operations,Product Analyst,,Data Analyst,2025-01-15';
+    const publicExample = 'John Smith,EMP-90002,john.smith@enterprise.com,Public,,,AI Engineering Track,,2025-01-15';
+    const notes = [
+      '# Lines starting with # are instructions and are ignored on import. You may delete them.',
+      '# Required: name, studentCode, email, studentType, registrationDate.',
+      '# registrationDate format: YYYY-MM-DD (e.g. 2025-01-15).',
+      '# studentType: Staff or Public. department, title and role apply to Staff only; programTrack applies to Public only.',
+      '# Example rows below - replace them with your own students.',
+    ];
+    final csv = '${notes.join('\n')}\n$header\n$staffExample\n$publicExample\n';
+    final bytes = Uint8List.fromList(utf8.encode(csv));
+    try {
+      if (supportsBrowserDownload) {
+        downloadBytes('student_import_template.csv', bytes);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template downloaded.')));
+        return;
+      }
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save student import template',
+        fileName: 'student_import_template.csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        bytes: bytes,
+      );
+      if (path == null) return;
+      // On desktop, file_picker only returns the chosen path; it doesn't write the bytes.
+      if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+        await File(path.toLowerCase().endsWith('.csv') ? path : '$path.csv').writeAsBytes(bytes);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template saved.')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save template: $e')));
+    }
+  }
+
+  List<List<String>> _parseCsv(String content) {
+    final rows = <List<String>>[];
+    var row = <String>[];
+    final buffer = StringBuffer();
+    var inQuotes = false;
+    for (var i = 0; i < content.length; i++) {
+      final char = content[i];
+      if (inQuotes) {
+        if (char == '"') {
+          if (i + 1 < content.length && content[i + 1] == '"') {
+            buffer.write('"');
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          buffer.write(char);
+        }
+      } else if (char == '"') {
+        inQuotes = true;
+      } else if (char == ',') {
+        row.add(buffer.toString());
+        buffer.clear();
+      } else if (char == '\n' || char == '\r') {
+        if (char == '\r' && i + 1 < content.length && content[i + 1] == '\n') i++;
+        row.add(buffer.toString());
+        buffer.clear();
+        rows.add(row);
+        row = [];
+      } else {
+        buffer.write(char);
+      }
+    }
+    if (buffer.isNotEmpty || row.isNotEmpty) {
+      row.add(buffer.toString());
+      rows.add(row);
+    }
+    return rows.where((r) => r.any((c) => c.trim().isNotEmpty)).toList();
+  }
+
+  Future<void> _importFromCsv() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['csv'], withData: true);
+    if (result == null || result.files.isEmpty) return;
+    final bytes = result.files.single.bytes;
+    if (bytes == null) return;
+
+    final rows = _parseCsv(utf8.decode(bytes)).where((r) => !r.first.trimLeft().startsWith('#')).toList();
+    if (rows.length < 2) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV has no data rows.')));
+      return;
+    }
+
+    final header = rows.first.map((h) => h.trim().toLowerCase()).toList();
+    int colIndex(String name) => header.indexOf(name.toLowerCase());
+    final iName = colIndex('name');
+    final iCode = colIndex('studentCode');
+    final iEmail = colIndex('email');
+    final iType = colIndex('studentType');
+    final iDept = colIndex('department');
+    final iTitle = colIndex('title');
+    final iTrack = colIndex('programTrack');
+    final iRole = colIndex('role');
+    final iRegDate = colIndex('registrationDate');
+    if ([iName, iCode, iEmail, iType, iRegDate].any((i) => i == -1)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('CSV is missing required columns (name, studentCode, email, studentType, registrationDate).')),
+      );
+      return;
+    }
+
+    var succeeded = 0;
+    final errors = <String>[];
+    for (var r = 1; r < rows.length; r++) {
+      final row = rows[r];
+      String cell(int i) => (i >= 0 && i < row.length) ? row[i].trim() : '';
+      final name = cell(iName);
+      final codeSuffix = cell(iCode);
+      final email = cell(iEmail);
+      final typeLabel = cell(iType);
+      final registrationDateStr = cell(iRegDate);
+      if (name.isEmpty && codeSuffix.isEmpty && email.isEmpty) continue; // blank row
+      if (name.isEmpty || codeSuffix.isEmpty || email.isEmpty || registrationDateStr.isEmpty) {
+        errors.add('Row ${r + 1}: missing required field(s).');
+        continue;
+      }
+      final matchingType = StudentType.values.where((t) => t.label.toLowerCase() == typeLabel.toLowerCase());
+      if (matchingType.isEmpty) {
+        errors.add('Row ${r + 1}: unknown studentType "$typeLabel" (expected Staff or Public).');
+        continue;
+      }
+      final studentType = matchingType.first;
+      final registrationDate = DateTime.tryParse(registrationDateStr);
+      if (registrationDate == null) {
+        errors.add('Row ${r + 1}: invalid registrationDate "$registrationDateStr" (expected YYYY-MM-DD).');
+        continue;
+      }
+      final department = cell(iDept);
+      final title = cell(iTitle);
+      final programTrack = cell(iTrack);
+      final role = cell(iRole);
+      try {
+        await _repository.createStudent(
+          name: name,
+          studentCode: '${tenantPrefix()}${codeSuffix.toUpperCase()}',
+          email: email,
+          studentType: studentType,
+          department: studentType == StudentType.internal && department.isNotEmpty ? department : null,
+          title: studentType == StudentType.internal && title.isNotEmpty ? title : null,
+          programTrack: studentType == StudentType.external && programTrack.isNotEmpty ? programTrack : null,
+          role: studentType == StudentType.internal && role.isNotEmpty ? role : null,
+          registrationDate: registrationDate,
+        );
+        succeeded++;
+      } catch (e) {
+        errors.add('Row ${r + 1}: $e');
+      }
+    }
+
+    if (!mounted) return;
+    await _load();
+    if (!mounted) return;
+    final summary =
+        '$succeeded student${succeeded == 1 ? '' : 's'} imported.${errors.isEmpty ? '' : ' ${errors.length} row${errors.length == 1 ? '' : 's'} failed.'}';
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import complete'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(summary),
+                if (errors.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  for (final e in errors) Text(e, style: AdminTypography.bodySm(color: AdminColors.error)),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+      ),
+    );
   }
 
   Future<void> _openEditStudent(Student s) async {
@@ -361,13 +622,23 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       ),
     );
     if (chosen == null) return;
-    await _repository.enrollStudentsInSection(studentIds, sectionId: chosen.id, courseId: chosen.courseId);
+    final outcome = await _repository.enrollStudentsInSection(studentIds, sectionId: chosen.id, courseId: chosen.courseId);
     if (!mounted) return;
     setState(_selected.clear);
     await _load();
     if (!mounted) return;
+    String nameOf(String id) => _students.where((s) => s.id == id).map((s) => s.name).firstOrNull ?? 'Student $id';
+    final n = outcome.enrolled.length;
+    final lines = <String>[
+      if (n > 0) '$n student${n == 1 ? '' : 's'} successfully enrolled in ${chosen.sectionCode}.',
+      if (outcome.alreadyInThisClass.isNotEmpty)
+        'Already enrolled in ${chosen.sectionCode}: ${outcome.alreadyInThisClass.map(nameOf).join(', ')}.',
+      if (outcome.inOtherClass.isNotEmpty)
+        'Already enrolled in another class of this course in the same cohort (not changed — unenroll them first to move): '
+            '${outcome.inOtherClass.entries.map((e) => '${nameOf(e.key)} (${e.value})').join(', ')}.',
+    ];
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${studentIds.length} student${studentIds.length == 1 ? '' : 's'} successfully enrolled in ${chosen.sectionCode}.')),
+      SnackBar(content: Text(lines.join('\n')), duration: Duration(seconds: lines.length > 1 ? 10 : 4)),
     );
   }
 
@@ -446,17 +717,44 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             ),
           ],
         ),
-        ElevatedButton.icon(
-          onPressed: _openRegisterStudent,
-          icon: const Icon(Icons.person_add_outlined, size: 18),
-          label: const Text('Register New Student'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AdminColors.primaryContainer,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _downloadCsvTemplate,
+              icon: const Icon(Icons.download_outlined, size: 18),
+              label: const Text('Download CSV Template'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AdminColors.onSurface,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: _importFromCsv,
+              icon: const Icon(Icons.upload_file_outlined, size: 18),
+              label: const Text('Import from CSV'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AdminColors.onSurface,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: _openRegisterStudent,
+              icon: const Icon(Icons.person_add_outlined, size: 18),
+              label: const Text('Register New Student'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminColors.primaryContainer,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -558,6 +856,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Align(alignment: Alignment.centerLeft, child: _buildFilterRow()),
+          ),
           if (_selected.isNotEmpty)
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -656,7 +958,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: flagged ? AdminColors.errorContainer.withValues(alpha: 0.12) : null,
+        color: null,
         border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
       ),
       child: Row(
@@ -684,7 +986,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                   Row(
                     children: [
                       Flexible(
-                        child: Text(s.name, style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+                        child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
                       ),
                       if (courseMismatch) ...[
                         const SizedBox(width: 4),
@@ -912,10 +1214,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   }
 
   // -------------------------------------------------------------------------
-  // Mobile (<700px) layout — separate Scaffold, shared AdminMobileTopBar /
-  // AdminMobileBottomNav shell. Reuses the existing `_students` data list and
-  // the desktop `_buildTracksCard` / `_buildCredentialTrendCard` analytics
-  // widgets (already overflow-safe at 170px chart height).
+  // Mobile (<700px) layout — the same content as desktop (title + actions,
+  // tip, metrics, search, filters, bulk-select, directory, pagination and the
+  // two analytics cards); only the table becomes one card per student with
+  // the same fields as a table row.
   // -------------------------------------------------------------------------
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
@@ -934,34 +1236,15 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Institutional learner registry, enrolment status, credential tracking, and cohort management across enterprise academies.',
-                style: AdminTypography.bodyMd(),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: _openRegisterStudent,
-                  icon: const Icon(Icons.person_add, size: 20),
-                  label: const Text('Register New Student'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AdminColors.secondary,
-                    foregroundColor: AdminColors.onSecondary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    textStyle: AdminTypography.titleSm(color: AdminColors.onSecondary),
-                  ),
-                ),
-              ),
+              _buildTopBar(),
               const SizedBox(height: 16),
               _buildInstructionBanner(),
               const SizedBox(height: 16),
-              _buildMobileKpiGrid(),
+              _buildMetrics(),
               const SizedBox(height: 20),
               _buildMobileSearchBar(),
               const SizedBox(height: 12),
-              _buildMobileFilterPills(),
+              _buildFilterRow(),
               if (_selected.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 adminMobileSelectionBar(
@@ -1004,120 +1287,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
-  Widget _buildMobileKpiGrid() {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _mobileKpiCard(
-              label: 'TOTAL ENROLLED',
-              icon: Icons.groups,
-              value: '$_totalEnrolled',
-              valueSuffix: 'Active',
-              footerIcon: Icons.trending_up,
-              footerText: 'Registered students',
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _mobileKpiCard(
-              label: 'GRANTED CREDS',
-              icon: Icons.verified,
-              value: '$_totalCredentials',
-              footerIcon: Icons.check_circle,
-              footerText: 'Earned or revoked',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileKpiCard({
-    required String label,
-    required IconData icon,
-    required String value,
-    String? valueSuffix,
-    required IconData footerIcon,
-    required String footerText,
-    bool urgent = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: urgent ? AdminColors.errorContainer : AdminColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: AdminTypography.labelSm(color: urgent ? AdminColors.onErrorContainer : AdminColors.onSurfaceVariant),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: urgent ? AdminColors.surfaceContainerLowest.withValues(alpha: 0.8) : AdminColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: urgent ? AdminColors.error : AdminColors.secondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Flexible(
-                child: Text(
-                  value,
-                  style: AdminTypography.headlineMd(color: urgent ? AdminColors.onErrorContainer : AdminColors.onSurface),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (valueSuffix != null) ...[
-                const SizedBox(width: 4),
-                Text(
-                  valueSuffix,
-                  style: AdminTypography.labelSm(color: urgent ? AdminColors.onErrorContainer : AdminColors.onTertiaryContainer).copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          if (urgent)
-            Text(
-              footerText,
-              style: AdminTypography.labelSm(color: AdminColors.onErrorContainer).copyWith(fontWeight: FontWeight.w700),
-              overflow: TextOverflow.ellipsis,
-            )
-          else
-            Row(
-              children: [
-                Icon(footerIcon, size: 14, color: AdminColors.onTertiaryContainer),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(footerText, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildMobileSearchBar() {
     return TextField(
       controller: _searchController,
@@ -1126,7 +1295,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         isDense: true,
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
-        hintText: 'Search student by name, ID, email...',
+        hintText: 'Search student by name, student ID, email, or company...',
         hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -1135,91 +1304,20 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
     );
   }
 
-  Widget _buildMobileFilterPills() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        GestureDetector(
-          onTap: _notAvailable,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AdminColors.secondary,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('All Cohorts', style: AdminTypography.labelMd(color: AdminColors.onSecondary)),
-              const SizedBox(width: 6),
-              Container(
-                width: 16,
-                height: 16,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: AdminColors.onSecondary.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: Text('${_tracks.length}', style: AdminTypography.labelSm(color: AdminColors.onSecondary).copyWith(fontSize: 10)),
-              ),
-            ]),
-          ),
-        ),
-        _mobileFilterOutlinePill('All Statuses'),
-        _mobileFilterOutlinePill('Credentials'),
-        GestureDetector(
-          onTap: _notAvailable,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.restart_alt, size: 16, color: AdminColors.secondary),
-              const SizedBox(width: 4),
-              Text('Reset', style: AdminTypography.labelMd(color: AdminColors.secondary)),
-            ]),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _mobileFilterOutlinePill(String label) {
-    return GestureDetector(
-      onTap: _notAvailable,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AdminColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
-          const SizedBox(width: 4),
-          const Icon(Icons.expand_more, size: 16, color: AdminColors.onSurfaceVariant),
-        ]),
-      ),
-    );
-  }
-
   Widget _buildMobileStudentCard(Student s) {
-    final enrollments = _enrollmentCounts[s.id] ?? 0;
     final credentials = _credentialTitles[s.id] ?? const [];
-    final flagged = _isFlagged(s);
-    final standing = flagged ? 'Under Review' : 'Good Standing';
-    final progress = (s.gpa / 4.0).clamp(0.0, 1.0);
     final selected = _selected.contains(s.id);
     final courseMismatch = _courseMismatchStudentIds.contains(s.id);
-    final cohortSuffix = s.cohort == null ? '' : ' (${s.cohort})';
-    final profileLine = s.studentType == StudentType.external
-        ? '${s.studentType.label} • ${s.programTrack ?? '—'}$cohortSuffix'
-        : '${s.studentType.label} • ${s.department ?? '—'} / ${s.role ?? '—'}$cohortSuffix';
+    final internal = s.studentType == StudentType.internal;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AdminColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1229,150 +1327,111 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
                 onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
                 activeColor: AdminColors.primaryContainer,
               ),
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-                child: Icon(flagged ? Icons.person_off : Icons.person, color: flagged ? AdminColors.error : AdminColors.primary, size: 22),
-              ),
-              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 6,
-                      runSpacing: 4,
+                    Text(s.studentCode, style: AdminTypography.labelSm()),
+                    Row(
                       children: [
-                        Text(
-                          s.name,
-                          style: AdminTypography.headlineSm(color: flagged ? AdminColors.error : AdminColors.onSurface),
-                        ),
-                        if (courseMismatch)
+                        Flexible(child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis)),
+                        if (courseMismatch) ...[
+                          const SizedBox(width: 4),
                           Tooltip(
                             message: s.studentType == StudentType.external
                                 ? 'One or more enrolled course is not mapped to this student\'s track'
                                 : 'One or more enrolled course is not mapped to this student\'s role or department',
-                            child: Icon(Icons.error, size: 16, color: AdminColors.error),
+                            child: Icon(Icons.error, size: 15, color: AdminColors.error),
                           ),
+                        ],
+                        const SizedBox(width: 4),
                         InkWell(
                           onTap: () => _openEditStudent(s),
                           borderRadius: BorderRadius.circular(6),
                           child: Padding(
                             padding: const EdgeInsets.all(2),
-                            child: Icon(Icons.edit_outlined, size: 16, color: AdminColors.onSurfaceVariant),
+                            child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(4)),
-                          child: Text(s.studentCode, style: AdminTypography.labelSm()),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
                     Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
                   ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: internal ? AdminColors.primaryFixed : AdminColors.tertiaryFixed,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  s.studentType.label,
+                  style: AdminTypography.labelSm(color: internal ? AdminColors.onPrimaryFixed : AdminColors.onTertiaryFixedVariant),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.alt_route, size: 16, color: AdminColors.secondary),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  profileLine,
-                  style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  standing,
-                  style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
+              Expanded(child: _mobileLabeled('Track', s.programTrack ?? '—')),
+              const SizedBox(width: 12),
+              Expanded(child: _mobileLabeled('Department / Role', s.department ?? '—', second: s.role ?? '—')),
             ],
           ),
           const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('$enrollments Enrolled Courses', style: AdminTypography.labelSm()),
-                    Text('GPA ${s.gpa.toStringAsFixed(2)}', style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(9999),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: AdminColors.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(flagged ? AdminColors.error : AdminColors.secondaryContainer),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: credentials.map((c) {
-              final revoked = c.contains('(Revoked)');
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: revoked ? AdminColors.errorContainer : AdminColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(revoked ? Icons.error : Icons.verified, size: 14, color: revoked ? AdminColors.onErrorContainer : AdminColors.onTertiaryContainer),
-                  const SizedBox(width: 4),
-                  Text(c, style: AdminTypography.labelSm(color: revoked ? AdminColors.onErrorContainer : AdminColors.onSurface)),
-                ]),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 36,
-            child: ElevatedButton.icon(
-              onPressed: () => _openEnrolledCourses(s),
-              icon: const Icon(Icons.menu_book, size: 18),
-              label: const Text('Manage Enrolled Courses'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
-                foregroundColor: flagged ? AdminColors.onErrorContainer : AdminColors.secondary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                textStyle: AdminTypography.labelMd(),
+          Row(
+            children: [
+              Expanded(
+                child: credentials.isEmpty
+                    ? Text('No badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Tooltip(
+                          message: credentials.join('\n'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.workspace_premium_outlined, size: 14, color: AdminColors.onSurface),
+                              const SizedBox(width: 4),
+                              Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+                            ]),
+                          ),
+                        ),
+                      ),
               ),
-            ),
+              OutlinedButton(
+                onPressed: () => _openEnrolledCourses(s),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AdminColors.primary,
+                  backgroundColor: AdminColors.surfaceContainerLow,
+                  side: BorderSide.none,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: AdminTypography.labelSm(),
+                ),
+                child: const Text('Manage Enrolled Courses'),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  Widget _mobileLabeled(String label, String value, {String? second}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+        Text(value, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+        if (second != null) Text(second, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+      ],
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1475,7 +1534,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
             if (widget.sections.isEmpty)
               Text('No classes exist yet. Create one from Manage Assigned Courses first.', style: AdminTypography.bodySm(color: AdminColors.error))
             else ...[
-              DropdownButtonFormField<String>(
+              SearchableDropdownFormField<String>(
                 initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
                 isExpanded: true,
                 decoration: InputDecoration(
@@ -1493,7 +1552,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                 }),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              SearchableDropdownFormField<String>(
                 initialValue: profileFilters.any((f) => f.key == _selectedProfileFilterKey) ? _selectedProfileFilterKey : null,
                 isExpanded: true,
                 decoration: InputDecoration(
@@ -1511,7 +1570,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                 }),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              SearchableDropdownFormField<String>(
                 initialValue: sections.any((s) => s.id == _selectedSectionId) ? _selectedSectionId : null,
                 isExpanded: true,
                 decoration: InputDecoration(

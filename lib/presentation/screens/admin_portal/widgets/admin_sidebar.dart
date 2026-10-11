@@ -14,7 +14,9 @@ enum AdminNavDestination {
   trackCourseMapping,
   specializationCourseMapping,
   courseEnrollment,
+  programmeCourseMapping,
   manageDepartments,
+  manageProgrammes,
   manageProgramTracks,
   manageCohorts,
   manageLecturerDepartments,
@@ -22,6 +24,9 @@ enum AdminNavDestination {
   manageRoles,
   manageBadgeCatalog,
   manageCourseTags,
+  manageModuleLists,
+  manageSyllabi,
+  settings,
 }
 
 class AdminSidebar extends StatelessWidget {
@@ -135,6 +140,16 @@ class AdminSidebar extends StatelessWidget {
                           ),
                         ),
                         _NavItem(
+                          icon: Icons.school_outlined,
+                          label: 'Programme ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.programmeCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.programmeCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
                           icon: Icons.alt_route,
                           label: 'Track ↔ Course Mapping',
                           isSelected:
@@ -178,6 +193,15 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageDepartments,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageDepartments,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.workspace_premium_outlined,
+                          label: 'Manage Programmes',
+                          isSelected:
+                              selected == AdminNavDestination.manageProgrammes,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageProgrammes,
                           ),
                         ),
                         _NavItem(
@@ -244,6 +268,49 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageCourseTags,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageCourseTags,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.view_module_outlined,
+                          label: 'Manage Module Lists',
+                          isSelected:
+                              selected == AdminNavDestination.manageModuleLists,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageModuleLists,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.fact_check_outlined,
+                          label: 'Manage Syllabi',
+                          isSelected:
+                              selected == AdminNavDestination.manageSyllabi,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageSyllabi,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'SYSTEM',
+                      style: AdminTypography.labelSm(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _NavItem(
+                          icon: Icons.settings_outlined,
+                          label: 'Settings',
+                          isSelected: selected == AdminNavDestination.settings,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.settings,
                           ),
                         ),
                       ],

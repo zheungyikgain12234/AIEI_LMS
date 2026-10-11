@@ -14,6 +14,7 @@ import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // EnrollStudentsScreen – Stitch "Enroll Students into Course" faithful
@@ -262,7 +263,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   children: [
                     const AdminFieldLabel('Cohort'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
+                    SearchableDropdownFormField<String>(
                       initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -289,7 +290,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   children: [
                     const AdminFieldLabel('Class'),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
+                    SearchableDropdownFormField<String>(
                       initialValue: sections.any((s) => s.id == _selectedSectionId) ? _selectedSectionId : null,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),

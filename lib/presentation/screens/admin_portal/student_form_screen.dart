@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // StudentFormScreen — shared "Register New Student" / "Edit Student" form.
@@ -138,7 +139,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           email: _emailController.text.trim(),
           studentType: _studentType,
           department: isInternal ? _selectedDepartment : null,
-          title: title.isEmpty ? null : title,
+          title: isInternal && title.isNotEmpty ? title : null,
           programTrack: isInternal ? null : _selectedProgramTrack,
           role: isInternal ? _selectedRole : null,
           registrationDate: _registrationDate!,
@@ -150,7 +151,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           email: _emailController.text.trim(),
           studentType: _studentType,
           department: isInternal ? _selectedDepartment : null,
-          title: title.isEmpty ? null : title,
+          title: isInternal && title.isNotEmpty ? title : null,
           programTrack: isInternal ? null : _selectedProgramTrack,
           role: isInternal ? _selectedRole : null,
           registrationDate: _registrationDate!,
@@ -224,8 +225,10 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                           const SizedBox(height: 14),
                           _field(controller: _emailController, label: 'Email', hint: 'alex.chen@enterprise.com', keyboardType: TextInputType.emailAddress),
                           const SizedBox(height: 14),
-                          _field(controller: _titleController, label: 'Title (optional)', hint: 'Product Analyst • Operations', required: false),
-                          const SizedBox(height: 14),
+                          if (_studentType == StudentType.internal) ...[
+                            _field(controller: _titleController, label: 'Title (optional)', hint: 'Product Analyst • Operations', required: false),
+                            const SizedBox(height: 14),
+                          ],
                           if (_studentType == StudentType.external) ...[
                             _dropdown(
                               label: 'Program Track',
@@ -348,8 +351,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         const SizedBox(height: 6),
         SegmentedButton<StudentType>(
           segments: const [
-            ButtonSegment(value: StudentType.internal, label: Text('Internal')),
-            ButtonSegment(value: StudentType.external, label: Text('External')),
+            ButtonSegment(value: StudentType.internal, label: Text('Staff')),
+            ButtonSegment(value: StudentType.external, label: Text('Public')),
           ],
           selected: {_studentType},
           onSelectionChanged: (selection) => setState(() {
@@ -380,7 +383,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
+        SearchableDropdownFormField<String>(
           initialValue: value,
           isExpanded: true,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),

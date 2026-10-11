@@ -44,6 +44,27 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
   }
 
   @override
+  Future<void> recordAttendance({required String contentBlockId, required String studentId}) async {
+    final existing = await getSubmission(contentBlockId, studentId);
+    final now = DateTime.now().toIso8601String();
+    if (existing == null) {
+      await _client.from('content_block_submissions').insert({
+        'content_block_id': contentBlockId,
+        'student_id': studentId,
+        'status': 'submitted',
+        'submission': {'attended': true},
+        'submitted_at': now,
+      });
+    } else {
+      await _client
+          .from('content_block_submissions')
+          .update({'submission': {...existing.submission, 'attended': true}, 'submitted_at': now})
+          .eq('content_block_id', contentBlockId)
+          .eq('student_id', studentId);
+    }
+  }
+
+  @override
   Future<void> saveGrade({
     required String contentBlockId,
     required String studentId,
@@ -66,6 +87,15 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
       onConflict: 'content_block_id,student_id',
     );
     await _syncProgressAndBadges(contentBlockId: contentBlockId, studentId: studentId);
+  }
+
+  @override
+  Future<void> resetAttempt({required String contentBlockId, required String studentId}) async {
+    await _client
+        .from('content_block_submissions')
+        .delete()
+        .eq('content_block_id', contentBlockId)
+        .eq('student_id', studentId);
   }
 
   /// Recomputes [studentId]'s real progress for the course [contentBlockId]
@@ -103,7 +133,7 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
             .from('content_blocks')
             .select('id')
             .inFilter('session_id', sessionIds)
-            .inFilter('block_type', ['exam', 'assignment']);
+            .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
     final blockIds = [for (final b in blockRows) b['id'] as String];
     if (blockIds.isEmpty) return;
 
@@ -120,7 +150,8 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
         .from('student_courses')
         .update({'progress_percentage': progress})
         .eq('student_id', studentId)
-        .eq('course_id', courseId);
+        .eq('course_id', courseId)
+        .eq('section_id', sectionId);
 
     if (progress < 100) return;
 

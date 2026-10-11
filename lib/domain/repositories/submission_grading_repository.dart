@@ -22,6 +22,11 @@ abstract class SubmissionGradingRepository {
     required Map<String, dynamic> submission,
   });
 
+  /// Records that [studentId] is attending a physical exam/assignment (sets
+  /// `submission.attended` to true). Unlike [submitAnswer] this never changes
+  /// the row's status, so marks already imported for the student stay graded.
+  Future<void> recordAttendance({required String contentBlockId, required String studentId});
+
   /// Records a lecturer's marks for one student's submission — upserts by
   /// (contentBlockId, studentId), setting status to `graded`. Also
   /// recomputes this student's real `student_courses.progress_percentage`
@@ -38,4 +43,11 @@ abstract class SubmissionGradingRepository {
     required double totalScore,
     required String gradedByLecturerId,
   });
+
+  /// Deletes [studentId]'s submission row for [contentBlockId] entirely, so
+  /// the exam-answering screen sees no submission and lets them attempt it
+  /// again — used by the exam editor's admin-gated "reset a student's
+  /// attempt" control. Does not touch `student_courses.progress_percentage`
+  /// or any badges already awarded from a prior grade on this block.
+  Future<void> resetAttempt({required String contentBlockId, required String studentId});
 }

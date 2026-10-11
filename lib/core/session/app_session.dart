@@ -45,6 +45,12 @@ AppSession _currentSession = _demoSession;
 /// Strips the current tenant's prefix (e.g. `TN01-`) from a stored [code]
 /// for display. Always use this instead of rendering a raw `code` field.
 String displayCode(String code) {
-  final prefix = '${_currentSession.tenantId}-';
+  final prefix = tenantPrefix();
   return code.startsWith(prefix) ? code.substring(prefix.length) : code;
 }
+
+/// The current tenant's code prefix (e.g. `TN01-`) — prepend this to a
+/// user-entered code suffix before storing it. Mirrors [displayCode]'s
+/// stripping logic for plain (non-Consumer) widgets that need to build a
+/// tenant-prefixed code without becoming Consumer widgets.
+String tenantPrefix() => '${_currentSession.tenantId}-';

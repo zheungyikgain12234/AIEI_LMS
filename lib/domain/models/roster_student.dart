@@ -12,6 +12,7 @@ class RosterStudent {
   final int progressPercentage;
   final String? grade;
   final double? overallScore;
+  final double moderatedScore;
   final int attendancePercentage;
   final String riskStatus;
   final String sponsorship;
@@ -28,6 +29,7 @@ class RosterStudent {
     required this.progressPercentage,
     this.grade,
     this.overallScore,
+    this.moderatedScore = 0,
     required this.attendancePercentage,
     required this.riskStatus,
     required this.sponsorship,
@@ -47,6 +49,7 @@ class RosterStudent {
       progressPercentage: map['progress_percentage'] as int,
       grade: map['grade'] as String?,
       overallScore: (map['overall_score'] as num?)?.toDouble(),
+      moderatedScore: (map['moderated_score'] as num?)?.toDouble() ?? 0,
       attendancePercentage: map['attendance_percentage'] as int,
       riskStatus: map['risk_status'] as String,
       sponsorship: map['sponsorship'] as String? ?? 'Self-Enrolled',

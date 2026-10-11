@@ -48,6 +48,10 @@ class EnrolledCourse {
   /// catalogue card so a student can tell classes of the same course apart.
   /// Null alongside [sectionId] when unassigned.
   final String? classCode;
+  /// That class's cohort name (`course_sections.cohort_id` → `cohorts.name`)
+  /// — powers the catalogue's Year/Cohort filter dropdowns. Null alongside
+  /// [sectionId] when unassigned, or if the class has no cohort set.
+  final String? cohort;
   final String instructorOrBoard;
   final IconData instructorIcon;
   final Color instructorIconColor;
@@ -72,6 +76,7 @@ class EnrolledCourse {
     required this.category,
     this.sectionId,
     this.classCode,
+    this.cohort,
     required this.instructorOrBoard,
     required this.instructorIcon,
     required this.instructorIconColor,

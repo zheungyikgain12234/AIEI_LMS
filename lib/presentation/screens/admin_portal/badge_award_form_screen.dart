@@ -8,7 +8,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'widgets/admin_field_label.dart';
-import 'widgets/admin_searchable_dropdown.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // BadgeAwardFormScreen — shared "Add Badge Award" / "Edit Badge Award" form
@@ -321,10 +321,19 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        AdminSearchableDropdown(
+        SearchableDropdownFormField<String>(
           initialValue: value,
-          options: options,
-          hint: hint,
+          isExpanded: true,
+          style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: AdminColors.surfaceContainerLow,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          ),
+          hint: Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline)),
+          items: [for (final o in options) DropdownMenuItem(value: o.$1, child: Text(o.$2, overflow: TextOverflow.ellipsis))],
           onChanged: onChanged,
           validator: (v) => v == null || v.isEmpty ? '$label is required' : null,
         ),

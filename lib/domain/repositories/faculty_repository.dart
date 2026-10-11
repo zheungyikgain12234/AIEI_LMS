@@ -19,10 +19,28 @@ typedef SectionAssessmentStats = ({int pendingAssignments, int pendingQuizzes, i
 typedef PendingGradingItem = ({
   String sectionId,
   String contentBlockId,
-  String blockType, // 'exam' | 'assignment'
+  String blockType, // 'exam' | 'assignment' | 'physicalExam' | 'physicalAssignment'
   String title,
   int pendingCount,
 });
+
+/// One physical class session (a `physicalClass` content block) in a class.
+typedef PhysicalClassItem = ({
+  String sectionId,
+  String contentBlockId,
+  // 'physicalClass' | 'physicalExam' | 'physicalAssignment'. The exam/assignment
+  // kinds have no start/end — only a [dueDate] that attendance closes at.
+  String blockType,
+  DateTime? dueDate,
+  String title,
+  String description,
+  DateTime? scheduledAt,
+  DateTime? endsAt,
+});
+
+/// A class whose syllabus has not been submitted for approval yet, with the
+/// end of its edit period — the lecturer's deadline to submit it.
+typedef SyllabusDeadline = ({String sectionId, DateTime editEndAt});
 
 abstract class FacultyRepository {
   Future<List<AssignedCourse>> getAssignedCourses(String lecturerId);
@@ -58,4 +76,12 @@ abstract class FacultyRepository {
   /// queue. A block with zero pending submissions is simply absent from the
   /// result, not present with a zero count.
   Future<List<PendingGradingItem>> getPendingGradingItems(List<String> sectionIds);
+
+  /// Every `physicalClass`, `physicalExam` and `physicalAssignment` content block across [sectionIds].
+  Future<List<PhysicalClassItem>> getPhysicalClassItems(List<String> sectionIds);
+
+  /// Every class in [sectionIds] whose syllabus is still a draft (never
+  /// submitted, or edited since) and has an edit period, with that period's
+  /// end — the lecturer portal's "submit syllabus" Critical Action.
+  Future<List<SyllabusDeadline>> getSyllabusDeadlines(List<String> sectionIds);
 }

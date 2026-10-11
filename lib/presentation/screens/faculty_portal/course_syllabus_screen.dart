@@ -1,21 +1,32 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
+import 'package:stitch_aiei_lms/core/utils/numbered_labels.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/course_module.dart';
 import 'package:stitch_aiei_lms/domain/models/course_session.dart';
 import 'package:stitch_aiei_lms/domain/models/syllabus_template.dart';
+import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'assignment_editor_screen.dart';
 import 'exam_editor_screen.dart';
 import 'mark_assignment_screen.dart';
 import 'mark_exam_screen.dart';
+import 'physical_class_attendees_screen.dart';
+import 'import_marks_screen.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/physical_assessment_card.dart';
 import 'widgets/clickable_link.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/embedded_image.dart';
 import 'widgets/embedded_video_player.dart';
+import 'physical_class_attendance_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -38,7 +49,11 @@ class CourseSyllabusScreen extends StatefulWidget {
   final String sectionId;
   final String courseTitle;
 
-  const CourseSyllabusScreen({super.key, required this.sectionId, required this.courseTitle});
+  /// Admin mode (Manage Syllabi): full editing regardless of the edit period
+  /// or module lock, an Approve button, and edits do not reset approval.
+  final bool isAdmin;
+
+  const CourseSyllabusScreen({super.key, required this.sectionId, required this.courseTitle, this.isAdmin = false});
 
   @override
   State<CourseSyllabusScreen> createState() => _CourseSyllabusScreenState();
@@ -46,8 +61,31 @@ class CourseSyllabusScreen extends StatefulWidget {
 
 class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   final _repository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
+  final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
+  bool _hideMarkButtons = false;
+  bool _modulesLocked = false;
+  CourseSection? _section;
+  bool _overrideMatches = false;
+  String _syllabusStatus = SyllabusStatus.draft;
+
+  /// True while the lecturer may edit this class's syllabus: inside the
+  /// admin-set edit period, or when the admin entered their lecturer code as
+  /// an override. Classes with no period set are unrestricted.
+  bool get _canEdit {
+    final s = _section;
+    if (widget.isAdmin || s == null || _overrideMatches) return true;
+    final start = s.editStartAt;
+    final end = s.editEndAt;
+    if (start == null || end == null) return true;
+    final now = DateTime.now();
+    return !now.isBefore(start) && !now.isAfter(end);
+  }
+
+  /// Module add/rename/delete/rearrange is off when the admin locked modules or the edit period is closed.
+  bool get _modulesReadOnly => !widget.isAdmin && (_modulesLocked || !_canEdit);
   List<CourseModule> _modules = [];
   final Map<String, List<CourseSession>> _sessionsByModule = {};
   final Map<String, List<ContentBlock>> _blocksBySession = {};
@@ -65,9 +103,18 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     final modules = await _repository.getModules(widget.sectionId);
+    final settings = await _settingsRepository.getSettings();
+    final section = await _lecturersRepository.getSectionById(widget.sectionId);
+    final lecturer = await _lecturersRepository.getLecturerById(DemoIdentity.lecturerId);
     if (!mounted) return;
     setState(() {
       _modules = modules;
+      _hideMarkButtons = settings[AppSettingKeys.hideMarkButtonsInSyllabus] ?? false;
+      _modulesLocked = settings[AppSettingKeys.lockModulesForLecturers] ?? false;
+      _section = section;
+      _syllabusStatus = section.syllabusStatus;
+      _overrideMatches = section.editOverrideLecturerCode != null &&
+          section.editOverrideLecturerCode!.trim().toLowerCase() == lecturer.lecturerCode.trim().toLowerCase();
       _isLoading = false;
     });
   }
@@ -123,10 +170,11 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _addModule() async {
     final result = await showDialog<(String, String)>(
       context: context,
-      builder: (_) => const _NameDescriptionDialog(dialogTitle: 'Add Module', nameLabel: 'Module name'),
+      builder: (_) => _NameDescriptionDialog(dialogTitle: 'Add Module', nameLabel: 'Module name', prefix: _numberedPrefix('Module', _modules.length + 1)),
     );
     if (result == null) return;
-    await _repository.createModule(sectionId: widget.sectionId, name: result.$1, description: result.$2);
+    await _repository.createModule(sectionId: widget.sectionId, name: _bareName(result.$1), description: result.$2);
+    await _markEdited();
     await _load();
   }
 
@@ -136,22 +184,25 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       builder: (_) => _NameDescriptionDialog(
         dialogTitle: 'Edit Module',
         nameLabel: 'Module name',
-        existingName: m.name,
+        existingName: _bareName(m.name),
+        prefix: _numberedPrefix('Module', _modules.indexOf(m) + 1),
         existingDescription: m.description,
       ),
     );
     if (result == null) return;
-    await _repository.updateModule(m.id, name: result.$1, description: result.$2, isPublished: m.isPublished);
+    await _repository.updateModule(m.id, name: _bareName(result.$1), description: result.$2, isPublished: m.isPublished);
+    await _markEdited();
     await _load();
   }
 
   Future<void> _deleteModule(CourseModule m) async {
     final confirmed = await _confirmDelete(
       title: 'Delete module?',
-      message: 'This deletes "${m.name}" and every session and content block inside it. This cannot be undone.',
+      message: 'This deletes "${_bareName(m.name)}" and every session and content block inside it. This cannot be undone.',
     );
     if (confirmed != true) return;
     await _repository.deleteModule(m.id);
+    await _markEdited();
     _expandedModules.remove(m.id);
     _sessionsByModule.remove(m.id);
     await _load();
@@ -166,6 +217,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     });
     try {
       await _repository.reorderModules(widget.sectionId, [for (final m in _modules) m.id]);
+      await _markEdited();
       _showReorderSaved();
     } catch (e, st) {
       debugPrint('reorderModules failed: $e\n$st');
@@ -191,10 +243,11 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _addSession(String moduleId) async {
     final result = await showDialog<(String, String)>(
       context: context,
-      builder: (_) => const _NameDescriptionDialog(dialogTitle: 'Add Session', nameLabel: 'Session name'),
+      builder: (_) => _NameDescriptionDialog(dialogTitle: 'Add Session', nameLabel: 'Session name', prefix: _numberedPrefix('Lesson', (_sessionsByModule[moduleId]?.length ?? 0) + 1)),
     );
     if (result == null) return;
-    await _repository.createSession(moduleId: moduleId, name: result.$1, description: result.$2);
+    await _repository.createSession(moduleId: moduleId, name: _bareName(result.$1), description: result.$2);
+    await _markEdited();
     await _refreshSessionsFor(moduleId);
   }
 
@@ -204,22 +257,25 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       builder: (_) => _NameDescriptionDialog(
         dialogTitle: 'Edit Session',
         nameLabel: 'Session name',
-        existingName: s.name,
+        existingName: _bareName(s.name),
+        prefix: _numberedPrefix('Lesson', (_sessionsByModule[moduleId]?.indexOf(s) ?? 0) + 1),
         existingDescription: s.description,
       ),
     );
     if (result == null) return;
-    await _repository.updateSession(s.id, name: result.$1, description: result.$2, isPublished: s.isPublished);
+    await _repository.updateSession(s.id, name: _bareName(result.$1), description: result.$2, isPublished: s.isPublished);
+    await _markEdited();
     await _refreshSessionsFor(moduleId);
   }
 
   Future<void> _deleteSession(String moduleId, CourseSession s) async {
     final confirmed = await _confirmDelete(
       title: 'Delete session?',
-      message: 'This deletes "${s.name}" and every content block inside it. This cannot be undone.',
+      message: 'This deletes "${_bareName(s.name)}" and every content block inside it. This cannot be undone.',
     );
     if (confirmed != true) return;
     await _repository.deleteSession(s.id);
+    await _markEdited();
     _expandedSessions.remove(s.id);
     _blocksBySession.remove(s.id);
     await _refreshSessionsFor(moduleId);
@@ -234,6 +290,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     setState(() => _sessionsByModule[moduleId] = sessions);
     try {
       await _repository.reorderSessions(moduleId, [for (final s in sessions) s.id]);
+      await _markEdited();
       _showReorderSaved();
     } catch (e, st) {
       debugPrint('reorderSessions failed: $e\n$st');
@@ -252,6 +309,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (result == null) return;
     await _repository.addContentBlock(sessionId: sessionId, type: result.type, content: result.content);
+    await _markEdited();
     await _refreshBlocksFor(sessionId);
   }
 
@@ -262,11 +320,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     );
     if (result == null) return;
     await _repository.updateContentBlock(b.id, content: result.content);
+    await _markEdited();
     await _refreshBlocksFor(sessionId);
   }
 
   Future<void> _deleteContentBlock(String sessionId, ContentBlock b) async {
     await _repository.deleteContentBlock(b.id);
+    await _markEdited();
     await _refreshBlocksFor(sessionId);
   }
 
@@ -279,6 +339,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     setState(() => _blocksBySession[sessionId] = blocks);
     try {
       await _repository.reorderContentBlocks(sessionId, [for (final b in blocks) b.id]);
+      await _markEdited();
       _showReorderSaved();
     } catch (e, st) {
       debugPrint('reorderContentBlocks failed: $e\n$st');
@@ -325,19 +386,102 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _copyFromTemplate() async {
     final template = await showDialog<SyllabusTemplate>(
       context: context,
-      builder: (_) => _CopyFromTemplateDialog(repository: _repository),
+      builder: (_) => _CopyFromTemplateDialog(repository: _repository, classModuleNames: _modulesLocked ? [for (final m in _modules) m.name] : null),
     );
     if (template == null) return;
-    await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id);
+    await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id, intoExistingModules: _modulesLocked);
+    await _markEdited();
     await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Copied from template "${template.name}".')));
+  }
+
+  // ── Approval ─────────────────────────────────────────────────────────
+
+  /// Changes are saved as they happen, but any lecturer edit takes the
+  /// syllabus out of "submitted"/"approved" — it must be (re)submitted and
+  /// approved before students see it. Admin edits never reset approval.
+  Future<void> _markEdited() async {
+    if (widget.isAdmin || _syllabusStatus == SyllabusStatus.draft) return;
+    await _repository.setSyllabusStatus(widget.sectionId, SyllabusStatus.draft);
+    if (!mounted) return;
+    setState(() => _syllabusStatus = SyllabusStatus.draft);
+  }
+
+  Future<void> _setStatus(String status, String message) async {
+    await _repository.setSyllabusStatus(widget.sectionId, status);
+    if (!mounted) return;
+    setState(() => _syllabusStatus = status);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _approvalBar() {
+    final (label, detail, color) = switch (_syllabusStatus) {
+      SyllabusStatus.approved => ('Approved', 'Visible to students.', const Color(0xFF2E7D32)),
+      SyllabusStatus.submitted => ('Pending approval', 'Submitted — students cannot see this syllabus until an admin approves it.', const Color(0xFFB26A00)),
+      _ => ('Draft', 'Not submitted — students cannot see this syllabus yet. Your changes are saved automatically.', FacultyColors.onSurfaceVariant),
+    };
+    final Widget? action;
+    if (widget.isAdmin) {
+      action = _syllabusStatus == SyllabusStatus.approved
+          ? null
+          : FilledButton.icon(
+              onPressed: () => _setStatus(SyllabusStatus.approved, 'Syllabus approved — students can now see it.'),
+              icon: const Icon(Icons.verified_outlined),
+              label: const Text('Approve Syllabus'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                textStyle: FacultyTypography.titleSm(color: Colors.white),
+              ),
+            );
+    } else {
+      action = _syllabusStatus == SyllabusStatus.draft && _canEdit
+          ? FilledButton.icon(
+              onPressed: () => _setStatus(SyllabusStatus.submitted, 'Submitted for approval.'),
+              icon: const Icon(Icons.send_outlined, size: 18),
+              label: const Text('Submit for Approval'),
+            )
+          : null;
+    }
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16,
+        runSpacing: 10,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Status: $label', style: FacultyTypography.titleSm(color: color)),
+                const SizedBox(height: 2),
+                Text(detail, style: FacultyTypography.bodySm()),
+              ],
+            ),
+          ),
+          ?action,
+        ],
+      ),
+    );
   }
 
   void _handleNav(FacultyNavDestination dest) {
     switch (dest) {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
+      case FacultyNavDestination.physicalClassAttendance:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhysicalClassAttendanceScreen()));
+        break;
       case FacultyNavDestination.gradingAndSubmissions:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
     }
@@ -348,7 +492,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (MediaQuery.of(context).size.width < 700) {
+    if (widget.isAdmin || MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
     return FacultyScaffold(
@@ -376,9 +520,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: FacultyColors.background,
-      appBar: const FacultyMobileTopBar(title: 'Syllabus'),
+      appBar: FacultyMobileTopBar(title: widget.isAdmin ? 'Syllabus (Admin)' : 'Modules and Sessions'),
       body: SafeArea(
         top: false,
+        child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 820),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -391,13 +539,16 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                 style: FacultyTypography.bodySm(),
               ),
               const SizedBox(height: 16),
-              Row(children: [Expanded(child: _viewAsStudentButton()), const SizedBox(width: 10), Expanded(child: _addModuleButton())]),
+              if (_modulesReadOnly)
+                _viewAsStudentButton()
+              else
+                Row(children: [Expanded(child: _viewAsStudentButton()), const SizedBox(width: 10), Expanded(child: _addModuleButton())]),
               const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(child: _saveAsTemplateButton()),
-                  const SizedBox(width: 10),
-                  Expanded(child: _copyFromTemplateButton()),
+                  if (_canEdit) const SizedBox(width: 10),
+                  if (_canEdit) Expanded(child: _copyFromTemplateButton()),
                 ],
               ),
               const SizedBox(height: 16),
@@ -405,6 +556,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
             ],
           ),
         ),
+        ),
+      ),
       ),
     );
   }
@@ -438,7 +591,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Syllabus', style: FacultyTypography.headlineLg()),
+              Text('Modules and Sessions', style: FacultyTypography.headlineLg()),
               const SizedBox(height: 2),
               Text(widget.courseTitle, style: FacultyTypography.bodyLg(color: FacultyColors.onSurfaceVariant)),
               const SizedBox(height: 4),
@@ -454,9 +607,11 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           children: [
             _viewAsStudentButton(),
             const SizedBox(height: 8),
-            _addModuleButton(),
-            const SizedBox(height: 8),
-            Row(children: [_saveAsTemplateButton(), const SizedBox(width: 8), _copyFromTemplateButton()]),
+            if (!_modulesReadOnly) ...[
+              _addModuleButton(),
+              const SizedBox(height: 8),
+            ],
+            Row(children: [_saveAsTemplateButton(), if (_canEdit) ...[const SizedBox(width: 8), _copyFromTemplateButton()]]),
           ],
         ),
       ],
@@ -524,12 +679,45 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   }
 
   Widget _buildModuleList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _approvalBar(),
+        if (!_canEdit) _editClosedBanner(),
+        _buildModuleListBody(),
+      ],
+    );
+  }
+
+  Widget _editClosedBanner() {
+    final s = _section!;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: FacultyColors.errorContainer, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lock_outline, size: 18, color: FacultyColors.error),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Syllabus editing is closed. This class can only be edited between ${formatDueDate(s.editStartAt!)} and ${formatDueDate(s.editEndAt!)}. Ask an administrator if you need access outside that period.',
+              style: FacultyTypography.bodySm(color: FacultyColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModuleListBody() {
     if (_modules.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(color: FacultyColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12)),
         alignment: Alignment.center,
-        child: Text('No modules yet. Add one to start building the syllabus.', style: FacultyTypography.bodyMd()),
+        child: Text(_modulesReadOnly ? 'No modules yet. Modules are managed by your administrator.' : 'No modules yet. Add one to start building the syllabus.', style: FacultyTypography.bodyMd()),
       );
     }
     return ReorderableListView.builder(
@@ -564,33 +752,37 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  ReorderableDragStartListener(
-                    index: index,
-                    child: const Icon(Icons.drag_indicator, color: FacultyColors.onSurfaceVariant),
-                  ),
-                  const SizedBox(width: 8),
+                  if (!_modulesReadOnly) ...[
+                    ReorderableDragStartListener(
+                      index: index,
+                      child: const Icon(Icons.drag_indicator, color: FacultyColors.onSurfaceVariant),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Icon(expanded ? Icons.expand_more : Icons.chevron_right, color: FacultyColors.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(m.name, style: FacultyTypography.titleSm()),
+                        Text('${_numberedPrefix('Module', index + 1)}${_bareName(m.name)}', style: FacultyTypography.titleSm()),
                         if (m.description.isNotEmpty)
                           Text(m.description, style: FacultyTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => _editModule(m),
-                    icon: const Icon(Icons.edit_outlined, size: 18, color: FacultyColors.onSurfaceVariant),
-                    tooltip: 'Edit module',
-                  ),
-                  IconButton(
-                    onPressed: () => _deleteModule(m),
-                    icon: const Icon(Icons.delete_outline, size: 18, color: FacultyColors.error),
-                    tooltip: 'Delete module',
-                  ),
+                  if (!_modulesReadOnly) ...[
+                    IconButton(
+                      onPressed: () => _editModule(m),
+                      icon: const Icon(Icons.edit_outlined, size: 18, color: FacultyColors.onSurfaceVariant),
+                      tooltip: 'Edit module',
+                    ),
+                    IconButton(
+                      onPressed: () => _deleteModule(m),
+                      icon: const Icon(Icons.delete_outline, size: 18, color: FacultyColors.error),
+                      tooltip: 'Delete module',
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -628,7 +820,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                         },
                       ),
                     const SizedBox(height: 4),
-                    Align(
+                    if (_canEdit) Align(
                       alignment: Alignment.centerLeft,
                       child: OutlinedButton.icon(
                         onPressed: () => _addSession(m.id),
@@ -667,23 +859,26 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
+                  if (_canEdit) ...[
                   ReorderableDragStartListener(
                     index: index,
                     child: const Icon(Icons.drag_indicator, size: 18, color: FacultyColors.onSurfaceVariant),
                   ),
                   const SizedBox(width: 6),
+                  ],
                   Icon(expanded ? Icons.expand_more : Icons.chevron_right, size: 18, color: FacultyColors.onSurfaceVariant),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.name, style: FacultyTypography.bodyLg(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                        Text('${_numberedPrefix('Lesson', index + 1)}${_bareName(s.name)}', style: FacultyTypography.bodyLg(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
                         if (s.description.isNotEmpty)
                           Text(s.description, style: FacultyTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
+                  if (_canEdit) ...[
                   IconButton(
                     onPressed: () => _editSession(moduleId, s),
                     icon: const Icon(Icons.edit_outlined, size: 16, color: FacultyColors.onSurfaceVariant),
@@ -696,6 +891,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                     tooltip: 'Delete session',
                     visualDensity: VisualDensity.compact,
                   ),
+                  ],
                 ],
               ),
             ),
@@ -727,7 +923,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
                             KeyedSubtree(key: ValueKey(blocks[index].id), child: _contentBlockRow(s.id, blocks[index], index)),
                       ),
                     const SizedBox(height: 4),
-                    Align(
+                    if (_canEdit) Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(
                         onPressed: () => _addContentBlock(s.id),
@@ -753,14 +949,17 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_canEdit) ...[
           ReorderableDragStartListener(
             index: index,
             child: const Icon(Icons.drag_indicator, size: 18, color: FacultyColors.onSurfaceVariant),
           ),
           const SizedBox(width: 8),
+          ],
           Icon(_iconFor(b.type), size: 18, color: FacultyColors.primary),
           const SizedBox(width: 10),
           Expanded(child: _contentPreview(b)),
+          if (_canEdit) ...[
           IconButton(
             onPressed: () => _editContentBlock(sessionId, b),
             icon: const Icon(Icons.edit_outlined, size: 16, color: FacultyColors.onSurfaceVariant),
@@ -773,6 +972,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
             tooltip: 'Remove',
             visualDensity: VisualDensity.compact,
           ),
+          ],
         ],
       ),
     );
@@ -796,11 +996,18 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
         return Icons.quiz_outlined;
       case ContentBlockType.assignment:
         return Icons.assignment_outlined;
+      case ContentBlockType.physicalClass:
+        return Icons.meeting_room_outlined;
+      case ContentBlockType.physicalExam:
+        return Icons.edit_note;
+      case ContentBlockType.physicalAssignment:
+        return Icons.draw_outlined;
     }
   }
 
   void _openExamEditor(ContentBlock b) {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (_) => ExamEditorScreen(
           contentBlockId: b.id,
@@ -812,11 +1019,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           instructionFiles: b.instructionFiles,
         ),
       ),
-    );
+    )
+        .then((_) => _markEdited());
   }
 
   void _openAssignmentEditor(ContentBlock b) {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (_) => AssignmentEditorScreen(
           contentBlockId: b.id,
@@ -827,7 +1036,8 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           instructionFiles: b.instructionFiles,
         ),
       ),
-    );
+    )
+        .then((_) => _markEdited());
   }
 
   void _openMarkExam(ContentBlock b) {
@@ -837,6 +1047,18 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
           contentBlockId: b.id,
           sectionId: widget.sectionId,
           title: b.title?.isNotEmpty == true ? b.title! : 'Exam',
+        ),
+      ),
+    );
+  }
+
+  void _openImportMarks(ContentBlock b) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ImportMarksScreen(
+          contentBlockId: b.id,
+          sectionId: widget.sectionId,
+          title: b.title?.isNotEmpty == true ? b.title! : 'Physical assessment',
         ),
       ),
     );
@@ -895,49 +1117,115 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       case ContentBlockType.file:
         return DownloadableFile(url: b.url, label: b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.exam:
-        return Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-                  if (b.weightage != null) ...[
-                    const SizedBox(height: 2),
-                    Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                  ],
-                ],
-              ),
-            ),
-            OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
-            const SizedBox(width: 6),
-            OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Manage Contents')),
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(b.title?.isNotEmpty == true ? b.title! : 'Exam', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+              if (b.weightage != null) ...[
+                const SizedBox(height: 2),
+                Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+            ],
+          ),
+          [
+            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
+            if (_canEdit) OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Manage Contents')),
           ],
         );
       case ContentBlockType.assignment:
-        return Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    b.title?.isNotEmpty == true ? b.title! : 'Assignment',
-                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-                  ),
-                  if (b.weightage != null) ...[
-                    const SizedBox(height: 2),
-                    Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                  ],
-                ],
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                b.title?.isNotEmpty == true ? b.title! : 'Assignment',
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               ),
+              if (b.weightage != null) ...[
+                const SizedBox(height: 2),
+                Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+            ],
+          ),
+          [
+            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
+            if (_canEdit) OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
+          ],
+        );
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PhysicalAssessmentCard(block: b),
+              if (b.weightage != null) ...[
+                const SizedBox(height: 2),
+                Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+            ],
+          ),
+          [
+            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
+          ],
+        );
+      case ContentBlockType.physicalClass:
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                b.title?.isNotEmpty == true ? b.title! : 'Physical Class',
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              ),
+              if (b.scheduledAt != null) ...[
+                const SizedBox(height: 2),
+                Text(formatDateRange(b.scheduledAt!, b.endsAt), style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+              if (b.description?.isNotEmpty == true) ...[
+                const SizedBox(height: 2),
+                Text(b.description!, style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+            ],
+          ),
+          [
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PhysicalClassAttendeesScreen(
+                    contentBlockId: b.id,
+                    sectionId: widget.sectionId,
+                    title: b.title?.isNotEmpty == true ? b.title! : 'Physical Class',
+                    scheduledAt: b.scheduledAt,
+                    endsAt: b.endsAt,
+                  ),
+                ),
+              ),
+              child: const Text('Attendance'),
             ),
-            OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
-            const SizedBox(width: 6),
-            OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
           ],
         );
     }
+  }
+
+  /// A content row's text plus its action buttons: side by side when there is
+  /// room, otherwise the buttons wrap onto their own line under the text (on
+  /// a phone the buttons would otherwise squeeze the title into a sliver).
+  Widget _infoWithActions(Widget info, List<Widget> actions) {
+    if (actions.isEmpty) return info;
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth >= 520) {
+        return Row(children: [
+          Expanded(child: info),
+          for (final a in actions) ...[const SizedBox(width: 6), a],
+        ]);
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [info, const SizedBox(height: 8), Wrap(spacing: 6, runSpacing: 6, children: actions)],
+      );
+    });
   }
 }
 
@@ -951,11 +1239,15 @@ class _NameDescriptionDialog extends StatefulWidget {
   final String? existingName;
   final String? existingDescription;
 
+  /// Read-only "Module 3 : " label shown in front of the name field.
+  final String? prefix;
+
   const _NameDescriptionDialog({
     required this.dialogTitle,
     required this.nameLabel,
     this.existingName,
     this.existingDescription,
+    this.prefix,
   });
 
   @override
@@ -986,7 +1278,7 @@ class _NameDescriptionDialogState extends State<_NameDescriptionDialog> {
             TextField(
               controller: _nameController,
               autofocus: true,
-              decoration: InputDecoration(label: requiredLabel(widget.nameLabel)),
+              decoration: InputDecoration(label: requiredLabel(widget.nameLabel), prefixText: widget.prefix),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
@@ -1038,8 +1330,13 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   late final _descriptionController = TextEditingController(text: widget.existing?.description ?? '');
   late final _instructionsController = TextEditingController(text: widget.existing?.instructions ?? '');
   late final _weightageController = TextEditingController(text: widget.existing?.weightage?.toString() ?? '');
+  late final _timeLimitController = TextEditingController(text: widget.existing?.timeLimitMinutes?.toString() ?? '');
+  late final _maxMarksController = TextEditingController(text: widget.existing?.maxMarks == null ? '' : _formatNumber(widget.existing!.maxMarks!));
   late String _mode = widget.existing?.mode ?? 'normal';
   DateTime? _dueDate;
+  DateTime? _availableFrom;
+  DateTime? _classStart;
+  DateTime? _classEnd;
   String? _uploadedFileName;
   bool _uploading = false;
   bool _uploadingThumbnail = false;
@@ -1056,6 +1353,9 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     super.initState();
     _richTextController.addListener(() => setState(() {}));
     _dueDate = widget.existing?.dueDate;
+    _classStart = widget.existing?.scheduledAt;
+    _classEnd = widget.existing?.endsAt;
+    _availableFrom = widget.existing?.availableFrom;
     _uploadedFileName = widget.existing?.fileName;
     _loadWeightageBudget();
   }
@@ -1080,10 +1380,16 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     _descriptionController.dispose();
     _instructionsController.dispose();
     _weightageController.dispose();
+    _timeLimitController.dispose();
+    _maxMarksController.dispose();
     super.dispose();
   }
 
   double? get _parsedWeightage => double.tryParse(_weightageController.text.trim());
+  int? get _parsedTimeLimit => int.tryParse(_timeLimitController.text.trim());
+  double? get _parsedMaxMarks => double.tryParse(_maxMarksController.text.trim());
+
+  static String _formatNumber(double v) => v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1);
 
   /// How much weightage is still available for this block — the class's
   /// 100% budget minus every *other* exam/assignment's weightage.
@@ -1123,6 +1429,30 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     });
   }
 
+  Future<void> _pickAvailableFromDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _availableFrom ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    final existingTime = _availableFrom;
+    setState(() {
+      _availableFrom = DateTime(picked.year, picked.month, picked.day, existingTime?.hour ?? 0, existingTime?.minute ?? 0);
+    });
+  }
+
+  Future<void> _pickAvailableFromTime() async {
+    final base = _availableFrom ?? DateTime.now();
+    final picked = await showTimePicker(context: context, initialTime: TimeOfDay(hour: base.hour, minute: base.minute));
+    if (picked == null) return;
+    setState(() {
+      final date = _availableFrom ?? DateTime.now();
+      _availableFrom = DateTime(date.year, date.month, date.day, picked.hour, picked.minute);
+    });
+  }
+
   bool get _canSave {
     switch (_type) {
       case ContentBlockType.text:
@@ -1133,6 +1463,14 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.file:
         return _urlController.text.trim().isNotEmpty;
       case ContentBlockType.exam:
+        return _titleController.text.trim().isNotEmpty &&
+            _descriptionController.text.trim().isNotEmpty &&
+            _instructionsController.text.trim().isNotEmpty &&
+            _dueDate != null &&
+            !_loadingWeightage &&
+            _parsedWeightage != null &&
+            _weightageError == null &&
+            _availableFromError == null;
       case ContentBlockType.assignment:
         return _titleController.text.trim().isNotEmpty &&
             _descriptionController.text.trim().isNotEmpty &&
@@ -1141,7 +1479,29 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             !_loadingWeightage &&
             _parsedWeightage != null &&
             _weightageError == null;
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return _titleController.text.trim().isNotEmpty &&
+            _descriptionController.text.trim().isNotEmpty &&
+            _dueDate != null &&
+            !_loadingWeightage &&
+            _parsedWeightage != null &&
+            _weightageError == null &&
+            _parsedMaxMarks != null &&
+            _parsedMaxMarks! > 0;
+      case ContentBlockType.physicalClass:
+        return _titleController.text.trim().isNotEmpty &&
+            _descriptionController.text.trim().isNotEmpty &&
+            _classStart != null &&
+            _classEnd != null &&
+            _classEnd!.isAfter(_classStart!);
     }
+  }
+
+  String? get _availableFromError {
+    if (_availableFrom == null || _dueDate == null) return null;
+    if (!_availableFrom!.isBefore(_dueDate!)) return 'Must be before the due date.';
+    return null;
   }
 
   Future<void> _pickAndUpload({required FileType fileType}) async {
@@ -1260,6 +1620,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           'dueDate': _dueDate!.toIso8601String(),
           'mode': _mode,
           'weightage': _parsedWeightage,
+          if (_parsedTimeLimit != null) 'timeLimitMinutes': _parsedTimeLimit,
+          if (_availableFrom != null) 'availableFrom': _availableFrom!.toIso8601String(),
           'instructionFiles': _instructionFiles,
         };
       case ContentBlockType.assignment:
@@ -1270,6 +1632,22 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           'dueDate': _dueDate!.toIso8601String(),
           'weightage': _parsedWeightage,
           'instructionFiles': _instructionFiles,
+        };
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return {
+          'title': _titleController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'dueDate': _dueDate!.toIso8601String(),
+          'weightage': _parsedWeightage,
+          'maxMarks': _parsedMaxMarks,
+        };
+      case ContentBlockType.physicalClass:
+        return {
+          'title': _titleController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'scheduledAt': _classStart!.toIso8601String(),
+          'endsAt': _classEnd!.toIso8601String(),
         };
     }
   }
@@ -1332,6 +1710,12 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return 'Exam';
       case ContentBlockType.assignment:
         return 'Assignment';
+      case ContentBlockType.physicalClass:
+        return 'Physical Class';
+      case ContentBlockType.physicalExam:
+        return 'Physical Exam';
+      case ContentBlockType.physicalAssignment:
+        return 'Physical Assignment';
     }
   }
 
@@ -1448,6 +1832,18 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             onChanged: (v) => setState(() => _mode = v ?? 'normal'),
           ),
           const SizedBox(height: 12),
+          TextField(
+            controller: _timeLimitController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Time limit (minutes, optional)',
+              helperText: 'Shows a countdown timer on the exam page and auto-submits at zero. Leave blank for no limit.',
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _availableFromRow(),
+          const SizedBox(height: 12),
           _dueDateTimeRow(),
           const SizedBox(height: 12),
           _weightageField(),
@@ -1492,6 +1888,66 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
           ),
         ];
+      case ContentBlockType.physicalExam:
+      case ContentBlockType.physicalAssignment:
+        return [
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(label: requiredLabel(type == ContentBlockType.physicalExam ? 'Exam name' : 'Assignment name')),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _descriptionController,
+            decoration: InputDecoration(label: requiredLabel('Description')),
+            maxLines: 2,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _dueDateTimeRow(),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _maxMarksController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(label: requiredLabel('Maximum marks'), helperText: 'The full marks the paper is out of.'),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _weightageField(),
+          const SizedBox(height: 8),
+          Text(
+            'Done on paper. Marks are imported from a CSV afterwards — via "Import Marks" here or the Grading and Submissions page.',
+            style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+          ),
+        ];
+      case ContentBlockType.physicalClass:
+        return [
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(label: requiredLabel('Name')),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _descriptionController,
+            decoration: InputDecoration(label: requiredLabel('Description')),
+            maxLines: 2,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _scheduleRow('Start', _classStart, (v) => setState(() => _classStart = v), defaultHour: 9),
+          const SizedBox(height: 12),
+          _scheduleRow('End', _classEnd, (v) => setState(() => _classEnd = v), defaultHour: 12),
+          if (_classStart != null && _classEnd != null && !_classEnd!.isAfter(_classStart!)) ...[
+            const SizedBox(height: 6),
+            Text('The end must be after the start.', style: FacultyTypography.labelXs(color: FacultyColors.error)),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'Students can tick their attendance between the start and end date/time.',
+            style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+          ),
+        ];
     }
   }
 
@@ -1513,6 +1969,47 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         errorText: _weightageError,
       ),
       onChanged: (_) => setState(() {}),
+    );
+  }
+
+  /// A "<label> date" + time picker pair for one end of a physical class's
+  /// window. Picking a date first defaults the time to [defaultHour]:00.
+  Widget _scheduleRow(String label, DateTime? value, ValueChanged<DateTime?> onChanged, {required int defaultHour}) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: value ?? _classStart ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (picked == null) return;
+              onChanged(DateTime(picked.year, picked.month, picked.day, value?.hour ?? defaultHour, value?.minute ?? 0));
+            },
+            icon: const Icon(Icons.event_outlined, size: 16),
+            label: Text(value == null ? '$label date *' : '${value.year}-${two(value.month)}-${two(value.day)}'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: value == null
+                ? null
+                : () async {
+                    final picked = await showTimePicker(context: context, initialTime: TimeOfDay(hour: value.hour, minute: value.minute));
+                    if (picked == null) return;
+                    onChanged(DateTime(value.year, value.month, value.day, picked.hour, picked.minute));
+                  },
+            icon: const Icon(Icons.schedule_outlined, size: 16),
+            label: Text(value == null ? '$label time' : '${two(value.hour)}:${two(value.minute)}'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1542,6 +2039,52 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             icon: const Icon(Icons.close, size: 16),
             tooltip: 'Clear due date',
             visualDensity: VisualDensity.compact,
+          ),
+      ],
+    );
+  }
+
+  /// Exam-only: when attempts open. Left blank, the exam is open as soon as
+  /// it's published. The exam-answering screen refuses to submit — and
+  /// refuses new attempts — before this, and after the due date.
+  Widget _availableFromRow() {
+    final from = _availableFrom;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickAvailableFromDate,
+                icon: const Icon(Icons.event_available_outlined, size: 16),
+                label: Text(
+                  from == null ? 'Available from (optional)' : '${from.year}-${from.month.toString().padLeft(2, '0')}-${from.day.toString().padLeft(2, '0')}',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: from == null ? null : _pickAvailableFromTime,
+                icon: const Icon(Icons.schedule_outlined, size: 16),
+                label: Text(from == null ? 'Time' : '${from.hour.toString().padLeft(2, '0')}:${from.minute.toString().padLeft(2, '0')}'),
+              ),
+            ),
+            if (from != null)
+              IconButton(
+                onPressed: () => setState(() => _availableFrom = null),
+                icon: const Icon(Icons.close, size: 16),
+                tooltip: 'Clear',
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
+        ),
+        if (_availableFromError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(_availableFromError!, style: FacultyTypography.labelXs(color: FacultyColors.error)),
           ),
       ],
     );
@@ -1658,7 +2201,11 @@ class _SaveAsTemplateDialogState extends State<_SaveAsTemplateDialog> {
 class _CopyFromTemplateDialog extends StatefulWidget {
   final SupabaseLecturerSyllabusRepositoryImpl repository;
 
-  const _CopyFromTemplateDialog({required this.repository});
+  /// When non-null (modules are locked), only templates whose modules are
+  /// exactly these — same names, same order — can be copied.
+  final List<String>? classModuleNames;
+
+  const _CopyFromTemplateDialog({required this.repository, this.classModuleNames});
 
   @override
   State<_CopyFromTemplateDialog> createState() => _CopyFromTemplateDialogState();
@@ -1668,6 +2215,7 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
   bool _isLoading = true;
   List<SyllabusTemplate> _templates = [];
   SyllabusTemplate? _selected;
+  final Set<String> _incompatible = {};
 
   @override
   void initState() {
@@ -1677,6 +2225,15 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
 
   Future<void> _load() async {
     final templates = await widget.repository.getTemplates();
+    final required = widget.classModuleNames;
+    if (required != null) {
+      String norm(String s) => s.trim().toLowerCase();
+      for (final t in templates) {
+        final names = await widget.repository.getTemplateModuleNames(t.id);
+        final same = names.length == required.length && [for (var i = 0; i < names.length; i++) i].every((i) => norm(names[i]) == norm(required[i]));
+        if (!same) _incompatible.add(t.id);
+      }
+    }
     if (!mounted) return;
     setState(() {
       _templates = templates;
@@ -1702,13 +2259,14 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
                     separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final t = _templates[index];
+                      final incompatible = _incompatible.contains(t.id);
                       final selected = _selected?.id == t.id;
                       return Material(
                         color: selected ? FacultyColors.secondaryContainer : FacultyColors.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(8),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(8),
-                          onTap: () => setState(() => _selected = t),
+                          onTap: incompatible ? null : () => setState(() => _selected = t),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             child: Row(
@@ -1719,7 +2277,16 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
                                   color: selected ? FacultyColors.primary : FacultyColors.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text(t.name, style: FacultyTypography.bodyMd())),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(t.name, style: FacultyTypography.bodyMd(color: incompatible ? FacultyColors.outline : FacultyColors.onSurfaceVariant)),
+                                      if (incompatible)
+                                        Text('Modules are not identical to this class', style: FacultyTypography.labelXs(color: FacultyColors.error)),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -1738,3 +2305,7 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
     );
   }
 }
+
+String _numberedPrefix(String kind, int n) => numberedPrefix(kind, n);
+
+String _bareName(String name) => bareName(name);

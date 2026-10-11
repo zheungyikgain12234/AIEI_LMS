@@ -37,9 +37,9 @@ class PortalSidebar extends StatelessWidget {
             onTap: () => onDestinationSelected?.call(0),
           ),
           const SizedBox(height: 6),
-          // Certification and Badges Item
+          // My Badges Item
           _SidebarNavItem(
-            title: 'Certification and Badges',
+            title: 'My Badges',
             isSelected: selectedIndex == 1,
             icon: Icons.military_tech_outlined,
             onTap: () => onDestinationSelected?.call(1),

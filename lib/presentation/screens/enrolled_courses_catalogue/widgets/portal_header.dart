@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stitch_aiei_lms/core/session/current_user_profile.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
@@ -12,6 +13,7 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(studentProfileProvider).value;
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -73,15 +75,22 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'David Kim',
+                        profile?.name ?? '',
                         style: AppTypography.labelMd(color: AppColors.onSurface),
                       ),
                       Text(
-                        'Product Analyst • Operations',
+                        profile?.subtitle ?? '',
                         style: AppTypography.bodySm(
                           color: AppColors.onSurfaceVariant,
                         ),
                       ),
+                      if (profile?.code != null)
+                        Text(
+                          profile!.code!,
+                          style: AppTypography.bodySm(
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(width: 10),

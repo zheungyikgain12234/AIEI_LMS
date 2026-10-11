@@ -15,9 +15,9 @@ truncate table
   badge_awards, student_certifications, student_materials, student_courses,
   role_courses, lecturer_courses, module_certs, course_tags,
   module_materials, course_modules, courses,
-  certifications, tags,
+  certifications, tags, module_list_items, module_lists,
   lecturers, students, admins,
-  departments, program_tracks, cohorts,
+  departments, programmes, course_programmes, program_tracks, cohorts,
   lecturer_departments, specializations, roles
 restart identity cascade;
 
@@ -924,6 +924,26 @@ insert into track_courses (track_id, course_id) values
   ((select id from program_tracks where name = 'Product & UX Track'), '44444444-4444-4444-4444-444444444419'),
   ((select id from program_tracks where name = 'Product & UX Track'), '44444444-4444-4444-4444-444444444420');
 
+-- ── Programmes + Programme → Course mapping (optional per course; a course
+-- may belong to several programmes, or none) ───────────────────────────────
+
+insert into programmes (code, name, description) values
+  ('TN01-PRG-DIT', 'Diploma in Information Technology', 'Core computing, cloud and data skills for IT practitioners.'),
+  ('TN01-PRG-DAI', 'Diploma in Applied AI', 'Hands-on machine learning and AI tooling for the workplace.'),
+  ('TN01-PRG-WSH', 'Workplace Safety & Health Certificate', 'Compliance and safety training for operational staff.');
+
+insert into course_programmes (programme_id, course_id) values
+  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444401'),
+  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444407'),
+  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444416'),
+  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444408'),
+  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444408'),
+  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444410'),
+  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444411'),
+  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444402'),
+  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444409'),
+  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444422');
+
 -- ── Tags for a few of the new courses ─────────────────────────────────
 
 insert into course_tags (course_id, tag_id) values
@@ -1561,3 +1581,23 @@ insert into content_blocks (id, session_id, block_type, block_content, block_sor
 insert into course_announcements (section_id, lecturer_id, title, body, created_at) values
   ((select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), '11111111-1111-1111-1111-111111111106', 'Office hours moved to Thursday 3 PM', 'Due to the departmental curriculum council meeting, our usual Wednesday slot is moved. Room 402 or via Zoom bridge.', now() - interval '1 day'),
   ((select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), '11111111-1111-1111-1111-111111111106', 'Starter repo updated for Assignment 02', 'A patch was pushed to address the dataset schema parser warning in Python 3.11. Please run git pull before continuing.', now() - interval '8 days');
+
+-- ── Module Lists (master data — importable while creating a class) ──────
+
+insert into module_lists (id, name) values
+  ('88888888-8888-8888-8888-888888888801', 'Standard 4-Module Course'),
+  ('88888888-8888-8888-8888-888888888802', 'Compliance Essentials');
+
+insert into module_list_items (module_list_id, module_name, item_sorting) values
+  ('88888888-8888-8888-8888-888888888801', 'Introduction', 0),
+  ('88888888-8888-8888-8888-888888888801', 'Core Concepts', 1),
+  ('88888888-8888-8888-8888-888888888801', 'Applied Practice', 2),
+  ('88888888-8888-8888-8888-888888888801', 'Assessment & Review', 3),
+  ('88888888-8888-8888-8888-888888888802', 'Policy Overview', 0),
+  ('88888888-8888-8888-8888-888888888802', 'Case Studies', 1),
+  ('88888888-8888-8888-8888-888888888802', 'Final Assessment', 2);
+
+-- ── Syllabus approval — every seeded class's syllabus starts approved so
+-- students can see the demo content (new classes start as 'draft'). ──────
+
+update course_sections set syllabus_status = 'approved', syllabus_approved_at = now();

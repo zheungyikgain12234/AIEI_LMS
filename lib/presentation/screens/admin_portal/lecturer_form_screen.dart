@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // LecturerFormScreen — shared "Add New Lecturer" / "Edit Lecturer" form.
@@ -362,7 +363,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
       children: [
         AdminFieldLabel(label, required: required),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
+        SearchableDropdownFormField<String>(
           initialValue: value,
           isExpanded: true,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),

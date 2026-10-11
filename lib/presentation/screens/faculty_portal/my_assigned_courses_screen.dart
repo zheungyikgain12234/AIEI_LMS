@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -6,15 +7,19 @@ import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+import 'package:stitch_aiei_lms/domain/repositories/faculty_repository.dart' show SyllabusDeadline;
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/faculty_mobile_bottom_nav.dart';
 import 'course_dashboard_screen.dart';
 import 'grading_queue_screen.dart';
+import 'physical_class_attendance_screen.dart';
+import 'course_syllabus_screen.dart';
 
 const _kAccentPalette = [
   (FacultyColors.primary, Color(0xFFDBEAFE)),
@@ -29,10 +34,12 @@ class MyAssignedCoursesScreen extends StatefulWidget {
   State<MyAssignedCoursesScreen> createState() => _MyAssignedCoursesScreenState();
 }
 
-class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
+class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with WidgetsBindingObserver {
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _programmesRepository = SupabaseProgrammesRepositoryImpl(Supabase.instance.client);
+  Map<String, List<String>> _programmesByCourse = const {};
 
   bool _isLoading = true;
   List<_CourseRow> _rows = const [];
@@ -43,6 +50,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   List<Cohort> _cohorts = const [];
   int? _selectedYear;
   String? _selectedCohort;
+
+  // ── Search filter (course name/code only) ───────────────────────────────
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   // Real per-course KPIs, keyed by `sectionId` — computed for EVERY assigned
   // course (not just one hardcoded demo course), so the table and overall
@@ -55,6 +66,12 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   Map<String, int> _pendingAssignmentsBySection = const {};
   Map<String, int> _pendingQuizzesBySection = const {};
   Lecturer? _lecturer;
+  Timer? _actionsTimer;
+
+  /// Classes whose syllabus still needs submitting for approval, soonest
+  /// edit-period end first — the Critical Action box (see [_syllabusActionWindowDays]).
+  List<({AssignedCourse course, DateTime due})> _syllabusActions = const [];
+  static const _syllabusActionWindowDays = 5;
 
   Map<String, int> get _cohortYearByName => {for (final c in _cohorts) c.name: c.year};
 
@@ -80,20 +97,50 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
   }
 
   List<AssignedCourse> get _filteredAssignedCourses {
-    if (_selectedCohort == null) return _assignedCourses;
-    return _assignedCourses.where((c) => c.cohort == _selectedCohort).toList();
+    var courses = _assignedCourses;
+    if (_selectedCohort != null) {
+      courses = courses.where((c) => c.cohort == _selectedCohort).toList();
+    }
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      courses = courses
+          .where((c) => c.title.toLowerCase().contains(query) || c.courseCode.toLowerCase().contains(query))
+          .toList();
+    }
+    return courses;
   }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    // Admin changes (edit period, approval) are made elsewhere, so poll for the
+    // Critical Action box instead of requiring a page reload.
+    _actionsTimer = Timer.periodic(const Duration(seconds: 15), (_) => _refreshSyllabusActions());
+  }
+
+  @override
+  void dispose() {
+    _actionsTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _rows = _buildRows();
+      _stats = _computeStats();
+    });
   }
 
   Future<void> _load() async {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
     final lecturers = await _lecturersRepository.getLecturers();
     final cohorts = await _masterDataRepository.getCohorts();
+    final programmesByCourse = await _programmesRepository.getProgrammeNamesByCourse();
     final sectionIds = [for (final c in assignedCourses) c.sectionId];
 
     // Real per-course module/session counts, computed for every assigned
@@ -109,6 +156,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     // This is scoped by section (not course), so a student enrolled in the
     // same course through a different section/cohort is correctly excluded.
     final assessmentStats = await _facultyRepository.getSectionAssessmentStats(sectionIds);
+    final deadlines = await _facultyRepository.getSyllabusDeadlines(sectionIds);
     if (!mounted) return;
 
     final lecturer = lecturers.where((l) => l.id == DemoIdentity.lecturerId).firstOrNull;
@@ -116,12 +164,14 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     setState(() {
       _assignedCourses = assignedCourses;
       _cohorts = cohorts;
+      _programmesByCourse = programmesByCourse;
       _moduleCountBySection = moduleCountBySection;
       _sessionCountBySection = sessionCountBySection;
       _avgProgressBySection = {for (final e in assessmentStats.entries) e.key: e.value.avgProgress};
       _pendingAssignmentsBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingAssignments};
       _pendingQuizzesBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingQuizzes};
       _lecturer = lecturer;
+      _syllabusActions = _syllabusActionsFrom(assignedCourses, deadlines);
 
       // Default to the current calendar year if the lecturer has courses
       // there, else fall back to the most recent year they do have.
@@ -135,6 +185,133 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       _stats = _computeStats();
       _isLoading = false;
     });
+  }
+
+  /// Draft syllabi whose edit period ends within [_syllabusActionWindowDays]
+  /// days (or already has), soonest first.
+  List<({AssignedCourse course, DateTime due})> _syllabusActionsFrom(List<AssignedCourse> courses, List<SyllabusDeadline> deadlines) {
+    final courseBySection = {for (final c in courses) c.sectionId: c};
+    final items = <({AssignedCourse course, DateTime due})>[
+      for (final d in deadlines)
+        if (courseBySection[d.sectionId] != null && _daysLeft(d.editEndAt) <= _syllabusActionWindowDays)
+          (course: courseBySection[d.sectionId]!, due: d.editEndAt),
+    ];
+    items.sort((a, b) => a.due.compareTo(b.due));
+    return items;
+  }
+
+  /// Re-reads just the syllabus deadlines (cheap) so the Critical Action box
+  /// appears/disappears when an admin changes a class's edit period or a
+  /// syllabus is submitted/approved.
+  Future<void> _refreshSyllabusActions() async {
+    if (!mounted || _isLoading || _assignedCourses.isEmpty) return;
+    try {
+      final deadlines = await _facultyRepository.getSyllabusDeadlines([for (final c in _assignedCourses) c.sectionId]);
+      if (!mounted) return;
+      setState(() => _syllabusActions = _syllabusActionsFrom(_assignedCourses, deadlines));
+    } catch (_) {
+      // A failed background refresh just keeps what's already shown.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshSyllabusActions();
+  }
+
+  int _daysLeft(DateTime due) {
+    final now = DateTime.now();
+    return DateTime(due.year, due.month, due.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+  }
+
+  String _dueText(DateTime due) {
+    final diff = _daysLeft(due);
+    if (diff < 0) return 'Overdue by ${-diff} Day${-diff == 1 ? '' : 's'}';
+    if (diff == 0) return 'Due Today';
+    return 'Due in $diff Day${diff == 1 ? '' : 's'}';
+  }
+
+  /// "Critical Action" box (same look as the student portal's) listing every
+  /// class whose syllabus still has to be submitted for approval before its
+  /// edit period closes. Hidden when there is nothing to do.
+  Widget _buildCriticalActions() {
+    if (_syllabusActions.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 2))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFF4D4F), shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                Text('CRITICAL ACTION', style: FacultyTypography.labelXs(color: FacultyColors.errorContainer).copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            for (var i = 0; i < _syllabusActions.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _syllabusActionRow(_syllabusActions[i]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _syllabusActionRow(({AssignedCourse course, DateTime due}) item) {
+    final c = item.course;
+    return InkWell(
+      onTap: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => CourseSyllabusScreen(sectionId: c.sectionId, courseTitle: c.title)),
+        );
+        if (mounted) _load();
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.fact_check_outlined, size: 18, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Submit syllabus for approval',
+                    style: FacultyTypography.bodyMd(color: Colors.white).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '${c.courseCode} • ${c.sectionCode} — ${c.title}',
+                    style: FacultyTypography.bodySm(color: Colors.white70),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: FacultyColors.error, borderRadius: BorderRadius.circular(4)),
+              child: Text(_dueText(item.due), style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Fetches this one course's module/session counts from its own section.
@@ -221,6 +398,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     final pendingCount = (_pendingAssignmentsBySection[c.sectionId] ?? 0) + (_pendingQuizzesBySection[c.sectionId] ?? 0);
     return _CourseRow(
       courseId: c.courseId,
+      programmes: _programmesByCourse[c.courseId] ?? const [],
       sectionId: c.sectionId,
       initials: initials,
       accent: accent,
@@ -250,7 +428,16 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
 
   void _handleNav(FacultyNavDestination dest) {
     if (dest == FacultyNavDestination.myCourses) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
+    switch (dest) {
+      case FacultyNavDestination.myCourses:
+        break;
+      case FacultyNavDestination.gradingAndSubmissions:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
+        break;
+      case FacultyNavDestination.physicalClassAttendance:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhysicalClassAttendanceScreen()));
+        break;
+    }
   }
 
   void _openDashboard(_CourseRow c) {
@@ -274,7 +461,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          _buildCriticalActions(),
+          const SizedBox(height: 8),
           _buildStatsRow(),
           const SizedBox(height: 24),
           _buildToolbar(),
@@ -387,12 +576,14 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 340),
             child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
               style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
                 filled: true,
                 fillColor: FacultyColors.surfaceContainerLow,
-                hintText: 'Filter by course name, code, or schedule...',
+                hintText: 'Filter by course name or code...',
                 hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
                 prefixIcon: const Icon(Icons.search, size: 16, color: FacultyColors.outline),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -499,6 +690,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
                       ]),
                     ],
                   ),
+                  if (c.programmes.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    _programmePills(c),
+                  ],
                   const SizedBox(height: 6),
                   Text(c.title, style: FacultyTypography.titleSm()),
                   const SizedBox(height: 2),
@@ -599,6 +794,26 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
     );
   }
 
+  /// One pill per programme the course is mapped to.
+  Widget _programmePills(_CourseRow c) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: [
+        for (final name in c.programmes)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.workspace_premium_outlined, size: 12, color: FacultyColors.secondary),
+              const SizedBox(width: 4),
+              Flexible(child: Text(name, style: FacultyTypography.labelXs(color: FacultyColors.secondary).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+            ]),
+          ),
+      ],
+    );
+  }
+
   Widget _pill(String text, Color bg, Color fg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -613,13 +828,16 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
       children: [
         Icon(icon, size: 13, color: FacultyColors.outline),
         const SizedBox(width: 5),
-        Text(text, style: FacultyTypography.labelXs()),
+        Flexible(child: Text(text, style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis)),
       ],
     );
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (< 700px) layout
+  // Mobile (< 700px) layout — the same content as desktop (header, critical
+  // actions, stats, filter toolbar and course list). The desktop widgets are
+  // already responsive (stats go one-per-row; each course row stacks), so
+  // they are reused as-is.
   // ---------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {
@@ -633,584 +851,39 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('My Courses', style: FacultyTypography.headlineLg(color: FacultyColors.primary)),
-              const SizedBox(height: 10),
-              Text(
-                'Manage active curriculum, track progress, and review pending evaluations.',
-                style: FacultyTypography.bodyMd(),
+              _buildHeader(),
+              const SizedBox(height: 16),
+              _buildCriticalActions(),
+              const SizedBox(height: 8),
+              _buildStatsRow(),
+              const SizedBox(height: 16),
+              _buildToolbar(),
+              Container(
+                decoration: BoxDecoration(
+                  color: FacultyColors.surfaceContainerLowest,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                  boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+                ),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < _rows.length; i++) ...[
+                      if (i > 0) const Divider(height: 1, color: FacultyColors.surfaceContainer),
+                      _buildCourseRow(_rows[i]),
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
-              _buildMobileKpiGrid(),
-              const SizedBox(height: 20),
-              _buildMobileSearchBar(),
-              const SizedBox(height: 10),
-              _buildMobileFilterRow(),
-              const SizedBox(height: 20),
-              for (final c in _rows) ...[
-                _buildMobileCourseCard(c),
-                const SizedBox(height: 16),
-              ],
             ],
           ),
         ),
       ),
       bottomNavigationBar: FacultyMobileBottomNav(
         selected: FacultyNavDestination.myCourses,
-        pendingCount: _assignedCourses.fold<int>(
-            0, (sum, c) => sum + (_pendingAssignmentsBySection[c.sectionId] ?? 0) + (_pendingQuizzesBySection[c.sectionId] ?? 0)),
         onDestinationSelected: _handleNav,
       ),
-    );
-  }
-
-  Widget _buildMobileKpiGrid() {
-    final courses = _filteredAssignedCourses;
-    final activeCourses = courses.where((c) => c.isActive).toList();
-    final enrolledInActive = activeCourses.fold<int>(0, (sum, c) => sum + c.enrolledCount);
-    final pendingAssignments = courses.fold<int>(0, (sum, c) => sum + (_pendingAssignmentsBySection[c.sectionId] ?? 0));
-    final pendingQuizzes = courses.fold<int>(0, (sum, c) => sum + (_pendingQuizzesBySection[c.sectionId] ?? 0));
-    return Column(
-      children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _mobileKpiCard(
-                  label: 'Active Courses',
-                  icon: Icons.menu_book,
-                  iconBg: FacultyColors.surfaceContainer,
-                  iconColor: FacultyColors.secondary,
-                  value: '${activeCourses.length}',
-                  valueSuffix: '/ ${courses.length}',
-                  valueColor: FacultyColors.primary,
-                  footnote: '$enrolledInActive Enrolled Learners (Active)',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _mobileKpiCard(
-                  label: 'Pending Reviews',
-                  icon: Icons.pending_actions,
-                  iconBg: FacultyColors.errorContainer,
-                  iconColor: FacultyColors.onErrorContainer,
-                  value: '${pendingAssignments + pendingQuizzes}',
-                  valueColor: FacultyColors.error,
-                  footnote: '$pendingAssignments asgns • $pendingQuizzes quizzes',
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Builder(builder: (context) {
-          // `credits_max` is a per-cohort cap, so with a cohort selected the
-          // credits used are summed just for that cohort's courses rather
-          // than read off the lecturer's global (cross-cohort) credits_used.
-          final creditsUsed = _selectedCohort == null
-              ? _lecturer?.creditsUsed
-              : courses.fold<int>(0, (sum, c) => sum + c.credits);
-          final creditsMax = _lecturer?.creditsMax;
-          return _mobileKpiCard(
-            label: 'Teaching Capacity',
-            icon: Icons.pie_chart,
-            iconBg: FacultyColors.surfaceContainer,
-            iconColor: FacultyColors.primary,
-            value: creditsUsed != null ? '$creditsUsed' : '—',
-            valueSuffix: creditsMax != null ? '/ $creditsMax Cr' : '/ — Cr',
-            valueColor: FacultyColors.primary,
-            footnote: creditsUsed != null && creditsMax != null && creditsMax > 0
-                ? '${(creditsUsed / creditsMax * 100).round()}% assigned'
-                    '${_selectedCohort == null ? '' : ' in $_selectedCohort'}'
-                : '—',
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _mobileKpiCard({
-    required String label,
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required String value,
-    Color? valueColor,
-    String? valueSuffix,
-    String? valueTag,
-    Color? valueTagColor,
-    required String footnote,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label.toUpperCase(),
-                  style: FacultyTypography.labelXs(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
-                alignment: Alignment.center,
-                child: Icon(icon, size: 16, color: iconColor),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.end,
-            spacing: 5,
-            children: [
-              Text(
-                value,
-                style: FacultyTypography.headlineLg(color: valueColor ?? FacultyColors.primary).copyWith(fontWeight: FontWeight.w700, height: 1),
-              ),
-              if (valueSuffix != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(valueSuffix, style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w400)),
-                ),
-              if (valueTag != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
-                  child: Text(valueTag, style: FacultyTypography.labelXs(color: valueTagColor ?? FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            footnote,
-            style: FacultyTypography.bodySm(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileSearchBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: TextField(
-        style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-        decoration: InputDecoration(
-          isDense: true,
-          filled: true,
-          fillColor: Colors.transparent,
-          hintText: 'Search assigned courses or codes...',
-          hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
-          prefixIcon: const Icon(Icons.search, size: 20, color: FacultyColors.outline),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileFilterRow() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        _mobileFilterChip(
-          label: _selectedYear == null ? 'Year' : '$_selectedYear',
-          icon: Icons.calendar_month,
-          bg: FacultyColors.surfaceContainerLowest,
-          fg: FacultyColors.onSurfaceVariant,
-          onTap: _openMobileYearCohortPicker,
-        ),
-        _mobileFilterChip(
-          label: _selectedCohort ?? 'Cohort',
-          icon: Icons.groups_outlined,
-          bg: FacultyColors.surfaceContainerLowest,
-          fg: FacultyColors.onSurfaceVariant,
-          onTap: _openMobileYearCohortPicker,
-        ),
-      ],
-    );
-  }
-
-  void _openMobileYearCohortPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: FacultyColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Filter by Year & Cohort', style: FacultyTypography.titleSm()),
-              const SizedBox(height: 16),
-              Text('Year', style: FacultyTypography.labelXs()),
-              const SizedBox(height: 6),
-              _yearDropdown(onChanged: (y) => setModalState(() {})),
-              const SizedBox(height: 16),
-              Text('Cohort', style: FacultyTypography.labelXs()),
-              const SizedBox(height: 6),
-              _cohortDropdown(onChanged: (c) => setModalState(() {})),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _mobileFilterChip({required String label, required Color bg, required Color fg, IconData? icon, String? trailingBadge, VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 16, color: FacultyColors.outline),
-              const SizedBox(width: 6),
-            ],
-            Text(label, style: FacultyTypography.labelMd(color: fg)),
-            if (trailingBadge != null) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                child: Text(
-                  trailingBadge,
-                  style: FacultyTypography.labelXs(color: fg).copyWith(fontWeight: FontWeight.w700, fontSize: 10),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileCourseCard(_CourseRow c) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 8)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _mobileCourseMediaHeader(c),
-          const SizedBox(height: 12),
-          Text(c.title, style: FacultyTypography.titleSm(), maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(c.description, style: FacultyTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Icon(Icons.schedule, size: 14, color: c.accent),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  c.schedule,
-                  style: FacultyTypography.bodySm(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text('•', style: FacultyTypography.bodySm()),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  c.modules,
-                  style: FacultyTypography.bodySm(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(Icons.event_outlined, size: 14, color: c.accent),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  c.dateRange,
-                  style: FacultyTypography.bodySm(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _mobileCourseMetricsBox(c),
-          const SizedBox(height: 12),
-          _mobileCourseActions(c),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileCourseMediaHeader(_CourseRow c) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        height: 128,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [c.accent, c.accent.withValues(alpha: 0.65)],
-                ),
-              ),
-            ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    FacultyColors.primary.withValues(alpha: 0.9),
-                    FacultyColors.primary.withValues(alpha: 0.45),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: FacultyColors.primaryContainer, borderRadius: BorderRadius.circular(4)),
-                          child: Text(
-                            c.code,
-                            style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.5),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: c.isActive ? FacultyColors.tertiaryFixed : Colors.black.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.circular(9999),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 5,
-                                height: 5,
-                                decoration: BoxDecoration(
-                                  color: c.isActive ? FacultyColors.onTertiaryFixedVariant : Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  c.isActive ? 'Active' : 'Inactive',
-                                  style: FacultyTypography.labelXs(color: c.isActive ? FacultyColors.onTertiaryFixedVariant : Colors.white)
-                                      .copyWith(fontWeight: FontWeight.w700),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    c.enrolled,
-                    style: FacultyTypography.labelXs(color: Colors.white),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _mobileCourseMetricsBox(_CourseRow c) {
-    final pendingNumber = c.pendingCount.split(' ').first;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'SYLLABUS PACING',
-                  style: FacultyTypography.labelXs(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                '${c.avgProgress}% Completed',
-                style: FacultyTypography.labelMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(9999),
-            child: LinearProgressIndicator(
-              value: c.avgProgress / 100,
-              minHeight: 8,
-              backgroundColor: FacultyColors.surfaceContainerHighest,
-              valueColor: const AlwaysStoppedAnimation<Color>(FacultyColors.secondaryContainer),
-            ),
-          ),
-          const SizedBox(height: 10),
-          _mobileMetricTile(
-            icon: Icons.assignment_late,
-            iconBg: FacultyColors.errorContainer,
-            iconColor: FacultyColors.onErrorContainer,
-            value: '$pendingNumber to Grade',
-            valueColor: FacultyColors.error,
-            footnote: c.pendingLabel,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileMetricTile({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required String value,
-    Color? valueColor,
-    required String footnote,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 3)],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(6)),
-            child: Icon(icon, size: 14, color: iconColor),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value,
-                  style: FacultyTypography.labelXs(color: valueColor ?? FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  footnote,
-                  style: FacultyTypography.labelXs().copyWith(fontSize: 10),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileCourseActions(_CourseRow c) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => _openDashboard(c),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: FacultyColors.secondary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              minimumSize: const Size(0, 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    'Open Dashboard',
-                    style: FacultyTypography.labelMd(color: Colors.white),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward, size: 18, color: Colors.white),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -1230,6 +903,7 @@ class _Stat {
 
 class _CourseRow {
   final String courseId;
+  final List<String> programmes;
   final String sectionId;
   final String initials;
   final Color accent;
@@ -1248,6 +922,7 @@ class _CourseRow {
 
   const _CourseRow({
     required this.courseId,
+    required this.programmes,
     required this.sectionId,
     required this.initials,
     required this.accent,

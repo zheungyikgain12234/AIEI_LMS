@@ -3,9 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_section.dart';
+import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'widgets/required_field_label.dart';
@@ -42,6 +46,9 @@ class ExamEditorScreen extends StatefulWidget {
 
 class _ExamEditorScreenState extends State<ExamEditorScreen> {
   final _repository = SupabaseExamRepositoryImpl(Supabase.instance.client);
+  final _studentsRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  final _gradingRepository = SupabaseSubmissionGradingRepositoryImpl(Supabase.instance.client);
+  final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   List<ExamSection> _sections = [];
@@ -49,6 +56,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   final Set<String> _expandedSections = {};
   final Set<String> _loadingSections = {};
   double _totalMarks = 0;
+  bool _allowExamReset = false;
 
   @override
   void initState() {
@@ -60,12 +68,28 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     setState(() => _isLoading = true);
     final sections = await _repository.getSections(widget.contentBlockId);
     final totalMarks = await _repository.getTotalMarks(widget.contentBlockId);
+    final settings = await _settingsRepository.getSettings();
     if (!mounted) return;
     setState(() {
       _sections = sections;
       _totalMarks = totalMarks;
+      _allowExamReset = settings[AppSettingKeys.allowLecturerExamReset] ?? false;
       _isLoading = false;
     });
+  }
+
+  Future<void> _resetAttempt(String code) async {
+    final student = await _studentsRepository.getStudentByCode(code);
+    if (!mounted) return;
+    if (student == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No student found with code "$code".')));
+      return;
+    }
+    await _gradingRepository.resetAttempt(contentBlockId: widget.contentBlockId, studentId: student.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${student.name}\'s attempt was reset — they can attempt this exam again.')),
+    );
   }
 
   Future<void> _refreshTotalMarks() async {
@@ -228,6 +252,10 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _examInfoCard(),
+                  if (_allowExamReset) ...[
+                    const SizedBox(height: 12),
+                    _ResetAttemptCard(onReset: _resetAttempt),
+                  ],
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -578,6 +606,95 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
       case ExamQuestionType.fileUpload:
         return 'File upload';
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _ResetAttemptCard — admin-gated (AppSettingKeys.allowLecturerExamReset)
+// control letting a lecturer clear one student's exam submission by typing
+// in their student code, so that student can attempt the exam again.
+// ---------------------------------------------------------------------------
+class _ResetAttemptCard extends StatefulWidget {
+  final Future<void> Function(String code) onReset;
+
+  const _ResetAttemptCard({required this.onReset});
+
+  @override
+  State<_ResetAttemptCard> createState() => _ResetAttemptCardState();
+}
+
+class _ResetAttemptCardState extends State<_ResetAttemptCard> {
+  final _codeController = TextEditingController();
+  bool _resetting = false;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final code = _codeController.text.trim();
+    if (code.isEmpty) return;
+    setState(() => _resetting = true);
+    try {
+      await widget.onReset(code);
+      _codeController.clear();
+    } finally {
+      if (mounted) setState(() => _resetting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Reset a Student\'s Attempt', style: FacultyTypography.titleSm()),
+          const SizedBox(height: 4),
+          Text(
+            'Clears a student\'s submission for this exam so they can attempt it again.',
+            style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _codeController,
+                  enabled: !_resetting,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(hintText: 'Student code, e.g. EMP-88219', isDense: true),
+                  onSubmitted: (_) => _submit(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _resetting ? null : _submit,
+                icon: _resetting
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.restart_alt, size: 18),
+                label: const Text('Reset Attempt'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: FacultyColors.error,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

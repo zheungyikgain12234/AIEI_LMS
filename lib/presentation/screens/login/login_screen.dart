@@ -411,7 +411,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('ENTERPRISE LEARNING', style: _text(size: 10, weight: FontWeight.w700, color: const Color(0xFFCBD5E1), letterSpacing: 0.8), overflow: TextOverflow.ellipsis),
+                                    Text('LEARNING MANAGEMENT', style: _text(size: 10, weight: FontWeight.w700, color: const Color(0xFFCBD5E1), letterSpacing: 0.8), overflow: TextOverflow.ellipsis),
                                     Text('SYSTEM', style: _text(size: 9, weight: FontWeight.w400, color: const Color(0xFF94A3B8), letterSpacing: 1)),
                                   ],
                                 ),
@@ -419,7 +419,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Text('AIEI Learning Management System', style: _text(size: 20, weight: FontWeight.w700, color: Colors.white, height: 1.25)),
+                          Text('Advance Your Career in AI Systems', style: _text(size: 20, weight: FontWeight.w700, color: Colors.white, height: 1.25)),
                           const SizedBox(height: 8),
                           Text(
                             'Unified access portal for corporate learners, faculty researchers, and academic administrators.',
@@ -438,7 +438,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Text('Sign in to your account', style: _text(size: 18, weight: FontWeight.w700, color: _LoginColors.slate900)),
                           const SizedBox(height: 4),
-                          Text('Select your portal role to access your personalised workspace.', style: _text(size: 12, color: _LoginColors.slate500, height: 1.35)),
+                          Text('Select your portal role to access your personalized workspace.', style: _text(size: 12, color: _LoginColors.slate500, height: 1.35)),
                           const SizedBox(height: 18),
                           Text('SELECT PORTAL ROLE', style: _text(size: 11, weight: FontWeight.w700, color: _LoginColors.slate500, letterSpacing: 0.6)),
                           const SizedBox(height: 8),
@@ -475,16 +475,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (i > 0) const SizedBox(height: 10),
                       _roleGuidanceCard(_kRoles[i], dense: true),
                     ],
-                    const SizedBox(height: 24),
-                    Container(height: 1, color: _LoginColors.slate200),
-                    const SizedBox(height: 14),
-                    Center(
-                      child: Column(
-                        children: [
-                          Text('Academic Term: Fall 2025', style: _text(size: 11, weight: FontWeight.w600, color: _LoginColors.slate600), textAlign: TextAlign.center),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -515,7 +505,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(width: 12),
                     Container(width: 1, height: 18, color: _LoginColors.slate200),
                     const SizedBox(width: 12),
-                    Text('ENTERPRISE LEARNING SYSTEM', style: _text(size: 11, weight: FontWeight.w700, color: _LoginColors.slate500, letterSpacing: 0.8)),
+                    Text('LEARNING MANAGEMENT SYSTEM', style: _text(size: 11, weight: FontWeight.w700, color: _LoginColors.slate500, letterSpacing: 0.8)),
                   ],
                 ),
                 Row(
@@ -586,7 +576,7 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           _logoBadge(height: 30),
           const SizedBox(height: 28),
-          Text('AIEI Learning Management System', style: _text(size: 28, weight: FontWeight.w800, color: Colors.white, height: 1.2)),
+          Text('Advance Your Career in\nAI Systems', style: _text(size: 28, weight: FontWeight.w800, color: Colors.white, height: 1.2)),
           const SizedBox(height: 14),
           Text(
             'Unified access portal for corporate learners, faculty researchers, and academic administrators.',
@@ -600,11 +590,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 32),
           Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: Text('Academic Term: Fall 2025', style: _text(size: 11, color: const Color(0xFF94A3B8)), overflow: TextOverflow.ellipsis)),
-            ],
-          ),
+          
         ],
       ),
     );
@@ -651,7 +637,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Text('Sign in to your account', style: _text(size: 24, weight: FontWeight.w800, color: _LoginColors.slate900)),
             const SizedBox(height: 4),
-            Text('Select your portal role to access your personalised workspace.', style: _text(size: 13, color: _LoginColors.slate500)),
+            Text('Select your portal role to access your personalized workspace.', style: _text(size: 13, color: _LoginColors.slate500)),
             const SizedBox(height: 22),
             Text('SELECT PORTAL ROLE', style: _text(size: 11, weight: FontWeight.w700, color: _LoginColors.slate500, letterSpacing: 0.6)),
             const SizedBox(height: 8),

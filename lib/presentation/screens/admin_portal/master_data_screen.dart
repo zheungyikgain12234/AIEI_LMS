@@ -8,7 +8,6 @@ import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
-import 'widgets/admin_mobile_selection_bar.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -48,6 +47,13 @@ class MasterDataScreen extends ConsumerStatefulWidget {
   /// about where this list is sourced from).
   final String? note;
 
+  /// Optional label overrides (e.g. Programme ID / Programme Name / Description)
+  /// and a table column for the remarks text.
+  final String? codeLabel;
+  final String? nameLabel;
+  final String? remarksLabel;
+  final bool showRemarksColumn;
+
   const MasterDataScreen({
     super.key,
     required this.title,
@@ -60,6 +66,10 @@ class MasterDataScreen extends ConsumerStatefulWidget {
     required this.masterKind,
     this.showYear = false,
     this.note,
+    this.codeLabel,
+    this.nameLabel,
+    this.remarksLabel,
+    this.showRemarksColumn = false,
   });
 
   @override
@@ -171,7 +181,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
                     ),
                     const SizedBox(height: 12),
                   ],
-                  AdminFieldLabel('${widget.itemLabel} Code'),
+                  AdminFieldLabel(widget.codeLabel ?? '${widget.itemLabel} Code'),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: codeController,
@@ -180,7 +190,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Code is required' : null,
                   ),
                   const SizedBox(height: 12),
-                  AdminFieldLabel(widget.itemLabel),
+                  AdminFieldLabel(widget.nameLabel ?? widget.itemLabel),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: nameController,
@@ -203,7 +213,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  const AdminFieldLabel('Remarks', required: false),
+                  AdminFieldLabel(widget.remarksLabel ?? 'Remarks', required: false),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: remarksController,
@@ -326,11 +336,11 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
 
   // ---------------------------------------------------------------------
   // Mobile (<700px) layout — a drill-in screen (back-arrow top bar, no
-  // bottom nav; reached from the "More" menu).
+  // bottom nav; reached from the "More" menu). Same content as desktop: the
+  // header and the list card are reused as-is.
   // ---------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {
-    final rows = _filtered;
     return Scaffold(
       backgroundColor: AdminColors.background,
       appBar: AdminMobileTopBar.detail(title: widget.title),
@@ -340,67 +350,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(widget.description, style: AdminTypography.bodyMd()),
-              if (widget.note != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  widget.note!,
-                  style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
-                ),
-              ],
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: () => _openForm(),
-                  icon: const Icon(Icons.add, size: 20),
-                  label: Text('Add ${widget.itemLabel}'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AdminColors.primaryContainer,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _searchController,
-                style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: true,
-                  fillColor: AdminColors.surfaceContainerLowest,
-                  hintText: 'Search ${widget.itemLabel.toLowerCase()}s...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-              if (_selected.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                adminMobileSelectionBar(
-                  count: _selected.length,
-                  itemLabel: widget.itemLabel.toLowerCase(),
-                  onDeselectAll: () => setState(_selected.clear),
-                  onDelete: () => _confirmAndDelete(_selected.toList()),
-                ),
-              ],
-              const SizedBox(height: 12),
-              if (rows.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text('No ${widget.itemLabel.toLowerCase()}s found.', style: AdminTypography.bodyMd()),
-                )
-              else
-                Container(
-                  decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(children: [for (final r in rows) _row(r)]),
-                ),
-            ],
+            children: [_buildTopBar(), const SizedBox(height: 16), _buildListCard()],
           ),
         ),
       ),
@@ -539,8 +489,9 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
       child: Row(
         children: [
           const SizedBox(width: 40),
-          Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
-          Expanded(flex: 3, child: _sortHeader(widget.itemLabel, _SortColumn.name)),
+          Expanded(flex: 2, child: _sortHeader(widget.codeLabel ?? 'Code', _SortColumn.code)),
+          Expanded(flex: 3, child: _sortHeader(widget.nameLabel ?? widget.itemLabel, _SortColumn.name)),
+          if (widget.showRemarksColumn) Expanded(flex: 4, child: Text(widget.remarksLabel ?? 'Remarks', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
           if (widget.showYear) SizedBox(width: 90, child: _sortHeader('Year', _SortColumn.year)),
           const SizedBox(width: 88),
         ],
@@ -581,6 +532,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
           ),
           Expanded(flex: 2, child: Text(row.code, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
           Expanded(flex: 3, child: Text(row.name, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
+          if (widget.showRemarksColumn) Expanded(flex: 4, child: Padding(padding: const EdgeInsets.only(right: 12), child: Text(row.remarks, style: AdminTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis))),
           if (widget.showYear) SizedBox(width: 90, child: Text('${row.year}', style: AdminTypography.bodySm())),
           SizedBox(
             width: 88,

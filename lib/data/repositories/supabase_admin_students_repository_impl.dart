@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
@@ -23,6 +24,13 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
+  Future<Student?> getStudentByCode(String code) async {
+    final storedCode = '${tenantPrefix()}${code.trim().toUpperCase()}';
+    final row = await _client.from('students').select().eq('student_code', storedCode).maybeSingle();
+    return row == null ? null : Student.fromMap(row);
+  }
+
+  @override
   Future<Student> createStudent({
     required String name,
     required String studentCode,
@@ -40,7 +48,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'name': name,
           'student_code': studentCode,
           'email': email,
-          'student_type': studentType.label,
+          'student_type': studentType.dbValue,
           'department': department,
           'title': title,
           'program_track': programTrack,
@@ -72,7 +80,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'name': name,
           'student_code': studentCode,
           'email': email,
-          'student_type': studentType.label,
+          'student_type': studentType.dbValue,
           'department': department,
           'title': title,
           'program_track': programTrack,
@@ -171,18 +179,38 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
-  Future<void> enrollStudentsInSection(
+  Future<EnrollOutcome> enrollStudentsInSection(
     List<String> studentIds, {
     required String sectionId,
     required String courseId,
   }) async {
-    await _client.from('student_courses').upsert(
-      [
-        for (final studentId in studentIds)
-          {'student_id': studentId, 'course_id': courseId, 'section_id': sectionId},
-      ],
-      onConflict: 'student_id,course_id',
-    );
+    final target = await _client.from('course_sections').select('cohort_id').eq('id', sectionId).single();
+    final targetCohort = target['cohort_id'] as String?;
+    final existing = await _client
+        .from('student_courses')
+        .select('student_id, section_id, course_sections(section_code, cohort_id)')
+        .eq('course_id', courseId)
+        .inFilter('student_id', studentIds);
+    final alreadyInThisClass = <String>[];
+    final inOtherClass = <String, String>{};
+    for (final row in existing as List) {
+      final id = (row['student_id'] as num).toString();
+      final other = row['course_sections'] as Map<String, dynamic>?;
+      if (row['section_id'] == sectionId) {
+        alreadyInThisClass.add(id);
+      } else if (other == null || other['cohort_id'] == targetCohort) {
+        final code = other?['section_code'] as String?;
+        inOtherClass[id] = code == null ? 'another class' : displayCode(code);
+      }
+    }
+    final skipped = {...alreadyInThisClass, ...inOtherClass.keys};
+    final toEnroll = [for (final id in studentIds) if (!skipped.contains(id)) id];
+    if (toEnroll.isNotEmpty) {
+      await _client.from('student_courses').insert([
+        for (final studentId in toEnroll) {'student_id': studentId, 'course_id': courseId, 'section_id': sectionId},
+      ]);
+    }
+    return (enrolled: toEnroll, alreadyInThisClass: alreadyInThisClass, inOtherClass: inOtherClass);
   }
 
   @override
@@ -195,8 +223,10 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
   }
 
   @override
-  Future<void> unenrollStudentFromCourse(String studentId, String courseId) async {
-    await _client.from('student_courses').delete().eq('student_id', studentId).eq('course_id', courseId);
+  Future<void> unenrollStudentFromCourse(String studentId, String courseId, {String? sectionId}) async {
+    var query = _client.from('student_courses').delete().eq('student_id', studentId).eq('course_id', courseId);
+    if (sectionId != null) query = query.eq('section_id', sectionId);
+    await query;
   }
 
   @override
@@ -207,5 +237,16 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
         .eq('section_id', sectionId)
         .order('enrolled_at');
     return [for (final row in rows as List) RosterStudent.fromMap(row as Map<String, dynamic>)];
+  }
+
+  @override
+  Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore, {String? sectionId}) async {
+    var query = _client
+        .from('student_courses')
+        .update({'moderated_score': moderatedScore})
+        .eq('student_id', studentId)
+        .eq('course_id', courseId);
+    if (sectionId != null) query = query.eq('section_id', sectionId);
+    await query;
   }
 }

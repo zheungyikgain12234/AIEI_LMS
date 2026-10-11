@@ -5,15 +5,20 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
+import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'widgets/announcements_panel.dart';
+import 'physical_class_attendance_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/student_roster_panel.dart';
+import 'widgets/score_distribution_card.dart';
 import 'my_assigned_courses_screen.dart';
 import 'course_syllabus_screen.dart';
 import 'grade_assignment_screen.dart';
@@ -41,6 +46,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
   final _assignmentRepository = SupabaseAssignmentRepositoryImpl(Supabase.instance.client);
   final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
+  final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _showAnnouncementForm = false;
@@ -62,8 +68,23 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _moduleCount = 0;
   int _sessionCount = 0;
   int _totalAssignmentBlocks = 0;
-  List<({String id, String title})> _assessmentColumns = const [];
   List<RosterRow> _rosterRows = const [];
+  List<AssessmentColumn> _assessmentColumns = const [];
+  final _studentSearchController = TextEditingController();
+  String _studentSearchQuery = '';
+
+  List<RosterRow> get _filteredRosterRows {
+    final query = _studentSearchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _rosterRows;
+    return _rosterRows
+        .where((r) =>
+            r.name.toLowerCase().contains(query) ||
+            r.email.toLowerCase().contains(query) ||
+            r.studentCode.toLowerCase().contains(query))
+        .toList();
+  }
+  double? _maxModeratedScore;
+  GradeScale _gradeScale = GradeScale.defaultScale;
   List<CourseAnnouncement> _announcements = const [];
 
   @override
@@ -76,6 +97,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   void dispose() {
     _announcementTitleController.dispose();
     _announcementBodyController.dispose();
+    _studentSearchController.dispose();
     super.dispose();
   }
 
@@ -106,13 +128,19 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             .from('content_blocks')
             .select('id, block_type, block_content')
             .inFilter('session_id', sessionIds)
-            .inFilter('block_type', ['exam', 'assignment']);
+            .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
+    // Physical (paper-based) exams/assignments count as ordinary exam/assignment
+    // columns here; they differ only in having no student submissions to wait
+    // for (so never "overdue") and a stored max marks instead of a question tree.
     final assessmentBlocks = [
       for (final row in assessmentRows)
         (
           id: row['id'] as String,
-          type: row['block_type'] as String,
+          type: (row['block_type'] as String).replaceFirst('physicalExam', 'exam').replaceFirst('physicalAssignment', 'assignment'),
+          physical: (row['block_type'] as String).startsWith('physical'),
+          maxMarks: ((row['block_content'] as Map<String, dynamic>?)?['maxMarks'] as num?)?.toDouble() ?? 0.0,
           title: (row['block_content'] as Map<String, dynamic>?)?['title'] as String?,
+          weightage: ((row['block_content'] as Map<String, dynamic>?)?['weightage'] as num?)?.toDouble() ?? 0.0,
           dueDate: DateTime.tryParse((row['block_content'] as Map<String, dynamic>?)?['dueDate'] as String? ?? ''),
         ),
     ];
@@ -120,35 +148,56 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     final totalAssessments = assessmentBlocks.length;
     final totalAssignmentBlocks = assessmentBlocks.where((b) => b.type == 'assignment').length;
     final totalExamBlocks = assessmentBlocks.where((b) => b.type == 'exam').length;
-    final examBlockIds = [for (final b in assessmentBlocks) if (b.type == 'exam') b.id];
+    final examBlockIds = [for (final b in assessmentBlocks) if (b.type == 'exam' && !b.physical) b.id];
+    final assignmentBlockIds = [for (final b in assessmentBlocks) if (b.type == 'assignment' && !b.physical) b.id];
     final now = DateTime.now();
-    final overdueBlockIds = {for (final b in assessmentBlocks) if (b.dueDate != null && b.dueDate!.isBefore(now)) b.id};
+    final overdueBlockIds = {for (final b in assessmentBlocks) if (!b.physical && b.dueDate != null && b.dueDate!.isBefore(now)) b.id};
 
     final examMaxMarks = <String, double>{};
     for (final id in examBlockIds) {
       examMaxMarks[id] = await _examRepository.getTotalMarks(id);
     }
-    final assignmentBlockIds = [for (final b in assessmentBlocks) if (b.type == 'assignment') b.id];
     final assignmentMaxMarks = <String, double>{};
     for (final id in assignmentBlockIds) {
       assignmentMaxMarks[id] = await _assignmentRepository.getTotalMarks(id);
     }
-    final maxMarksByBlock = {...examMaxMarks, ...assignmentMaxMarks};
-    final assessmentColumns = [
-      for (var i = 0; i < assessmentBlocks.length; i++)
-        (
-          id: assessmentBlocks[i].id,
-          title: assessmentBlocks[i].title ?? '${assessmentBlocks[i].type == 'exam' ? 'Exam' : 'Assignment'} ${i + 1}',
-        ),
-    ];
+    final maxMarksByBlock = {
+      ...examMaxMarks,
+      ...assignmentMaxMarks,
+      for (final b in assessmentBlocks) if (b.physical) b.id: b.maxMarks,
+    };
+
+    // One column per quiz (exam block) and per assignment block, in the
+    // order they were queried, followed by a running TOTAL column in the
+    // Student Directory table.
+    var quizNumber = 0;
+    var assignmentNumber = 0;
+    final assessmentColumns = <AssessmentColumn>[];
+    for (final b in assessmentBlocks) {
+      final title = b.title?.trim();
+      String label;
+      if (b.type == 'exam') {
+        quizNumber++;
+        label = (title != null && title.isNotEmpty) ? title : 'Quiz $quizNumber';
+      } else {
+        assignmentNumber++;
+        label = (title != null && title.isNotEmpty) ? title : 'Assignment $assignmentNumber';
+      }
+      assessmentColumns.add(AssessmentColumn(blockId: b.id, label: label, weightage: b.weightage));
+    }
+    final totalWeightagePct = assessmentColumns.fold<double>(0, (sum, c) => sum + c.weightage);
 
     final blockIds = [for (final b in assessmentBlocks) b.id];
+    final physicalBlockIds = {for (final b in assessmentBlocks) if (b.physical) b.id};
     final submissionRows = blockIds.isEmpty
         ? const <dynamic>[]
         : await _client.from('content_block_submissions').select().inFilter('content_block_id', blockIds);
     final submissionsByStudent = <String, List<ContentBlockSubmission>>{};
     for (final row in submissionRows) {
       final sub = ContentBlockSubmission.fromMap(row as Map<String, dynamic>);
+      // A physical exam/assignment's non-graded row is just an attendance tick,
+      // not a submission awaiting grading.
+      if (physicalBlockIds.contains(sub.contentBlockId) && sub.status != 'graded') continue;
       submissionsByStudent.putIfAbsent(sub.studentId, () => []).add(sub);
     }
     if (!mounted) return;
@@ -165,26 +214,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     for (final s in students) {
       final subs = submissionsByStudent[s.studentId] ?? const <ContentBlockSubmission>[];
       final submittedBlockIds = {for (final sub in subs) sub.contentBlockId};
-      final gradedByBlock = {
-        for (final sub in subs)
-          if (sub.status == 'graded') sub.contentBlockId: sub,
-      };
-      final assessmentMarks = <String, String>{};
-      var gradedScoreSum = 0.0;
-      var gradedMaxSum = 0.0;
-      for (final block in assessmentBlocks) {
-        final sub = gradedByBlock[block.id];
-        final maxMarks = maxMarksByBlock[block.id] ?? 0;
-        if (sub != null && maxMarks > 0) {
-          final pct = (sub.totalScore ?? 0) / maxMarks * 100;
-          assessmentMarks[block.id] = '${pct.toStringAsFixed(1)}%';
-          gradedScoreSum += sub.totalScore ?? 0;
-          gradedMaxSum += maxMarks;
-        } else {
-          assessmentMarks[block.id] = '—';
-        }
-      }
-      final totalMark = gradedMaxSum > 0 ? '${(gradedScoreSum / gradedMaxSum * 100).toStringAsFixed(1)}%' : '—';
       final graded = subs.where((sub) => sub.status == 'graded').toList();
       final pending = subs.where((sub) => sub.status == 'submitted').toList();
       final gradedAssignments = graded.where((sub) => typeByBlock[sub.contentBlockId] == 'assignment').length;
@@ -214,19 +243,41 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
         if (pcts.isNotEmpty) quizAvgPercent = pcts.reduce((a, b) => a + b) / pcts.length;
       }
 
+      // Each column shows the student's share of that block's weightage:
+      // (marks scored / max marks) * weightage%.
+      final gradedScoreByBlock = {for (final sub in graded) sub.contentBlockId: sub.totalScore ?? 0};
+      final assessmentScores = <String, double?>{
+        for (final col in assessmentColumns)
+          col.blockId: gradedScoreByBlock.containsKey(col.blockId) && (maxMarksByBlock[col.blockId] ?? 0) > 0
+              ? gradedScoreByBlock[col.blockId]! / maxMarksByBlock[col.blockId]! * col.weightage
+              : (gradedScoreByBlock.containsKey(col.blockId) ? 0.0 : null),
+      };
+      final assessmentMarks = <String, double?>{
+        for (final col in assessmentColumns) col.blockId: gradedScoreByBlock.containsKey(col.blockId) ? gradedScoreByBlock[col.blockId] : null,
+      };
+      final totalAchievedPct = assessmentScores.values.fold<double>(0, (sum, v) => sum + (v ?? 0));
+
       rosterRows.add(RosterRow.fromRoster(
         s,
         progress: progress,
         totalAssignments: totalAssignmentBlocks,
         gradedAssignments: gradedAssignments,
+        totalQuizzes: totalExamBlocks,
+        gradedQuizzes: gradedExams.length,
         quizAvgPercent: quizAvgPercent,
         hasPendingSubmission: pending.isNotEmpty,
         hasOverdueSubmission: hasOverdue,
+        assessmentScores: assessmentScores,
         assessmentMarks: assessmentMarks,
-        totalMark: totalMark,
+        totalAchievedPct: totalAchievedPct,
+        totalPossiblePct: totalWeightagePct,
+        moderatedScore: s.moderatedScore,
       ));
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
+    final numericSettings = await _settingsRepository.getNumericSettings();
+    final gradeScale = await _settingsRepository.getGradeScale();
+    if (!mounted) return;
 
     setState(() {
       _courseTitle = course?.title ?? 'Course';
@@ -243,8 +294,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _moduleCount = modules.length;
       _sessionCount = sessionIds.length;
       _totalAssignmentBlocks = totalAssignmentBlocks;
-      _assessmentColumns = assessmentColumns;
       _rosterRows = rosterRows;
+      _assessmentColumns = assessmentColumns;
+      _maxModeratedScore = numericSettings[AppSettingKeys.maxModeratedScore];
+      _gradeScale = gradeScale;
       _announcements = announcements;
       _isLoading = false;
     });
@@ -277,6 +330,9 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       case FacultyNavDestination.myCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAssignedCoursesScreen()));
         break;
+      case FacultyNavDestination.physicalClassAttendance:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhysicalClassAttendanceScreen()));
+        break;
       case FacultyNavDestination.gradingAndSubmissions:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GradingQueueScreen()));
         break;
@@ -289,6 +345,22 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     );
     if (!mounted) return;
     _load();
+  }
+
+  Future<void> _saveModeratedScore(RosterRow s, double value) async {
+    final index = _rosterRows.indexWhere((row) => row.studentId == s.studentId);
+    if (index == -1) return;
+    final previous = _rosterRows[index];
+    setState(() => _rosterRows[index] = previous.copyWithModeratedScore(value));
+    try {
+      await _rosterRepository.updateModeratedScore(s.studentId, widget.courseId, value, sectionId: widget.sectionId);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _rosterRows[index] = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save moderated score for ${s.name}.')),
+      );
+    }
   }
 
   void _rosterRowAction(RosterRow s, String action) {
@@ -413,6 +485,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             footer: '$_quizNonSubmissions non-submissions'),
         _kpiCard('AVERAGE STUDENT PROGRESS', '$_avgProgress%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
             progress: _avgProgress / 100),
+        ScoreDistributionCard(
+          rawScores: [for (final r in _rosterRows) r.totalAchievedPct],
+          moderatedScores: [for (final r in _rosterRows) r.finalTotalPct],
+        ),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -507,7 +583,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             iconColor: Colors.white,
             title: 'Modules & Sessions',
             subtitle: '$_moduleCount modules • $_sessionCount sessions',
-            ctaLabel: 'Edit Syllabus',
+            ctaLabel: 'Edit',
             onTap: _openSyllabusEditor,
           ),
         ],
@@ -517,7 +593,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
 
   Widget _buildStudentRosterCard() {
     final total = _rosterRows.length;
-    final scored = _rosterRows.where((s) => s.quizAvg != '—').toList();
+    final scored = _rosterRows.where((s) => s.hasQuizScore).toList();
     final avgQuiz = scored.isEmpty
         ? null
         : scored.fold<double>(0, (sum, s) => sum + double.parse(s.quizAvg.replaceAll('%', ''))) / scored.length;
@@ -592,12 +668,14 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: TextField(
+                controller: _studentSearchController,
+                onChanged: (v) => setState(() => _studentSearchQuery = v),
                 style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
                   filled: true,
                   fillColor: FacultyColors.surfaceContainerLow,
-                  hintText: 'Search by student name, email, employee ID...',
+                  hintText: 'Search by student name, email and code...',
                   hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
                   prefixIcon: const Icon(Icons.search, size: 18, color: FacultyColors.outline),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -605,7 +683,20 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
                 ),
               ),
             ),
-            StudentRosterTable(rows: _rosterRows, onAction: _rosterRowAction, assessmentColumns: _assessmentColumns),
+            if (_filteredRosterRows.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Text('No students match your search.', style: FacultyTypography.bodySm()),
+              )
+            else
+              StudentRosterTable(
+                rows: _filteredRosterRows,
+                onAction: _rosterRowAction,
+                assessmentColumns: _assessmentColumns,
+                onModeratedScoreSave: _saveModeratedScore,
+                maxModeratedScore: _maxModeratedScore,
+                gradeScale: _gradeScale,
+              ),
           ],
         ],
       ),
@@ -761,489 +852,36 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (<700px) layout — separate Scaffold, does not reuse
-  // FacultyScaffold/FacultyHeader/FacultySidebar (desktop-only shell).
+  // Mobile (<700px) layout — the same content as desktop (class header, KPI
+  // cards, course contents, announcements and the Student Directory table).
+  // Every desktop section is already responsive (KPIs and announcement cards
+  // stack, the directory scrolls horizontally with the student column pinned),
+  // so they are reused as-is under the compact mobile top bar.
   // ---------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: FacultyColors.background,
-      appBar: const FacultyMobileTopBar(title: 'Course Detail'),
+      appBar: FacultyMobileTopBar(title: _courseTitle),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _mobileActionBar(),
-              const SizedBox(height: 12),
-              _mobileCourseIdentityCard(),
-              const SizedBox(height: 16),
-              _mobileKpiGrid(),
+              _buildTopBar(),
               const SizedBox(height: 20),
-              _mobileQuickAccessSection(),
-              const SizedBox(height: 20),
-              _mobileAnnouncementsCard(),
-              const SizedBox(height: 20),
-              _mobileStudentRosterSection(),
+              _buildKpiRow(),
+              const SizedBox(height: 24),
+              _buildQuickAccessHub(),
+              const SizedBox(height: 24),
+              _buildAnnouncementsCard(),
+              const SizedBox(height: 24),
+              _buildStudentRosterCard(),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _mobileActionBar() {
-    return InkWell(
-      onTap: () => Navigator.of(context).pop(),
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.arrow_back, size: 18, color: FacultyColors.secondary),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                'Back to My Courses',
-                style: FacultyTypography.labelMd(color: FacultyColors.secondary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _mobileCourseIdentityCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _tag('COURSE ID: $_courseCode', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
-              _tag('CLASS: $_classCode', FacultyColors.surfaceContainerLow, FacultyColors.onSurfaceVariant),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _courseTitle,
-            style: FacultyTypography.headlineLg(color: FacultyColors.primary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileKpiGrid() {
-    return Column(
-      children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _mobileStatCard(
-                  icon: Icons.group,
-                  iconBg: FacultyColors.surfaceContainer,
-                  iconColor: FacultyColors.secondary,
-                  cornerBadge: _mobileBadgePill('Live', FacultyColors.surfaceContainerLow, FacultyColors.tertiary),
-                  value: '$_enrolledCount',
-                  label: 'Enrolled Students',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _mobileStatCard(
-                  icon: Icons.assignment_turned_in,
-                  iconBg: FacultyColors.errorContainer.withValues(alpha: 0.4),
-                  iconColor: FacultyColors.error,
-                  cornerBadge: _mobileBadgePill(
-                    _assignmentsToGrade > 0 ? 'Action req.' : 'Clear',
-                    FacultyColors.errorContainer,
-                    FacultyColors.onErrorContainer,
-                    bold: true,
-                  ),
-                  value: '$_assignmentsToGrade',
-                  label: 'Assignments to Grade',
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _mobileStatCard(
-                  icon: Icons.quiz,
-                  iconBg: FacultyColors.surfaceContainer,
-                  iconColor: FacultyColors.secondary,
-                  cornerBadge: _mobileBadgePill('$_quizzesToGrade checks', FacultyColors.surfaceContainer, FacultyColors.secondary),
-                  value: '$_quizzesToGrade',
-                  label: 'Quizzes to Grade',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _mobileStatCard(
-                  icon: Icons.trending_up,
-                  iconBg: FacultyColors.surfaceContainer,
-                  iconColor: FacultyColors.secondary,
-                  cornerBadge: SizedBox(
-                    width: 26,
-                    height: 26,
-                    child: CircularProgressIndicator(
-                      value: _avgProgress / 100,
-                      strokeWidth: 3,
-                      backgroundColor: FacultyColors.surfaceContainerHigh,
-                      valueColor: const AlwaysStoppedAnimation<Color>(FacultyColors.secondary),
-                    ),
-                  ),
-                  value: '$_avgProgress%',
-                  label: 'Average Student Progress',
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _mobileBadgePill(String text, Color bg, Color fg, {bool bold = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-      child: Text(
-        text,
-        style: FacultyTypography.labelXs(color: fg).copyWith(fontWeight: bold ? FontWeight.w700 : FontWeight.w600),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-
-  Widget _mobileStatCard({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required Widget cornerBadge,
-    required String value,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, size: 18, color: iconColor),
-              ),
-              Flexible(child: cornerBadge),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(value, style: FacultyTypography.headlineLg(color: FacultyColors.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(
-            label.toUpperCase(),
-            style: FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileQuickAccessSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.hub, size: 20, color: FacultyColors.secondary),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text('Manage Course Contents', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        _mobileHubItem(
-          icon: Icons.menu_book,
-          iconBg: FacultyColors.surfaceContainer,
-          iconColor: FacultyColors.secondary,
-          title: 'Modules & Sessions',
-          subtitle: '$_moduleCount modules • $_sessionCount sessions',
-          buttonLabel: 'Edit Syllabus',
-          onTap: _openSyllabusEditor,
-        ),
-        const SizedBox(height: 10),
-      ],
-    );
-  }
-
-  Widget _mobileStudentRosterSection() {
-    final total = _rosterRows.length;
-    final avgProgress = total == 0 ? 0 : (_rosterRows.fold<int>(0, (sum, s) => sum + s.progress) / total).round();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.badge, size: 20, color: FacultyColors.secondary),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text('Student Directory', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
-            ),
-            if (_flaggedCount > 0) _mobileBadgePill('$_flaggedCount flagged', FacultyColors.errorContainer, FacultyColors.error, bold: true),
-          ],
-        ),
-        const SizedBox(height: 10),
-        if (_rosterRows.isEmpty)
-          Text('No students enrolled in this class yet.', style: FacultyTypography.bodySm())
-        else ...[
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: _mobileStatCard(
-                    icon: Icons.groups_outlined,
-                    iconBg: FacultyColors.surfaceContainer,
-                    iconColor: FacultyColors.secondary,
-                    cornerBadge: _mobileBadgePill('$avgProgress% avg', FacultyColors.surfaceContainerLow, FacultyColors.tertiary),
-                    value: '$total',
-                    label: 'Enrolled Students',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _mobileStatCard(
-                    icon: Icons.warning_amber_outlined,
-                    iconBg: FacultyColors.errorContainer.withValues(alpha: 0.4),
-                    iconColor: FacultyColors.error,
-                    cornerBadge: _mobileBadgePill(_flaggedCount > 0 ? 'Action req.' : 'Clear', FacultyColors.errorContainer, FacultyColors.onErrorContainer, bold: true),
-                    value: '$_flaggedCount',
-                    label: 'Requires Intervention',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          StudentRosterMobileList(rows: _rosterRows, onAction: _rosterRowAction),
-        ],
-      ],
-    );
-  }
-
-  Widget _mobileHubItem({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    String? badgeCount,
-    required String title,
-    required String subtitle,
-    required String buttonLabel,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Row(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, size: 22, color: iconColor),
-              ),
-              if (badgeCount != null)
-                Positioned(
-                  top: -3,
-                  right: -3,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(color: FacultyColors.error, shape: BoxShape.circle),
-                    child: Text(
-                      badgeCount,
-                      style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontSize: 9, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: FacultyTypography.titleSm(color: FacultyColors.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(subtitle, style: FacultyTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              height: 32,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-              child: Text(
-                buttonLabel,
-                style: FacultyTypography.labelMd(color: FacultyColors.secondary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileAnnouncementsCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.campaign, size: 18, color: FacultyColors.secondary),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('Announcements', style: FacultyTypography.headlineMd(color: FacultyColors.primary), overflow: TextOverflow.ellipsis),
-              ),
-              InkWell(
-                onTap: () => setState(() => _showAnnouncementForm = !_showAnnouncementForm),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  height: 32,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(color: FacultyColors.secondary, borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.add, size: 16, color: Colors.white),
-                      const SizedBox(width: 3),
-                      Text('Post', style: FacultyTypography.labelMd(color: Colors.white)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (_announcements.isEmpty && !_showAnnouncementForm)
-            const AnnouncementsEmptyState()
-          else
-            for (var i = 0; i < _announcements.length; i++) ...[
-              if (i > 0) const SizedBox(height: 8),
-              AnnouncementCard(announcement: _announcements[i]),
-            ],
-          if (_showAnnouncementForm) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Draft Quick Broadcast', style: FacultyTypography.labelMd()),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _announcementTitleController,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: true,
-                      fillColor: FacultyColors.surfaceContainerLowest,
-                      hintText: 'Subject line...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _announcementBodyController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: FacultyColors.surfaceContainerLowest,
-                      hintText: 'Announcement content...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: _postingAnnouncement ? null : () => setState(() => _showAnnouncementForm = false),
-                        child: const Text('Cancel'),
-                      ),
-                      ElevatedButton(
-                        onPressed: _postingAnnouncement ? null : _postAnnouncement,
-                        style: ElevatedButton.styleFrom(backgroundColor: FacultyColors.primary, foregroundColor: Colors.white, elevation: 0),
-                        child: Text(_postingAnnouncement ? 'Publishing...' : 'Publish'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

@@ -11,16 +11,17 @@
 -- set into a real production deployment with real user data.
 
 drop table if exists
+  app_settings, grade_scale,
   course_announcements, course_sections,
   badge_awards, course_badges, student_certifications, student_materials, student_courses,
-  specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
-  course_tags, tags,
+  course_programmes, specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
+  course_tags, tags, module_list_items, module_lists,
   template_content_blocks, template_sessions, template_modules, syllabus_templates,
   content_block_submissions, assignment_criteria,
   exam_question_options, exam_questions, exam_sections,
   content_blocks, sessions, module_materials, course_modules, courses,
   admins, students, lecturers,
-  departments, program_tracks, cohorts,
+  departments, programmes, program_tracks, cohorts,
   lecturer_departments, specializations, roles
 cascade;
 
@@ -57,6 +58,17 @@ create table departments (
   created_at timestamptz not null default now()
 );
 create unique index departments_name_ci_idx on departments (lower(name));
+
+-- Academic programmes (e.g. a diploma or degree a course may belong to).
+-- `code` is the Programme ID shown in the admin portal.
+create table programmes (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  name text not null unique,
+  description text not null default '',
+  created_at timestamptz not null default now()
+);
+create unique index programmes_name_ci_idx on programmes (lower(name));
 
 create table program_tracks (
   id uuid primary key default gen_random_uuid(),
@@ -197,6 +209,18 @@ create table course_sections (
   cohort_id uuid references cohorts(id) on update cascade,
   start_date date,
   end_date date,
+  -- Syllabus edit window: outside [edit_start_at, edit_end_at] the lecturer
+  -- cannot edit the class's syllabus, unless edit_override_lecturer_code
+  -- (a lecturer_code the admin typed in) matches them. Null = unrestricted.
+  edit_start_at timestamptz,
+  edit_end_at timestamptz,
+  edit_override_lecturer_code text,
+  -- Syllabus approval: students only see the class's syllabus when 'approved'.
+  -- Any lecturer edit puts it back to 'draft'; the lecturer submits it
+  -- ('submitted') and an admin approves it.
+  syllabus_status text not null default 'draft' check (syllabus_status in ('draft', 'submitted', 'approved')),
+  syllabus_submitted_at timestamptz,
+  syllabus_approved_at timestamptz,
   status text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled'))
 );
 
@@ -251,7 +275,7 @@ create table sessions (
 create table content_blocks (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references sessions(id) on delete cascade,
-  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment')),
+  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment', 'physicalClass', 'physicalExam', 'physicalAssignment')),
   block_content jsonb not null default '{}'::jsonb,
   block_sorting int not null default 0,
   created_at timestamptz not null default now()
@@ -289,7 +313,7 @@ create table template_sessions (
 create table template_content_blocks (
   id uuid primary key default gen_random_uuid(),
   template_session_id uuid not null references template_sessions(id) on delete cascade,
-  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment')),
+  block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment', 'physicalClass', 'physicalExam', 'physicalAssignment')),
   block_content jsonb not null default '{}'::jsonb,
   block_sorting int not null default 0
 );
@@ -369,6 +393,25 @@ create table tags (
 -- case-insensitive so "Compliance" and "compliance" can't both be created.
 create unique index tags_label_ci_idx on tags (lower(label));
 
+-- Module Lists master data (admin-managed) — a named, reusable list of
+-- module names that an admin can import while creating a class (the class
+-- gets its own `course_modules` rows copied from the list, so later edits to
+-- a list never change classes already created from it).
+create table module_lists (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create unique index module_lists_name_ci_idx on module_lists (lower(name));
+
+create table module_list_items (
+  id uuid primary key default gen_random_uuid(),
+  module_list_id uuid not null references module_lists(id) on delete cascade,
+  module_name text not null,
+  item_sorting int not null default 0
+);
+
 create table course_tags (
   course_id uuid not null references courses(id) on delete cascade,
   tag_id uuid not null references tags(id) on delete cascade,
@@ -429,6 +472,14 @@ create table department_courses (
   primary key (department_id, course_id)
 );
 
+-- Which programmes a course belongs to — drives the Programme ↔ Course
+-- Mapping screen. Optional: a course may map to zero, one or many programmes.
+create table course_programmes (
+  programme_id uuid not null references programmes(id) on delete cascade,
+  course_id uuid not null references courses(id) on delete cascade,
+  primary key (programme_id, course_id)
+);
+
 -- Which courses are relevant to which program track — drives the Track ↔
 -- Course Mapping screen.
 create table track_courses (
@@ -469,20 +520,25 @@ create trigger lecturer_courses_recalc_credits
   after insert or delete on lecturer_courses
   for each row execute function recalc_lecturer_credits_used();
 
+-- One row per (student, class). A student may take the same course in several
+-- classes only if those classes are in different cohorts — the app refuses a
+-- second class of the same course within the same cohort.
 create table student_courses (
+  id uuid primary key default gen_random_uuid(),
   student_id bigint not null references students(id) on delete cascade,
   course_id uuid not null references courses(id) on delete cascade,
   section_id uuid references course_sections(id) on delete set null,
   progress_percentage int not null default 0,
   grade text,
   overall_score numeric(5, 2),
+  moderated_score numeric(5, 2) not null default 0,
   attendance_percentage int not null default 100,
   risk_status text not null default 'on_track' check (risk_status in ('on_track', 'at_risk', 'critical')),
   sponsorship text not null default 'Self-Enrolled',
   last_activity_at timestamptz not null default now(),
   is_online_now boolean not null default false,
   enrolled_at timestamptz not null default now(),
-  primary key (student_id, course_id)
+  unique (student_id, section_id)
 );
 
 create table student_materials (
@@ -540,9 +596,49 @@ create table course_announcements (
   created_at timestamptz not null default now()
 );
 
+-- Global admin-toggleable feature flags (Admin "Settings" screen). Row-per-key
+-- rather than a single JSON blob so each toggle is a plain boolean column read.
+-- `numeric_value` backs the handful of settings that are a number rather
+-- than a boolean (e.g. max_moderated_score) — null there means "no limit".
+create table app_settings (
+  key text primary key,
+  value boolean not null default false,
+  numeric_value numeric
+);
+
+insert into app_settings (key, value) values
+  ('single_exam_attempt', false),
+  ('hide_mark_buttons_in_syllabus', false),
+  ('allow_lecturer_exam_reset', false),
+  ('max_moderated_score', false),
+  ('lock_modules_for_lecturers', false);
+
+-- Admin-configurable grade scale. A letter applies from min_score up to the
+-- next band's min_score. Letters are derived from marks at display time and
+-- never stored on student rows.
+create table grade_scale (
+  letter text primary key,
+  min_score numeric not null,
+  sort_order int not null unique
+);
+
+insert into grade_scale (letter, min_score, sort_order) values
+  ('F', 0, 0),
+  ('D', 50, 1),
+  ('C', 56, 2),
+  ('C+', 61, 3),
+  ('B-', 66, 4),
+  ('B', 70, 5),
+  ('B+', 74, 6),
+  ('A-', 78, 7),
+  ('A', 82, 8),
+  ('A+', 86, 9);
+
 -- ── RLS (demo-only, see warning above) ──────────────────────────────────
 
 alter table departments enable row level security;
+alter table programmes enable row level security;
+alter table course_programmes enable row level security;
 alter table program_tracks enable row level security;
 alter table cohorts enable row level security;
 alter table lecturer_departments enable row level security;
@@ -570,6 +666,8 @@ alter table exam_question_options enable row level security;
 alter table assignment_criteria enable row level security;
 alter table content_block_submissions enable row level security;
 alter table tags enable row level security;
+alter table module_lists enable row level security;
+alter table module_list_items enable row level security;
 alter table course_tags enable row level security;
 alter table certifications enable row level security;
 alter table course_badges enable row level security;
@@ -581,22 +679,25 @@ alter table student_certifications enable row level security;
 alter table badge_awards enable row level security;
 alter table course_sections enable row level security;
 alter table course_announcements enable row level security;
+alter table app_settings enable row level security;
+alter table grade_scale enable row level security;
 
 do $$
 declare
   t text;
 begin
   foreach t in array array[
-    'departments', 'program_tracks', 'cohorts',
+    'departments', 'programmes', 'course_programmes', 'program_tracks', 'cohorts',
     'lecturer_departments', 'specializations', 'roles',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'sessions', 'content_blocks',
     'syllabus_templates', 'template_modules', 'template_sessions', 'template_content_blocks',
     'exam_sections', 'exam_questions', 'exam_question_options',
     'assignment_criteria', 'content_block_submissions',
-    'tags', 'course_tags', 'certifications', 'course_badges', 'module_certs',
+    'tags', 'course_tags', 'module_lists', 'module_list_items', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
-    'student_certifications', 'badge_awards', 'course_sections', 'course_announcements'
+    'student_certifications', 'badge_awards', 'course_sections', 'course_announcements',
+    'app_settings', 'grade_scale'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

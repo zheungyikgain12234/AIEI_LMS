@@ -4,7 +4,7 @@ import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 /// Compact mobile (< 700px) app bar for the student portal's bottom-nav
-/// tab pages — logo, role badge, notification bell, avatar. Replaces the
+/// tab pages — logo, role badge, avatar. Replaces the
 /// desktop `PortalHeader` (which is too wide for narrow screens).
 class MobileTopBar extends StatelessWidget implements PreferredSizeWidget {
   const MobileTopBar({super.key});
@@ -32,23 +32,6 @@ class MobileTopBar extends StatelessWidget implements PreferredSizeWidget {
               child: Text('STUDENT', style: AppTypography.labelSm(color: AppColors.secondary)),
             ),
             const Spacer(),
-            Stack(
-              children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.notifications_outlined, color: AppColors.onSurfaceVariant),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
-                  ),
-                ),
-              ],
-            ),
             GestureDetector(
               onTap: () => Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginScreen()),

@@ -13,6 +13,8 @@ import '../track_course_mapping_screen.dart';
 import '../specialization_course_mapping_screen.dart';
 import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
+import '../manage_programmes_screen.dart';
+import '../programme_course_mapping_screen.dart';
 import '../manage_program_tracks_screen.dart';
 import '../manage_cohorts_screen.dart';
 import '../manage_lecturer_departments_screen.dart';
@@ -20,6 +22,9 @@ import '../manage_specializations_screen.dart';
 import '../manage_roles_screen.dart';
 import '../manage_badge_catalog_screen.dart';
 import '../manage_course_tags_screen.dart';
+import '../manage_module_lists_screen.dart';
+import '../manage_syllabi_screen.dart';
+import '../admin_settings_screen.dart';
 
 /// Centralized sidebar navigation for every Admin Portal screen — pushes the
 /// screen for [dest], or does nothing if it's already the [current] screen.
@@ -37,7 +42,9 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.trackCourseMapping => const TrackCourseMappingScreen(),
     AdminNavDestination.specializationCourseMapping => const SpecializationCourseMappingScreen(),
     AdminNavDestination.courseEnrollment => const CourseEnrollmentScreen(),
+    AdminNavDestination.programmeCourseMapping => const ProgrammeCourseMappingScreen(),
     AdminNavDestination.manageDepartments => const ManageDepartmentsScreen(),
+    AdminNavDestination.manageProgrammes => const ManageProgrammesScreen(),
     AdminNavDestination.manageProgramTracks => const ManageProgramTracksScreen(),
     AdminNavDestination.manageCohorts => const ManageCohortsScreen(),
     AdminNavDestination.manageLecturerDepartments => const ManageLecturerDepartmentsScreen(),
@@ -45,6 +52,9 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.manageRoles => const ManageRolesScreen(),
     AdminNavDestination.manageBadgeCatalog => const ManageBadgeCatalogScreen(),
     AdminNavDestination.manageCourseTags => const ManageCourseTagsScreen(),
+    AdminNavDestination.manageModuleLists => const ManageModuleListsScreen(),
+    AdminNavDestination.manageSyllabi => const ManageSyllabiScreen(),
+    AdminNavDestination.settings => const AdminSettingsScreen(),
   };
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 }

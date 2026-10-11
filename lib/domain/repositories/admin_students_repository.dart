@@ -8,6 +8,12 @@ abstract class AdminStudentsRepository {
 
   Future<Student> getStudentById(String id);
 
+  /// Looks up a student by their tenant-prefixed `student_code` (case
+  /// -insensitive on the user-entered suffix) — used by the exam editor's
+  /// "reset a student's attempt" control, which lecturers key in by code
+  /// rather than picking from a roster. Returns null if no student matches.
+  Future<Student?> getStudentByCode(String code);
+
   /// Inserts a new student row (the `id` is auto-assigned by the database's
   /// identity column) and returns it. GPA is not settable at registration —
   /// it defaults to 0 in the database. [department]/[role] are required for
@@ -60,11 +66,15 @@ abstract class AdminStudentsRepository {
   Future<List<RosterStudent>> getCourseRoster(String courseId);
   Future<List<EnrollmentCandidate>> getEnrollmentCandidates(String courseId);
 
-  /// Enrolls each student into [courseId] via the class [sectionId] (an
-  /// upsert — re-enrolling an already-enrolled student just moves them to
-  /// this section). A section's enrolled count is always derived from
-  /// `student_courses`, never stored, so nothing else needs updating here.
-  Future<void> enrollStudentsInSection(
+  /// Enrolls each student into [courseId] via the class [sectionId]. A student
+  /// can be in only one class of a course per cohort (classes in different
+  /// cohorts are fine), so students who are already
+  /// enrolled in this course — in this class or in another one of the same
+  /// cohort — are NOT
+  /// touched (nothing is overwritten or moved); they are reported back so the
+  /// caller can tell the admin. A section's enrolled count is always derived
+  /// from `student_courses`, never stored, so nothing else needs updating.
+  Future<EnrollOutcome> enrollStudentsInSection(
     List<String> studentIds, {
     required String sectionId,
     required String courseId,
@@ -74,12 +84,23 @@ abstract class AdminStudentsRepository {
   /// Courses screen.
   Future<List<EnrolledClass>> getEnrolledClasses(String studentId);
 
-  /// Removes the student_courses row for (studentId, courseId). A section's
+  /// Removes the student_courses row for (studentId, courseId) — only the one in
+  /// [sectionId] when given, since a student can be in several classes of a
+  /// course (in different cohorts). A section's
   /// enrolled count is always derived from `student_courses`, never stored.
-  Future<void> unenrollStudentFromCourse(String studentId, String courseId);
+  Future<void> unenrollStudentFromCourse(String studentId, String courseId, {String? sectionId});
 
   /// Students currently enrolled in one class section (from
   /// `student_courses`, filtered to `sectionId`) — the "Manage Classes"
   /// detail screen's enrollment checklist.
   Future<List<RosterStudent>> getSectionRoster(String sectionId);
+
+  /// Persists a lecturer's manual moderation adjustment for one student's
+  /// `student_courses` row (Course Dashboard's Student Directory table).
+  Future<void> updateModeratedScore(String studentId, String courseId, double moderatedScore, {String? sectionId});
 }
+
+/// Result of [AdminStudentsRepository.enrollStudentsInSection], as student ids.
+/// [inOtherClass] maps a student already in a different class of the course to
+/// that class's code (same cohort only).
+typedef EnrollOutcome = ({List<String> enrolled, List<String> alreadyInThisClass, Map<String, String> inOtherClass});

@@ -1,18 +1,22 @@
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 
-/// Internal students only carry [department] + [role] ([programTrack] stays
-/// null); External students only carry a [programTrack] ([department]/[role]
-/// stay null) — enforced by the `students_type_fields_check` constraint in
-/// schema.sql, which the registration form mirrors.
+/// Internal ("Staff") students only carry [department] + [role]
+/// ([programTrack] stays null); External ("Public") students only carry a
+/// [programTrack] ([department]/[role] stay null) — enforced by the
+/// `students_type_fields_check` constraint in schema.sql, which the
+/// registration form mirrors. [dbValue] is the literal stored in
+/// `students.student_type` (never shown to the user); [label] is the
+/// display text ("Staff"/"Public").
 enum StudentType {
-  internal('Internal'),
-  external('External');
+  internal('Internal', 'Staff'),
+  external('External', 'Public');
 
+  final String dbValue;
   final String label;
-  const StudentType(this.label);
+  const StudentType(this.dbValue, this.label);
 
-  static StudentType fromLabel(String label) =>
-      StudentType.values.firstWhere((t) => t.label == label, orElse: () => StudentType.internal);
+  static StudentType fromDbValue(String dbValue) =>
+      StudentType.values.firstWhere((t) => t.dbValue == dbValue, orElse: () => StudentType.internal);
 }
 
 class Student {
@@ -52,7 +56,7 @@ class Student {
       name: map['name'] as String,
       studentCode: displayCode(map['student_code'] as String),
       email: map['email'] as String,
-      studentType: StudentType.fromLabel(map['student_type'] as String? ?? 'Internal'),
+      studentType: StudentType.fromDbValue(map['student_type'] as String? ?? 'Internal'),
       department: map['department'] as String?,
       title: map['title'] as String?,
       programTrack: map['program_track'] as String?,

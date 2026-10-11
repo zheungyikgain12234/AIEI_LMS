@@ -4,6 +4,7 @@ import 'package:stitch_aiei_lms/domain/models/delete_dependent.dart';
 /// The lookup lists whose rows other records point at (see schema.sql).
 enum MasterKind {
   department,
+  programme,
   programTrack,
   cohort,
   lecturerDepartment,
@@ -33,6 +34,7 @@ class _Ref {
 
 const _masterTables = {
   MasterKind.department: 'departments',
+  MasterKind.programme: 'programmes',
   MasterKind.programTrack: 'program_tracks',
   MasterKind.cohort: 'cohorts',
   MasterKind.lecturerDepartment: 'lecturer_departments',
@@ -50,6 +52,7 @@ const _masterRefs = <MasterKind, List<_Ref>>{
   MasterKind.programTrack: [
     _Ref('students', 'program_track', true, 'Students', 'name', 'student_code'),
   ],
+  MasterKind.programme: <_Ref>[], // only course_programmes link rows, which cascade
   MasterKind.cohort: <_Ref>[],
   MasterKind.lecturerDepartment: [
     _Ref('lecturers', 'department', true, 'Lecturers', 'name', 'lecturer_code'),
@@ -198,87 +201,6 @@ class SupabaseAdminRelationalDelete {
       for (final n in names) n['name'] as String,
     ]);
     await _client.from('cohorts').delete().inFilter('id', ids);
-  }
-
-  // ── Lecturers ─────────────────────────────────────────────────────────
-
-  Future<List<DeleteDependent>> lecturerDependents(List<String> ids) async {
-    final others = _rows(
-      await _client.from('lecturers').select('id, name').order('name'),
-    ).where((l) => !ids.contains(l['id'])).toList();
-    final targets = [
-      for (final l in others) (l['id'] as String, l['name'] as String),
-    ];
-    final sections = _rows(
-      await _client
-          .from('course_sections')
-          .select('id, section_code, term, courses(course_code, course_title)')
-          .inFilter('lecturer_id', ids),
-    );
-    final announcements = _rows(
-      await _client
-          .from('course_announcements')
-          .select('id, title, course_sections(section_code)')
-          .inFilter('lecturer_id', ids),
-    );
-    return [
-      for (final s in sections)
-        DeleteDependent(
-          kind: 'sections',
-          kindPlural: 'Classes',
-          id: s['id'] as String,
-          title: '${s['section_code']}',
-          subtitle:
-              '${(s['courses'] as Map?)?['course_code'] ?? ''} • ${s['term']}',
-          targets: targets,
-        ),
-      for (final a in announcements)
-        DeleteDependent(
-          kind: 'announcements',
-          kindPlural: 'Announcements',
-          id: a['id'] as String,
-          title: '${a['title']}',
-          subtitle: '${(a['course_sections'] as Map?)?['section_code'] ?? ''}',
-          targets: targets,
-          noneLabel: 'Delete this announcement',
-        ),
-    ];
-  }
-
-  Future<void> deleteLecturers(
-    List<String> ids,
-    List<DeleteDecision> decisions,
-  ) async {
-    await _applyUpdates(
-      'course_sections',
-      'lecturer_id',
-      decisions.where((d) => d.kind == 'sections' && d.targetId != null),
-    );
-    final ann = decisions.where((d) => d.kind == 'announcements');
-    await _applyUpdates(
-      'course_announcements',
-      'lecturer_id',
-      ann.where((d) => d.targetId != null),
-    );
-    final dropped = [
-      for (final d in ann)
-        if (d.targetId == null) d.id,
-    ];
-    if (dropped.isNotEmpty)
-      await _client
-          .from('course_announcements')
-          .delete()
-          .inFilter('id', dropped);
-    // Grader references have no ON DELETE action; keep the grades, drop the name.
-    await _client
-        .from('content_block_submissions')
-        .update({'graded_by': null})
-        .inFilter('graded_by', ids);
-    await _client
-        .from('student_materials')
-        .update({'graded_by': null})
-        .inFilter('graded_by', ids);
-    await _client.from('lecturers').delete().inFilter('id', ids);
   }
 
   // ── Course tags ───────────────────────────────────────────────────────

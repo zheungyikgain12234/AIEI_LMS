@@ -8,7 +8,9 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
+import 'widgets/admin_date_time_field.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
 // ManageClassDetailScreen — "Manage" detail/edit page for a single class
@@ -19,6 +21,8 @@ import 'widgets/admin_field_label.dart';
 // one unenrolls that student immediately (same pattern as the student-side
 // "Manage Enrolled Courses" screen, inverted to be class-centric).
 // ---------------------------------------------------------------------------
+enum _RosterSort { code, name }
+
 class ManageClassDetailScreen extends StatefulWidget {
   final String sectionId;
 
@@ -34,6 +38,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
   final _locationController = TextEditingController();
   final _capacityController = TextEditingController();
+  final _overrideCodeController = TextEditingController();
+  DateTime? _editStartAt;
+  DateTime? _editEndAt;
 
   static const _dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   static const _deliveryModeOptions = [('physical', 'Physical'), ('online', 'Online')];
@@ -51,6 +58,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   List<RosterStudent> _roster = [];
   List<String> _cohorts = [];
   final Set<String> _unenrolling = {};
+  final _rosterSearchController = TextEditingController();
+  String _rosterQuery = '';
+  _RosterSort _rosterSort = _RosterSort.name;
+  bool _rosterAscending = true;
 
   DateTime? _startDate;
   DateTime? _endDate;
@@ -71,6 +82,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   void dispose() {
     _locationController.dispose();
     _capacityController.dispose();
+    _overrideCodeController.dispose();
+    _rosterSearchController.dispose();
     super.dispose();
   }
 
@@ -100,6 +113,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         _endTime = _parseTime(section.endTime);
         _locationController.text = section.location ?? '';
         _capacityController.text = section.capacity.toString();
+        _editStartAt = section.editStartAt;
+        _editEndAt = section.editEndAt;
+        _overrideCodeController.text = section.editOverrideLecturerCode ?? '';
         _deliveryMode = section.deliveryMode;
         _selectedCohort = _cohorts.contains(section.cohort) ? section.cohort : null;
         _status = section.status;
@@ -140,6 +156,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       setState(() => _errorMessage = 'Capacity must be a positive number.');
       return;
     }
+    if (_editStartAt == null || _editEndAt == null || !_editEndAt!.isAfter(_editStartAt!)) {
+      setState(() => _errorMessage = 'Set a syllabus edit period — the end must be after the start.');
+      return;
+    }
     setState(() {
       _isSaving = true;
       _errorMessage = null;
@@ -157,6 +177,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         deliveryMode: _deliveryMode,
         cohort: _selectedCohort ?? _section!.cohort ?? '',
         status: _status,
+        editStartAt: _editStartAt!,
+        editEndAt: _editEndAt!,
+        editOverrideLecturerCode: _overrideCodeController.text,
       );
       if (!mounted) return;
       setState(() {
@@ -167,7 +190,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = friendlyErrorMessage(e);
+        _errorMessage = e is StateError ? e.message : friendlyErrorMessage(e);
         _isSaving = false;
       });
     }
@@ -177,7 +200,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     final courseId = _section!.courseId;
     setState(() => _unenrolling.add(s.studentId));
     try {
-      await _studentsRepository.unenrollStudentFromCourse(s.studentId, courseId);
+      await _studentsRepository.unenrollStudentFromCourse(s.studentId, courseId, sectionId: widget.sectionId);
       if (!mounted) return;
       setState(() {
         _roster.removeWhere((r) => r.studentId == s.studentId);
@@ -207,6 +230,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           status: _section!.status,
           startDate: _section!.startDate,
           endDate: _section!.endDate,
+          editStartAt: _section!.editStartAt,
+          editEndAt: _section!.editEndAt,
+          editOverrideLecturerCode: _section!.editOverrideLecturerCode,
+          syllabusStatus: _section!.syllabusStatus,
         );
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unenrolled ${s.name}.')));
@@ -325,6 +352,37 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           ),
           const SizedBox(height: 14),
           _textField(label: 'Location', controller: _locationController, hint: 'Innovation Hall 204'),
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          Text('Syllabus Edit Period *', style: AdminTypography.titleSm()),
+          const SizedBox(height: 2),
+          Text(
+            'The lecturer can add, edit and delete sessions and contents only between these two moments. Outside it their syllabus is read-only.',
+            style: AdminTypography.bodySm(),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: AdminDateTimeField(label: 'Edit Start', value: _editStartAt, onChanged: (v) => setState(() => _editStartAt = v))),
+              const SizedBox(width: 12),
+              Expanded(child: AdminDateTimeField(label: 'Edit End', value: _editEndAt, defaultHour: 23, onChanged: (v) => setState(() => _editEndAt = v))),
+            ],
+          ),
+          if (_editStartAt != null && _editEndAt != null && !_editEndAt!.isAfter(_editStartAt!)) ...[
+            const SizedBox(height: 8),
+            Text('Edit end must be after edit start.', style: AdminTypography.labelSm(color: AdminColors.error)),
+          ],
+          const SizedBox(height: 14),
+          _textField(label: 'Edit Override — Lecturer Code (optional)', controller: _overrideCodeController, hint: 'e.g. LEC-0042'),
+          const SizedBox(height: 4),
+          Text(
+            'Type a lecturer\'s unique code to let that lecturer edit this syllabus at any time, inside or outside the period. Leave blank for none.',
+            style: AdminTypography.bodySm(),
+          ),
+          const SizedBox(height: 20),
+          const Divider(height: 1),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -401,13 +459,88 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               ],
             ),
           ),
+          if (_roster.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: TextField(
+                controller: _rosterSearchController,
+                onChanged: (v) => setState(() => _rosterQuery = v.trim().toLowerCase()),
+                style: AdminTypography.bodySm(color: AdminColors.onSurface),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: AdminColors.surfaceContainerLow,
+                  hintText: 'Search by student code or name...',
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+              child: Row(
+                children: [
+                  const SizedBox(width: 48),
+                  Expanded(flex: 2, child: _rosterSortHeader('Code', _RosterSort.code)),
+                  Expanded(flex: 4, child: _rosterSortHeader('Name', _RosterSort.name)),
+                ],
+              ),
+            ),
+          ],
           if (_roster.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
               child: Text('No students enrolled in this class.', style: AdminTypography.bodyMd()),
             )
+          else if (_visibleRoster.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('No students match your search.', style: AdminTypography.bodyMd()),
+            )
           else
-            Column(children: [for (final s in _roster) _rosterRow(s)]),
+            Column(children: [for (final s in _visibleRoster) _rosterRow(s)]),
+        ],
+      ),
+    );
+  }
+
+  List<RosterStudent> get _visibleRoster {
+    final filtered = _rosterQuery.isEmpty
+        ? [..._roster]
+        : _roster.where((s) => s.name.toLowerCase().contains(_rosterQuery) || s.studentCode.toLowerCase().contains(_rosterQuery)).toList();
+    filtered.sort((a, b) {
+      final cmp = _rosterSort == _RosterSort.code
+          ? a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase())
+          : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return _rosterAscending ? cmp : -cmp;
+    });
+    return filtered;
+  }
+
+  Widget _rosterSortHeader(String label, _RosterSort column) {
+    final active = _rosterSort == column;
+    return InkWell(
+      onTap: () => setState(() {
+        if (active) {
+          _rosterAscending = !_rosterAscending;
+        } else {
+          _rosterSort = column;
+          _rosterAscending = true;
+        }
+      }),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          const SizedBox(width: 2),
+          Icon(
+            active && !_rosterAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            size: 12,
+            color: active ? AdminColors.onSurface : AdminColors.outline,
+          ),
         ],
       ),
     );
@@ -429,15 +562,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                   },
                   activeColor: AdminColors.primaryContainer,
                 ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.name, style: AdminTypography.titleSm()),
-                Text(s.studentCode, style: AdminTypography.labelSm()),
-              ],
-            ),
-          ),
+          Expanded(flex: 2, child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+          Expanded(flex: 4, child: Text(s.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -540,7 +666,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
+        SearchableDropdownFormField<String>(
           initialValue: value,
           isExpanded: true,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -570,7 +696,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       children: [
         AdminFieldLabel(label),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
+        SearchableDropdownFormField<String>(
           initialValue: value,
           isExpanded: true,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),

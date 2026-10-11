@@ -109,7 +109,7 @@ class _MainTelemetryCard extends StatelessWidget {
 
           // Main Foreground Content
           Padding(
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(MediaQuery.of(context).size.width < 700 ? 20 : 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -149,15 +149,14 @@ class _MainTelemetryCard extends StatelessWidget {
                     color: AppColors.surfaceContainerLow.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    final narrow = constraints.maxWidth < 520;
+                    final items = <Widget>[
                       _buildMetricItem(
                         value: '${s.enrolledCourses}',
                         label: 'ENROLLED COURSES',
                         valueColor: AppColors.primary,
                       ),
-                      _buildDivider(),
                       _buildMetricItem(
                         value: '${s.inProgressCourses}',
                         label: 'IN PROGRESS',
@@ -165,7 +164,6 @@ class _MainTelemetryCard extends StatelessWidget {
                         icon: Icons.pending_outlined,
                         iconColor: AppColors.secondary,
                       ),
-                      _buildDivider(),
                       _buildMetricItem(
                         value: '${s.completedCourses}',
                         label: 'COMPLETED',
@@ -173,7 +171,6 @@ class _MainTelemetryCard extends StatelessWidget {
                         icon: Icons.check_circle_outline,
                         iconColor: AppColors.onTertiaryContainer,
                       ),
-                      _buildDivider(),
                       _buildMetricItem(
                         value: '${s.badgesEarned}',
                         label: 'BADGES EARNED',
@@ -181,8 +178,20 @@ class _MainTelemetryCard extends StatelessWidget {
                         icon: Icons.military_tech_outlined,
                         iconColor: AppColors.secondaryContainer,
                       ),
-                    ],
-                  ),
+                    ];
+                    if (narrow) {
+                      return Wrap(spacing: 28, runSpacing: 16, children: items);
+                    }
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        for (var i = 0; i < items.length; i++) ...[
+                          if (i > 0) _buildDivider(),
+                          items[i],
+                        ],
+                      ],
+                    );
+                  }),
                 ),
               ],
             ),

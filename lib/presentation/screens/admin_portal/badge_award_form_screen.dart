@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -110,6 +111,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
         );
       }
       if (!mounted) return;
+      showSuccessSnackBar(context, widget.isEditing ? 'Badge award updated.' : 'Badge award created.');
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;

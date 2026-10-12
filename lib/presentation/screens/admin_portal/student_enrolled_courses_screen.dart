@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -55,9 +56,7 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
         _classes.removeWhere((e) => e.rowKey == c.rowKey);
         _unenrolling.remove(c.rowKey);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unenrolled from ${c.displayName}.')),
-      );
+      showSuccessSnackBar(context, 'Unenrolled from ${c.displayName}.');
     } catch (e) {
       if (!mounted) return;
       setState(() => _unenrolling.remove(c.rowKey));

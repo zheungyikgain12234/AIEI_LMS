@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/utils/file_download.dart';
@@ -379,7 +380,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
       if (supportsBrowserDownload) {
         downloadBytes('student_import_template.csv', bytes);
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template downloaded.')));
+        showSuccessSnackBar(context, 'Template downloaded.');
         return;
       }
       final path = await FilePicker.platform.saveFile(
@@ -395,7 +396,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
         await File(path.toLowerCase().endsWith('.csv') ? path : '$path.csv').writeAsBytes(bytes);
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template saved.')));
+      showSuccessSnackBar(context, 'Template saved.');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save template: $e')));

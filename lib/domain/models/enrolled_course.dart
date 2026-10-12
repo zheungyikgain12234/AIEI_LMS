@@ -70,6 +70,10 @@ class EnrolledCourse {
   final String ctaButtonText;
   final bool isCompleted;
 
+  /// False for "Compulsory for You" courses the student hasn't enrolled in
+  /// yet — the card hides its progress panel since there is none to show.
+  final bool isEnrolled;
+
   const EnrolledCourse({
     required this.id,
     required this.title,
@@ -90,5 +94,6 @@ class EnrolledCourse {
     this.badgeNames = const [],
     required this.ctaButtonText,
     this.isCompleted = false,
+    this.isEnrolled = true,
   });
 }

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -107,6 +108,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
                   } else {
                     await _repository.updateTag(tag.id, label);
                   }
+                  showSuccessSnackBar(context, tag == null ? 'Tag added.' : 'Tag updated.');
                   if (ctx.mounted) Navigator.of(ctx).pop(true);
                 } catch (e) {
                   setDialogState(() => errorMessage = friendlyErrorMessage(e));

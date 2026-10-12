@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -94,9 +95,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
         gradedBy: DemoIdentity.lecturerId,
       );
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Grade published to Alex Chen.'), backgroundColor: FacultyColors.primary),
-    );
+    showSuccessSnackBar(context, 'Grade published to Alex Chen.');
   }
 
   String _formatSubmittedAt(String? iso) {

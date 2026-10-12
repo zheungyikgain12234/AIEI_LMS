@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -323,6 +324,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _showAnnouncementForm = false;
       _postingAnnouncement = false;
     });
+    showSuccessSnackBar(context, 'Announcement posted.');
   }
 
   void _handleNav(FacultyNavDestination dest) {
@@ -354,6 +356,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     setState(() => _rosterRows[index] = previous.copyWithModeratedScore(value));
     try {
       await _rosterRepository.updateModeratedScore(s.studentId, widget.courseId, value, sectionId: widget.sectionId);
+      if (mounted) showSuccessSnackBar(context, 'Moderated score saved for ${s.name}.');
     } catch (_) {
       if (!mounted) return;
       setState(() => _rosterRows[index] = previous);

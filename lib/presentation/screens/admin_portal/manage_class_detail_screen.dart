@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -186,7 +187,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         _section = saved;
         _isSaving = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Class updated.')));
+      showSuccessSnackBar(context, 'Class updated.');
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -236,7 +237,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           syllabusStatus: _section!.syllabusStatus,
         );
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unenrolled ${s.name}.')));
+      showSuccessSnackBar(context, 'Unenrolled ${s.name}.');
     } catch (e) {
       if (!mounted) return;
       setState(() => _unenrolling.remove(s.studentId));

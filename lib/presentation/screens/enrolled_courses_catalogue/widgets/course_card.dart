@@ -69,9 +69,10 @@ class _CourseCardState extends State<CourseCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
 
-                const SizedBox(height: 8),
+                if (c.isEnrolled) const SizedBox(height: 8),
 
                 // Instructor / Division + Class Code
+                if (c.isEnrolled)
                 Row(
                   children: [
                     Icon(
@@ -112,9 +113,9 @@ class _CourseCardState extends State<CourseCard> {
                 const SizedBox(height: 16),
 
                 // Progress Telemetry Panel
-                _buildProgressPanel(c),
+                if (c.isEnrolled) _buildProgressPanel(c),
 
-                const SizedBox(height: 12),
+                if (c.isEnrolled) const SizedBox(height: 12),
 
                 // Earnable / Earned Badge Preview Snippet
                 _buildBadgeSnippet(c),

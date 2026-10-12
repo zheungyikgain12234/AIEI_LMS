@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
@@ -80,6 +81,9 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
 
   double get _totalMarks => _criteria.fold<double>(0, (sum, c) => sum + c.maxMarks);
 
+  /// A graded assignment is final — the submission becomes read-only.
+  bool get _locked => _submission?.isGraded ?? false;
+
   bool get _canSubmit => _writeupController.text.trim().isNotEmpty || _files.isNotEmpty;
 
   Future<void> _pickAndUploadFile() async {
@@ -113,18 +117,31 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
   Future<void> _submit() async {
     if (!_canSubmit) return;
     setState(() => _submitting = true);
-    await _gradingRepository.submitAnswer(
-      contentBlockId: widget.contentBlockId,
-      studentId: widget.studentId,
-      submission: {
-        if (_writeupController.text.trim().isNotEmpty) 'writeup': _writeupController.text.trim(),
-        if (_files.isNotEmpty) 'files': _files,
-      },
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Assignment submitted.')));
-    Navigator.of(context).pop();
+    try {
+      await _gradingRepository.submitAnswer(
+        contentBlockId: widget.contentBlockId,
+        studentId: widget.studentId,
+        submission: {
+          if (_writeupController.text.trim().isNotEmpty) 'writeup': _writeupController.text.trim(),
+          if (_files.isNotEmpty) 'files': _files,
+        },
+      );
+      final submission = await _gradingRepository.getSubmission(widget.contentBlockId, widget.studentId);
+      if (!mounted) return;
+      setState(() {
+        _submission = submission;
+        _submitting = false;
+      });
+      showSuccessSnackBar(context, 'Assignment submitted.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not submit: $e')));
+    }
   }
+
+  /// Whether the due date has passed (used to flag a late submission).
+  bool _isLate(ContentBlock block, DateTime submittedAt) => block.dueDate != null && submittedAt.isAfter(block.dueDate!);
 
   String _formatMarks(double marks) => marks.toStringAsFixed(marks.truncateToDouble() == marks ? 0 : 1);
 
@@ -153,8 +170,12 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (_submission?.isGraded ?? false) _gradeBanner(_submission!),
-                  if (_submission?.isGraded ?? false) const SizedBox(height: 16),
+                  _statusCard(block),
+                  const SizedBox(height: 16),
+                  if (_submission?.isGraded ?? false) ...[
+                    _gradeBanner(_submission!),
+                    const SizedBox(height: 16),
+                  ],
                   _infoCard(block),
                   const SizedBox(height: 16),
                   if (_criteria.isNotEmpty) ...[
@@ -167,18 +188,21 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                     controller: _writeupController,
                     decoration: const InputDecoration(hintText: 'Write your submission here (optional if attaching files)...'),
                     maxLines: 6,
+                    readOnly: _locked,
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
                   for (var i = 0; i < _files.length; i++) _fileRow(i),
-                  OutlinedButton.icon(
-                    onPressed: _uploadingFile ? null : _pickAndUploadFile,
-                    icon: _uploadingFile
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.upload_file, size: 16),
-                    label: const Text('Attach a file'),
-                  ),
+                  if (!_locked)
+                    OutlinedButton.icon(
+                      onPressed: _uploadingFile ? null : _pickAndUploadFile,
+                      icon: _uploadingFile
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.upload_file, size: 16),
+                      label: const Text('Attach a file'),
+                    ),
                   const SizedBox(height: 20),
+                  if (!_locked)
                   ElevatedButton.icon(
                     onPressed: !_canSubmit || _submitting ? null : _submit,
                     icon: _submitting
@@ -219,10 +243,88 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
               ),
             ],
           ),
+          if (_criteria.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            for (final c in _criteria)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(c.label, style: FacultyTypography.bodySm(color: FacultyColors.onSecondaryContainer))),
+                    Text(
+                      '${submission.marks.containsKey(c.id) ? _formatMarks(submission.marks[c.id]!) : '–'} / ${_formatMarks(c.maxMarks)}',
+                      style: FacultyTypography.labelMd(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+          ],
           if (submission.feedback?.isNotEmpty ?? false) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            Text('Lecturer feedback', style: FacultyTypography.labelMd(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
             Text(submission.feedback!, style: FacultyTypography.bodySm(color: FacultyColors.onSecondaryContainer)),
           ],
+          if (submission.gradedAt != null) ...[
+            const SizedBox(height: 8),
+            Text('Graded ${formatDueDate(submission.gradedAt!.toLocal())}', style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Submission + grading status at the top of the page: "Not submitted" /
+  /// "Submitted" (with timestamp, flagged late if after the due date) and
+  /// "Not yet graded" / "Graded".
+  Widget _statusCard(ContentBlock block) {
+    final submission = _submission;
+    final submittedAt = submission?.submittedAt?.toLocal();
+    final submitted = submission != null && submission.status != 'not_started';
+    final overdue = !submitted && block.dueDate != null && DateTime.now().isAfter(block.dueDate!);
+    final late = submitted && submittedAt != null && _isLate(block, submittedAt);
+    final graded = submission?.isGraded ?? false;
+
+    Widget row(IconData icon, Color color, String label, String value) => Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 8),
+              Text('$label: ', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+              Expanded(child: Text(value, style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600))),
+            ],
+          ),
+        );
+
+    const green = Color(0xFF1B7F4B);
+    const red = Color(0xFFBA1A1A);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: submitted ? green : (overdue ? red : FacultyColors.surfaceContainer)),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Status', style: FacultyTypography.headlineMd()),
+          row(
+            submitted ? Icons.check_circle : (overdue ? Icons.error_outline : Icons.radio_button_unchecked),
+            submitted ? green : (overdue ? red : FacultyColors.onSurfaceVariant),
+            'Submission',
+            submitted ? 'Submitted${late ? ' (late)' : ''}' : (overdue ? 'Not submitted — Overdue' : 'Not submitted'),
+          ),
+          if (submitted && submittedAt != null)
+            row(Icons.schedule, FacultyColors.onSurfaceVariant, 'Submitted on', formatDueDate(submittedAt)),
+          row(
+            graded ? Icons.grading : Icons.hourglass_empty,
+            graded ? green : FacultyColors.onSurfaceVariant,
+            'Grading',
+            graded ? 'Graded' : (submitted ? 'Awaiting grading' : 'Not yet graded'),
+          ),
         ],
       ),
     );
@@ -332,12 +434,13 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
           const Icon(Icons.attach_file, size: 16, color: FacultyColors.onSurfaceVariant),
           const SizedBox(width: 6),
           Expanded(child: Text('${f['name']}', style: FacultyTypography.bodySm(color: FacultyColors.onSurface))),
-          IconButton(
-            onPressed: () => _removeFile(index),
-            icon: const Icon(Icons.close, size: 16, color: FacultyColors.onSurfaceVariant),
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Remove',
-          ),
+          if (!_locked)
+            IconButton(
+              onPressed: () => _removeFile(index),
+              icon: const Icon(Icons.close, size: 16, color: FacultyColors.onSurfaceVariant),
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Remove',
+            ),
         ],
       ),
     );

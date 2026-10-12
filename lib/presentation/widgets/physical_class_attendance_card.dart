@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -67,6 +68,7 @@ class _PhysicalClassAttendanceCardState extends State<PhysicalClassAttendanceCar
         _attended = true;
         _saving = false;
       });
+      showSuccessSnackBar(context, 'Attendance recorded.');
     } catch (e) {
       if (!mounted) return;
       setState(() {

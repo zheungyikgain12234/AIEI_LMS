@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -55,7 +56,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       await _repository.saveGradeScale(scale);
       if (!mounted) return;
       setState(() => _gradeScale = scale);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Grade scale saved.')));
+      showSuccessSnackBar(context, 'Grade scale saved.');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save grade scale: $e')));
@@ -71,6 +72,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     });
     try {
       await _repository.updateSetting(key, value);
+      if (mounted) showSuccessSnackBar(context, 'Setting saved.');
     } finally {
       if (mounted) setState(() => _saving.remove(key));
     }
@@ -83,6 +85,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     });
     try {
       await _repository.updateNumericSetting(key, value);
+      if (mounted) showSuccessSnackBar(context, 'Setting saved.');
     } finally {
       if (mounted) setState(() => _saving.remove(key));
     }

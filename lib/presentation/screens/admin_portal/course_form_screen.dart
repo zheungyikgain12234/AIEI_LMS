@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -187,6 +188,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
         );
       }
       if (!mounted) return;
+      showSuccessSnackBar(context, widget.isEditing ? 'Course updated.' : 'Course created.');
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;

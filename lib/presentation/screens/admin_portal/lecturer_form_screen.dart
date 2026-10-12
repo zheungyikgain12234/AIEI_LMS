@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -153,6 +154,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
         );
       }
       if (!mounted) return;
+      showSuccessSnackBar(context, widget.isEditing ? 'Lecturer updated.' : 'Lecturer created.');
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;

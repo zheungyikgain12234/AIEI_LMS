@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -84,6 +85,8 @@ class _ImportMarksScreenState extends State<ImportMarksScreen> {
 
   void _snack(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 
+  void _success(String message) => showSuccessSnackBar(context, message);
+
   Future<void> _downloadTemplate() async {
     final lines = [
       '# Fill in the marks column. Marks must be between 0 and ${_fmt(_maxMarks)}. Enter 0 for an absent student - leave blank only if not marked yet.',
@@ -97,7 +100,7 @@ class _ImportMarksScreenState extends State<ImportMarksScreen> {
       if (supportsBrowserDownload) {
         downloadBytes(fileName, bytes);
         if (!mounted) return;
-        _snack('Template downloaded.');
+        _success('Template downloaded.');
         return;
       }
       final path = await FilePicker.platform.saveFile(
@@ -112,7 +115,7 @@ class _ImportMarksScreenState extends State<ImportMarksScreen> {
         await File(path.toLowerCase().endsWith('.csv') ? path : '$path.csv').writeAsBytes(bytes);
       }
       if (!mounted) return;
-      _snack('Template saved.');
+      _success('Template saved.');
     } catch (e) {
       if (!mounted) return;
       _snack('Could not save template: $e');

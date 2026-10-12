@@ -197,6 +197,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       badgeNames: badgeNames,
       ctaButtonText: ctaOverride ?? (isCompleted ? 'Review Course' : 'View Course'),
       isCompleted: isCompleted,
+      isEnrolled: ctaOverride == null,
     );
   }
 

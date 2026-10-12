@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -91,12 +92,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
       gradedByLecturerId: DemoIdentity.lecturerId,
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Grades Successfully Released — Alex Chen has been notified via the student portal.'),
-        backgroundColor: FacultyColors.primary,
-      ),
-    );
+    showSuccessSnackBar(context, 'Grades Successfully Released — Alex Chen has been notified via the student portal.');
   }
 
   @override

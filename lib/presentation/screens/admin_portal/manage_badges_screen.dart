@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -163,9 +164,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
     await _repository.deleteBadgeAwards(_selected.toList());
     if (!mounted) return;
     setState(_selected.clear);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$count badge award${count == 1 ? '' : 's'} deleted')),
-    );
+    showSuccessSnackBar(context, '$count badge award${count == 1 ? '' : 's'} deleted');
     await _load();
   }
 

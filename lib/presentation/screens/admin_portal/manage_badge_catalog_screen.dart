@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -114,9 +115,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
     await _repository.deleteBadges(ids, reassignments: reassignments);
     if (!mounted) return;
     setState(_selected.clear);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${ids.length} badge${ids.length == 1 ? '' : 's'} deleted')),
-    );
+    showSuccessSnackBar(context, '${ids.length} badge${ids.length == 1 ? '' : 's'} deleted');
     await _load();
   }
 

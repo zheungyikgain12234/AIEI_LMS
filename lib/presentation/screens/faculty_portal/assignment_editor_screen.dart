@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -67,6 +68,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
     if (result == null) return;
     await _repository.createCriterion(contentBlockId: widget.contentBlockId, label: result.label, maxMarks: result.maxMarks);
     await _load();
+    if (mounted) showSuccessSnackBar(context, 'Criterion added.');
   }
 
   Future<void> _editCriterion(AssignmentCriterion c) async {
@@ -74,6 +76,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
     if (result == null) return;
     await _repository.updateCriterion(c.id, label: result.label, maxMarks: result.maxMarks);
     await _load();
+    if (mounted) showSuccessSnackBar(context, 'Criterion updated.');
   }
 
   Future<void> _deleteCriterion(AssignmentCriterion c) async {
@@ -95,6 +98,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
     if (confirmed != true) return;
     await _repository.deleteCriterion(c.id);
     await _load();
+    if (mounted) showSuccessSnackBar(context, 'Criterion deleted.');
   }
 
   Future<void> _reorderCriteria(int oldIndex, int newIndex) async {

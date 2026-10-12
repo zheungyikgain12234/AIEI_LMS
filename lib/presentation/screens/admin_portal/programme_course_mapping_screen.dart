@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -96,6 +97,7 @@ class _ProgrammeCourseMappingScreenState extends State<ProgrammeCourseMappingScr
     setState(() => allowed ? _mappedCourseIds.add(courseId) : _mappedCourseIds.remove(courseId));
     try {
       await _mappingRepository.setCourseForProgramme(programmeId, courseId, allowed);
+      if (mounted) showSuccessSnackBar(context, 'Mapping updated.');
     } catch (e) {
       if (!mounted) return;
       setState(() => allowed ? _mappedCourseIds.remove(courseId) : _mappedCourseIds.add(courseId));

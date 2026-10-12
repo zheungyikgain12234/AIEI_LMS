@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -106,6 +107,7 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
       return;
     }
     if (!mounted) return;
+    showSuccessSnackBar(context, 'Classes reassigned and lecturers deleted.');
     Navigator.of(context).pop(true);
   }
 

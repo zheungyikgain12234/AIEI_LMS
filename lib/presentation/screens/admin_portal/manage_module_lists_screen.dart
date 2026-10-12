@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -119,6 +120,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> {
                   } else {
                     await _repository.updateModuleList(list.id, name, names);
                   }
+                  showSuccessSnackBar(context, list == null ? 'Module list added.' : 'Module list updated.');
                   if (ctx.mounted) Navigator.of(ctx).pop(true);
                 } catch (e) {
                   setDialogState(() => errorMessage = friendlyErrorMessage(e));
@@ -155,6 +157,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> {
     if (confirmed != true) return;
     await _repository.deleteModuleLists(_selected.toList());
     if (!mounted) return;
+    showSuccessSnackBar(context, 'Module list(s) deleted.');
     setState(_selected.clear);
     await _load();
   }

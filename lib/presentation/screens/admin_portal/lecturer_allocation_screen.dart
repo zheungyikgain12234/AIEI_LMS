@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -133,9 +134,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
           Navigator.of(ctx).pop();
           await _load();
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lecturer allocation confirmed.'), backgroundColor: AdminColors.primary),
-          );
+          showSuccessSnackBar(context, 'Lecturer allocation confirmed.');
         },
       ),
     );

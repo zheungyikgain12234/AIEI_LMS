@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -312,10 +313,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     );
     if (!mounted) return;
     setState(() => _submitting = false);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Your exam answers have been submitted for evaluation.'),
-      backgroundColor: AppColors.secondary,
-    ));
+    showSuccessSnackBar(context, 'Your exam answers have been submitted for evaluation.');
     final navigator = Navigator.of(context);
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) navigator.pop();

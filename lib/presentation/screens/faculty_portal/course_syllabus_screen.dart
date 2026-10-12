@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -175,6 +176,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (result == null) return;
     await _repository.createModule(sectionId: widget.sectionId, name: _bareName(result.$1), description: result.$2);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Module added.');
     await _load();
   }
 
@@ -192,6 +194,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (result == null) return;
     await _repository.updateModule(m.id, name: _bareName(result.$1), description: result.$2, isPublished: m.isPublished);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Module updated.');
     await _load();
   }
 
@@ -203,6 +206,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (confirmed != true) return;
     await _repository.deleteModule(m.id);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Module deleted.');
     _expandedModules.remove(m.id);
     _sessionsByModule.remove(m.id);
     await _load();
@@ -230,7 +234,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   void _showReorderSaved() {
     debugPrint('Reorder saved.');
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order saved.'), duration: Duration(seconds: 2)));
+    showSuccessSnackBar(context, 'Order saved.');
   }
 
   void _showReorderError(Object e) {
@@ -248,6 +252,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (result == null) return;
     await _repository.createSession(moduleId: moduleId, name: _bareName(result.$1), description: result.$2);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Session added.');
     await _refreshSessionsFor(moduleId);
   }
 
@@ -265,6 +270,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (result == null) return;
     await _repository.updateSession(s.id, name: _bareName(result.$1), description: result.$2, isPublished: s.isPublished);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Session updated.');
     await _refreshSessionsFor(moduleId);
   }
 
@@ -276,6 +282,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (confirmed != true) return;
     await _repository.deleteSession(s.id);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Session deleted.');
     _expandedSessions.remove(s.id);
     _blocksBySession.remove(s.id);
     await _refreshSessionsFor(moduleId);
@@ -310,6 +317,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (result == null) return;
     await _repository.addContentBlock(sessionId: sessionId, type: result.type, content: result.content);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Content added.');
     await _refreshBlocksFor(sessionId);
   }
 
@@ -321,12 +329,14 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (result == null) return;
     await _repository.updateContentBlock(b.id, content: result.content);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Content updated.');
     await _refreshBlocksFor(sessionId);
   }
 
   Future<void> _deleteContentBlock(String sessionId, ContentBlock b) async {
     await _repository.deleteContentBlock(b.id);
     await _markEdited();
+    if (mounted) showSuccessSnackBar(context, 'Content deleted.');
     await _refreshBlocksFor(sessionId);
   }
 
@@ -380,7 +390,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     if (name == null || name.trim().isEmpty) return;
     await _repository.saveAsTemplate(sectionId: widget.sectionId, name: name.trim());
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved as template "${name.trim()}".')));
+    showSuccessSnackBar(context, 'Saved as template "${name.trim()}".');
   }
 
   Future<void> _copyFromTemplate() async {
@@ -393,7 +403,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     await _markEdited();
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Copied from template "${template.name}".')));
+    showSuccessSnackBar(context, 'Copied from template "${template.name}".');
   }
 
   // ── Approval ─────────────────────────────────────────────────────────
@@ -412,7 +422,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     await _repository.setSyllabusStatus(widget.sectionId, status);
     if (!mounted) return;
     setState(() => _syllabusStatus = status);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    showSuccessSnackBar(context, message);
   }
 
   Widget _approvalBar() {

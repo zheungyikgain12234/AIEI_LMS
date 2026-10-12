@@ -74,6 +74,7 @@ insert into lecturers (id, name, title, lecturer_code, email, department, specia
   ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of AI & Machine Learning', 'TN01-EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2022-09-01'),
   ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'TN01-EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true, '2020-03-23'),
   ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'TN01-EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false, '2017-11-13'),
+  ('11111111-1111-1111-1111-111111111108', 'Marcus Webb', 'Cloud Infrastructure Lead', 'TN01-EMP-3387', 'marcus.webb@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Active', true, true, '2021-11-19'),
   -- Dr. Emmett Brown is this demo's active Lecturer Portal identity — see
   -- lib/core/config/demo_identity.dart's DemoIdentity.lecturerId.
   ('11111111-1111-1111-1111-111111111106', 'Dr. Emmett Brown', 'Distinguished Research Fellow', 'TN01-EMP-1985', 'e.brown@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2023-02-11');
@@ -745,7 +746,6 @@ insert into specializations (code, name) values
 
 insert into lecturers (id, name, title, lecturer_code, email, department, specialization, credits_max, status, accredited, manageable, join_date) values
   ('11111111-1111-1111-1111-111111111107', 'Dr. Priya Nair', 'Head of Cybersecurity & Risk', 'TN01-EMP-2201', 'priya.nair@aiei.edu', 'Cybersecurity & Risk', 'Zero Trust Security Architecture', 15, 'Active', true, true, '2022-03-04'),
-  ('11111111-1111-1111-1111-111111111108', 'Marcus Webb', 'Cloud Infrastructure Lead', 'TN01-EMP-3387', 'marcus.webb@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Active', true, true, '2021-11-19'),
   ('11111111-1111-1111-1111-111111111109', 'Rachel Goh', 'FP&A Program Director', 'TN01-EMP-4456', 'rachel.goh@aiei.edu', 'Finance & Business Operations', 'Financial Modeling & FP&A', 12, 'Active', true, true, '2020-06-08'),
   ('11111111-1111-1111-1111-111111111110', 'Dr. Wei Chen', 'Product & UX Research Lead', 'TN01-EMP-5514', 'wei.chen@aiei.edu', 'Product & UX Design', 'Product Strategy & UX Research', 12, 'Active', true, true, '2023-01-16'),
   ('11111111-1111-1111-1111-111111111111', 'James Park', 'Supply Chain Analytics Lead', 'TN01-EMP-6623', 'james.park@aiei.edu', 'Supply Chain & Logistics', 'Supply Chain Analytics & Forecasting', 12, 'Active', true, true, '2021-09-27');

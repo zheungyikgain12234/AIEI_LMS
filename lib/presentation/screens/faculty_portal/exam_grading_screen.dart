@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -204,7 +205,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
       gradedByLecturerId: DemoIdentity.lecturerId,
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marks saved.')));
+    showSuccessSnackBar(context, 'Marks saved.');
     if (andExit || !_hasNextStudent) {
       Navigator.of(context).pop();
       return;

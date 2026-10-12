@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -87,9 +88,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     }
     await _gradingRepository.resetAttempt(contentBlockId: widget.contentBlockId, studentId: student.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${student.name}\'s attempt was reset — they can attempt this exam again.')),
-    );
+    showSuccessSnackBar(context, '${student.name}\'s attempt was reset — they can attempt this exam again.');
   }
 
   Future<void> _refreshTotalMarks() async {
@@ -127,6 +126,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     final name = await showDialog<String>(context: context, builder: (_) => const _SectionNameDialog(dialogTitle: 'Add Section'));
     if (name == null || name.trim().isEmpty) return;
     await _repository.createSection(contentBlockId: widget.contentBlockId, name: name.trim());
+    if (mounted) showSuccessSnackBar(context, 'Section added.');
     await _load();
   }
 
@@ -137,6 +137,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     );
     if (name == null || name.trim().isEmpty) return;
     await _repository.renameSection(s.id, name: name.trim());
+    if (mounted) showSuccessSnackBar(context, 'Section renamed.');
     await _load();
   }
 
@@ -147,6 +148,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     );
     if (confirmed != true) return;
     await _repository.deleteSection(s.id);
+    if (mounted) showSuccessSnackBar(context, 'Section deleted.');
     _expandedSections.remove(s.id);
     _questionsBySection.remove(s.id);
     await _load();
@@ -175,6 +177,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     if (result == null) return;
     await _repository.createQuestion(
         sectionId: sectionId, text: result.text, type: result.type, marks: result.marks, options: result.options);
+    if (mounted) showSuccessSnackBar(context, 'Question added.');
     await _refreshQuestionsFor(sectionId);
     await _refreshTotalMarks();
   }
@@ -183,6 +186,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     final result = await showDialog<_QuestionFormResult>(context: context, builder: (_) => _QuestionDialog(existing: q));
     if (result == null) return;
     await _repository.updateQuestion(q.id, text: result.text, type: result.type, marks: result.marks, options: result.options);
+    if (mounted) showSuccessSnackBar(context, 'Question updated.');
     await _refreshQuestionsFor(sectionId);
     await _refreshTotalMarks();
   }
@@ -191,6 +195,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     final confirmed = await _confirmDelete(title: 'Delete question?', message: 'This cannot be undone.');
     if (confirmed != true) return;
     await _repository.deleteQuestion(q.id);
+    if (mounted) showSuccessSnackBar(context, 'Question deleted.');
     await _refreshQuestionsFor(sectionId);
     await _refreshTotalMarks();
   }

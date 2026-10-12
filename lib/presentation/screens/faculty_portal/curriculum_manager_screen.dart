@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide MaterialType;
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -885,9 +886,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('All curriculum changes published.'), backgroundColor: FacultyColors.primary),
-                  );
+                  showSuccessSnackBar(context, 'All curriculum changes published.');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: FacultyColors.primary,
@@ -1622,9 +1621,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('All curriculum changes published.'), backgroundColor: FacultyColors.primary),
-                    );
+                    showSuccessSnackBar(context, 'All curriculum changes published.');
                   },
                   icon: const Icon(Icons.check_circle, size: 18),
                   label: const Text('Publish Changes'),

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -158,6 +159,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         );
       }
       if (!mounted) return;
+      showSuccessSnackBar(context, widget.isEditing ? 'Student updated.' : 'Student created.');
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;

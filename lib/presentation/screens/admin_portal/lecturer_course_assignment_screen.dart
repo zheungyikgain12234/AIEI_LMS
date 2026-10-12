@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -341,9 +342,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       }
       await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, [_selectedCourseId!]);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${courses.length} course${courses.length == 1 ? '' : 's'} assigned to ${_lecturer!.name}.')),
-      );
+      showSuccessSnackBar(context, '${courses.length} course${courses.length == 1 ? '' : 's'} assigned to ${_lecturer!.name}.');
       _dayOfWeek = null;
       _startTime = null;
       _endTime = null;
@@ -374,9 +373,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         await _lecturersRepository.unassignSection(sectionId);
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$count class${count == 1 ? '' : 'es'} unassigned from ${_lecturer!.name}.')),
-      );
+      showSuccessSnackBar(context, '$count class${count == 1 ? '' : 'es'} unassigned from ${_lecturer!.name}.');
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -1197,7 +1194,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     );
     if (picked == null || !mounted) return;
     setState(() => _modules.setNames(picked.moduleNames));
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported "${picked.name}". You can still edit the modules below.')));
+    showSuccessSnackBar(context, 'Imported "${picked.name}". You can still edit the modules below.');
   }
 
   Future<void> _saveModuleList() async {
@@ -1254,7 +1251,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     );
     nameController.dispose();
     if (saved == null || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved module list "$saved".')));
+    showSuccessSnackBar(context, 'Saved module list "$saved".');
   }
 
   Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap}) {

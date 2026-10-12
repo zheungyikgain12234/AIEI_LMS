@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -202,6 +203,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
       await _repository.deleteLecturers(_selected.toList());
       if (!mounted) return;
     }
+    showSuccessSnackBar(context, 'Lecturer(s) deleted.');
     setState(_selected.clear);
     await _load();
   }

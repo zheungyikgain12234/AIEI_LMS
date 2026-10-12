@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -592,9 +593,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   ? null
                   : () {
                       Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${_staged.length} student(s) enrolled into $_courseCode.'), backgroundColor: AdminColors.primary),
-                      );
+                      showSuccessSnackBar(context, '${_staged.length} student(s) enrolled into $_courseCode.');
                     },
               icon: const Icon(Icons.person_add_alt_1, size: 18),
               label: Text('Confirm & Enrol ${_staged.length} Students'),
@@ -1010,9 +1009,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Waiver review requested for ${c.studentName}.'), backgroundColor: AdminColors.primary),
-                  );
+                  showSuccessSnackBar(context, 'Waiver review requested for ${c.studentName}.');
                 },
                 style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: BorderSide(color: AdminColors.error), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                 child: const Text('Review Waiver'),
@@ -1093,9 +1090,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   ? null
                   : () {
                       Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${_staged.length} student(s) enrolled into $_courseCode.'), backgroundColor: AdminColors.primary),
-                      );
+                      showSuccessSnackBar(context, '${_staged.length} student(s) enrolled into $_courseCode.');
                     },
               icon: const Icon(Icons.how_to_reg, size: 18),
               label: Text('Confirm & Enrol ${_staged.length} Students', overflow: TextOverflow.ellipsis),

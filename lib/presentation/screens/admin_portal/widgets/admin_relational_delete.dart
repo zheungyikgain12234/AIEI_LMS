@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -52,9 +53,7 @@ Future<bool> runRelationalDelete(
   }
   final messenger = ScaffoldMessenger.of(context);
   await perform(decisions);
-  messenger.showSnackBar(
-    SnackBar(content: Text(deletedMessage ?? '$count $plural deleted')),
-  );
+  showSuccessSnackBarOn(messenger, deletedMessage ?? '$count $plural deleted');
   return true;
 }
 
@@ -238,7 +237,7 @@ Future<bool> runTypedNameDelete(
   if (ok != true || !context.mounted) return false;
   final messenger = ScaffoldMessenger.of(context);
   await perform();
-  messenger.showSnackBar(SnackBar(content: Text('${names.length} ${names.length == 1 ? noun : '${noun}s'} deleted')));
+  showSuccessSnackBarOn(messenger, '${names.length} ${names.length == 1 ? noun : '${noun}s'} deleted');
   return true;
 }
 

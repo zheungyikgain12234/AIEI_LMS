@@ -58,6 +58,9 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
 
   bool _isLoading = true;
   bool _approved = true;
+  String? _loadError;
+  /// This student's submission status (`submitted` / `graded`) by assignment block id; absent = not submitted.
+  Map<String, String> _submissionStatus = {};
   /// "Module n : Name" / "Lesson n : Name" by id (position among what students see).
   final Map<String, String> _labels = {};
   List<_ContentModule> _modules = [];
@@ -79,47 +82,103 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
-    final sectionRow = await _client
-        .from('course_sections')
-        .select('section_code, syllabus_status, lecturers(name)')
-        .eq('id', widget.sectionId)
-        .maybeSingle();
-    // Students only see a syllabus once an admin has approved it.
-    final approved = sectionRow?['syllabus_status'] == SyllabusStatus.approved;
-    final modules = approved ? (await _repository.getModules(widget.sectionId)).where((m) => m.isPublished).toList() : <CourseModule>[];
-    final content = <_ContentModule>[];
-    for (final m in modules) {
-      final sessions = (await _repository.getSessions(m.id)).where((s) => s.isPublished).toList();
-      final withBlocks = <({CourseSession session, List<ContentBlock> blocks})>[];
-      for (final s in sessions) {
-        final blocks = await _repository.getContentBlocks(s.id);
-        withBlocks.add((session: s, blocks: blocks));
-      }
-      content.add((module: m, sessions: withBlocks));
-    }
-    final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
-    if (!mounted) return;
     setState(() {
-      _modules = content;
-      _labels
-        ..clear()
-        ..addEntries([
-          for (var i = 0; i < content.length; i++) ...[
-            MapEntry(content[i].module.id, numberedLabel('Module', i + 1, content[i].module.name)),
-            for (var j = 0; j < content[i].sessions.length; j++)
-              MapEntry(content[i].sessions[j].session.id, numberedLabel('Lesson', j + 1, content[i].sessions[j].session.name)),
-          ],
-        ]);
-      _approved = approved;
-      _announcements = announcements;
-      _classCode = sectionRow == null ? null : displayCode(sectionRow['section_code'] as String);
-      _lecturerName = (sectionRow?['lecturers'] as Map<String, dynamic>?)?['name'] as String?;
-      _expandedModuleIds
-        ..clear()
-        ..addAll(content.map((m) => m.module.id));
-      _isLoading = false;
+      _isLoading = true;
+      _loadError = null;
     });
+    try {
+      final sectionRow = await _client
+          .from('course_sections')
+          .select('section_code, syllabus_status, lecturers(name)')
+          .eq('id', widget.sectionId)
+          .maybeSingle();
+      // Students only see a syllabus once an admin has approved it.
+      final approved = sectionRow?['syllabus_status'] == SyllabusStatus.approved;
+      final modules = approved ? (await _repository.getModules(widget.sectionId)).where((m) => m.isPublished).toList() : <CourseModule>[];
+      // Fetch every module's sessions, and every session's blocks, in
+      // parallel rather than one round trip at a time.
+      final content = await Future.wait(modules.map((m) async {
+        final sessions = (await _repository.getSessions(m.id)).where((s) => s.isPublished).toList();
+        final withBlocks = await Future.wait(sessions.map((s) async => (session: s, blocks: await _repository.getContentBlocks(s.id))));
+        return (module: m, sessions: withBlocks);
+      }));
+      final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
+      final submitted = await _loadSubmissionStatuses(content);
+      if (!mounted) return;
+      setState(() {
+        _submissionStatus = submitted;
+        _modules = content;
+        _labels
+          ..clear()
+          ..addEntries([
+            for (var i = 0; i < content.length; i++) ...[
+              MapEntry(content[i].module.id, numberedLabel('Module', i + 1, content[i].module.name)),
+              for (var j = 0; j < content[i].sessions.length; j++)
+                MapEntry(content[i].sessions[j].session.id, numberedLabel('Lesson', j + 1, content[i].sessions[j].session.name)),
+            ],
+          ]);
+        _approved = approved;
+        _announcements = announcements;
+        _classCode = sectionRow == null ? null : displayCode(sectionRow['section_code'] as String);
+        _lecturerName = (sectionRow?['lecturers'] as Map<String, dynamic>?)?['name'] as String?;
+        _expandedModuleIds
+          ..clear()
+          ..addAll(content.map((m) => m.module.id));
+        _isLoading = false;
+      });
+    } catch (e, st) {
+      debugPrint('CourseContentScreen load failed: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// This student's submission status by assignment block id.
+  Future<Map<String, String>> _loadSubmissionStatuses(List<_ContentModule> content) async {
+    final assignmentIds = [
+      for (final m in content)
+        for (final s in m.sessions)
+          for (final b in s.blocks)
+            if (b.type == ContentBlockType.assignment) b.id,
+    ];
+    if (assignmentIds.isEmpty) return {};
+    final rows = await _client
+        .from('content_block_submissions')
+        .select('content_block_id, status')
+        .eq('student_id', DemoIdentity.studentId)
+        .inFilter('content_block_id', assignmentIds);
+    return {for (final r in rows as List) r['content_block_id'] as String: r['status'] as String? ?? 'submitted'};
+  }
+
+  /// Re-checks which assignments are submitted after returning from one.
+  Future<void> _refreshSubmissions() async {
+    try {
+      final submitted = await _loadSubmissionStatuses(_modules);
+      if (mounted) setState(() => _submissionStatus = submitted);
+    } catch (_) {}
+  }
+
+  Widget _errorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: FacultyColors.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text('Could not load this course.', style: FacultyTypography.bodyMd(), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(_loadError ?? '', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant), textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: _load, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
   }
 
   void _scrollTo(GlobalKey key) {
@@ -144,7 +203,9 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
             ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _modules.isEmpty
+          : _loadError != null
+              ? _errorState()
+              : _modules.isEmpty
               ? _emptyState()
               : SafeArea(top: false, child: mobile ? _buildMobileBody() : _buildDesktopBody()),
     );
@@ -785,7 +846,13 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
       case ContentBlockType.exam:
         return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Exam', onTap: () => _openExam(b));
       case ContentBlockType.assignment:
-        return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Assignment', onTap: () => _openAssignment(b));
+        final status = _submissionStatus[b.id];
+        final pill = status == 'graded'
+            ? _Pill.graded
+            : status != null
+                ? _Pill.submitted
+                : (b.dueDate != null && DateTime.now().isAfter(b.dueDate!) ? _Pill.overdue : null);
+        return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Assignment', onTap: () => _openAssignment(b), pill: pill);
       case ContentBlockType.physicalClass:
         return PhysicalClassAttendanceCard(block: b, studentId: DemoIdentity.studentId);
       case ContentBlockType.physicalExam:
@@ -794,7 +861,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
     }
   }
 
-  Widget _linkRow(String label, {required VoidCallback onTap}) {
+  Widget _linkRow(String label, {required VoidCallback onTap, _Pill? pill})  {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
@@ -806,6 +873,13 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
               style: FacultyTypography.bodySm(color: FacultyColors.primary).copyWith(decoration: TextDecoration.underline, fontWeight: FontWeight.w600),
             ),
           ),
+          if (pill != null)
+            Container(
+              margin: const EdgeInsets.only(left: 8, right: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: pill.background, borderRadius: BorderRadius.circular(999)),
+              child: Text(pill.label, style: FacultyTypography.labelXs(color: pill.foreground).copyWith(fontWeight: FontWeight.w700)),
+            ),
           const Icon(Icons.chevron_right, size: 16, color: FacultyColors.primary),
         ],
       ),
@@ -825,6 +899,19 @@ class _CourseContentScreenState extends State<CourseContentScreen> {
       MaterialPageRoute(
         builder: (_) => AssignmentSubmissionScreen(contentBlockId: b.id, sectionId: widget.sectionId, studentId: DemoIdentity.studentId),
       ),
-    );
+    ).then((_) => _refreshSubmissions());
   }
+}
+
+/// Status pill beside an assignment in the course content: exactly one of
+/// Overdue (past due, nothing submitted), Submitted, or Graded.
+enum _Pill {
+  overdue('Overdue', Color(0xFFFFDAD6), Color(0xFF93000A)),
+  submitted('Submitted', Color(0xFFD8E6FF), Color(0xFF0B3D91)),
+  graded('Graded', Color(0xFFC8F0D4), Color(0xFF0F5C33));
+
+  final String label;
+  final Color background;
+  final Color foreground;
+  const _Pill(this.label, this.background, this.foreground);
 }

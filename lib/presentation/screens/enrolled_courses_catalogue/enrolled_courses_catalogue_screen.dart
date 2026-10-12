@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
@@ -207,12 +208,12 @@ class _EnrolledCoursesCatalogueScreenState
   Future<void> _enrollInCompulsoryCourse(BuildContext context, EnrolledCourse course) async {
     final enrolled = await ref.read(coursesControllerProvider.notifier).enrollInCompulsoryCourse(course.id);
     if (!context.mounted) return;
+    if (enrolled) {
+      showSuccessSnackBar(context, 'Enrolled in ${course.title}.');
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          enrolled ? 'Enrolled in ${course.title}.' : 'No class available for the selected cohort as of now, please try again later.',
-        ),
-      ),
+      const SnackBar(content: Text('No class available for the selected cohort as of now, please try again later.')),
     );
   }
 

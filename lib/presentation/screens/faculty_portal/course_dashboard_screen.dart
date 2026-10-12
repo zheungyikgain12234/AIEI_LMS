@@ -10,6 +10,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_reposito
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
@@ -68,6 +69,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
   int _flaggedCount = 0;
   int _moduleCount = 0;
   int _sessionCount = 0;
+  String _syllabusStatus = SyllabusStatus.draft;
   int _totalAssignmentBlocks = 0;
   List<RosterRow> _rosterRows = const [];
   List<AssessmentColumn> _assessmentColumns = const [];
@@ -119,6 +121,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     // Student Directory's progress/assignment/quiz columns below. ────────
     final moduleRows = await _client.from('course_modules').select('id').eq('section_id', widget.sectionId);
     final moduleIds = [for (final row in moduleRows as List) row['id'] as String];
+    final statusRow = await _client.from('course_sections').select('syllabus_status').eq('id', widget.sectionId).maybeSingle();
+    final syllabusStatus = statusRow?['syllabus_status'] as String? ?? SyllabusStatus.draft;
     final sessionRows = moduleIds.isEmpty
         ? const <dynamic>[]
         : await _client.from('sessions').select('id').inFilter('module_id', moduleIds);
@@ -294,6 +298,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
       _flaggedCount = flaggedCount;
       _moduleCount = modules.length;
       _sessionCount = sessionIds.length;
+      _syllabusStatus = syllabusStatus;
       _totalAssignmentBlocks = totalAssignmentBlocks;
       _rosterRows = rosterRows;
       _assessmentColumns = assessmentColumns;
@@ -586,6 +591,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             iconColor: Colors.white,
             title: 'Modules & Sessions',
             subtitle: '$_moduleCount modules • $_sessionCount sessions',
+            statusPill: _syllabusStatusPill(),
             ctaLabel: 'Edit',
             onTap: _openSyllabusEditor,
           ),
@@ -706,6 +712,19 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     );
   }
 
+  Widget _syllabusStatusPill() {
+    final (label, color) = switch (_syllabusStatus) {
+      SyllabusStatus.approved => ('Approved', const Color(0xFF2E7D32)),
+      SyllabusStatus.submitted => ('Submitted for approval', const Color(0xFFB26A00)),
+      _ => ('Need approval', FacultyColors.error),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+      child: Text(label, style: FacultyTypography.labelXs(color: color).copyWith(fontWeight: FontWeight.w700)),
+    );
+  }
+
   Widget _hubRow({
     required IconData icon,
     required Color iconBg,
@@ -713,6 +732,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     required String title,
     required String subtitle,
     String? trailingBadge,
+    Widget? statusPill,
     required String ctaLabel,
     required VoidCallback onTap,
   }) {
@@ -732,7 +752,14 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: FacultyTypography.titleSm()),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  children: [
+                    Text(title, style: FacultyTypography.titleSm()),
+                    ?statusPill,
+                  ],
+                ),
                 Row(
                   children: [
                     Text(subtitle, style: FacultyTypography.bodySm()),

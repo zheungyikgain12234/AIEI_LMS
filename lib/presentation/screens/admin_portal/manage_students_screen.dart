@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -47,7 +48,10 @@ class ManageStudentsScreen extends StatefulWidget {
 
 enum _SortColumn { name, code, track, department }
 
-class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
+class _ManageStudentsScreenState extends State<ManageStudentsScreen> with RefreshOnReturn<ManageStudentsScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _client = Supabase.instance.client;
   final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
   final _badgesRepository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);

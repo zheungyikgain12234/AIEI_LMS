@@ -10,7 +10,7 @@ import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 /// Lets pushed screens (e.g. course grading) tell screens beneath them
 /// (e.g. the student course catalogue) to refresh when the user navigates
 /// back, so server-side changes aren't hidden behind stale provider state.
-final routeObserver = RouteObserver<ModalRoute<void>>();
+final routeObserver = RouteObserver<PageRoute<dynamic>>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -52,7 +53,7 @@ Future<bool> runRelationalDelete(
     if (ok != true || !context.mounted) return false;
   }
   final messenger = ScaffoldMessenger.of(context);
-  await perform(decisions);
+  await runWithBusy(context, 'Deleting…', () => perform(decisions));
   showSuccessSnackBarOn(messenger, deletedMessage ?? '$count $plural deleted');
   return true;
 }
@@ -236,7 +237,7 @@ Future<bool> runTypedNameDelete(
   );
   if (ok != true || !context.mounted) return false;
   final messenger = ScaffoldMessenger.of(context);
-  await perform();
+  await runWithBusy(context, 'Deleting…', perform);
   showSuccessSnackBarOn(messenger, '${names.length} ${names.length == 1 ? noun : '${noun}s'} deleted');
   return true;
 }

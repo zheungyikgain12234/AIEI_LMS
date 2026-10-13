@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -24,7 +25,10 @@ class ManageSyllabiScreen extends StatefulWidget {
   State<ManageSyllabiScreen> createState() => _ManageSyllabiScreenState();
 }
 
-class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> {
+class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshOnReturn<ManageSyllabiScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<CourseSection> _sections = [];

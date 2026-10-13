@@ -1,3 +1,5 @@
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
@@ -60,7 +62,10 @@ class CourseSyllabusScreen extends StatefulWidget {
   State<CourseSyllabusScreen> createState() => _CourseSyllabusScreenState();
 }
 
-class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
+class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with RefreshOnReturn<CourseSyllabusScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _repository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
   final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
@@ -107,9 +112,28 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
     final settings = await _settingsRepository.getSettings();
     final section = await _lecturersRepository.getSectionById(widget.sectionId);
     final lecturer = await _lecturersRepository.getLecturerById(DemoIdentity.lecturerId);
+    // Re-fetch whatever is already expanded: sessions/content cached from
+    // before (e.g. replaced by a template import) must not linger on screen.
+    final moduleIds = {for (final m in modules) m.id};
+    final freshSessions = <String, List<CourseSession>>{};
+    for (final id in _sessionsByModule.keys.where(moduleIds.contains)) {
+      freshSessions[id] = await _repository.getSessions(id);
+    }
+    final liveSessionIds = {for (final list in freshSessions.values) for (final s in list) s.id};
+    final freshBlocks = <String, List<ContentBlock>>{};
+    for (final id in _blocksBySession.keys.where(liveSessionIds.contains)) {
+      freshBlocks[id] = await _repository.getContentBlocks(id);
+    }
     if (!mounted) return;
     setState(() {
       _modules = modules;
+      _sessionsByModule
+        ..clear()
+        ..addAll(freshSessions);
+      _blocksBySession
+        ..clear()
+        ..addAll(freshBlocks);
+      _expandedSessions.removeWhere((id) => !liveSessionIds.contains(id));
       _hideMarkButtons = settings[AppSettingKeys.hideMarkButtonsInSyllabus] ?? false;
       _modulesLocked = settings[AppSettingKeys.lockModulesForLecturers] ?? false;
       _section = section;
@@ -204,7 +228,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       message: 'This deletes "${_bareName(m.name)}" and every session and content block inside it. This cannot be undone.',
     );
     if (confirmed != true) return;
-    await _repository.deleteModule(m.id);
+    await runWithBusy(context, 'Deleting module…', () => _repository.deleteModule(m.id));
     await _markEdited();
     if (mounted) showSuccessSnackBar(context, 'Module deleted.');
     _expandedModules.remove(m.id);
@@ -388,7 +412,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _saveAsTemplate() async {
     final name = await showDialog<String>(context: context, builder: (_) => const _SaveAsTemplateDialog());
     if (name == null || name.trim().isEmpty) return;
-    await _repository.saveAsTemplate(sectionId: widget.sectionId, name: name.trim());
+    await runWithBusy(context, 'Saving template…', () => _repository.saveAsTemplate(sectionId: widget.sectionId, name: name.trim()));
     if (!mounted) return;
     showSuccessSnackBar(context, 'Saved as template "${name.trim()}".');
   }
@@ -411,9 +435,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
       ),
     );
     if (confirmed != true) return;
-    await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id);
-    await _markEdited();
-    await _load();
+await runWithBusy(context, 'Importing syllabus…', () async {      await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id);      await _markEdited();      await _load();    });
     if (!mounted) return;
     showSuccessSnackBar(context, 'Copied from template "${template.name}".');
   }
@@ -431,7 +453,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   }
 
   Future<void> _setStatus(String status, String message) async {
-    await _repository.setSyllabusStatus(widget.sectionId, status);
+    await runWithBusy(context, 'Updating syllabus status…', () => _repository.setSyllabusStatus(widget.sectionId, status));
     if (!mounted) return;
     setState(() => _syllabusStatus = status);
     showSuccessSnackBar(context, message);

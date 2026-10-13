@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,7 +35,10 @@ class MyAssignedCoursesScreen extends StatefulWidget {
   State<MyAssignedCoursesScreen> createState() => _MyAssignedCoursesScreenState();
 }
 
-class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with WidgetsBindingObserver {
+class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with WidgetsBindingObserver, RefreshOnReturn<MyAssignedCoursesScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);

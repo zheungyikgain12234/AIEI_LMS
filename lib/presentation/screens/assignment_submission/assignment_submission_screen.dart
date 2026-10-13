@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -118,14 +119,14 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
     if (!_canSubmit) return;
     setState(() => _submitting = true);
     try {
-      await _gradingRepository.submitAnswer(
+      await runWithBusy(context, 'Submitting your assignment…', () => _gradingRepository.submitAnswer(
         contentBlockId: widget.contentBlockId,
         studentId: widget.studentId,
         submission: {
           if (_writeupController.text.trim().isNotEmpty) 'writeup': _writeupController.text.trim(),
           if (_files.isNotEmpty) 'files': _files,
         },
-      );
+      ));
       final submission = await _gradingRepository.getSubmission(widget.contentBlockId, widget.studentId);
       if (!mounted) return;
       setState(() {

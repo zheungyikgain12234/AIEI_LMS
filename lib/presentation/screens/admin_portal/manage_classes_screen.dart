@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -32,7 +33,10 @@ class ManageClassesScreen extends StatefulWidget {
 
 enum _SortColumn { section, course, lecturer, cohort, year, enrolled }
 
-class _ManageClassesScreenState extends State<ManageClassesScreen> {
+class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshOnReturn<ManageClassesScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<CourseSection> _sections = [];

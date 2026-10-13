@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,7 +43,10 @@ class LecturerCourseAssignmentScreen extends ConsumerStatefulWidget {
   ConsumerState<LecturerCourseAssignmentScreen> createState() => _LecturerCourseAssignmentScreenState();
 }
 
-class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseAssignmentScreen> {
+class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseAssignmentScreen> with RefreshOnReturn<LecturerCourseAssignmentScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);

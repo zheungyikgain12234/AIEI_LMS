@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -26,7 +27,10 @@ class ManageBadgeCatalogScreen extends StatefulWidget {
   State<ManageBadgeCatalogScreen> createState() => _ManageBadgeCatalogScreenState();
 }
 
-class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
+class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> with RefreshOnReturn<ManageBadgeCatalogScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _repository = SupabaseAdminBadgeCatalogRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<BadgeCatalogItem> _badges = [];

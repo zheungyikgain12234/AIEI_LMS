@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -29,7 +30,10 @@ enum _SortColumn { student, course, badge, date }
 
 String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
+class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnReturn<ManageBadgesScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _repository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<BadgeAward> _awards = [];

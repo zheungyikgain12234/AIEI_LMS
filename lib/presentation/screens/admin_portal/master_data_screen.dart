@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -77,7 +78,10 @@ class MasterDataScreen extends ConsumerStatefulWidget {
   ConsumerState<MasterDataScreen> createState() => _MasterDataScreenState();
 }
 
-class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
+class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with RefreshOnReturn<MasterDataScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   bool _isLoading = true;
   List<MasterDataRow> _rows = [];
   final Set<String> _selected = {};

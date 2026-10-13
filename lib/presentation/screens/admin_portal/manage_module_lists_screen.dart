@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -25,7 +26,10 @@ class ManageModuleListsScreen extends StatefulWidget {
   State<ManageModuleListsScreen> createState() => _ManageModuleListsScreenState();
 }
 
-class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> {
+class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with RefreshOnReturn<ManageModuleListsScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _repository = SupabaseAdminModuleListsRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<ModuleList> _lists = [];

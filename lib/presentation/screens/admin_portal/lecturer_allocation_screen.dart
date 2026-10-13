@@ -1,3 +1,5 @@
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -25,7 +27,10 @@ class LecturerAllocationScreen extends StatefulWidget {
   State<LecturerAllocationScreen> createState() => _LecturerAllocationScreenState();
 }
 
-class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
+class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> with RefreshOnReturn<LecturerAllocationScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<Lecturer> _lecturers = [];
@@ -132,7 +137,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
         lecturers: eligibleLecturers,
         sections: targetSections,
         onConfirm: (sectionId, lecturerId) async {
-          await _repository.assignLecturerToSection(sectionId, lecturerId);
+          await runWithBusy(ctx, 'Assigning lecturer…', () => _repository.assignLecturerToSection(sectionId, lecturerId));
           if (!mounted) return;
           Navigator.of(ctx).pop();
           await _load();

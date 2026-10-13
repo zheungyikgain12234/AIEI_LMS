@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -202,7 +203,7 @@ class _EnrolledCoursesCatalogueScreenState
   }
 
   Future<void> _enrollInCompulsoryCourse(BuildContext context, EnrolledCourse course) async {
-    final enrolled = await ref.read(coursesControllerProvider.notifier).enrollInCompulsoryCourse(course.id);
+    final enrolled = await runWithBusy(context, 'Enrolling…', () => ref.read(coursesControllerProvider.notifier).enrollInCompulsoryCourse(course.id));
     if (!context.mounted) return;
     if (enrolled) {
       showSuccessSnackBar(context, 'Enrolled in ${course.title}.');

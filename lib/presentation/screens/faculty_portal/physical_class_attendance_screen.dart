@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -41,7 +42,10 @@ class _ClassGroup {
   _ClassGroup(this.label, this.items);
 }
 
-class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceScreen> {
+class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceScreen> with RefreshOnReturn<PhysicalClassAttendanceScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;

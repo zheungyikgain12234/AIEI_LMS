@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,6 +10,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
+
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_date_time_field.dart';
 import 'widgets/admin_field_label.dart';
@@ -31,21 +33,39 @@ class ManageClassDetailScreen extends StatefulWidget {
   const ManageClassDetailScreen({super.key, required this.sectionId});
 
   @override
-  State<ManageClassDetailScreen> createState() => _ManageClassDetailScreenState();
+  State<ManageClassDetailScreen> createState() =>
+      _ManageClassDetailScreenState();
 }
 
 class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
-  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
-  final _studentsRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
-  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _studentsRepository = SupabaseAdminStudentsRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(
+    Supabase.instance.client,
+  );
   final _locationController = TextEditingController();
   final _capacityController = TextEditingController();
   final _overrideCodeController = TextEditingController();
   DateTime? _editStartAt;
   DateTime? _editEndAt;
 
-  static const _dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  static const _deliveryModeOptions = [('physical', 'Physical'), ('online', 'Online')];
+  static const _dayOptions = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  static const _deliveryModeOptions = [
+    ('physical', 'Physical'),
+    ('online', 'Online'),
+  ];
   static const _statusOptions = [
     ('scheduled', 'Scheduled'),
     ('in_progress', 'In Progress'),
@@ -98,13 +118,18 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
-  String _formatTime(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
-      final section = await _lecturersRepository.getSectionById(widget.sectionId);
-      final roster = await _studentsRepository.getSectionRoster(widget.sectionId);
+      final section = await _lecturersRepository.getSectionById(
+        widget.sectionId,
+      );
+      final roster = await _studentsRepository.getSectionRoster(
+        widget.sectionId,
+      );
       final cohorts = await _masterDataRepository.getCohorts();
       if (!mounted) return;
       setState(() {
@@ -122,7 +147,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         _editEndAt = section.editEndAt;
         _overrideCodeController.text = section.editOverrideLecturerCode ?? '';
         _deliveryMode = section.deliveryMode;
-        _selectedCohort = _cohorts.contains(section.cohort) ? section.cohort : null;
+        _selectedCohort = _cohorts.contains(section.cohort)
+            ? section.cohort
+            : null;
         _status = section.status;
         _isLoading = false;
       });
@@ -142,13 +169,16 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() => isStart ? _startDate = picked : _endDate = picked);
+    if (picked != null)
+      setState(() => isStart ? _startDate = picked : _endDate = picked);
   }
 
   Future<void> _pickTime({required bool isStart}) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: (isStart ? _startTime : _endTime) ?? const TimeOfDay(hour: 9, minute: 0),
+      initialTime:
+          (isStart ? _startTime : _endTime) ??
+          const TimeOfDay(hour: 9, minute: 0),
     );
     if (picked != null) {
       setState(() => isStart ? _startTime = picked : _endTime = picked);
@@ -161,8 +191,13 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       setState(() => _errorMessage = 'Capacity must be a positive number.');
       return;
     }
-    if (_editStartAt == null || _editEndAt == null || !_editEndAt!.isAfter(_editStartAt!)) {
-      setState(() => _errorMessage = 'Set a syllabus edit period — the end must be after the start.');
+    if (_editStartAt == null ||
+        _editEndAt == null ||
+        !_editEndAt!.isAfter(_editStartAt!)) {
+      setState(
+        () => _errorMessage =
+            'Set a syllabus edit period — the end must be after the start.',
+      );
       return;
     }
     setState(() {
@@ -177,7 +212,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         dayOfWeek: _dayOfWeek,
         startTime: _startTime == null ? null : _formatTime(_startTime!),
         endTime: _endTime == null ? null : _formatTime(_endTime!),
-        location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+        location: _locationController.text.trim().isEmpty
+            ? null
+            : _locationController.text.trim(),
         capacity: capacity,
         deliveryMode: _deliveryMode,
         cohort: _selectedCohort ?? _section!.cohort ?? '',
@@ -202,7 +239,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   }
 
   Future<void> _unenrollSelected() async {
-    final targets = _roster.where((r) => _selected.contains(r.studentId)).toList();
+    final targets = _roster
+        .where((r) => _selected.contains(r.studentId))
+        .toList();
     if (targets.isEmpty) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -214,10 +253,16 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               : 'Unenroll ${targets.length} selected students from this class?',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AdminColors.error, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminColors.error,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Unenroll'),
           ),
         ],
@@ -229,14 +274,20 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     setState(() => _unenrolling.addAll(targets.map((t) => t.studentId)));
     final removed = <String>{};
     Object? failure;
-    for (final s in targets) {
-      try {
-        await _studentsRepository.unenrollStudentFromCourse(s.studentId, courseId, sectionId: widget.sectionId);
-        removed.add(s.studentId);
-      } catch (e) {
-        failure = e;
+    await runWithBusy(context, 'Unenrolling students…', () async {
+      for (final s in targets) {
+        try {
+          await _studentsRepository.unenrollStudentFromCourse(
+            s.studentId,
+            courseId,
+            sectionId: widget.sectionId,
+          );
+          removed.add(s.studentId);
+        } catch (e) {
+          failure = e;
+        }
       }
-    }
+    });
     if (!mounted) return;
     setState(() {
       _roster.removeWhere((r) => removed.contains(r.studentId));
@@ -277,12 +328,17 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     if (removed.isNotEmpty) {
       showSuccessSnackBar(
         context,
-        removed.length == 1 ? 'Unenrolled successfully.' : 'Unenrolled ${removed.length} students successfully.',
+        removed.length == 1
+            ? 'Unenrolled successfully.'
+            : 'Unenrolled ${removed.length} students successfully.',
       );
     }
     if (failure != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to unenroll some students: $failure'), backgroundColor: AdminColors.error),
+        SnackBar(
+          content: Text('Failed to unenroll some students: $failure'),
+          backgroundColor: AdminColors.error,
+        ),
       );
     }
   }
@@ -297,30 +353,38 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AdminColors.onSurface,
-        title: Text(section == null ? 'Manage Class' : 'Manage ${section.sectionCode}', style: AdminTypography.headlineSm()),
+        title: Text(
+          section == null ? 'Manage Class' : 'Manage ${section.sectionCode}',
+          style: AdminTypography.headlineSm(),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : section == null
-              ? Center(child: Text(_errorMessage ?? 'Class not found.', style: AdminTypography.bodyMd()))
-              : Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 640),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _infoCard(section),
-                          const SizedBox(height: 16),
-                          _editCard(),
-                          const SizedBox(height: 16),
-                          _rosterCard(),
-                        ],
-                      ),
-                    ),
+          ? Center(
+              child: Text(
+                _errorMessage ?? 'Class not found.',
+                style: AdminTypography.bodyMd(),
+              ),
+            )
+          : Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _infoCard(section),
+                      const SizedBox(height: 16),
+                      _editCard(),
+                      const SizedBox(height: 16),
+                      _rosterCard(),
+                    ],
                   ),
                 ),
+              ),
+            ),
     );
   }
 
@@ -336,10 +400,15 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(section.courseTitle, style: AdminTypography.titleMd()),
-          Text('${section.courseCode} • ${section.sectionCode}', style: AdminTypography.labelSm()),
+          Text(
+            '${section.courseCode} • ${section.sectionCode}',
+            style: AdminTypography.labelSm(),
+          ),
           const SizedBox(height: 8),
           Text(
-            section.lecturerName == null ? 'Unassigned lecturer' : 'Taught by ${section.lecturerName}',
+            section.lecturerName == null
+                ? 'Unassigned lecturer'
+                : 'Taught by ${section.lecturerName}',
             style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
           ),
         ],
@@ -363,16 +432,36 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           if (_errorMessage != null) ...[
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-              child: Text(_errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+              decoration: BoxDecoration(
+                color: AdminColors.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _errorMessage!,
+                style: AdminTypography.bodySm(
+                  color: AdminColors.onErrorContainer,
+                ),
+              ),
             ),
             const SizedBox(height: 14),
           ],
           Row(
             children: [
-              Expanded(child: _dateField(label: 'Start Date', value: _startDate, onTap: () => _pickDate(isStart: true))),
+              Expanded(
+                child: _dateField(
+                  label: 'Start Date',
+                  value: _startDate,
+                  onTap: () => _pickDate(isStart: true),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _dateField(label: 'End Date', value: _endDate, onTap: () => _pickDate(isStart: false))),
+              Expanded(
+                child: _dateField(
+                  label: 'End Date',
+                  value: _endDate,
+                  onTap: () => _pickDate(isStart: false),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -386,13 +475,29 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _timeField(label: 'Start Time', value: _startTime, onTap: () => _pickTime(isStart: true))),
+              Expanded(
+                child: _timeField(
+                  label: 'Start Time',
+                  value: _startTime,
+                  onTap: () => _pickTime(isStart: true),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _timeField(label: 'End Time', value: _endTime, onTap: () => _pickTime(isStart: false))),
+              Expanded(
+                child: _timeField(
+                  label: 'End Time',
+                  value: _endTime,
+                  onTap: () => _pickTime(isStart: false),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
-          _textField(label: 'Location', controller: _locationController, hint: 'Innovation Hall 204'),
+          _textField(
+            label: 'Location',
+            controller: _locationController,
+            hint: 'Innovation Hall 204',
+          ),
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -406,17 +511,39 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: AdminDateTimeField(label: 'Edit Start', value: _editStartAt, onChanged: (v) => setState(() => _editStartAt = v))),
+              Expanded(
+                child: AdminDateTimeField(
+                  label: 'Edit Start',
+                  value: _editStartAt,
+                  onChanged: (v) => setState(() => _editStartAt = v),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: AdminDateTimeField(label: 'Edit End', value: _editEndAt, defaultHour: 23, onChanged: (v) => setState(() => _editEndAt = v))),
+              Expanded(
+                child: AdminDateTimeField(
+                  label: 'Edit End',
+                  value: _editEndAt,
+                  defaultHour: 23,
+                  onChanged: (v) => setState(() => _editEndAt = v),
+                ),
+              ),
             ],
           ),
-          if (_editStartAt != null && _editEndAt != null && !_editEndAt!.isAfter(_editStartAt!)) ...[
+          if (_editStartAt != null &&
+              _editEndAt != null &&
+              !_editEndAt!.isAfter(_editStartAt!)) ...[
             const SizedBox(height: 8),
-            Text('Edit end must be after edit start.', style: AdminTypography.labelSm(color: AdminColors.error)),
+            Text(
+              'Edit end must be after edit start.',
+              style: AdminTypography.labelSm(color: AdminColors.error),
+            ),
           ],
           const SizedBox(height: 14),
-          _textField(label: 'Edit Override — Lecturer Code (optional)', controller: _overrideCodeController, hint: 'e.g. LEC-0042'),
+          _textField(
+            label: 'Edit Override — Lecturer Code (optional)',
+            controller: _overrideCodeController,
+            hint: 'e.g. LEC-0042',
+          ),
           const SizedBox(height: 4),
           Text(
             'Type a lecturer\'s unique code to let that lecturer edit this syllabus at any time, inside or outside the period. Leave blank for none.',
@@ -427,7 +554,14 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _textField(label: 'Capacity', controller: _capacityController, hint: '50', keyboardType: TextInputType.number)),
+              Expanded(
+                child: _textField(
+                  label: 'Capacity',
+                  controller: _capacityController,
+                  hint: '50',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: _labeledDropdown(
@@ -463,11 +597,23 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                 backgroundColor: AdminColors.primaryContainer,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: _isSaving
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Save Changes'),
             ),
           ),
@@ -494,15 +640,28 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('Enrolled Students (${_roster.length})', style: AdminTypography.titleSm())),
+                    Expanded(
+                      child: Text(
+                        'Enrolled Students (${_roster.length})',
+                        style: AdminTypography.titleSm(),
+                      ),
+                    ),
                     ElevatedButton.icon(
-                      onPressed: _selected.isEmpty || _unenrolling.isNotEmpty ? null : _unenrollSelected,
+                      onPressed: _selected.isEmpty || _unenrolling.isNotEmpty
+                          ? null
+                          : _unenrollSelected,
                       icon: const Icon(Icons.person_remove_outlined, size: 18),
-                      label: Text(_selected.isEmpty ? 'Unenroll Selected' : 'Unenroll Selected (${_selected.length})'),
+                      label: Text(
+                        _selected.isEmpty
+                            ? 'Unenroll Selected'
+                            : 'Unenroll Selected (${_selected.length})',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AdminColors.error,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: AdminColors.error.withValues(alpha: 0.35),
+                        disabledBackgroundColor: AdminColors.error.withValues(
+                          alpha: 0.35,
+                        ),
                         disabledForegroundColor: Colors.white,
                         elevation: 0,
                       ),
@@ -511,7 +670,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                 ),
                 Text(
                   'Tick students, then click Unenroll Selected.',
-                  style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
+                  style: AdminTypography.bodySm(
+                    color: AdminColors.onSurfaceVariant,
+                  ).copyWith(fontStyle: FontStyle.italic),
                 ),
               ],
             ),
@@ -522,7 +683,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               child: TextField(
                 controller: _rosterSearchController,
                 focusNode: _rosterSearchFocus,
-                onChanged: (v) => setState(() => _rosterQuery = v.trim().toLowerCase()),
+                onChanged: (v) =>
+                    setState(() => _rosterQuery = v.trim().toLowerCase()),
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
@@ -530,20 +692,37 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                   fillColor: AdminColors.surfaceContainerLow,
                   hintText: 'Search by student code or name...',
                   hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
             Container(
               padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: AdminColors.surfaceContainer),
+                ),
+              ),
               child: Row(
                 children: [
                   const SizedBox(width: 48),
-                  Expanded(flex: 2, child: _rosterSortHeader('Code', _RosterSort.code)),
-                  Expanded(flex: 4, child: _rosterSortHeader('Name', _RosterSort.name)),
+                  Expanded(
+                    flex: 2,
+                    child: _rosterSortHeader('Code', _RosterSort.code),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: _rosterSortHeader('Name', _RosterSort.name),
+                  ),
                 ],
               ),
             ),
@@ -551,12 +730,18 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           if (_roster.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('No students enrolled in this class.', style: AdminTypography.bodyMd()),
+              child: Text(
+                'No students enrolled in this class.',
+                style: AdminTypography.bodyMd(),
+              ),
             )
           else if (_visibleRoster.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: AdminNoResults(controller: _rosterSearchController, focusNode: _rosterSearchFocus),
+              child: AdminNoResults(
+                controller: _rosterSearchController,
+                focusNode: _rosterSearchFocus,
+              ),
             )
           else
             Column(children: [for (final s in _visibleRoster) _rosterRow(s)]),
@@ -568,7 +753,13 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   List<RosterStudent> get _visibleRoster {
     final filtered = _rosterQuery.isEmpty
         ? [..._roster]
-        : _roster.where((s) => s.name.toLowerCase().contains(_rosterQuery) || s.studentCode.toLowerCase().contains(_rosterQuery)).toList();
+        : _roster
+              .where(
+                (s) =>
+                    s.name.toLowerCase().contains(_rosterQuery) ||
+                    s.studentCode.toLowerCase().contains(_rosterQuery),
+              )
+              .toList();
     filtered.sort((a, b) {
       final cmp = _rosterSort == _RosterSort.code
           ? a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase())
@@ -592,10 +783,19 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          Text(
+            label,
+            style: AdminTypography.labelSm(
+              color: active
+                  ? AdminColors.onSurface
+                  : AdminColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(width: 2),
           Icon(
-            active && !_rosterAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            active && !_rosterAscending
+                ? Icons.arrow_downward
+                : Icons.arrow_upward,
             size: 12,
             color: active ? AdminColors.onSurface : AdminColors.outline,
           ),
@@ -608,11 +808,20 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     final busy = _unenrolling.contains(s.studentId);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
+      ),
       child: Row(
         children: [
           busy
-              ? const SizedBox(width: 24, height: 24, child: Padding(padding: EdgeInsets.all(2), child: CircularProgressIndicator(strokeWidth: 2)))
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Padding(
+                    padding: EdgeInsets.all(2),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
               : Checkbox(
                   value: _selected.contains(s.studentId),
                   onChanged: (v) => setState(() {
@@ -624,8 +833,22 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                   }),
                   activeColor: AdminColors.primaryContainer,
                 ),
-          Expanded(flex: 2, child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
-          Expanded(flex: 4, child: Text(s.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+          Expanded(
+            flex: 2,
+            child: Text(
+              s.studentCode,
+              style: AdminTypography.labelSm(),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Text(
+              s.name,
+              style: AdminTypography.titleSm(),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
@@ -652,15 +875,25 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
             hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap}) {
+  Widget _dateField({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -674,13 +907,29 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               isDense: true,
               filled: true,
               fillColor: AdminColors.surfaceContainerLow,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
+              suffixIcon: const Icon(
+                Icons.calendar_today_outlined,
+                size: 18,
+                color: AdminColors.onSurfaceVariant,
+              ),
             ),
             child: Text(
-              value == null ? 'Select a date' : '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
-              style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+              value == null
+                  ? 'Select a date'
+                  : '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
+              style: AdminTypography.bodyMd(
+                color: value == null
+                    ? AdminColors.outline
+                    : AdminColors.onSurface,
+              ),
             ),
           ),
         ),
@@ -688,7 +937,11 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     );
   }
 
-  Widget _timeField({required String label, required TimeOfDay? value, required VoidCallback onTap}) {
+  Widget _timeField({
+    required String label,
+    required TimeOfDay? value,
+    required VoidCallback onTap,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -702,13 +955,27 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               isDense: true,
               filled: true,
               fillColor: AdminColors.surfaceContainerLow,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              suffixIcon: const Icon(Icons.access_time, size: 18, color: AdminColors.onSurfaceVariant),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
+              suffixIcon: const Icon(
+                Icons.access_time,
+                size: 18,
+                color: AdminColors.onSurfaceVariant,
+              ),
             ),
             child: Text(
               value == null ? 'Select a time' : _formatTime(value),
-              style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+              style: AdminTypography.bodyMd(
+                color: value == null
+                    ? AdminColors.outline
+                    : AdminColors.onSurface,
+              ),
             ),
           ),
         ),
@@ -736,11 +1003,26 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             isDense: true,
             filled: true,
             fillColor: AdminColors.surfaceContainerLow,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
-          hint: Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline)),
-          items: [for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis))],
+          hint: Text(
+            hint,
+            style: AdminTypography.bodySm(color: AdminColors.outline),
+          ),
+          items: [
+            for (final o in options)
+              DropdownMenuItem(
+                value: o,
+                child: Text(o, overflow: TextOverflow.ellipsis),
+              ),
+          ],
           onChanged: onChanged,
         ),
       ],
@@ -766,10 +1048,19 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             isDense: true,
             filled: true,
             fillColor: AdminColors.surfaceContainerLow,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
-          items: [for (final o in options) DropdownMenuItem(value: o.$1, child: Text(o.$2))],
+          items: [
+            for (final o in options)
+              DropdownMenuItem(value: o.$1, child: Text(o.$2)),
+          ],
           onChanged: onChanged,
         ),
       ],

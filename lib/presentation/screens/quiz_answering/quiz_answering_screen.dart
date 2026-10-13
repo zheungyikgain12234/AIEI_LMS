@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
@@ -306,11 +307,11 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
         else
           {'questionId': q.id, 'fileUrls': _fileAnswers[q.id] ?? const []},
     ];
-    await _gradingRepository.submitAnswer(
+    await runWithBusy(context, 'Submitting your answers…', () => _gradingRepository.submitAnswer(
       contentBlockId: widget.contentBlockId,
       studentId: widget.studentId,
       submission: {'answers': answers},
-    );
+    ));
     if (!mounted) return;
     setState(() => _submitting = false);
     showSuccessSnackBar(context, 'Your exam answers have been submitted for evaluation.');

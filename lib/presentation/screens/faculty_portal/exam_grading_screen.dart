@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -196,14 +197,14 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
       for (final q in _questions)
         q.id: q.type.isManuallyGraded ? _parsedTextMarksFor(q)! : _autoScoreFor(q),
     };
-    await _gradingRepository.saveGrade(
+    await runWithBusy(context, 'Saving marks…', () => _gradingRepository.saveGrade(
       contentBlockId: widget.contentBlockId,
       studentId: widget.studentId,
       marks: marks,
       feedback: _feedbackController.text.trim().isEmpty ? null : _feedbackController.text.trim(),
       totalScore: _total,
       gradedByLecturerId: DemoIdentity.lecturerId,
-    );
+    ));
     if (!mounted) return;
     showSuccessSnackBar(context, 'Marks saved.');
     if (andExit || !_hasNextStudent) {

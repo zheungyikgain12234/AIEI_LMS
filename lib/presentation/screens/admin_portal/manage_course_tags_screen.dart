@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -26,7 +27,10 @@ class ManageCourseTagsScreen extends StatefulWidget {
   State<ManageCourseTagsScreen> createState() => _ManageCourseTagsScreenState();
 }
 
-class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
+class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with RefreshOnReturn<ManageCourseTagsScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _repository = SupabaseAdminCourseTagsRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<CourseTagOption> _tags = [];

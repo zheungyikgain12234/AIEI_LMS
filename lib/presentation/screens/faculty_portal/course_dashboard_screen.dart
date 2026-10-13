@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -41,7 +42,10 @@ class CourseDashboardScreen extends StatefulWidget {
   State<CourseDashboardScreen> createState() => _CourseDashboardScreenState();
 }
 
-class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
+class _CourseDashboardScreenState extends State<CourseDashboardScreen> with RefreshOnReturn<CourseDashboardScreen> {
+  @override
+  void onReturnedTo() => _load();
+
   final _client = Supabase.instance.client;
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
   final _rosterRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);

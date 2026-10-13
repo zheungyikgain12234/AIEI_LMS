@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
-import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/enrolled_courses_catalogue_screen.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_header.dart';
 import 'package:stitch_aiei_lms/presentation/screens/enrolled_courses_catalogue/widgets/portal_sidebar.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_top_bar.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/student_navigation.dart';
 import 'controllers/badges_controller.dart';
 import 'controllers/badges_state.dart';
 import 'widgets/badge_stats_row.dart';
@@ -26,13 +26,7 @@ class CertificationsBadgesScreen extends ConsumerWidget {
         appBar: const MobileTopBar(),
         bottomNavigationBar: MobileBottomNav(
           selectedIndex: 1,
-          onTap: (index) {
-            if (index == 0) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const EnrolledCoursesCatalogueScreen()),
-              );
-            }
-          },
+          onTap: (index) => navigateStudentTab(context, index, current: 1),
         ),
         body: state.isLoading
             ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
@@ -63,15 +57,7 @@ class CertificationsBadgesScreen extends ConsumerWidget {
         children: [
           PortalSidebar(
             selectedIndex: 1,
-            onDestinationSelected: (index) {
-              if (index == 0) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) => const EnrolledCoursesCatalogueScreen(),
-                  ),
-                );
-              }
-            },
+            onDestinationSelected: (index) => navigateStudentTab(context, index, current: 1),
           ),
           Expanded(
             child: state.isLoading

@@ -14,4 +14,9 @@ abstract class AnnouncementsRepository {
     required String title,
     required String body,
   });
+
+  /// Edits an existing announcement's title and body.
+  Future<void> updateAnnouncement({required String id, required String title, required String body});
+
+  Future<void> deleteAnnouncement(String id);
 }

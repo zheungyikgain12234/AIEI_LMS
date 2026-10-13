@@ -31,4 +31,14 @@ class SupabaseAnnouncementsRepositoryImpl implements AnnouncementsRepository {
       'body': body,
     });
   }
+
+  @override
+  Future<void> updateAnnouncement({required String id, required String title, required String body}) async {
+    await _client.from('course_announcements').update({'title': title, 'body': body}).eq('id', id);
+  }
+
+  @override
+  Future<void> deleteAnnouncement(String id) async {
+    await _client.from('course_announcements').delete().eq('id', id);
+  }
 }

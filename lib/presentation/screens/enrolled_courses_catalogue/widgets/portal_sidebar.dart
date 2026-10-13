@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 
@@ -44,6 +45,13 @@ class PortalSidebar extends StatelessWidget {
             icon: Icons.military_tech_outlined,
             onTap: () => onDestinationSelected?.call(1),
           ),
+          const SizedBox(height: 6),
+          _SidebarNavItem(
+            title: 'My Grades',
+            isSelected: selectedIndex == 2,
+            icon: Icons.grading_outlined,
+            onTap: () => onDestinationSelected?.call(2),
+          ),
         ],
       ),
     );
@@ -74,33 +82,12 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
   Widget build(BuildContext context) {
     final isSelected = widget.isSelected;
 
-    final Color bgColor;
-    final Color textColor;
-    final FontWeight fontWeight;
-    final List<BoxShadow> shadows;
-
-    if (isSelected) {
-      bgColor = AppColors.secondaryContainer;
-      textColor = AppColors.onSecondaryContainer;
-      fontWeight = FontWeight.w600;
-      shadows = const [
-        BoxShadow(
-          color: Color(0x33316BF3),
-          blurRadius: 4,
-          offset: Offset(0, 2),
-        ),
-      ];
-    } else if (_isHovered) {
-      bgColor = AppColors.surfaceContainerLow;
-      textColor = AppColors.onSurface;
-      fontWeight = FontWeight.w500;
-      shadows = const [];
-    } else {
-      bgColor = Colors.transparent;
-      textColor = AppColors.onSurfaceVariant;
-      fontWeight = FontWeight.w500;
-      shadows = const [];
-    }
+    // Matches the admin portal sidebar's selected / hover colours.
+    final Color bgColor = isSelected
+        ? AdminColors.primaryContainer
+        : (_isHovered ? AdminColors.surfaceContainerLow : Colors.transparent);
+    final Color textColor = isSelected ? AdminColors.onSecondary : AdminColors.onSurfaceVariant;
+    final FontWeight fontWeight = isSelected ? FontWeight.w600 : FontWeight.w500;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -114,7 +101,6 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(8),
-            boxShadow: shadows,
           ),
           child: Row(
             children: [

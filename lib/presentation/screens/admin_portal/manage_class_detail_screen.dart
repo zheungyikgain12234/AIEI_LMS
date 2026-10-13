@@ -18,9 +18,9 @@ import 'widgets/searchable_dropdown.dart';
 // section, reached from the Manage Classes table by its primary key
 // (`sectionId`). Lets the admin view/edit the class's date, schedule,
 // capacity, delivery mode, cohort, and status, and lists every student
-// currently enrolled in this section with a pre-checked box each — unchecking
-// one unenrolls that student immediately (same pattern as the student-side
-// "Manage Enrolled Courses" screen, inverted to be class-centric).
+// currently enrolled in this section with an unchecked box each — tick the
+// students to remove and press the red "Unenroll Selected" button (after a
+// confirmation dialog they are unenrolled in one go).
 // ---------------------------------------------------------------------------
 enum _RosterSort { code, name }
 
@@ -59,6 +59,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   List<RosterStudent> _roster = [];
   List<String> _cohorts = [];
   final Set<String> _unenrolling = {};
+  final Set<String> _selected = {};
   final _rosterSearchController = TextEditingController();
   String _rosterQuery = '';
   _RosterSort _rosterSort = _RosterSort.name;
@@ -197,52 +198,88 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     }
   }
 
-  Future<void> _unenroll(RosterStudent s) async {
+  Future<void> _unenrollSelected() async {
+    final targets = _roster.where((r) => _selected.contains(r.studentId)).toList();
+    if (targets.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unenroll students?'),
+        content: Text(
+          targets.length == 1
+              ? 'Unenroll ${targets.first.name} from this class?'
+              : 'Unenroll ${targets.length} selected students from this class?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AdminColors.error, foregroundColor: Colors.white),
+            child: const Text('Unenroll'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     final courseId = _section!.courseId;
-    setState(() => _unenrolling.add(s.studentId));
-    try {
-      await _studentsRepository.unenrollStudentFromCourse(s.studentId, courseId, sectionId: widget.sectionId);
-      if (!mounted) return;
-      setState(() {
-        _roster.removeWhere((r) => r.studentId == s.studentId);
-        _unenrolling.remove(s.studentId);
-        _section = CourseSection(
-          id: _section!.id,
-          courseId: _section!.courseId,
-          courseCode: _section!.courseCode,
-          courseTitle: _section!.courseTitle,
-          sectionCode: _section!.sectionCode,
-          roleLabel: _section!.roleLabel,
-          term: _section!.term,
-          scheduleText: _section!.scheduleText,
-          dayOfWeek: _section!.dayOfWeek,
-          startTime: _section!.startTime,
-          endTime: _section!.endTime,
-          location: _section!.location,
-          lecturerId: _section!.lecturerId,
-          lecturerName: _section!.lecturerName,
-          capacity: _section!.capacity,
-          deliveryMode: _section!.deliveryMode,
-          cohortId: _section!.cohortId,
-          cohort: _section!.cohort,
-          cohortCode: _section!.cohortCode,
-          cohortYear: _section!.cohortYear,
-          enrolledCount: _roster.length,
-          status: _section!.status,
-          startDate: _section!.startDate,
-          endDate: _section!.endDate,
-          editStartAt: _section!.editStartAt,
-          editEndAt: _section!.editEndAt,
-          editOverrideLecturerCode: _section!.editOverrideLecturerCode,
-          syllabusStatus: _section!.syllabusStatus,
-        );
-      });
-      showSuccessSnackBar(context, 'Unenrolled ${s.name}.');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _unenrolling.remove(s.studentId));
+    setState(() => _unenrolling.addAll(targets.map((t) => t.studentId)));
+    final removed = <String>{};
+    Object? failure;
+    for (final s in targets) {
+      try {
+        await _studentsRepository.unenrollStudentFromCourse(s.studentId, courseId, sectionId: widget.sectionId);
+        removed.add(s.studentId);
+      } catch (e) {
+        failure = e;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _roster.removeWhere((r) => removed.contains(r.studentId));
+      _selected.removeAll(removed);
+      _unenrolling.clear();
+      final s = _section!;
+      _section = CourseSection(
+        id: s.id,
+        courseId: s.courseId,
+        courseCode: s.courseCode,
+        courseTitle: s.courseTitle,
+        sectionCode: s.sectionCode,
+        roleLabel: s.roleLabel,
+        term: s.term,
+        scheduleText: s.scheduleText,
+        dayOfWeek: s.dayOfWeek,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        location: s.location,
+        lecturerId: s.lecturerId,
+        lecturerName: s.lecturerName,
+        capacity: s.capacity,
+        deliveryMode: s.deliveryMode,
+        cohortId: s.cohortId,
+        cohort: s.cohort,
+        cohortCode: s.cohortCode,
+        cohortYear: s.cohortYear,
+        enrolledCount: _roster.length,
+        status: s.status,
+        startDate: s.startDate,
+        endDate: s.endDate,
+        editStartAt: s.editStartAt,
+        editEndAt: s.editEndAt,
+        editOverrideLecturerCode: s.editOverrideLecturerCode,
+        syllabusStatus: s.syllabusStatus,
+      );
+    });
+    if (removed.isNotEmpty) {
+      showSuccessSnackBar(
+        context,
+        removed.length == 1 ? 'Unenrolled successfully.' : 'Unenrolled ${removed.length} students successfully.',
+      );
+    }
+    if (failure != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to unenroll: $e'), backgroundColor: AdminColors.error),
+        SnackBar(content: Text('Failed to unenroll some students: $failure'), backgroundColor: AdminColors.error),
       );
     }
   }
@@ -452,9 +489,25 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Enrolled Students (${_roster.length})', style: AdminTypography.titleSm()),
+                Row(
+                  children: [
+                    Expanded(child: Text('Enrolled Students (${_roster.length})', style: AdminTypography.titleSm())),
+                    ElevatedButton.icon(
+                      onPressed: _selected.isEmpty || _unenrolling.isNotEmpty ? null : _unenrollSelected,
+                      icon: const Icon(Icons.person_remove_outlined, size: 18),
+                      label: Text(_selected.isEmpty ? 'Unenroll Selected' : 'Unenroll Selected (${_selected.length})'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AdminColors.error,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AdminColors.error.withValues(alpha: 0.35),
+                        disabledForegroundColor: Colors.white,
+                        elevation: 0,
+                      ),
+                    ),
+                  ],
+                ),
                 Text(
-                  'Uncheck to unenroll.',
+                  'Tick students, then click Unenroll Selected.',
                   style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
                 ),
               ],
@@ -557,10 +610,14 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           busy
               ? const SizedBox(width: 24, height: 24, child: Padding(padding: EdgeInsets.all(2), child: CircularProgressIndicator(strokeWidth: 2)))
               : Checkbox(
-                  value: true,
-                  onChanged: (v) {
-                    if (v == false) _unenroll(s);
-                  },
+                  value: _selected.contains(s.studentId),
+                  onChanged: (v) => setState(() {
+                    if (v == true) {
+                      _selected.add(s.studentId);
+                    } else {
+                      _selected.remove(s.studentId);
+                    }
+                  }),
                   activeColor: AdminColors.primaryContainer,
                 ),
           Expanded(flex: 2, child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),

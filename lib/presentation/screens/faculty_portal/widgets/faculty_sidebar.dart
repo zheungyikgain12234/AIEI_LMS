@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 
@@ -89,10 +90,11 @@ class _NavItemState extends State<_NavItem> {
   @override
   Widget build(BuildContext context) {
     final selected = widget.isSelected;
+    // Matches the admin portal sidebar's selected / hover colours.
     final bg = selected
-        ? FacultyColors.primaryContainer
-        : (_hovered ? FacultyColors.surfaceContainerHigh : Colors.transparent);
-    final fg = selected ? FacultyColors.onPrimaryContainer : FacultyColors.onSurfaceVariant;
+        ? AdminColors.primaryContainer
+        : (_hovered ? AdminColors.surfaceContainerLow : Colors.transparent);
+    final fg = selected ? AdminColors.onSecondary : AdminColors.onSurfaceVariant;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -126,7 +128,7 @@ class _NavItemState extends State<_NavItem> {
                   child: Text(
                     '${widget.trailing}',
                     style: FacultyTypography.labelXs(
-                      color: selected ? FacultyColors.onPrimaryContainer : FacultyColors.primary,
+                      color: selected ? AdminColors.onSecondary : FacultyColors.primary,
                     ).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),

@@ -6,7 +6,6 @@ import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/critical_action_item.dart';
 import 'package:stitch_aiei_lms/presentation/screens/course_info/course_content_screen.dart';
-import 'package:stitch_aiei_lms/presentation/screens/certifications_badges/certifications_badges_screen.dart';
 import 'controllers/courses_controller.dart';
 import 'controllers/courses_state.dart';
 import 'widgets/portal_header.dart';
@@ -18,6 +17,7 @@ import 'widgets/enroll_target_picker.dart';
 import 'widgets/course_grid.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_top_bar.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/student_navigation.dart';
 
 const double _kMobileBreakpoint = 700;
 
@@ -75,12 +75,8 @@ class _EnrolledCoursesCatalogueScreenState
           PortalSidebar(
             selectedIndex: _sidebarIndex,
             onDestinationSelected: (index) {
-              if (index == 1) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) => const CertificationsBadgesScreen(),
-                  ),
-                );
+              if (index != 0) {
+                navigateStudentTab(context, index, current: 0);
                 return;
               }
               setState(() => _sidebarIndex = index);
@@ -243,13 +239,7 @@ class _EnrolledCoursesCatalogueScreenState
       appBar: const MobileTopBar(),
       bottomNavigationBar: MobileBottomNav(
         selectedIndex: 0,
-        onTap: (index) {
-          if (index == 1) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const CertificationsBadgesScreen()),
-            );
-          }
-        },
+        onTap: (index) => navigateStudentTab(context, index, current: 0),
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))

@@ -332,6 +332,68 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
     showSuccessSnackBar(context, 'Announcement posted.');
   }
 
+  Future<void> _reloadAnnouncements() async {
+    final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
+    if (!mounted) return;
+    setState(() => _announcements = announcements);
+  }
+
+  Future<void> _editAnnouncement(CourseAnnouncement a) async {
+    final titleController = TextEditingController(text: a.title);
+    final bodyController = TextEditingController(text: a.body);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Announcement'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Subject')),
+              const SizedBox(height: 12),
+              TextField(controller: bodyController, maxLines: 4, decoration: const InputDecoration(labelText: 'Content')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    final title = titleController.text.trim();
+    final body = bodyController.text.trim();
+    titleController.dispose();
+    bodyController.dispose();
+    if (saved != true || title.isEmpty) return;
+    await _announcementsRepository.updateAnnouncement(id: a.id, title: title, body: body);
+    await _reloadAnnouncements();
+    if (mounted) showSuccessSnackBar(context, 'Announcement updated.');
+  }
+
+  Future<void> _deleteAnnouncement(CourseAnnouncement a) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete announcement?'),
+        content: Text('"${a.title}" will be removed for all students in this class.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: FacultyColors.error, foregroundColor: Colors.white),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _announcementsRepository.deleteAnnouncement(a.id);
+    await _reloadAnnouncements();
+    if (mounted) showSuccessSnackBar(context, 'Announcement deleted.');
+  }
+
   void _handleNav(FacultyNavDestination dest) {
     switch (dest) {
       case FacultyNavDestination.myCourses:
@@ -824,7 +886,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> {
           else
             for (var i = 0; i < _announcements.length; i++) ...[
               if (i > 0) const SizedBox(height: 8),
-              AnnouncementCard(announcement: _announcements[i]),
+              AnnouncementCard(
+                announcement: _announcements[i],
+                onEdit: () => _editAnnouncement(_announcements[i]),
+                onDelete: () => _deleteAnnouncement(_announcements[i]),
+              ),
             ],
           if (_showAnnouncementForm) ...[
             const SizedBox(height: 16),

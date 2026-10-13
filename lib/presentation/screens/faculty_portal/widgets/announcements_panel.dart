@@ -22,7 +22,11 @@ String formatAnnouncementTime(DateTime dt) {
 class AnnouncementCard extends StatelessWidget {
   final CourseAnnouncement announcement;
 
-  const AnnouncementCard({super.key, required this.announcement});
+  /// When set, the card shows edit / delete buttons (lecturer's own view).
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  const AnnouncementCard({super.key, required this.announcement, this.onEdit, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +46,22 @@ class AnnouncementCard extends StatelessWidget {
                 ),
               ),
               Text(formatAnnouncementTime(announcement.createdAt), style: FacultyTypography.labelXs()),
+              if (onEdit != null)
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  color: FacultyColors.onSurfaceVariant,
+                  visualDensity: VisualDensity.compact,
+                ),
+              if (onDelete != null)
+                IconButton(
+                  tooltip: 'Delete',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  color: FacultyColors.error,
+                  visualDensity: VisualDensity.compact,
+                ),
             ],
           ),
           const SizedBox(height: 2),

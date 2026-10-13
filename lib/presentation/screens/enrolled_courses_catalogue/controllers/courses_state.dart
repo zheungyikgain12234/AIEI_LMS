@@ -181,7 +181,6 @@ class CoursesState {
       final matchesTag = selectedCompulsoryTag == null || course.tags.any((t) => t.label == selectedCompulsoryTag);
       final matchesQuery = query.isEmpty ||
           course.title.toLowerCase().contains(query) ||
-          course.instructorOrBoard.toLowerCase().contains(query) ||
           course.tags.any((t) => t.label.toLowerCase().contains(query));
       return matchesTag && matchesQuery;
     }).toList();

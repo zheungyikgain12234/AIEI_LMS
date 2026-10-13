@@ -1577,10 +1577,10 @@ insert into content_blocks (id, session_id, block_type, block_content, block_sor
 
 -- ── Course announcements (Faculty Portal Course Dashboard "Course
 -- Announcements" card, mirrored read-only in the student Course Content
--- right sidebar) — seeded for PY-402's class so the demo isn't empty. ─────
+-- right sidebar) — seeded for Dr. Brown's AI-330 class so the demo isn't empty. ─────
 insert into course_announcements (section_id, lecturer_id, title, body, created_at) values
-  ((select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), '11111111-1111-1111-1111-111111111106', 'Office hours moved to Thursday 3 PM', 'Due to the departmental curriculum council meeting, our usual Wednesday slot is moved. Room 402 or via Zoom bridge.', now() - interval '1 day'),
-  ((select id from course_sections where section_code = 'TN01-CLS-PY402-A01'), '11111111-1111-1111-1111-111111111106', 'Starter repo updated for Assignment 02', 'A patch was pushed to address the dataset schema parser warning in Python 3.11. Please run git pull before continuing.', now() - interval '8 days');
+  ((select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), '11111111-1111-1111-1111-111111111106', 'Office hours moved to Thursday 3 PM', 'Due to the departmental curriculum council meeting, our usual Wednesday slot is moved. Room 402 or via Zoom bridge.', now() - interval '1 day'),
+  ((select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), '11111111-1111-1111-1111-111111111106', 'Starter repo updated for Assignment 02', 'A patch was pushed to address the dataset schema parser warning in Python 3.11. Please run git pull before continuing.', now() - interval '8 days');
 
 -- ── Module Lists (master data — importable while creating a class) ──────
 

@@ -396,10 +396,22 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> {
   Future<void> _copyFromTemplate() async {
     final template = await showDialog<SyllabusTemplate>(
       context: context,
-      builder: (_) => _CopyFromTemplateDialog(repository: _repository, classModuleNames: _modulesLocked ? [for (final m in _modules) m.name] : null),
+      builder: (_) => _CopyFromTemplateDialog(repository: _repository, classModuleNames: [for (final m in _modules) m.name]),
     );
-    if (template == null) return;
-    await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id, intoExistingModules: _modulesLocked);
+    if (template == null || !mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Overwrite syllabus?'),
+        content: Text('Importing "${template.name}" replaces all existing sessions and content in this class. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Overwrite')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _repository.copyFromTemplate(sectionId: widget.sectionId, templateId: template.id);
     await _markEdited();
     await _load();
     if (!mounted) return;
@@ -2211,11 +2223,11 @@ class _SaveAsTemplateDialogState extends State<_SaveAsTemplateDialog> {
 class _CopyFromTemplateDialog extends StatefulWidget {
   final SupabaseLecturerSyllabusRepositoryImpl repository;
 
-  /// When non-null (modules are locked), only templates whose modules are
-  /// exactly these — same names, same order — can be copied.
-  final List<String>? classModuleNames;
+  /// Only templates whose modules are exactly these — same names, same
+  /// order — can be imported.
+  final List<String> classModuleNames;
 
-  const _CopyFromTemplateDialog({required this.repository, this.classModuleNames});
+  const _CopyFromTemplateDialog({required this.repository, required this.classModuleNames});
 
   @override
   State<_CopyFromTemplateDialog> createState() => _CopyFromTemplateDialogState();
@@ -2236,13 +2248,11 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
   Future<void> _load() async {
     final templates = await widget.repository.getTemplates();
     final required = widget.classModuleNames;
-    if (required != null) {
-      String norm(String s) => s.trim().toLowerCase();
-      for (final t in templates) {
-        final names = await widget.repository.getTemplateModuleNames(t.id);
-        final same = names.length == required.length && [for (var i = 0; i < names.length; i++) i].every((i) => norm(names[i]) == norm(required[i]));
-        if (!same) _incompatible.add(t.id);
-      }
+    String norm(String s) => s.trim().toLowerCase();
+    for (final t in templates) {
+      final names = await widget.repository.getTemplateModuleNames(t.id);
+      final same = names.length == required.length && [for (var i = 0; i < names.length; i++) i].every((i) => norm(names[i]) == norm(required[i]));
+      if (!same) _incompatible.add(t.id);
     }
     if (!mounted) return;
     setState(() {

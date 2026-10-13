@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/course_syllabus_screen.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -29,6 +30,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> {
   List<CourseSection> _sections = [];
   String? _statusFilter;
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   @override
@@ -41,6 +43,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -144,6 +147,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> {
               children: [
                 TextField(
                   controller: _searchController,
+                  focusNode: _searchFocus,
                   style: AdminTypography.bodySm(color: AdminColors.onSurface),
                   decoration: InputDecoration(
                     isDense: true,
@@ -173,7 +177,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> {
             ),
           ),
           if (rows.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: Text('No syllabi found.', style: AdminTypography.bodyMd()))
+            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
           else
             Column(children: [for (final s in rows) _row(s)]),
         ],

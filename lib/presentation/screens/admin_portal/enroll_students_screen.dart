@@ -10,6 +10,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_role_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -43,6 +44,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   late Set<String> _staged;
   Set<String> _roleMismatchCandidateIds = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   CourseSection? get _section {
@@ -98,6 +100,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -432,6 +435,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   children: [
                     TextField(
                       controller: _searchController,
+                      focusNode: _searchFocus,
                       style: AdminTypography.bodySm(color: AdminColors.onSurface),
                       decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search student by name, corporate ID, track...', hintStyle: AdminTypography.bodySm(color: AdminColors.outline), prefixIcon: const Icon(Icons.search, size: 16, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
                     ),
@@ -448,6 +452,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(width: 950, child: Column(children: [for (final c in _filteredCandidates) _candidateRow(c)])),
+              ),
+              if (_filteredCandidates.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
               ),
             ],
           ),
@@ -682,6 +691,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 const SizedBox(height: 10),
                 _mobileFilterBar(),
                 const SizedBox(height: 16),
+                if (_filteredCandidates.isEmpty) AdminNoResults(controller: _searchController, focusNode: _searchFocus),
                 for (final c in _filteredCandidates) ...[
                   _mobileCandidateCard(c),
                   const SizedBox(height: 12),
@@ -791,6 +801,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget _mobileSearchField() {
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocus,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         isDense: true,

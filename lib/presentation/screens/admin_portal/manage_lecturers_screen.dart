@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -41,6 +42,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   int _page = 1;
   int _pageSize = adminPageSizeOptions.first;
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   List<Lecturer> get _filteredLecturers {
@@ -123,6 +125,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -369,6 +372,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
             color: AdminColors.surfaceContainerLow,
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -421,7 +425,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
             ),
           if (_filteredLecturers.isNotEmpty) _headerRow(),
           if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: Text('No faculty found.', style: AdminTypography.bodyMd())),
+            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
           Column(children: [for (final l in _pagedLecturers) _lecturerRow(l)]),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -615,7 +619,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
               ],
               const SizedBox(height: 16),
               if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No faculty found.', style: AdminTypography.bodyMd())),
+                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
               for (final l in _pagedLecturers) ...[
                 _mobileLecturerCard(l),
                 const SizedBox(height: 12),
@@ -647,6 +651,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> {
   Widget _mobileSearchField() {
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocus,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         isDense: true,

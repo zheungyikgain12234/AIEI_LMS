@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -31,6 +32,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
   List<CourseTagOption> _tags = [];
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   @override
@@ -43,6 +45,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -204,6 +207,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -245,7 +249,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> {
               ),
             ),
           if (tags.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: Text('No course tags found.', style: AdminTypography.bodyMd()))
+            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
           else
             Column(children: [for (final t in tags) _row(t)]),
         ],

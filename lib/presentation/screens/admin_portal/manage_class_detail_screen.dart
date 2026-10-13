@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_date_time_field.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
@@ -61,6 +62,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   final Set<String> _unenrolling = {};
   final Set<String> _selected = {};
   final _rosterSearchController = TextEditingController();
+  final _rosterSearchFocus = FocusNode();
   String _rosterQuery = '';
   _RosterSort _rosterSort = _RosterSort.name;
   bool _rosterAscending = true;
@@ -86,6 +88,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     _capacityController.dispose();
     _overrideCodeController.dispose();
     _rosterSearchController.dispose();
+    _rosterSearchFocus.dispose();
     super.dispose();
   }
 
@@ -518,6 +521,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: TextField(
                 controller: _rosterSearchController,
+                focusNode: _rosterSearchFocus,
                 onChanged: (v) => setState(() => _rosterQuery = v.trim().toLowerCase()),
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
@@ -552,7 +556,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           else if (_visibleRoster.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('No students match your search.', style: AdminTypography.bodyMd()),
+              child: AdminNoResults(controller: _rosterSearchController, focusNode: _rosterSearchFocus),
             )
           else
             Column(children: [for (final s in _visibleRoster) _rosterRow(s)]),

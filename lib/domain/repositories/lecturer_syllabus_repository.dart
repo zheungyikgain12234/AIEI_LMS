@@ -75,14 +75,12 @@ abstract class LecturerSyllabusRepository {
   /// into a new named template.
   Future<void> saveAsTemplate({required String sectionId, required String name});
 
-  /// Deep-copies a template's modules → sessions → content-blocks into the
-  /// class, appended after any modules it already has.
-  ///
-  /// With [intoExistingModules] (used when modules are locked for lecturers)
-  /// no modules are created: the template must have exactly the class's
-  /// modules (same names, same order) and only its sessions/content are
-  /// appended into them; otherwise a [StateError] is thrown.
-  Future<void> copyFromTemplate({required String sectionId, required String templateId, bool intoExistingModules = false});
+  /// Imports a template into the class, overwriting its syllabus: the
+  /// template must have exactly the class's modules (same names, same order),
+  /// otherwise a [StateError] is thrown and nothing changes. On a match every
+  /// existing session (and its content) is deleted and replaced by the
+  /// template's sessions → content-blocks.
+  Future<void> copyFromTemplate({required String sectionId, required String templateId});
 
   /// A template's module names in order — to check it against a class's modules.
   Future<List<String>> getTemplateModuleNames(String templateId);

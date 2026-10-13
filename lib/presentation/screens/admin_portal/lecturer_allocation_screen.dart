@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -30,6 +31,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
   List<Lecturer> _lecturers = [];
   List<CourseSection> _sections = [];
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   final Set<String> _assigned = {};
@@ -51,6 +53,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -329,6 +332,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
               Expanded(
                 child: TextField(
                   controller: _searchController,
+                  focusNode: _searchFocus,
                   style: AdminTypography.bodySm(color: AdminColors.onSurface),
                   decoration: InputDecoration(
                     isDense: true,
@@ -353,7 +357,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
         ),
         const SizedBox(height: 12),
         if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
-          Padding(padding: const EdgeInsets.all(24), child: Text('No faculty found.', style: AdminTypography.bodyMd())),
+          Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
         for (final l in _filteredLecturers) ...[
           _facultyCard(l),
           const SizedBox(height: 16),
@@ -791,7 +795,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
               _mobileFilterChips(),
               const SizedBox(height: 16),
               if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No faculty found.', style: AdminTypography.bodyMd())),
+                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
               for (final l in _filteredLecturers) ...[
                 _mobileFacultyCard(l),
                 const SizedBox(height: 12),
@@ -1078,6 +1082,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> {
   Widget _mobileSearchField() {
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocus,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         filled: true,

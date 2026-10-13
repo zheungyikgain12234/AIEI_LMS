@@ -6,6 +6,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -30,6 +31,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> {
   List<ModuleList> _lists = [];
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   @override
@@ -42,6 +44,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -229,6 +232,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -270,7 +274,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> {
               ),
             ),
           if (lists.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: Text('No module lists found.', style: AdminTypography.bodyMd()))
+            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
           else
             Column(children: [for (final l in lists) _row(l)]),
         ],

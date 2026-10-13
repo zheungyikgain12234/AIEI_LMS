@@ -16,6 +16,7 @@ import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show LecturerClassSlot;
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_date_time_field.dart';
 import 'widgets/module_names_editor.dart';
@@ -63,6 +64,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   String? _selectedCourseId;
   final Set<String> _selectedToUnassign = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   final _locationController = TextEditingController();
   final _classCodeController = TextEditingController();
   final _capacityController = TextEditingController();
@@ -90,6 +92,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     _locationController.dispose();
     _classCodeController.dispose();
     _capacityController.dispose();
@@ -821,6 +824,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -837,7 +841,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           if (courses.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: Text('No courses found.', style: AdminTypography.bodyMd()),
+              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
             )
           else
             Column(children: [for (final c in courses) _courseRow(c)]),

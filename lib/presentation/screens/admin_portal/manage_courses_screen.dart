@@ -6,6 +6,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -37,6 +38,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   List<AdminCourse> _courses = [];
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
   _SortColumn _sortColumn = _SortColumn.code;
   bool _sortAscending = true;
@@ -79,6 +81,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -238,6 +241,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
+                focusNode: _searchFocus,
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
@@ -261,7 +265,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
               ],
               const SizedBox(height: 16),
               if (courses.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No courses found.', style: AdminTypography.bodyMd()))
+                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
               else ...[
                 for (final c in _paged(courses)) ...[
                   _mobileCourseCard(c),
@@ -382,6 +386,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -436,7 +441,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> {
           if (courses.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: Text('No courses found.', style: AdminTypography.bodyMd()),
+              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
             )
           else
             Column(children: [for (final c in _paged(courses)) _courseRow(c)]),

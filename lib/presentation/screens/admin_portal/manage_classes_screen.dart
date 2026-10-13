@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -37,6 +38,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
   List<CourseSection> _sections = [];
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
   _SortColumn _sortColumn = _SortColumn.section;
   bool _sortAscending = true;
@@ -83,6 +85,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -206,6 +209,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
+                focusNode: _searchFocus,
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
@@ -229,7 +233,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
               ],
               const SizedBox(height: 16),
               if (sections.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No classes found.', style: AdminTypography.bodyMd()))
+                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
               else ...[
                 for (final s in _paged(sections)) ...[
                   _mobileSectionCard(s),
@@ -346,6 +350,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -400,7 +405,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> {
           if (sections.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: Text('No classes found.', style: AdminTypography.bodyMd()),
+              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
             )
           else
             Column(children: [for (final s in _paged(sections)) _sectionRow(s)]),

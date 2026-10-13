@@ -4,6 +4,7 @@ import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -81,6 +82,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
   List<MasterDataRow> _rows = [];
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
   _SortColumn _sortColumn = _SortColumn.code;
   bool _sortAscending = true;
@@ -95,6 +97,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -412,6 +415,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -466,7 +470,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> {
           if (rows.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: Text('No ${widget.itemLabel.toLowerCase()}s found.', style: AdminTypography.bodyMd()),
+              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
             )
           else
             Column(children: [for (final r in rows) _row(r)]),

@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badges_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -34,6 +35,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
   List<BadgeAward> _awards = [];
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
   _SortColumn _sortColumn = _SortColumn.student;
   bool _sortAscending = true;
@@ -80,6 +82,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -212,6 +215,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
+                focusNode: _searchFocus,
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
@@ -235,7 +239,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
               ],
               const SizedBox(height: 16),
               if (awards.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No badge awards found.', style: AdminTypography.bodyMd()))
+                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
               else ...[
                 for (final a in _paged(awards)) ...[
                   _mobileAwardCard(a),
@@ -355,6 +359,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -408,7 +413,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> {
           if (awards.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: Text('No badge awards found.', style: AdminTypography.bodyMd()),
+              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
             )
           else
             _headerRow(),

@@ -250,7 +250,7 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
   }
 
   @override
-  Future<void> copyFromTemplate({required String sectionId, required String templateId, bool intoExistingModules = false}) async {
+  Future<void> copyFromTemplate({required String sectionId, required String templateId}) async {
     final existingModules = await _client.from('course_modules').select('id, module_name').eq('section_id', sectionId).order('module_sorting', ascending: true);
     final existing = existingModules as List;
 
@@ -258,44 +258,28 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
         await _client.from('template_modules').select().eq('template_id', templateId).order('module_sorting', ascending: true);
     final templateList = templateModules as List;
 
-    if (intoExistingModules) {
-      // Modules are locked: the template's modules must be exactly the
-      // class's modules (same names, same order); only sessions are copied.
-      final matches = existing.length == templateList.length &&
-          [for (var i = 0; i < existing.length; i++) i].every(
-            (i) => _sameModuleName(existing[i]['module_name'] as String, templateList[i]['module_name'] as String),
-          );
-      if (!matches) {
-        throw StateError('This template\'s modules are not exactly the same as this class\'s modules.');
-      }
-      for (var i = 0; i < existing.length; i++) {
-        final moduleId = existing[i]['id'] as String;
-        final sessionRows = await _client.from('sessions').select('id').eq('module_id', moduleId);
-        await _copyTemplateSessions(
-          templateModuleId: (templateList[i] as Map<String, dynamic>)['id'] as String,
-          newModuleId: moduleId,
-          startSorting: (sessionRows as List).length,
+    // The template's module list must be exactly the class's (same names,
+    // same order); otherwise nothing is touched.
+    final matches = existing.length == templateList.length &&
+        [for (var i = 0; i < existing.length; i++) i].every(
+          (i) => _sameModuleName(existing[i]['module_name'] as String, templateList[i]['module_name'] as String),
         );
-      }
-      return;
+    if (!matches) {
+      throw StateError('This template\'s modules are not exactly the same as this class\'s modules.');
     }
 
-    var moduleSorting = existing.length;
-    for (final tm in templateList) {
-      final tmMap = tm as Map<String, dynamic>;
-      final newModule = await _client
-          .from('course_modules')
-          .insert({
-            'section_id': sectionId,
-            'module_name': tmMap['module_name'],
-            'module_description': tmMap['module_description'],
-            'module_sorting': moduleSorting++,
-            'is_published': tmMap['is_published'],
-            'unlock_at': tmMap['unlock_at'],
-          })
-          .select()
-          .single();
-      await _copyTemplateSessions(templateModuleId: tmMap['id'] as String, newModuleId: newModule['id'] as String, startSorting: 0);
+    // Overwrite: clear every existing session (content blocks cascade), then
+    // copy the template's sessions into the class's own modules.
+    final moduleIds = [for (final m in existing) (m as Map<String, dynamic>)['id'] as String];
+    if (moduleIds.isNotEmpty) {
+      await _client.from('sessions').delete().inFilter('module_id', moduleIds);
+    }
+    for (var i = 0; i < existing.length; i++) {
+      await _copyTemplateSessions(
+        templateModuleId: (templateList[i] as Map<String, dynamic>)['id'] as String,
+        newModuleId: moduleIds[i],
+        startSorting: 0,
+      );
     }
   }
 

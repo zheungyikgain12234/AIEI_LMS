@@ -20,6 +20,7 @@ import 'package:stitch_aiei_lms/domain/models/department.dart';
 import 'package:stitch_aiei_lms/domain/models/program_track.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -64,6 +65,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   int _page = 1;
   int _pageSize = adminPageSizeOptions.first;
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   final Set<String> _selected = {};
@@ -217,6 +219,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -844,6 +847,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -903,7 +907,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
             ),
           if (_filteredStudents.isNotEmpty) _headerRow(),
           if (_students.isNotEmpty && _filteredStudents.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: Text('No students found.', style: AdminTypography.bodyMd())),
+            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
           Column(children: [for (final s in _pagedStudents) _studentRow(s)]),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -1260,7 +1264,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
               ],
               const SizedBox(height: 16),
               if (_students.isNotEmpty && _filteredStudents.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No students found.', style: AdminTypography.bodyMd())),
+                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
               for (final s in _pagedStudents) ...[
                 _buildMobileStudentCard(s),
                 const SizedBox(height: 12),
@@ -1291,6 +1295,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> {
   Widget _buildMobileSearchBar() {
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocus,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         isDense: true,

@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_reposit
 import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/programme.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -36,6 +37,7 @@ class _ProgrammeCourseMappingScreenState extends State<ProgrammeCourseMappingScr
   String? _selectedProgrammeId;
   Set<String> _mappedCourseIds = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   @override
@@ -48,6 +50,7 @@ class _ProgrammeCourseMappingScreenState extends State<ProgrammeCourseMappingScr
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -199,6 +202,7 @@ class _ProgrammeCourseMappingScreenState extends State<ProgrammeCourseMappingScr
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -215,7 +219,7 @@ class _ProgrammeCourseMappingScreenState extends State<ProgrammeCourseMappingScr
           if (_isLoadingMapping)
             const Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())
           else if (courses.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: Text('No courses found.', style: AdminTypography.bodyMd()))
+            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
           else
             Column(children: [for (final c in courses) _courseRow(c)]),
           Padding(
@@ -282,6 +286,7 @@ class _ProgrammeCourseMappingScreenState extends State<ProgrammeCourseMappingScr
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
+                focusNode: _searchFocus,
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
@@ -298,7 +303,7 @@ class _ProgrammeCourseMappingScreenState extends State<ProgrammeCourseMappingScr
               if (_isLoadingMapping)
                 const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
               else if (courses.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: Text('No courses found.', style: AdminTypography.bodyMd()))
+                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
               else
                 Container(
                   decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),

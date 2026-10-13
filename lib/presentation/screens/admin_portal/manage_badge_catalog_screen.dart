@@ -6,6 +6,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
+import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_searchable_dropdown.dart';
 import 'widgets/admin_sidebar.dart';
@@ -31,6 +32,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
   List<BadgeCatalogItem> _badges = [];
   final Set<String> _selected = {};
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
 
   @override
@@ -43,6 +45,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -186,6 +189,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
@@ -227,7 +231,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> {
               ),
             ),
           if (badges.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: Text('No badges found.', style: AdminTypography.bodyMd()))
+            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
           else
             Column(children: [for (final b in badges) _row(b)]),
         ],

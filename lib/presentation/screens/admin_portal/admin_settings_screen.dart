@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -352,6 +353,7 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
         controller: _controllers[i],
         textAlign: TextAlign.center,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: decimalOnly,
         style: AdminTypography.bodySm(color: AdminColors.onSurface),
         onChanged: (_) => setState(() => _error = null),
         decoration: InputDecoration(
@@ -473,6 +475,7 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
             controller: _controller,
             textAlign: TextAlign.right,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: decimalOnly,
             style: AdminTypography.bodySm(color: AdminColors.onSurface),
             onChanged: (_) => setState(() => _dirty = true),
             onSubmitted: (_) => _save(),
@@ -481,7 +484,7 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
               filled: true,
               fillColor: AdminColors.surfaceContainerLow,
               hintText: 'No limit',
-              hintStyle: AdminTypography.labelSm(color: AdminColors.outline),
+              hintStyle: AdminTypography.labelSm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
             ),

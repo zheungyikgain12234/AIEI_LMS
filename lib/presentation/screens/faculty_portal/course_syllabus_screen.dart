@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
@@ -697,7 +698,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.arrow_back, size: 18, color: FacultyColors.secondary),
               const SizedBox(width: 4),
-              Text('Back to My Assigned Courses', style: FacultyTypography.labelMd(color: FacultyColors.secondary)),
+              Text('Back to My Courses', style: FacultyTypography.labelMd(color: FacultyColors.secondary)),
             ]),
           ),
         ),
@@ -1980,6 +1981,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           TextField(
             controller: _timeLimitController,
             keyboardType: TextInputType.number,
+            inputFormatters: digitsOnly,
             decoration: const InputDecoration(
               labelText: 'Time limit (minutes, optional)',
               helperText: 'Shows a countdown timer on the exam page and auto-submits at zero. Leave blank for no limit.',
@@ -2054,6 +2056,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           TextField(
             controller: _maxMarksController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: decimalOnly,
             decoration: InputDecoration(label: requiredLabel('Maximum marks'), helperText: 'The full marks the paper is out of.'),
             onChanged: (_) => setState(() {}),
           ),
@@ -2107,6 +2110,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     return TextField(
       controller: _weightageController,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: decimalOnly,
       decoration: InputDecoration(
         label: requiredLabel('Weightage (%)'),
         suffixText: '%',

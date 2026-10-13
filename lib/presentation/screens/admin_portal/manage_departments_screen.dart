@@ -12,7 +12,7 @@ class ManageDepartmentsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
     return MasterDataScreen(
-      title: 'Manage Departments',
+      title: 'Manage Student Depts',
       description: 'Institutional departments available for student registration and reporting.',
       itemLabel: 'Department',
       navDestination: AdminNavDestination.manageDepartments,

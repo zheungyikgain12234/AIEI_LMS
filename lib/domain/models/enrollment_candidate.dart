@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 class EnrollmentCandidate {
   final String id;
   final String studentName;
@@ -47,7 +48,7 @@ class EnrollmentCandidate {
     return EnrollmentCandidate(
       id: '${map['id']}',
       studentName: map['name'] as String,
-      studentEmployeeId: map['student_code'] as String?,
+      studentEmployeeId: map['student_code'] == null ? null : displayCode(map['student_code'] as String),
       studentEmail: map['email'] as String,
       department: (map['department'] ?? map['program_track']) as String? ?? '',
       cohort: map['cohort'] as String? ?? '',

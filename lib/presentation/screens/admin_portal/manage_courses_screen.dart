@@ -227,7 +227,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
     final courses = _filtered;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.root(title: 'Courses'),
+      appBar: const AdminMobileTopBar.root(title: 'Manage Courses'),
       bottomNavigationBar: AdminMobileBottomNav(
         selected: AdminMobileTab.courses,
         onTap: (tab) => handleAdminMobileTab(context, AdminMobileTab.courses, tab),
@@ -252,7 +252,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
                   filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search course by code or title...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -397,7 +397,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search course by code or title...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),

@@ -218,7 +218,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search tags...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),

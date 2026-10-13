@@ -33,8 +33,8 @@ insert into departments (code, name) values
 
 insert into program_tracks (code, name) values
   ('TN01-TRK-DAS', 'Data Architecture Specialist'), ('TN01-TRK-AIE', 'AI Engineering Track'), ('TN01-TRK-EXO', 'Executive Operations'),
-  ('TN01-TRK-WST', 'Workplace Safety Track'), ('TN01-TRK-CDS', 'Cloud & Distributed Systems'), ('TN01-TRK-AIML', 'AI & Machine Learning'),
-  ('TN01-TRK-CDC', 'Cloud & Distributed Computing'), ('TN01-TRK-DAA', 'Data Architecture & Analytics'),
+  ('TN01-TRK-WST', 'Workplace Safety Track'), ('TN01-TRK-CDS', 'Cloud & Distributed Systems'), ('TN01-TRK-MLR', 'Machine Learning Research'),
+  ('TN01-TRK-DPE', 'DevOps & Platform Engineering'), ('TN01-TRK-DSI', 'Data Storytelling & Insights'),
   ('TN01-TRK-GEN', 'General Enterprise Track');
 
 -- Singapore-style intake naming (no US-semester "Fall"/"Spring"/"Summer" terms).
@@ -71,7 +71,7 @@ insert into specializations (code, name) values
 insert into lecturers (id, name, title, lecturer_code, email, department, specialization, credits_max, status, accredited, manageable, join_date) values
   ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'TN01-EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 'Distributed ETL & Python', 15, 'Active', true, true, '2021-08-16'),
   ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'TN01-EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 15, 'Active', true, true, '2019-01-06'),
-  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of AI & Machine Learning', 'TN01-EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2022-09-01'),
+  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of Machine Learning Research', 'TN01-EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2022-09-01'),
   ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'TN01-EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true, '2020-03-23'),
   ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'TN01-EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false, '2017-11-13'),
   ('11111111-1111-1111-1111-111111111108', 'Marcus Webb', 'Cloud Infrastructure Lead', 'TN01-EMP-3387', 'marcus.webb@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Active', true, true, '2021-11-19'),
@@ -88,11 +88,11 @@ insert into students (id, name, student_code, email, student_type, department, t
   (3, 'Marcus Reed', 'TN01-EMP-91024', 'marcus.reed@enterprise.com', 'Internal', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', null, 'Executive Cohort 2025', 'Financial Analyst', 2.90, '2025-05-02'),
   (4, 'Elena Rostova Jr.', 'TN01-EMP-60211', 'e.rostovajr@enterprise.com', 'External', null, 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'May 2025 Intake', null, 3.40, '2025-01-13'),
   (5, 'David Kim', 'TN01-EMP-43890', 'david.kim@enterprise.com', 'Internal', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', null, 'January 2025 Intake', 'Data Analyst', 3.55, '2025-08-20'),
-  (6, 'Sophia Loren', 'TN01-EMP-55198', 's.loren@enterprise.com', 'External', null, 'Logistics Analyst • Supply Chain Intelligence', 'AI & Machine Learning', 'January 2025 Intake', null, 3.10, '2025-08-21'),
+  (6, 'Sophia Loren', 'TN01-EMP-55198', 's.loren@enterprise.com', 'External', null, 'Logistics Analyst • Supply Chain Intelligence', 'Machine Learning Research', 'January 2025 Intake', null, 3.10, '2025-08-21'),
   (7, 'Jordan Taylor', 'TN01-EMP-99214', 'jordan.taylor@enterprise.com', 'Internal', 'Workplace Safety', 'Safety Compliance Associate', null, 'May 2025 Intake', 'Safety Officer', 2.60, '2025-01-14'),
-  (8, 'Sarah Jenkins', 'TN01-EMP-33109', 'sarah.jenkins@enterprise.com', 'External', null, 'Cloud Platform Engineer', 'Cloud & Distributed Computing', 'January 2025 Intake', null, 3.70, '2025-08-22'),
+  (8, 'Sarah Jenkins', 'TN01-EMP-33109', 'sarah.jenkins@enterprise.com', 'External', null, 'Cloud Platform Engineer', 'DevOps & Platform Engineering', 'January 2025 Intake', null, 3.70, '2025-08-22'),
   (9, 'Liam Nguyen', 'TN01-EMP-66381', 'liam.nguyen@enterprise.com', 'Internal', 'Data Architecture', 'Data Architecture Associate', null, 'January 2025 Intake', 'IT Support Specialist', 3.30, '2025-08-23'),
-  (10, 'Chloe Bennett', 'TN01-EMP-44820', 'chloe.bennett@enterprise.com', 'External', null, 'Junior Data Analyst', 'Data Architecture & Analytics', 'January 2025 Intake', null, 3.35, '2025-08-24');
+  (10, 'Chloe Bennett', 'TN01-EMP-44820', 'chloe.bennett@enterprise.com', 'External', null, 'Junior Data Analyst', 'Data Storytelling & Insights', 'January 2025 Intake', null, 3.35, '2025-08-24');
 
 -- Keep the identity sequence ahead of the explicit ids inserted above, so
 -- the next `insert into students (name, ...)` (no id given — e.g. Register
@@ -217,7 +217,7 @@ insert into specialization_courses (specialization_id, course_id) values
 insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, delivery_mode, cohort_id, start_date, end_date, status) values
   ('44444444-4444-4444-4444-444444444401', 'TN01-CLS-PY402-A01', 'Primary Instructor', 'AY2025 Term 2', 'Monday 09:00–10:30 • Innovation Hall 204', 'Monday', '09:00', '10:30', 'Innovation Hall 204', '11111111-1111-1111-1111-111111111101', 50, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
   ('44444444-4444-4444-4444-444444444407', 'TN01-CLS-DATA501-B02', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 13:00–14:45 • Data Lab 3B', 'Tuesday', '13:00', '14:45', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 45, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444408', 'TN01-CLS-AI301-C01', 'Co-Lecturer', 'AY2025 Term 2', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111101', 35, 'online', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2025-06-20', 'completed'),
+  ('44444444-4444-4444-4444-444444444408', 'TN01-CLS-AI301-C01', 'Co-Lecturer', 'AY2025 Term 2', 'Friday 14:00–17:00 • Online', 'Friday', '14:00', '17:00', null, '11111111-1111-1111-1111-111111111101', 35, 'online', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2025-06-20', 'completed'),
   ('44444444-4444-4444-4444-444444444402', 'TN01-CLS-OSHE101-A1', 'Lead Instructor', 'AY2025 Term 2', 'Monday 11:00–12:30 • Safety Training Center', 'Monday', '11:00', '12:30', 'Safety Training Center', '11111111-1111-1111-1111-111111111102', 56, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
   ('44444444-4444-4444-4444-444444444409', 'TN01-CLS-SAF204-H03', 'Lead Instructor', 'AY2025 Term 2', 'Thursday 14:00–17:30 • Hazmat Simulation Hall', 'Thursday', '14:00', '17:30', 'Hazmat Simulation Hall', '11111111-1111-1111-1111-111111111102', 34, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
   ('44444444-4444-4444-4444-444444444410', 'TN01-CLS-ML800-GRAD', 'Graduate', 'AY2025 Term 2', 'Monday 14:00–18:00 • Grad Seminar Room 5', 'Monday', '14:00', '18:00', 'Grad Seminar Room 5', '11111111-1111-1111-1111-111111111103', 50, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
@@ -253,7 +253,7 @@ insert into module_materials (id, module_id, material_name, material_type, mater
 insert into module_materials (id, module_id, material_name, material_type, material_content, material_sorting) values
   ('66666666-6666-6666-6666-666666666601', '55555555-5555-5555-5555-555555555501', '01: Enterprise Python Environment Setup', 'video',
     '{"durationMinutes": 25, "transcript": "Enterprise Python environment setup, virtual environments, dependency pinning, and enterprise proxies."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666602', '55555555-5555-5555-5555-555555555501', 'Lesson 01 Knowledge Check', 'quiz',
+  ('66666666-6666-6666-6666-666666666602', '55555555-5555-5555-5555-555555555501', 'Knowledge Check', 'quiz',
     '{"quizLength": 5, "attemptsPermitted": 3, "timeAllocatedMinutes": 15, "passingScore": 80, "questions": [{"question": "What command creates a virtual environment?", "mcq": true, "items": ["A. pip venv", "B. python -m venv env", "C. python create env", "D. venv install"], "expectedAns": "B"}]}'::jsonb, 1),
   ('66666666-6666-6666-6666-666666666603', '55555555-5555-5555-5555-555555555502', '02: Pandas Series & DataFrame Mechanics', 'video',
     '{"durationMinutes": 38, "transcript": "Series and DataFrame mechanics, indexing, and vectorized selection."}'::jsonb, 0),
@@ -292,7 +292,7 @@ insert into module_materials (id, module_id, material_name, material_type, mater
 -- Assignment 02 — the "Building Automated Data Pipelines with Pandas & Excel"
 -- capstone graded in grade_assignment_screen.dart / assignment_submission_screen.dart.
 insert into module_materials (id, module_id, material_name, material_type, material_content, material_sorting, due_at, attached_files) values
-  ('66666666-6666-6666-6666-666666666611', '55555555-5555-5555-5555-555555555503', 'Assignment 02: Building Automated Data Pipelines with Pandas & Excel', 'assignment',
+  ('66666666-6666-6666-6666-666666666611', '55555555-5555-5555-5555-555555555503', 'Building Automated Data Pipelines with Pandas & Excel', 'assignment',
     '{
       "instruction": "Develop an end-to-end Python script to validate, cleanse, and automate enterprise Excel sales reports into clean database-ready format with quarantine auditing.",
       "references": ["https://openpyxl.readthedocs.io", "https://pandas.pydata.org/docs"],
@@ -360,14 +360,14 @@ insert into course_modules (id, section_id, module_name, module_description, mod
   ('55555555-5555-5555-5555-555555555517', (select id from course_sections where section_code = 'TN01-CLS-OSHE101-A1'), 'Final Regulatory Audit Exam', 'Comprehensive 50-question regulatory audit exam.', 7);
 
 insert into module_materials (id, module_id, material_name, material_type, material_content, material_sorting) values
-  ('66666666-6666-6666-6666-666666666620', '55555555-5555-5555-5555-555555555510', '01. Regulatory Framework', 'video', '{"durationMinutes": 14, "transcript": "29 CFR 1910 regulatory framework overview."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666621', '55555555-5555-5555-5555-555555555511', '02. Hazard Identification & PPE', 'video', '{"durationMinutes": 22, "transcript": "Hazard identification methodology and PPE selection."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666622', '55555555-5555-5555-5555-555555555512', '03. Electrical & Lockout/Tagout', 'video', '{"durationMinutes": 18, "transcript": "Electrical isolation and lockout/tagout procedures."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666623', '55555555-5555-5555-5555-555555555513', '04. Chemical Handling & SDS', 'video', '{"durationMinutes": 16, "transcript": "GHS labeling, secondary containers, and SDS documentation."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666624', '55555555-5555-5555-5555-555555555514', '05. Fire Protection & Suppression', 'video', '{"durationMinutes": 20, "transcript": "Fire protection systems and suppression equipment."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666625', '55555555-5555-5555-5555-555555555515', '06. Ergonomics & Physical Safety', 'video', '{"durationMinutes": 15, "transcript": "Ergonomic risk assessment and mitigation."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666626', '55555555-5555-5555-5555-555555555516', '07. Incident Response & Reporting', 'video', '{"durationMinutes": 25, "transcript": "Incident containment, evacuation, and regulatory reporting triggers."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666627', '55555555-5555-5555-5555-555555555517', '08. Final Regulatory Audit Exam', 'quiz',
+  ('66666666-6666-6666-6666-666666666620', '55555555-5555-5555-5555-555555555510', 'Regulatory Framework', 'video', '{"durationMinutes": 14, "transcript": "29 CFR 1910 regulatory framework overview."}'::jsonb, 0),
+  ('66666666-6666-6666-6666-666666666621', '55555555-5555-5555-5555-555555555511', 'Hazard Identification & PPE', 'video', '{"durationMinutes": 22, "transcript": "Hazard identification methodology and PPE selection."}'::jsonb, 0),
+  ('66666666-6666-6666-6666-666666666622', '55555555-5555-5555-5555-555555555512', 'Electrical & Lockout/Tagout', 'video', '{"durationMinutes": 18, "transcript": "Electrical isolation and lockout/tagout procedures."}'::jsonb, 0),
+  ('66666666-6666-6666-6666-666666666623', '55555555-5555-5555-5555-555555555513', 'Chemical Handling & SDS', 'video', '{"durationMinutes": 16, "transcript": "GHS labeling, secondary containers, and SDS documentation."}'::jsonb, 0),
+  ('66666666-6666-6666-6666-666666666624', '55555555-5555-5555-5555-555555555514', 'Fire Protection & Suppression', 'video', '{"durationMinutes": 20, "transcript": "Fire protection systems and suppression equipment."}'::jsonb, 0),
+  ('66666666-6666-6666-6666-666666666625', '55555555-5555-5555-5555-555555555515', 'Ergonomics & Physical Safety', 'video', '{"durationMinutes": 15, "transcript": "Ergonomic risk assessment and mitigation."}'::jsonb, 0),
+  ('66666666-6666-6666-6666-666666666626', '55555555-5555-5555-5555-555555555516', 'Incident Response & Reporting', 'video', '{"durationMinutes": 25, "transcript": "Incident containment, evacuation, and regulatory reporting triggers."}'::jsonb, 0),
+  ('66666666-6666-6666-6666-666666666627', '55555555-5555-5555-5555-555555555517', 'Final Regulatory Audit Exam', 'quiz',
     '{
       "quizLength": 15,
       "attemptsPermitted": 3,
@@ -404,7 +404,7 @@ insert into course_modules (id, section_id, module_name, module_description, mod
   ('55555555-5555-5555-5555-555555555530', (select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), 'Prompt Engineering Fundamentals', 'Core prompt design patterns and context retrieval basics.', 0);
 
 insert into sessions (id, module_id, session_name, session_description, session_sorting) values
-  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', '55555555-5555-5555-5555-555555555530', 'Week 0 — Orientation & Course Overview', 'How this course is structured, what you''ll build, and how you''ll be assessed.', 0);
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', '55555555-5555-5555-5555-555555555530', 'Orientation & Course Overview', 'How this course is structured, what you''ll build, and how you''ll be assessed.', 0);
 
 insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001', 'text',
@@ -422,17 +422,13 @@ insert into content_blocks (id, session_id, block_type, block_content, block_sor
 
 insert into tags (id, label, color_hex, icon_name) values
   ('77777777-7777-7777-7777-777777777701', 'Career Essentials', '#0F4C81', null),
-  ('77777777-7777-7777-7777-777777777702', 'Quiz Pending', '#B3261E', null),
   ('77777777-7777-7777-7777-777777777703', 'AI UPSKILLING', '#4F46E5', null),
-  ('77777777-7777-7777-7777-777777777704', 'SECURITY MANDATORY', '#B3261E', null),
-  ('77777777-7777-7777-7777-777777777705', 'Completed', '#059669', 'check');
+  ('77777777-7777-7777-7777-777777777704', 'SECURITY MANDATORY', '#B3261E', null);
 
 insert into course_tags (course_id, tag_id) values
   ('44444444-4444-4444-4444-444444444401', '77777777-7777-7777-7777-777777777701'),
-  ('44444444-4444-4444-4444-444444444402', '77777777-7777-7777-7777-777777777702'),
   ('44444444-4444-4444-4444-444444444403', '77777777-7777-7777-7777-777777777703'),
-  ('44444444-4444-4444-4444-444444444405', '77777777-7777-7777-7777-777777777704'),
-  ('44444444-4444-4444-4444-444444444406', '77777777-7777-7777-7777-777777777705');
+  ('44444444-4444-4444-4444-444444444405', '77777777-7777-7777-7777-777777777704');
 
 -- ── Certifications (incl. revoked + executive leadership, matching the
 -- credential_detail screens) ─────────────────────────────────────────────
@@ -526,11 +522,11 @@ insert into student_certifications (student_id, cert_id, status, progress_percen
 -- issue_date values are relative to today so the Manage Students "Monthly
 -- Credential Grant Rate" chart (last 6 months, derived live from this table)
 -- always has recent data to show, regardless of when this seed is run.
-insert into badge_awards (student_id, course_id, badge_id, issue_date, is_revoked) values
-  (1, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '3 days', false),
-  (1, '44444444-4444-4444-4444-444444444402', '88888888-8888-8888-8888-888888888802', current_date - interval '8 months', true),
-  (2, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '3 weeks', false),
-  (4, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '2 months', false);
+insert into badge_awards (student_id, course_id, badge_id, issue_date, is_revoked, revoke_reason) values
+  (1, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '3 days', false, null),
+  (1, '44444444-4444-4444-4444-444444444402', '88888888-8888-8888-8888-888888888802', current_date - interval '8 months', true, 'Lockout/tagout infraction recorded during the Zone 3 factory floor safety audit.'),
+  (2, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '3 weeks', false, null),
+  (4, '44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801', current_date - interval '2 months', false, null);
 
 -- ── Faculty portal: enrollment rosters for Sarah Lin's 3 courses ─────────
 -- (drives student_directory_screen.dart, course_dashboard_screen.dart, my_assigned_courses_screen.dart)
@@ -572,8 +568,8 @@ insert into student_courses (student_id, course_id, progress_percentage, grade, 
 -- budget, leaving room to add more without tripping the cap. ─────────────
 
 insert into sessions (id, module_id, session_name, session_description, session_sorting) values
-  ('cccccccc-cccc-cccc-cccc-cccccccccc01', '55555555-5555-5555-5555-555555555501', 'Week 3 — ETL Capstone', 'Applied assignment covering pipeline design.', 4),
-  ('cccccccc-cccc-cccc-cccc-cccccccccc02', '55555555-5555-5555-5555-555555555501', 'Week 4 — Checkpoint Assessment', 'Graded checkpoint exam on core syntax and pandas fundamentals.', 5);
+  ('cccccccc-cccc-cccc-cccc-cccccccccc01', '55555555-5555-5555-5555-555555555501', 'ETL Capstone', 'Applied assignment covering pipeline design.', 4),
+  ('cccccccc-cccc-cccc-cccc-cccccccccc02', '55555555-5555-5555-5555-555555555501', 'Checkpoint Assessment', 'Graded checkpoint exam on core syntax and pandas fundamentals.', 5);
 
 insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
   ('dddddddd-dddd-dddd-dddd-dddddddddd01', 'cccccccc-cccc-cccc-cccc-cccccccccc01', 'assignment',
@@ -644,11 +640,11 @@ insert into student_courses (student_id, course_id, section_id, progress_percent
   (8, '44444444-4444-4444-4444-444444444403', (select id from course_sections where section_code = 'TN01-CLS-AI330-A01'), 30, 'B+', 88.0, 90, 'on_track', now() - interval '5 hours');
 
 insert into sessions (id, module_id, session_name, session_description, session_sorting) values
-  ('22222222-2222-2222-2222-222222220001', '55555555-5555-5555-5555-555555555530', 'Week 1 — Prompt Engineering Quiz', 'Graded checkpoint on core prompting concepts.', 1);
+  ('22222222-2222-2222-2222-222222220001', '55555555-5555-5555-5555-555555555530', 'Prompt Engineering Quiz', 'Graded checkpoint on core prompting concepts.', 1);
 
 insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
   ('22222222-2222-2222-2222-222222220002', '22222222-2222-2222-2222-222222220001', 'exam',
-    '{"title": "Quiz 1", "description": "Checkpoint quiz on prompt engineering fundamentals.", "instructions": "Answer every question. No external resources for the multiple-choice/true-false section.", "dueDate": "2025-12-05T23:59:00.000", "mode": "normal", "weightage": 15, "instructionFiles": [{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/quiz_1_reference_sheet.pdf", "name": "quiz_1_reference_sheet.pdf"}]}'::jsonb, 0);
+    '{"title": "Prompt Engineering Checkpoint", "description": "Checkpoint quiz on prompt engineering fundamentals.", "instructions": "Answer every question. No external resources for the multiple-choice/true-false section.", "dueDate": "2025-12-05T23:59:00.000", "mode": "normal", "weightage": 15, "instructionFiles": [{"url": "https://phlunvjhqqjdxuivjlzu.supabase.co/storage/v1/object/public/course-content/sample/quiz_1_reference_sheet.pdf", "name": "quiz_1_reference_sheet.pdf"}]}'::jsonb, 0);
 
 insert into exam_sections (id, content_block_id, section_name, section_sorting) values
   ('22222222-2222-2222-2222-222222220003', '22222222-2222-2222-2222-222222220002', 'Section A', 0);
@@ -689,7 +685,7 @@ insert into content_block_submissions (id, content_block_id, student_id, status,
 -- the same 5-student AI-330 roster seeded above. ────────────────────────
 
 insert into sessions (id, module_id, session_name, session_description, session_sorting) values
-  ('00000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555530', 'Week 2 — Prompt Library Assignment', 'Applied assignment building a reusable prompt library.', 2);
+  ('00000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555530', 'Prompt Library Assignment', 'Applied assignment building a reusable prompt library.', 2);
 
 insert into content_blocks (id, session_id, block_type, block_content, block_sorting) values
   ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'assignment',
@@ -787,7 +783,7 @@ insert into course_sections (course_id, section_code, role_label, term, schedule
   ('44444444-4444-4444-4444-444444444420', 'TN01-CLS-UX215-A01', 'Primary Instructor', 'AY2025 Term 2', 'Thursday 13:00–15:00 • Product Studio A', 'Thursday', '13:00', '15:00', 'Product Studio A', '11111111-1111-1111-1111-111111111110', 28, 'physical', (select id from cohorts where name = 'May 2025 Intake'), 'in_progress'),
   ('44444444-4444-4444-4444-444444444421', 'TN01-CLS-SC330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Monday 10:00–12:00 • Logistics Analytics Lab', 'Monday', '10:00', '12:00', 'Logistics Analytics Lab', '11111111-1111-1111-1111-111111111111', 30, 'physical', (select id from cohorts where name = 'January 2025 Intake'), 'in_progress'),
   ('44444444-4444-4444-4444-444444444422', 'TN01-CLS-CYBER330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Friday 09:00–12:00 • Security Ops Lab', 'Friday', '09:00', '12:00', 'Security Ops Lab', '11111111-1111-1111-1111-111111111107', 25, 'physical', (select id from cohorts where name = 'January 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444423', 'TN01-CLS-CLOUD505-A01', 'Primary Instructor', 'AY2025 Term 2', 'Wednesday 14:00–16:00 • Cloud Infra Lab', 'Wednesday', '14:00', '16:00', 'Cloud Infra Lab', '11111111-1111-1111-1111-111111111108', 35, 'online', (select id from cohorts where name = 'September 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444423', 'TN01-CLS-CLOUD505-A01', 'Primary Instructor', 'AY2025 Term 2', 'Wednesday 14:00–16:00 • Online', 'Wednesday', '14:00', '16:00', null, '11111111-1111-1111-1111-111111111108', 35, 'online', (select id from cohorts where name = 'September 2025 Intake'), 'in_progress'),
   ('44444444-4444-4444-4444-444444444424', 'TN01-CLS-AI410-A01', 'Primary Instructor', 'AY2025 Term 2', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111103', 30, 'physical', (select id from cohorts where name = 'January 2025 Intake'), 'in_progress'),
   ('44444444-4444-4444-4444-444444444425', 'TN01-CLS-DATA610-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 09:00–11:00 • Data Lab 3B', 'Tuesday', '09:00', '11:00', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 40, 'physical', (select id from cohorts where name = 'September 2025 Intake'), 'in_progress');
 
@@ -795,7 +791,7 @@ insert into course_sections (course_id, section_code, role_label, term, schedule
 -- must have a lecturer, so CYBER-202 is Marcus's too, schedule still TBD).
 update course_sections set
   lecturer_id = '11111111-1111-1111-1111-111111111108', role_label = 'Primary Instructor', status = 'in_progress',
-  schedule_text = 'Thursday 09:00–11:00 • Cloud Infra Lab', day_of_week = 'Thursday', start_time = '09:00', end_time = '11:00', location = 'Cloud Infra Lab'
+  schedule_text = 'Thursday 09:00–11:00 • Online', day_of_week = 'Thursday', start_time = '09:00', end_time = '11:00', location = null
   where section_code = 'TN01-CLS-CLOUD410-01';
 
 -- ── Lecturer → Course mapping for all the above ──────────────────────
@@ -907,16 +903,16 @@ insert into track_courses (track_id, course_id) values
   ((select id from program_tracks where name = 'Cloud & Distributed Systems'), '44444444-4444-4444-4444-444444444416'),
   ((select id from program_tracks where name = 'Cloud & Distributed Systems'), '44444444-4444-4444-4444-444444444423'),
   ((select id from program_tracks where name = 'Cloud & Distributed Systems'), '44444444-4444-4444-4444-444444444407'),
-  ((select id from program_tracks where name = 'AI & Machine Learning'), '44444444-4444-4444-4444-444444444410'),
-  ((select id from program_tracks where name = 'AI & Machine Learning'), '44444444-4444-4444-4444-444444444411'),
-  ((select id from program_tracks where name = 'AI & Machine Learning'), '44444444-4444-4444-4444-444444444412'),
-  ((select id from program_tracks where name = 'AI & Machine Learning'), '44444444-4444-4444-4444-444444444408'),
-  ((select id from program_tracks where name = 'Cloud & Distributed Computing'), '44444444-4444-4444-4444-444444444416'),
-  ((select id from program_tracks where name = 'Cloud & Distributed Computing'), '44444444-4444-4444-4444-444444444423'),
-  ((select id from program_tracks where name = 'Cloud & Distributed Computing'), '44444444-4444-4444-4444-444444444415'),
-  ((select id from program_tracks where name = 'Data Architecture & Analytics'), '44444444-4444-4444-4444-444444444407'),
-  ((select id from program_tracks where name = 'Data Architecture & Analytics'), '44444444-4444-4444-4444-444444444425'),
-  ((select id from program_tracks where name = 'Data Architecture & Analytics'), '44444444-4444-4444-4444-444444444401'),
+  ((select id from program_tracks where name = 'Machine Learning Research'), '44444444-4444-4444-4444-444444444410'),
+  ((select id from program_tracks where name = 'Machine Learning Research'), '44444444-4444-4444-4444-444444444411'),
+  ((select id from program_tracks where name = 'Machine Learning Research'), '44444444-4444-4444-4444-444444444412'),
+  ((select id from program_tracks where name = 'Machine Learning Research'), '44444444-4444-4444-4444-444444444408'),
+  ((select id from program_tracks where name = 'DevOps & Platform Engineering'), '44444444-4444-4444-4444-444444444416'),
+  ((select id from program_tracks where name = 'DevOps & Platform Engineering'), '44444444-4444-4444-4444-444444444423'),
+  ((select id from program_tracks where name = 'DevOps & Platform Engineering'), '44444444-4444-4444-4444-444444444415'),
+  ((select id from program_tracks where name = 'Data Storytelling & Insights'), '44444444-4444-4444-4444-444444444407'),
+  ((select id from program_tracks where name = 'Data Storytelling & Insights'), '44444444-4444-4444-4444-444444444425'),
+  ((select id from program_tracks where name = 'Data Storytelling & Insights'), '44444444-4444-4444-4444-444444444401'),
   ((select id from program_tracks where name = 'General Enterprise Track'), '44444444-4444-4444-4444-444444444421'),
   ((select id from program_tracks where name = 'General Enterprise Track'), '44444444-4444-4444-4444-444444444414'),
   ((select id from program_tracks where name = 'Financial Analytics Track'), '44444444-4444-4444-4444-444444444404'),
@@ -1014,18 +1010,18 @@ insert into course_modules (id, section_id, module_name, module_description, mod
   ('55555555-5555-5555-5555-555555555542', (select id from course_sections where section_code = 'TN01-CLS-AI410-A01'), 'Production RAG Pipelines', 'Query rewriting, re-ranking, and evaluation for production systems.', 2);
 
 insert into module_materials (id, module_id, material_name, material_type, material_content, material_sorting) values
-  ('66666666-6666-6666-6666-666666666700', '55555555-5555-5555-5555-555555555540', 'Lesson 1: Why RAG? Grounding LLMs in Enterprise Knowledge', 'video',
+  ('66666666-6666-6666-6666-666666666700', '55555555-5555-5555-5555-555555555540', 'Why RAG? Grounding LLMs in Enterprise Knowledge', 'video',
     '{"durationMinutes": 24, "transcript": "Why RAG beats fine-tuning for fast-changing enterprise knowledge, and how retrieval grounds model outputs in source documents."}'::jsonb, 0),
   ('66666666-6666-6666-6666-666666666701', '55555555-5555-5555-5555-555555555540', 'RAG Foundations Knowledge Check', 'quiz',
     '{"quizLength": 3, "attemptsPermitted": 3, "timeAllocatedMinutes": 10, "passingScore": 80, "questions": [
       {"question": "What is the main advantage of RAG over fine-tuning for frequently changing knowledge?", "mcq": true, "items": ["A. Lower inference latency", "B. No retraining needed when source documents change", "C. Smaller model size", "D. Better handling of code generation"], "expectedAns": "B"},
       {"question": "What does a vector embedding represent?", "mcq": true, "items": ["A. A compressed copy of the raw file", "B. A numerical representation of semantic meaning", "C. A database index on primary keys", "D. A hash of the document title"], "expectedAns": "B"}
     ]}'::jsonb, 1),
-  ('66666666-6666-6666-6666-666666666702', '55555555-5555-5555-5555-555555555541', 'Lesson 2: Chunking Strategies for Long Documents', 'video',
+  ('66666666-6666-6666-6666-666666666702', '55555555-5555-5555-5555-555555555541', 'Chunking Strategies for Long Documents', 'video',
     '{"durationMinutes": 30, "transcript": "Fixed-size vs. semantic chunking, overlap windows, and preserving document structure across chunk boundaries."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666703', '55555555-5555-5555-5555-555555555541', 'Lesson 3: Choosing & Evaluating Embedding Models', 'video',
+  ('66666666-6666-6666-6666-666666666703', '55555555-5555-5555-5555-555555555541', 'Choosing & Evaluating Embedding Models', 'video',
     '{"durationMinutes": 27, "transcript": "Comparing open and hosted embedding models on retrieval accuracy, latency, and cost."}'::jsonb, 1),
-  ('66666666-6666-6666-6666-666666666704', '55555555-5555-5555-5555-555555555542', 'Lesson 4: Query Rewriting & Re-ranking', 'video',
+  ('66666666-6666-6666-6666-666666666704', '55555555-5555-5555-5555-555555555542', 'Query Rewriting & Re-ranking', 'video',
     '{"durationMinutes": 33, "transcript": "Improving retrieval precision with query rewriting, hybrid search, and cross-encoder re-ranking."}'::jsonb, 0),
   ('66666666-6666-6666-6666-666666666705', '55555555-5555-5555-5555-555555555542', 'Capstone: Build a Production RAG Pipeline', 'assignment',
     '{"instruction": "Design and submit a RAG pipeline over a sample enterprise knowledge base, covering chunking strategy, embedding model choice, retrieval evaluation, and a re-ranking step.", "references": ["https://platform.openai.com/docs/guides/embeddings"], "notes": "Submit source repo link plus a short evaluation report."}'::jsonb, 1);
@@ -1036,18 +1032,18 @@ insert into course_modules (id, section_id, module_name, module_description, mod
   ('55555555-5555-5555-5555-555555555552', (select id from course_sections where section_code = 'TN01-CLS-DATA610-A01'), 'Testing & Documentation', 'dbt tests, documentation, and CI for analytics engineering.', 2);
 
 insert into module_materials (id, module_id, material_name, material_type, material_content, material_sorting) values
-  ('66666666-6666-6666-6666-666666666710', '55555555-5555-5555-5555-555555555550', 'Lesson 1: Star Schemas & Dimensional Modeling', 'video',
+  ('66666666-6666-6666-6666-666666666710', '55555555-5555-5555-5555-555555555550', 'Star Schemas & Dimensional Modeling', 'video',
     '{"durationMinutes": 26, "transcript": "Fact vs. dimension tables, grain, and designing a star schema from a source ER diagram."}'::jsonb, 0),
   ('66666666-6666-6666-6666-666666666711', '55555555-5555-5555-5555-555555555550', 'Dimensional Modeling Quiz', 'quiz',
     '{"quizLength": 2, "attemptsPermitted": 3, "timeAllocatedMinutes": 10, "passingScore": 80, "questions": [
       {"question": "What determines the grain of a fact table?", "mcq": true, "items": ["A. The number of columns in the table", "B. What a single row in the table represents", "C. The primary key data type", "D. The refresh schedule"], "expectedAns": "B"},
       {"question": "Which table type typically holds descriptive attributes like customer name or product category?", "mcq": true, "items": ["A. Fact table", "B. Dimension table", "C. Bridge table", "D. Staging table"], "expectedAns": "B"}
     ]}'::jsonb, 1),
-  ('66666666-6666-6666-6666-666666666712', '55555555-5555-5555-5555-555555555551', 'Lesson 2: Building dbt Staging Models', 'video',
+  ('66666666-6666-6666-6666-666666666712', '55555555-5555-5555-5555-555555555551', 'Building dbt Staging Models', 'video',
     '{"durationMinutes": 29, "transcript": "Source freshness checks, naming conventions, and light transformations in the staging layer."}'::jsonb, 0),
-  ('66666666-6666-6666-6666-666666666713', '55555555-5555-5555-5555-555555555551', 'Lesson 3: Intermediate & Mart Layer Design', 'video',
+  ('66666666-6666-6666-6666-666666666713', '55555555-5555-5555-5555-555555555551', 'Intermediate & Mart Layer Design', 'video',
     '{"durationMinutes": 31, "transcript": "Reusable intermediate models and building business-facing mart tables on top of them."}'::jsonb, 1),
-  ('66666666-6666-6666-6666-666666666714', '55555555-5555-5555-5555-555555555552', 'Lesson 4: dbt Tests & Documentation', 'video',
+  ('66666666-6666-6666-6666-666666666714', '55555555-5555-5555-5555-555555555552', 'dbt Tests & Documentation', 'video',
     '{"durationMinutes": 22, "transcript": "Generic and singular dbt tests, auto-generated documentation, and wiring both into CI."}'::jsonb, 0),
   ('66666666-6666-6666-6666-666666666715', '55555555-5555-5555-5555-555555555552', 'Capstone: Warehouse Redesign with dbt', 'assignment',
     '{"instruction": "Redesign the provided flat sales export into a staging → intermediate → mart dbt project with tests and generated documentation.", "references": ["https://docs.getdbt.com/docs/build/documentation"], "notes": "Submit your dbt project repo link plus the generated docs site."}'::jsonb, 1);

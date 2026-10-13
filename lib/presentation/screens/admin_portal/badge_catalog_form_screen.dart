@@ -1,5 +1,8 @@
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'widgets/admin_fixed_code.dart';
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -165,8 +168,12 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                             ),
                             const SizedBox(height: 16),
                           ],
-                          _field(controller: _codeController, label: 'Badge Code', hint: 'PYAUTO'),
-                          const SizedBox(height: 14),
+                          if (widget.isEditing)
+                            AdminFixedCode(label: 'Badge Code', value: _codeController.text.trim().toUpperCase()),
+                          if (!widget.isEditing) ...[
+                            _field(controller: _codeController, label: 'Badge Code', hint: 'PYAUTO', inputFormatters: const [UpperCaseTextFormatter()]),
+                            const SizedBox(height: 14),
+                          ],
                           _field(controller: _titleController, label: 'Badge Name', hint: 'Python Automation Specialist'),
                           const SizedBox(height: 14),
                           _field(controller: _descriptionController, label: 'Description', hint: 'What this badge recognises...', maxLines: 4),
@@ -179,8 +186,8 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                                 child: OutlinedButton(
                                   onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: AdminColors.onSurface,
-                                    backgroundColor: AdminColors.surfaceContainerLow,
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: AdminColors.primaryContainer,
                                     side: BorderSide.none,
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -221,6 +228,8 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
     required String label,
     required String hint,
     int maxLines = 1,
+    List<TextInputFormatter>? inputFormatters,
+    bool readOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,13 +239,16 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
         TextFormField(
           controller: controller,
           maxLines: maxLines,
+          inputFormatters: inputFormatters,
+          readOnly: readOnly,
+          enabled: !readOnly,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
             filled: true,
             fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),

@@ -49,5 +49,7 @@ class AdminColors {
   static const Color onSurface = Color(0xFF191C1E);
   static const Color onSurfaceVariant = Color(0xFF444653);
   static const Color outline = Color(0xFF757684);
+  /// Placeholder / hint text: >= 4.5:1 on white and on the light field fills, yet clearly lighter than entered values.
+  static const Color hint = Color(0xFF5E6272);
   static const Color outlineVariant = Color(0xFFC4C5D5);
 }

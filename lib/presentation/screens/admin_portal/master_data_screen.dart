@@ -1,5 +1,7 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'widgets/admin_fixed_code.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -173,7 +175,9 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           title: Text(id == null ? 'Add ${widget.itemLabel}' : 'Edit ${widget.itemLabel}'),
-          content: Form(
+          content: SizedBox(
+            width: 440,
+            child: Form(
             key: formKey,
             child: SingleChildScrollView(
               child: Column(
@@ -188,15 +192,24 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                     ),
                     const SizedBox(height: 12),
                   ],
-                  AdminFieldLabel(widget.codeLabel ?? '${widget.itemLabel} Code'),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: codeController,
-                    autofocus: true,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Code is required' : null,
-                  ),
-                  const SizedBox(height: 12),
+                  if (id != null)
+                    AdminFixedCode(label: widget.codeLabel ?? '${widget.itemLabel} Code', value: codeController.text.trim().toUpperCase())
+                  else ...[
+                    AdminFieldLabel(widget.codeLabel ?? '${widget.itemLabel} Code'),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: codeController,
+                      autofocus: id == null,
+                      // Codes are fixed once created: editable only when adding.
+                      readOnly: id != null,
+                      enabled: id == null,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: const [UpperCaseTextFormatter()],
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Code is required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   AdminFieldLabel(widget.nameLabel ?? widget.itemLabel),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -211,6 +224,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                     TextFormField(
                       controller: yearController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: digitsOnly,
                       decoration: const InputDecoration(border: OutlineInputBorder()),
                       validator: (v) {
                         final parsed = int.tryParse(v?.trim() ?? '');
@@ -224,13 +238,15 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: remarksController,
-                    maxLines: 3,
+                    minLines: 3,
+                    maxLines: 6,
+                    keyboardType: TextInputType.multiline,
                     decoration: const InputDecoration(border: OutlineInputBorder()),
                   ),
                 ],
               ),
             ),
-          ),
+          )),
           actions: [
             TextButton(
               onPressed: isSaving ? null : () => Navigator.of(ctx).pop(),
@@ -426,7 +442,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search ${widget.itemLabel.toLowerCase()}s...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),

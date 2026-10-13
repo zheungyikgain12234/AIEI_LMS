@@ -822,8 +822,8 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                 icon: const Icon(Icons.save_outlined, size: 16),
                 label: const Text('Save Progress'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: FacultyColors.onSurface,
-                  backgroundColor: FacultyColors.surfaceContainerLow,
+                  foregroundColor: Colors.white,
+                  backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1600,8 +1600,8 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                   icon: const Icon(Icons.save, size: 18),
                   label: const Text('Save Draft'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AdminColors.primaryContainer,
-                    backgroundColor: FacultyColors.surfaceContainerLow,
+                    foregroundColor: Colors.white,
+                    backgroundColor: AdminColors.primaryContainer,
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

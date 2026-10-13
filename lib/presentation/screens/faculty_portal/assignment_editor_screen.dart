@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
@@ -365,6 +366,7 @@ class _CriterionDialogState extends State<_CriterionDialog> {
             TextField(
               controller: _marksController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: decimalOnly,
               decoration: InputDecoration(label: requiredLabel('Marks this criterion is worth')),
               onChanged: (_) => setState(() {}),
             ),

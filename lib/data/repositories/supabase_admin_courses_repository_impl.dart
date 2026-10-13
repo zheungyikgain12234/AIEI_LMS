@@ -31,7 +31,7 @@ class SupabaseAdminCoursesRepositoryImpl implements AdminCoursesRepository {
     String? imageUrl,
     required int credits,
     required List<String> tagIds,
-    List<String> badgeIds = const [],
+    List<String>? badgeIds,
   }) async {
     final row = await _client
         .from('courses')
@@ -47,7 +47,7 @@ class SupabaseAdminCoursesRepositoryImpl implements AdminCoursesRepository {
         .single();
     final id = row['id'] as String;
     await _syncTags(id, tagIds);
-    await _syncBadges(id, badgeIds);
+    if (badgeIds != null) await _syncBadges(id, badgeIds);
     return getCourseById(id);
   }
 
@@ -61,7 +61,7 @@ class SupabaseAdminCoursesRepositoryImpl implements AdminCoursesRepository {
     String? imageUrl,
     required int credits,
     required List<String> tagIds,
-    List<String> badgeIds = const [],
+    List<String>? badgeIds,
   }) async {
     await _client
         .from('courses')
@@ -75,7 +75,7 @@ class SupabaseAdminCoursesRepositoryImpl implements AdminCoursesRepository {
         })
         .eq('id', id);
     await _syncTags(id, tagIds);
-    await _syncBadges(id, badgeIds);
+    if (badgeIds != null) await _syncBadges(id, badgeIds);
     return getCourseById(id);
   }
 

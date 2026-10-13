@@ -717,7 +717,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Manage Students', style: AdminTypography.headlineLg()),
+            Text('Manage and Enrol Students', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
@@ -735,7 +735,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               icon: const Icon(Icons.download_outlined, size: 18),
               label: const Text('Download CSV Template'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AdminColors.onSurface,
+                foregroundColor: AdminColors.primaryContainer,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -745,7 +745,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               icon: const Icon(Icons.upload_file_outlined, size: 18),
               label: const Text('Import from CSV'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AdminColors.onSurface,
+                foregroundColor: AdminColors.primaryContainer,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -858,7 +858,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search student by name, student ID, email, or company...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -933,8 +933,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   }
 
   ButtonStyle _pillButtonStyle() => OutlinedButton.styleFrom(
-        foregroundColor: AdminColors.onSurface,
-        backgroundColor: AdminColors.surfaceContainerLowest,
+        foregroundColor: Colors.white,
+        backgroundColor: AdminColors.primaryContainer,
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1082,8 +1082,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               child: OutlinedButton(
                 onPressed: () => _openEnrolledCourses(s),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.primaryContainer,
-                  backgroundColor: AdminColors.surfaceContainerLow,
+                  foregroundColor: Colors.white,
+                  backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1231,7 +1231,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.root(title: 'Students'),
+      appBar: const AdminMobileTopBar.root(title: 'Manage and Enrol Students'),
       bottomNavigationBar: AdminMobileBottomNav(
         selected: AdminMobileTab.students,
         onTap: (tab) => handleAdminMobileTab(context, AdminMobileTab.students, tab),
@@ -1306,7 +1306,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search student by name, student ID, email, or company...',
-        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -1416,8 +1416,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               OutlinedButton(
                 onPressed: () => _openEnrolledCourses(s),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.primaryContainer,
-                  backgroundColor: AdminColors.surfaceContainerLow,
+                  foregroundColor: Colors.white,
+                  backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

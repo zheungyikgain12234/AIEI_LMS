@@ -12,6 +12,7 @@ enum AdminNavDestination {
   roleCourseMapping,
   departmentCourseMapping,
   trackCourseMapping,
+  badgeCourseMapping,
   specializationCourseMapping,
   courseEnrollment,
   programmeCourseMapping,
@@ -169,6 +170,15 @@ class AdminSidebar extends StatelessWidget {
                             AdminNavDestination.specializationCourseMapping,
                           ),
                         ),
+                        _NavItem(
+                          icon: Icons.military_tech_outlined,
+                          label: 'Badge ↔ Course Mapping',
+                          isSelected:
+                              selected == AdminNavDestination.badgeCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.badgeCourseMapping,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -188,7 +198,7 @@ class AdminSidebar extends StatelessWidget {
                       children: [
                         _NavItem(
                           icon: Icons.apartment_outlined,
-                          label: 'Manage Departments',
+                          label: 'Manage Student Depts',
                           isSelected:
                               selected == AdminNavDestination.manageDepartments,
                           onTap: () => onDestinationSelected?.call(

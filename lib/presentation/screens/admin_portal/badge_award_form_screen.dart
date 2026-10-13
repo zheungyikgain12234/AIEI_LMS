@@ -42,11 +42,13 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
   String? _selectedBadgeId;
   DateTime? _issueDate;
   bool _isRevoked = false;
+  final _revokeReasonController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
 
+@override  void dispose() {    _revokeReasonController.dispose();    super.dispose();  }
   @override
   void initState() {
     super.initState();
@@ -70,6 +72,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
           _selectedBadgeId = award.badgeId;
           _issueDate = award.issueDate;
           _isRevoked = award.isRevoked;
+          _revokeReasonController.text = award.revokeReason ?? '';
         }
         _issueDate ??= DateTime.now();
         _isLoading = false;
@@ -100,6 +103,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
           badgeId: _selectedBadgeId!,
           issueDate: _issueDate!,
           isRevoked: _isRevoked,
+          revokeReason: _revokeReasonController.text.trim(),
         );
       } else {
         saved = await _repository.createBadgeAward(
@@ -108,6 +112,7 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
           badgeId: _selectedBadgeId!,
           issueDate: _issueDate!,
           isRevoked: _isRevoked,
+          revokeReason: _revokeReasonController.text.trim(),
         );
       }
       if (!mounted) return;
@@ -211,6 +216,24 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
                               ],
                             ),
                           ),
+                          if (_isRevoked) ...[
+                            const SizedBox(height: 14),
+                            const AdminFieldLabel('Reason for Revoking *'),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _revokeReasonController,
+                              maxLines: 3,
+                              style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'A reason is required to revoke a badge.' : null,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: AdminColors.surfaceContainerLow,
+                                hintText: 'e.g. Safety infraction found during site audit',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           Row(
                             children: [
@@ -218,8 +241,8 @@ class _BadgeAwardFormScreenState extends State<BadgeAwardFormScreen> {
                                 child: OutlinedButton(
                                   onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: AdminColors.onSurface,
-                                    backgroundColor: AdminColors.surfaceContainerLow,
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: AdminColors.primaryContainer,
                                     side: BorderSide.none,
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

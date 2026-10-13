@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
@@ -341,8 +342,8 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                   icon: const Icon(Icons.archive_outlined, size: 15),
                   label: const Text('Download All (.zip)'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AdminColors.primaryContainer,
-                    backgroundColor: FacultyColors.surfaceContainer,
+                    foregroundColor: Colors.white,
+                    backgroundColor: AdminColors.primaryContainer,
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -436,8 +437,8 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
             icon: const Icon(Icons.download_outlined, size: 15),
             label: const Text('Download'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AdminColors.primaryContainer,
-              backgroundColor: FacultyColors.surfaceContainerLowest,
+              foregroundColor: Colors.white,
+              backgroundColor: AdminColors.primaryContainer,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -499,6 +500,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                             controller: _scoreController,
                             textAlign: TextAlign.right,
                             keyboardType: TextInputType.number,
+                            inputFormatters: digitsOnly,
                             onChanged: (_) => setState(() {}),
                             style: FacultyTypography.headlineMd(color: FacultyColors.primary),
                             decoration: InputDecoration(
@@ -554,8 +556,8 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                     child: OutlinedButton(
                       onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draft saved.'))),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: FacultyColors.onSurface,
-                        backgroundColor: FacultyColors.surfaceContainerLow,
+                        foregroundColor: Colors.white,
+                        backgroundColor: AdminColors.primaryContainer,
                         side: BorderSide.none,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -588,8 +590,8 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                   icon: const Icon(Icons.arrow_forward, size: 16),
                   label: const Text('Save & Next Submission'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AdminColors.primaryContainer,
-                    backgroundColor: FacultyColors.surfaceContainerHigh,
+                    foregroundColor: Colors.white,
+                    backgroundColor: AdminColors.primaryContainer,
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -854,8 +856,8 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 icon: const Icon(Icons.download, size: 16),
                 label: const Text('Download All'),
                 style: TextButton.styleFrom(
-                  foregroundColor: AdminColors.primaryContainer,
-                  backgroundColor: FacultyColors.surfaceContainerLow,
+                  foregroundColor: Colors.white,
+                  backgroundColor: AdminColors.primaryContainer,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: FacultyTypography.labelMd(),
@@ -1012,6 +1014,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                               controller: _scoreController,
                               textAlign: TextAlign.right,
                               keyboardType: TextInputType.number,
+                              inputFormatters: digitsOnly,
                               onChanged: (_) => setState(() {}),
                               style: FacultyTypography.headlineMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
                               decoration: const InputDecoration(

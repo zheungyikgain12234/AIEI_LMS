@@ -411,8 +411,8 @@ class _CourseCardState extends State<CourseCard> {
       return OutlinedButton(
         onPressed: widget.onAction,
         style: OutlinedButton.styleFrom(
-          backgroundColor: AppColors.surfaceContainerLow,
-          foregroundColor: AdminColors.primaryContainer,
+          backgroundColor: AdminColors.primaryContainer,
+          foregroundColor: Colors.white,
           side: BorderSide.none,
           minimumSize: const Size(double.infinity, 40),
           shape: RoundedRectangleBorder(

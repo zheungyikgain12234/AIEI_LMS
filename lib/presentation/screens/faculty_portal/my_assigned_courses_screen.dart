@@ -503,7 +503,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('My Assigned Courses', style: FacultyTypography.headlineLg()),
+              Text('My Courses', style: FacultyTypography.headlineLg()),
               const SizedBox(height: 6),
               Text(
                 'Manage current curriculum materials, monitor cohort progress, and review pending evaluations across your assigned sections.',
@@ -589,7 +589,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
                 filled: true,
                 fillColor: FacultyColors.surfaceContainerLow,
                 hintText: 'Filter by course name or code...',
-                hintStyle: FacultyTypography.bodySm(color: FacultyColors.outline),
+                hintStyle: FacultyTypography.bodySm(color: FacultyColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 16, color: FacultyColors.outline),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),

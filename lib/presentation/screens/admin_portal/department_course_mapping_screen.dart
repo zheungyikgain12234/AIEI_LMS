@@ -162,7 +162,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No departments exist yet. Create one from Manage Departments first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No departments exist yet. Create one from Manage Student Depts first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(
@@ -215,7 +215,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search course by code or title...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -299,7 +299,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
                   filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search course by code or title...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),

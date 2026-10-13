@@ -43,7 +43,7 @@ class FacultySidebar extends StatelessWidget {
                 const SizedBox(height: 4),
                 _NavItem(
                   icon: Icons.assignment_turned_in_outlined,
-                  label: 'Grading & Submissions',
+                  label: 'Grading and Submissions',
                   isSelected: selected == FacultyNavDestination.gradingAndSubmissions,
                   trailing: pendingCount,
                   onTap: () => onDestinationSelected?.call(FacultyNavDestination.gradingAndSubmissions),

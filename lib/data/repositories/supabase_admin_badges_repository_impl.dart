@@ -29,6 +29,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
     required String badgeId,
     required DateTime issueDate,
     required bool isRevoked,
+    String? revokeReason,
   }) async {
     final row = await _client
         .from('badge_awards')
@@ -38,6 +39,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
           'badge_id': badgeId,
           'issue_date': issueDate.toIso8601String().substring(0, 10),
           'is_revoked': isRevoked,
+          'revoke_reason': isRevoked ? revokeReason : null,
         })
         .select(_selectWithJoins)
         .single();
@@ -52,6 +54,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
     required String badgeId,
     required DateTime issueDate,
     required bool isRevoked,
+    String? revokeReason,
   }) async {
     final row = await _client
         .from('badge_awards')
@@ -61,6 +64,7 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
           'badge_id': badgeId,
           'issue_date': issueDate.toIso8601String().substring(0, 10),
           'is_revoked': isRevoked,
+          'revoke_reason': isRevoked ? revokeReason : null,
         })
         .eq('id', id)
         .select(_selectWithJoins)

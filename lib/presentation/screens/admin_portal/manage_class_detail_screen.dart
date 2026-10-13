@@ -1,5 +1,7 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -141,7 +143,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         _dayOfWeek = section.dayOfWeek;
         _startTime = _parseTime(section.startTime);
         _endTime = _parseTime(section.endTime);
-        _locationController.text = section.location ?? '';
+        // An online class has no location, so nothing is pre-filled for it.
+        _locationController.text = section.deliveryMode == 'online' ? '' : (section.location ?? '');
         _capacityController.text = section.capacity.toString();
         _editStartAt = section.editStartAt;
         _editEndAt = section.editEndAt;
@@ -212,7 +215,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         dayOfWeek: _dayOfWeek,
         startTime: _startTime == null ? null : _formatTime(_startTime!),
         endTime: _endTime == null ? null : _formatTime(_endTime!),
-        location: _locationController.text.trim().isEmpty
+        location: _deliveryMode == 'online' || _locationController.text.trim().isEmpty
             ? null
             : _locationController.text.trim(),
         capacity: capacity,
@@ -492,12 +495,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          _textField(
-            label: 'Location',
-            controller: _locationController,
-            hint: 'Innovation Hall 204',
-          ),
+if (_deliveryMode != 'online') ...[            const SizedBox(height: 14),            _textField(              label: 'Location',              controller: _locationController,              hint: 'Innovation Hall 204',            ),          ],
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -560,6 +558,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                   controller: _capacityController,
                   hint: '50',
                   keyboardType: TextInputType.number,
+                  inputFormatters: digitsOnly,
                 ),
               ),
               const SizedBox(width: 12),
@@ -568,7 +567,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                   label: 'Delivery Mode',
                   value: _deliveryMode,
                   options: _deliveryModeOptions,
-                  onChanged: (v) => setState(() => _deliveryMode = v!),
+                  onChanged: (v) => setState(() {
+                    _deliveryMode = v!;
+                    _locationController.clear();
+                  }),
                 ),
               ),
             ],
@@ -691,7 +693,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                   filled: true,
                   fillColor: AdminColors.surfaceContainerLow,
                   hintText: 'Search by student code or name...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(
                     Icons.search,
                     size: 18,
@@ -859,6 +861,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     required TextEditingController controller,
     required String hint,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -868,13 +871,14 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
             filled: true,
             fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,7 +47,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         s.email.toLowerCase().contains(_query)).toList();
   }
 
-  String get _courseCode => (_course?['course_code'] as String?) ?? '';
+  String get _courseCode => displayCode((_course?['course_code'] as String?) ?? '');
   String get _courseTitle => (_course?['course_title'] as String?) ?? '';
   int get _capacity => (_course?['capacity'] as int?) ?? 0;
   int get _enrolledCount => _roster.length;
@@ -178,13 +179,13 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             onPressed: _notAvailable,
             icon: const Icon(Icons.file_download_outlined, size: 16),
             label: const Text('Export Roster'),
-            style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurface, backgroundColor: AdminColors.surfaceContainerLowest, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
           OutlinedButton.icon(
             onPressed: _notAvailable,
             icon: const Icon(Icons.move_up_outlined, size: 16),
             label: const Text('Drop / Transfer'),
-            style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurface, backgroundColor: AdminColors.surfaceContainerLowest, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen())),
@@ -223,7 +224,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Only PY-402 is available in this preview.'))),
             icon: const Icon(Icons.swap_horiz, size: 16, color: AdminColors.onSurfaceVariant),
             label: const Text('Switch Course Section'),
-            style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurface, backgroundColor: AdminColors.surfaceContainerLow, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
         ],
       ),
@@ -303,7 +304,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               controller: _searchController,
               focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
-              decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search enrolled students in $_courseCode...', hintStyle: AdminTypography.bodySm(color: AdminColors.outline), prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
+              decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search enrolled students in $_courseCode...', hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic), prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
             ),
           ),
           Container(
@@ -512,7 +513,6 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         const SizedBox(height: 4),
         Text('Manage Students', style: AdminTypography.headlineLg(color: AdminColors.primary)),
         const SizedBox(height: 4),
-        Text('Manage course caps, register learners, and track academic telemetry.', style: AdminTypography.bodySm()),
       ],
     );
   }
@@ -541,8 +541,8 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             icon: const Icon(Icons.unfold_more, size: 18),
             label: Text('$_courseCode (Active)'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AdminColors.onSurfaceVariant,
-              backgroundColor: AdminColors.surfaceContainerLowest,
+              foregroundColor: Colors.white,
+              backgroundColor: AdminColors.primaryContainer,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -554,8 +554,8 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             icon: const Icon(Icons.file_download, size: 18),
             label: const Text('Export'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AdminColors.onSurfaceVariant,
-              backgroundColor: AdminColors.surfaceContainerLowest,
+              foregroundColor: Colors.white,
+              backgroundColor: AdminColors.primaryContainer,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -567,8 +567,8 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             icon: const Icon(Icons.swap_horiz, size: 18),
             label: const Text('Drop/Transfer'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AdminColors.onSurfaceVariant,
-              backgroundColor: AdminColors.surfaceContainerLowest,
+              foregroundColor: Colors.white,
+              backgroundColor: AdminColors.primaryContainer,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -776,7 +776,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search by name, ID or email...',
-        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -906,13 +906,13 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                 onPressed: _notAvailable,
                 icon: const Icon(Icons.visibility, size: 16),
                 label: const Text('Transcript'),
-                style: TextButton.styleFrom(foregroundColor: AdminColors.onSurfaceVariant, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, padding: const EdgeInsets.symmetric(horizontal: 8)),
               ),
               TextButton.icon(
                 onPressed: _notAvailable,
                 icon: const Icon(Icons.mail, size: 16),
                 label: const Text('Message'),
-                style: TextButton.styleFrom(foregroundColor: AdminColors.onSurfaceVariant, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, padding: const EdgeInsets.symmetric(horizontal: 8)),
               ),
             ]),
         ],

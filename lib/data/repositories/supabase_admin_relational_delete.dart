@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/domain/models/delete_dependent.dart';
 
@@ -240,7 +241,7 @@ class SupabaseAdminRelationalDelete {
           kind: 'course_tags',
           kindPlural: 'Courses',
           id: courseId,
-          title: '${course?['course_code'] ?? ''}',
+          title: displayCode((course?['course_code'] as String?) ?? ''),
           subtitle: '${course?['course_title'] ?? ''}',
           targets: [
             for (final t in keep)
@@ -286,7 +287,7 @@ class SupabaseAdminRelationalDelete {
         if (!ids.contains(c['id'])) c,
     ];
     (String, String) label(Map<String, dynamic> c) =>
-        (c['id'] as String, '${c['course_code']} • ${c['course_title']}');
+        (c['id'] as String, '${displayCode(c['course_code'] as String)} • ${c['course_title']}');
 
     final awards = _rows(
       await _client
@@ -304,7 +305,7 @@ class SupabaseAdminRelationalDelete {
           id: a['id'] as String,
           title: '${(a['students'] as Map?)?['name'] ?? ''}',
           subtitle:
-              '${(a['certifications'] as Map?)?['title'] ?? ''} • ${(a['courses'] as Map?)?['course_code'] ?? ''}',
+              '${(a['certifications'] as Map?)?['title'] ?? ''} • ${displayCode(((a['courses'] as Map?)?['course_code'] as String?) ?? '')}',
           targets: [for (final c in keep) label(c)],
           noneLabel: 'Delete this award',
         ),

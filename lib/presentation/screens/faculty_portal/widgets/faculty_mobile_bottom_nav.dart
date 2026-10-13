@@ -38,7 +38,7 @@ class FacultyMobileBottomNav extends StatelessWidget {
             Expanded(
               child: _item(
                 icon: Icons.assignment_turned_in_outlined,
-                label: 'Grading & Submissions',
+                label: 'Grading and Submissions',
                 dest: FacultyNavDestination.gradingAndSubmissions,
               ),
             ),

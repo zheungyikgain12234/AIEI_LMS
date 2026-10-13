@@ -1,18 +1,18 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'widgets/admin_fixed_code.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
-import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
@@ -37,7 +37,6 @@ class CourseFormScreen extends ConsumerStatefulWidget {
 class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   final _repository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
   final _tagsRepository = SupabaseAdminCourseTagsRepositoryImpl(Supabase.instance.client);
-  final _badgesRepository = SupabaseAdminBadgeCatalogRepositoryImpl(Supabase.instance.client);
   final _formKey = GlobalKey<FormState>();
 
   final _courseCodeController = TextEditingController();
@@ -54,9 +53,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   String _category = 'techData';
 
   List<CourseTagOption> _availableTags = [];
-  List<BadgeCatalogItem> _availableBadges = [];
   final Set<String> _selectedTagIds = {};
-  final Set<String> _selectedBadgeIds = {};
 
   String? _bannerImageUrl;
   bool _uploadingBanner = false;
@@ -84,7 +81,6 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
     setState(() => _isLoading = true);
     try {
       final tags = await _tagsRepository.getTags();
-      final badges = await _badgesRepository.getBadges();
       AdminCourse? course;
       if (widget.isEditing) {
         course = await _repository.getCourseById(widget.courseId!);
@@ -92,7 +88,6 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
       if (!mounted) return;
       setState(() {
         _availableTags = tags;
-        _availableBadges = badges;
         if (course != null) {
           _courseCodeController.text = _stripTenantPrefix(course.courseCode);
           _courseTitleController.text = course.courseTitle;
@@ -103,9 +98,6 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           _selectedTagIds
             ..clear()
             ..addAll(course.tagIds);
-          _selectedBadgeIds
-            ..clear()
-            ..addAll(course.badgeIds);
         }
         _isLoading = false;
       });
@@ -173,7 +165,6 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           imageUrl: _bannerImageUrl,
           credits: credits,
           tagIds: _selectedTagIds.toList(),
-          badgeIds: _selectedBadgeIds.toList(),
         );
       } else {
         saved = await _repository.createCourse(
@@ -184,7 +175,6 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           imageUrl: _bannerImageUrl,
           credits: credits,
           tagIds: _selectedTagIds.toList(),
-          badgeIds: _selectedBadgeIds.toList(),
         );
       }
       if (!mounted) return;
@@ -248,10 +238,14 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                             ),
                             const SizedBox(height: 16),
                           ],
+                          if (widget.isEditing)
+                            AdminFixedCode(label: 'Course Code', value: _courseCodeController.text.trim().toUpperCase()),
                           _bannerField(),
                           const SizedBox(height: 14),
-                          _field(controller: _courseCodeController, label: 'Course Code', hint: 'PY-402'),
-                          const SizedBox(height: 14),
+                          if (!widget.isEditing) ...[
+                            _field(controller: _courseCodeController, label: 'Course Code', hint: 'PY-402', inputFormatters: const [UpperCaseTextFormatter()]),
+                            const SizedBox(height: 14),
+                          ],
                           _field(controller: _courseTitleController, label: 'Course Title', hint: 'Python for Enterprise Data Analysis'),
                           const SizedBox(height: 14),
                           _field(controller: _courseDescriptionController, label: 'Description', hint: 'What this course covers...', maxLines: 4),
@@ -268,6 +262,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                             label: 'Credits',
                             hint: '3',
                             keyboardType: TextInputType.number,
+                            inputFormatters: digitsOnly,
                             validator: (value) {
                               final trimmed = value?.trim() ?? '';
                               if (trimmed.isEmpty) return 'Credits is required';
@@ -284,14 +279,6 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                             options: [for (final t in _availableTags) (id: t.id, label: t.label)],
                             selectedIds: _selectedTagIds,
                           ),
-                          const SizedBox(height: 14),
-                          _multiSelect(
-                            label: 'Badges Awarded on Completion',
-                            required: false,
-                            hint: 'Select badges students unlock (optional)',
-                            options: [for (final b in _availableBadges) (id: b.id, label: b.title)],
-                            selectedIds: _selectedBadgeIds,
-                          ),
                           const SizedBox(height: 24),
                           Row(
                             children: [
@@ -299,8 +286,8 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                                 child: OutlinedButton(
                                   onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: AdminColors.onSurface,
-                                    backgroundColor: AdminColors.surfaceContainerLow,
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: AdminColors.primaryContainer,
                                     side: BorderSide.none,
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -372,8 +359,8 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                   : const Icon(Icons.upload_outlined, size: 16),
               label: Text(_bannerImageUrl == null || _bannerImageUrl!.isEmpty ? 'Upload Banner Image' : 'Replace Banner Image'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AdminColors.primaryContainer,
-                backgroundColor: AdminColors.surfaceContainer,
+                foregroundColor: Colors.white,
+                backgroundColor: AdminColors.primaryContainer,
                 side: BorderSide.none,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -504,6 +491,8 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
     required String label,
     required String hint,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    bool readOnly = false,
     bool required = true,
     int maxLines = 1,
     String? prefixText,
@@ -517,6 +506,9 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          readOnly: readOnly,
+          enabled: !readOnly,
           maxLines: maxLines,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
@@ -524,7 +516,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
             filled: true,
             fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
             prefixText: prefixText,
             prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),

@@ -220,7 +220,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                   filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search class by section code, course, or lecturer...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -308,8 +308,8 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                   child: OutlinedButton(
                     onPressed: () => _openManageClass(s),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AdminColors.primaryContainer,
-                      backgroundColor: AdminColors.surfaceContainerLow,
+                      foregroundColor: Colors.white,
+                      backgroundColor: AdminColors.primaryContainer,
                       side: BorderSide.none,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -361,7 +361,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search class by section code, course, or lecturer...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -526,8 +526,8 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
               child: OutlinedButton(
                 onPressed: () => _openManageClass(s),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.primaryContainer,
-                  backgroundColor: AdminColors.surfaceContainerLow,
+                  foregroundColor: Colors.white,
+                  backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

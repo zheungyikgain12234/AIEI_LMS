@@ -437,7 +437,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                       controller: _searchController,
                       focusNode: _searchFocus,
                       style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                      decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search student by name, corporate ID, track...', hintStyle: AdminTypography.bodySm(color: AdminColors.outline), prefixIcon: const Icon(Icons.search, size: 16, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
+                      decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search student by name, corporate ID, track...', hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic), prefixIcon: const Icon(Icons.search, size: 16, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
                     ),
                     const SizedBox(height: 10),
                     Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
@@ -548,7 +548,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     )
                   : OutlinedButton(
                       onPressed: () => setState(() => _staged.add(c.id)),
-                      style: OutlinedButton.styleFrom(foregroundColor: AdminColors.primaryContainer, backgroundColor: AdminColors.surfaceContainerLow, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
+                      style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
                       child: const Text('+ Add'),
                     ),
             ),
@@ -614,7 +614,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurfaceVariant, backgroundColor: AdminColors.surfaceContainerLowest, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               child: const Text('Cancel & Return'),
             ),
           ),
@@ -808,7 +808,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search student by name, ID...',
-        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -1113,7 +1113,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(foregroundColor: AdminColors.onSurfaceVariant, backgroundColor: AdminColors.surfaceContainerLowest, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               child: const Text('Cancel & Return'),
             ),
           ),

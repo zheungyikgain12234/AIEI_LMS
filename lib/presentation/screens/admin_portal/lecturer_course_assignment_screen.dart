@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
@@ -257,7 +258,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       _dayOfWeek != null &&
       _timeRangeValid &&
       _dateRangeValid &&
-      _locationController.text.trim().isNotEmpty &&
+      (_deliveryMode == 'online' || _locationController.text.trim().isNotEmpty) &&
       _classCodeController.text.trim().isNotEmpty &&
       _classCapacity != null &&
       _classCapacity! > 0 &&
@@ -326,7 +327,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     try {
       final startTime = _formatTime(_startTime!);
       final endTime = _formatTime(_endTime!);
-      final location = _locationController.text.trim();
+      final location = _deliveryMode == 'online' ? null : _locationController.text.trim();
       final capacity = _classCapacity!;
       for (final course in courses) {
         await _lecturersRepository.createSectionForCourse(
@@ -835,7 +836,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search course by code or title...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -983,34 +984,11 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const AdminFieldLabel('Location'),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _locationController,
-                      onChanged: (_) => setState(() {}),
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
-                        hintText: 'Room 204',
-                        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 220,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
                     const AdminFieldLabel('Class Code'),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _classCodeController,
+                      inputFormatters: const [UpperCaseTextFormatter()],
                       onChanged: (_) => setState(() {}),
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
@@ -1018,7 +996,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                         filled: true,
                         fillColor: AdminColors.surfaceContainerLow,
                         hintText: 'A01',
-                        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
@@ -1037,13 +1015,14 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       controller: _capacityController,
                       onChanged: (_) => setState(() {}),
                       keyboardType: TextInputType.number,
+                      inputFormatters: digitsOnly,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
                         fillColor: AdminColors.surfaceContainerLow,
                         hintText: '30',
-                        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
@@ -1070,7 +1049,35 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                       items: [for (final m in _deliveryModeOptions) DropdownMenuItem(value: m.$1, child: Text(m.$2))],
-                      onChanged: (v) => setState(() => _deliveryMode = v!),
+                      onChanged: (v) => setState(() {
+                        _deliveryMode = v!;
+                        // The location is never carried across a mode switch.
+                        _locationController.clear();
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              if (_deliveryMode != 'online') SizedBox(
+                width: 220,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AdminFieldLabel('Location'),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _locationController,
+                      onChanged: (_) => setState(() {}),
+                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: AdminColors.surfaceContainerLow,
+                        hintText: 'Room 204',
+                        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
                     ),
                   ],
                 ),
@@ -1340,7 +1347,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                             ? 'Set a valid start/end time above.'
                             : !_dateRangeValid
                                 ? 'Set a valid course start/end date above.'
-                                : _locationController.text.trim().isEmpty
+                                : _deliveryMode != 'online' && _locationController.text.trim().isEmpty
                                 ? 'Set a location above.'
                                 : _classCodeController.text.trim().isEmpty
                                     ? 'Set a class code above.'

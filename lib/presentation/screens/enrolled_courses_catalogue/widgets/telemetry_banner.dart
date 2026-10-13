@@ -122,18 +122,6 @@ class _MainTelemetryCard extends StatelessWidget {
                       'My Enrolled Courses',
                       style: AppTypography.headlineLg(color: AppColors.primary),
                     ),
-                    const SizedBox(height: 8),
-
-                    // Subtitle description
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 672),
-                      child: Text(
-                        'Track real-time completion telemetry, verifiable enterprise credentials, and urgent regulatory compliance windows across your active cohort assignments.',
-                        style: AppTypography.bodyMd(
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
 

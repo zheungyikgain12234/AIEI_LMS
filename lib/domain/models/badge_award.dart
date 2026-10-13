@@ -14,6 +14,7 @@ class BadgeAward {
   final String badgeTitle;
   final DateTime issueDate;
   final bool isRevoked;
+  final String? revokeReason;
 
   const BadgeAward({
     required this.id,
@@ -27,6 +28,7 @@ class BadgeAward {
     required this.badgeTitle,
     required this.issueDate,
     required this.isRevoked,
+    this.revokeReason,
   });
 
   factory BadgeAward.fromMap(Map<String, dynamic> map) {
@@ -45,6 +47,7 @@ class BadgeAward {
       badgeTitle: badge?['title'] as String? ?? '',
       issueDate: DateTime.parse(map['issue_date'] as String),
       isRevoked: map['is_revoked'] as bool,
+      revokeReason: map['revoke_reason'] as String?,
     );
   }
 }

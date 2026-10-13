@@ -304,7 +304,7 @@ class EarnedCredentialCard extends StatelessWidget {
             child: Text(
               c.incidentBannerText!,
               overflow: TextOverflow.ellipsis,
-              maxLines: 2,
+              maxLines: 8,
               style: AppTypography.bodySm(color: AppColors.onSurface)
                   .copyWith(fontWeight: FontWeight.w500),
             ),

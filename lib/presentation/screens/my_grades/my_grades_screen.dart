@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -105,7 +106,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
       final sectionId = row['id'] as String;
       final course = row['courses'] as Map<String, dynamic>?;
       final cohort = (row['cohorts'] as Map<String, dynamic>?)?['name'] as String? ?? 'No Cohort';
-      final label = '${course?['course_code'] ?? ''} • ${row['section_code']} — ${course?['course_title'] ?? ''}';
+      final label = '${displayCode((course?['course_code'] as String?) ?? '')} • ${displayCode(row['section_code'] as String)} — ${course?['course_title'] ?? ''}';
       final items = await _loadItems(sectionId);
       classesByCohort.putIfAbsent(cohort, () => []).add(_ClassGrades(label, items, moderatedBySection[sectionId] ?? 0));
     }

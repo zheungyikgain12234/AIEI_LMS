@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:flutter/material.dart';
@@ -327,6 +328,7 @@ class _AssignmentGradingScreenState extends State<AssignmentGradingScreen> {
               child: TextField(
                 controller: _marksControllers[c.id],
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: decimalOnly,
                 textAlign: TextAlign.center,
                 decoration: InputDecoration(isDense: true, suffixText: '/ ${_formatMarks(c.maxMarks)}'),
                 onChanged: (_) => setState(() {}),

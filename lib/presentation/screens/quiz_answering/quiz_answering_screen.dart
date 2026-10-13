@@ -874,7 +874,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
                 controller: _textControllers[q.id],
                 maxLines: 6,
                 style: AppTypography.bodyMd(color: AppColors.onSurface),
-                decoration: InputDecoration(border: InputBorder.none, hintText: 'Type your answer...', hintStyle: AppTypography.bodyMd(color: AppColors.outline)),
+                decoration: InputDecoration(border: InputBorder.none, hintText: 'Type your answer...', hintStyle: AppTypography.bodyMd(color: AppColors.hint).copyWith(fontStyle: FontStyle.italic)),
               ),
             ),
           ),

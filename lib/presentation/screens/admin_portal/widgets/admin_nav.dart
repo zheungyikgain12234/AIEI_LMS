@@ -10,6 +10,7 @@ import '../manage_badges_screen.dart';
 import '../role_course_mapping_screen.dart';
 import '../department_course_mapping_screen.dart';
 import '../track_course_mapping_screen.dart';
+import '../badge_course_mapping_screen.dart';
 import '../specialization_course_mapping_screen.dart';
 import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
@@ -40,6 +41,7 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.roleCourseMapping => const RoleCourseMappingScreen(),
     AdminNavDestination.departmentCourseMapping => const DepartmentCourseMappingScreen(),
     AdminNavDestination.trackCourseMapping => const TrackCourseMappingScreen(),
+    AdminNavDestination.badgeCourseMapping => const BadgeCourseMappingScreen(),
     AdminNavDestination.specializationCourseMapping => const SpecializationCourseMappingScreen(),
     AdminNavDestination.courseEnrollment => const CourseEnrollmentScreen(),
     AdminNavDestination.programmeCourseMapping => const ProgrammeCourseMappingScreen(),

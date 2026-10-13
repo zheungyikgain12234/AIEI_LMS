@@ -181,7 +181,7 @@ abstract class LecturersRepository {
     required String dayOfWeek,
     required String startTime,
     required String endTime,
-    required String location,
+    String? location,
     required int capacity,
     required String deliveryMode,
     required String cohort,

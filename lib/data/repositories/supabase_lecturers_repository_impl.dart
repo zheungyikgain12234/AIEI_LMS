@@ -103,8 +103,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     required DateTime editEndAt,
     String? editOverrideLecturerCode,
   }) async {
-    final scheduleText = (dayOfWeek != null && startTime != null && endTime != null && location != null)
-        ? '${dayOfWeek.substring(0, 3)} $startTime–$endTime • $location'
+    final scheduleText = (dayOfWeek != null && startTime != null && endTime != null)
+        ? '${dayOfWeek.substring(0, 3)} $startTime–$endTime • ${deliveryMode == 'online' ? 'Online' : (location ?? 'TBD')}'
         : 'TBD';
     final cohortId = await _cohortIdForName(cohort);
     final overrideCode = await _resolveOverrideCode(editOverrideLecturerCode);
@@ -400,7 +400,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     required String dayOfWeek,
     required String startTime,
     required String endTime,
-    required String location,
+    String? location,
     required int capacity,
     required String deliveryMode,
     required String cohort,
@@ -427,7 +427,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'section_code': classCode,
           'role_label': 'Primary Instructor',
           'term': 'Fall 2025',
-          'schedule_text': '$dayAbbrev $startTime–$endTime • $location',
+          'schedule_text': '$dayAbbrev $startTime–$endTime • ${location ?? 'Online'}',
           'day_of_week': dayOfWeek,
           'start_time': startTime,
           'end_time': endTime,

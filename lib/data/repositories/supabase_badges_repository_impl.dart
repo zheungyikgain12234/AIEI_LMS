@@ -79,7 +79,11 @@ class SupabaseBadgesRepositoryImpl implements BadgesRepository {
       metaText: isRevoked
           ? 'Revoked by ${cert['issuing_body']}'
           : 'Issuer: ${cert['issuing_body']}',
-      incidentBannerText: isRevoked ? 'This badge has been revoked.' : null,
+      incidentBannerText: isRevoked
+          ? ((row['revoke_reason'] as String?)?.trim().isNotEmpty == true
+              ? 'This badge has been revoked. Reason: ${(row['revoke_reason'] as String).trim()}'
+              : 'This badge has been revoked.')
+          : null,
       issuerFullName: cert['issuing_body'] as String,
     );
   }

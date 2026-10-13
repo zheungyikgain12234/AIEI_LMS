@@ -1,5 +1,8 @@
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'widgets/admin_fixed_code.dart';
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -19,7 +22,7 @@ import 'widgets/searchable_dropdown.dart';
 // the caller with the created/updated Student so the table can refresh.
 //
 // Department / Program Track / Role are selected from the admin-managed
-// master data lists (Manage Departments / Manage Program Tracks / Manage
+// master data lists (Manage Student Depts / Manage Program Tracks / Manage
 // Roles) rather than freely typed, so the values always satisfy the
 // `students` table's foreign keys. GPA is not editable here — it defaults
 // to 0 in the database and is updated elsewhere as the student progresses.
@@ -219,10 +222,14 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                             ),
                             const SizedBox(height: 16),
                           ],
+                          if (widget.isEditing)
+                            AdminFixedCode(label: 'Student Code', value: _studentCodeController.text.trim().toUpperCase()),
                           _field(controller: _nameController, label: 'Full Name', hint: 'Alex Chen'),
                           const SizedBox(height: 14),
-                          _field(controller: _studentCodeController, label: 'Student Code', hint: 'EMP-88219'),
-                          const SizedBox(height: 14),
+                          if (!widget.isEditing) ...[
+                            _field(controller: _studentCodeController, label: 'Student Code', hint: 'EMP-88219', inputFormatters: const [UpperCaseTextFormatter()]),
+                            const SizedBox(height: 14),
+                          ],
                           _studentTypeToggle(),
                           const SizedBox(height: 14),
                           _field(controller: _emailController, label: 'Email', hint: 'alex.chen@enterprise.com', keyboardType: TextInputType.emailAddress),
@@ -269,8 +276,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                                 child: OutlinedButton(
                                   onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: AdminColors.onSurface,
-                                    backgroundColor: AdminColors.surfaceContainerLow,
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: AdminColors.primaryContainer,
                                     side: BorderSide.none,
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -315,6 +322,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
     required String label,
     required String hint,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    bool readOnly = false,
     bool required = true,
     String? prefixText,
     String? Function(String?)? validator,
@@ -327,13 +336,16 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          readOnly: readOnly,
+          enabled: !readOnly,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
             filled: true,
             fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
             prefixText: prefixText,
             prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),

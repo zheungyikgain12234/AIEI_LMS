@@ -147,7 +147,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     }
     if (_errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Specialization ↔ Course Mapping')),
+        appBar: AppBar(title: const Text('Specialisation ↔ Course Mapping')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -179,7 +179,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Specialization ↔ Course Mapping', style: AdminTypography.headlineLg()),
+        Text('Specialisation ↔ Course Mapping', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
@@ -250,7 +250,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search course by code or title...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -313,7 +313,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     final courses = _filteredCourses;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Specialization ↔ Course Mapping'),
+      appBar: const AdminMobileTopBar.detail(title: 'Specialisation ↔ Course Mapping'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -334,7 +334,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
                   filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search course by code or title...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),

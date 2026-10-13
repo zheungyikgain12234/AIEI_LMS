@@ -86,7 +86,7 @@ class ModuleNamesEditor extends StatelessWidget {
                           filled: true,
                           fillColor: AdminColors.surfaceContainerLow,
                           hintText: 'Module name',
-                          hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                          hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         ),

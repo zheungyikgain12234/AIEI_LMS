@@ -13,7 +13,7 @@ abstract class AdminCoursesRepository {
   Future<AdminCourse> getCourseById(String id);
 
   /// [tagIds] must be non-empty — at least one Course Tag is required per
-  /// course. [badgeIds] (the badges awarded on completion) is optional.
+  /// course. Badges awarded on completion are mapped separately (Badge ↔ Course Mapping); [badgeIds], when given, replaces them.
   Future<AdminCourse> createCourse({
     required String courseCode,
     required String courseTitle,
@@ -22,7 +22,7 @@ abstract class AdminCoursesRepository {
     String? imageUrl,
     required int credits,
     required List<String> tagIds,
-    List<String> badgeIds = const [],
+    List<String>? badgeIds,
   });
 
   Future<AdminCourse> updateCourse(
@@ -34,7 +34,7 @@ abstract class AdminCoursesRepository {
     String? imageUrl,
     required int credits,
     required List<String> tagIds,
-    List<String> badgeIds = const [],
+    List<String>? badgeIds,
   });
 
   Future<void> deleteCourses(List<String> ids);

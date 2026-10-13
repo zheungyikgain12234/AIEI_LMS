@@ -14,6 +14,7 @@ abstract class AdminBadgesRepository {
     required String badgeId,
     required DateTime issueDate,
     required bool isRevoked,
+    String? revokeReason,
   });
 
   Future<BadgeAward> updateBadgeAward(
@@ -23,6 +24,7 @@ abstract class AdminBadgesRepository {
     required String badgeId,
     required DateTime issueDate,
     required bool isRevoked,
+    String? revokeReason,
   });
 
   Future<void> deleteBadgeAwards(List<String> ids);

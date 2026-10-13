@@ -580,6 +580,7 @@ create table badge_awards (
   badge_id uuid not null references certifications(id) on delete cascade,
   issue_date date not null default current_date,
   is_revoked boolean not null default false,
+  revoke_reason text,
   created_at timestamptz not null default now()
 );
 
@@ -726,3 +727,57 @@ create policy "course-content anon read" on storage.objects for select to anon u
 create policy "course-content anon write" on storage.objects for insert to anon with check (bucket_id = 'course-content');
 create policy "course-content anon update" on storage.objects for update to anon using (bucket_id = 'course-content');
 create policy "course-content anon delete" on storage.objects for delete to anon using (bucket_id = 'course-content');
+
+-- ── Performance indexes ─────────────────────────────────────────────────
+-- Postgres indexes primary keys and unique constraints automatically but NOT
+-- foreign-key columns, so every lookup like "modules of this class" or
+-- "students of this course" and every ON DELETE CASCADE would otherwise scan
+-- the whole child table. Columns already covered by a leading primary-key /
+-- unique column (e.g. student_courses.student_id, content_block_submissions.
+-- content_block_id) are deliberately not repeated. Idempotent.
+create index if not exists course_sections_course_id_idx on course_sections (course_id);
+create index if not exists course_sections_lecturer_id_idx on course_sections (lecturer_id);
+create index if not exists course_sections_cohort_id_idx on course_sections (cohort_id);
+
+create index if not exists course_modules_section_id_idx on course_modules (section_id, module_sorting);
+create index if not exists module_materials_module_id_idx on module_materials (module_id);
+create index if not exists sessions_module_id_idx on sessions (module_id, session_sorting);
+create index if not exists content_blocks_session_id_idx on content_blocks (session_id, block_sorting);
+
+create index if not exists template_modules_template_id_idx on template_modules (template_id, module_sorting);
+create index if not exists template_sessions_module_id_idx on template_sessions (template_module_id, session_sorting);
+create index if not exists template_content_blocks_session_id_idx on template_content_blocks (template_session_id, block_sorting);
+
+create index if not exists exam_sections_content_block_id_idx on exam_sections (content_block_id);
+create index if not exists exam_questions_section_id_idx on exam_questions (exam_section_id);
+create index if not exists exam_question_options_question_id_idx on exam_question_options (question_id);
+create index if not exists assignment_criteria_content_block_id_idx on assignment_criteria (content_block_id);
+create index if not exists content_block_submissions_student_id_idx on content_block_submissions (student_id);
+create index if not exists content_block_submissions_status_idx on content_block_submissions (status);
+
+create index if not exists module_list_items_list_id_idx on module_list_items (module_list_id);
+
+-- Join tables: the composite primary key covers lookups by its first column;
+-- these cover the reverse direction (e.g. "which lecturers teach this course").
+create index if not exists course_tags_tag_id_idx on course_tags (tag_id);
+create index if not exists course_badges_badge_id_idx on course_badges (badge_id);
+create index if not exists module_certs_cert_id_idx on module_certs (cert_id);
+create index if not exists lecturer_courses_course_id_idx on lecturer_courses (course_id);
+create index if not exists role_courses_course_id_idx on role_courses (course_id);
+create index if not exists department_courses_course_id_idx on department_courses (course_id);
+create index if not exists course_programmes_course_id_idx on course_programmes (course_id);
+create index if not exists track_courses_course_id_idx on track_courses (course_id);
+create index if not exists specialization_courses_course_id_idx on specialization_courses (course_id);
+
+create index if not exists student_courses_course_id_idx on student_courses (course_id);
+create index if not exists student_courses_section_id_idx on student_courses (section_id);
+create index if not exists student_materials_material_id_idx on student_materials (material_id);
+create index if not exists student_certifications_student_id_idx on student_certifications (student_id);
+create index if not exists student_certifications_cert_id_idx on student_certifications (cert_id);
+create index if not exists badge_awards_student_id_idx on badge_awards (student_id);
+create index if not exists badge_awards_course_id_idx on badge_awards (course_id);
+create index if not exists badge_awards_badge_id_idx on badge_awards (badge_id);
+create index if not exists course_announcements_section_id_idx on course_announcements (section_id, created_at desc);
+
+-- Existing databases: revoking a badge award now records why (required in the UI).
+alter table badge_awards add column if not exists revoke_reason text;

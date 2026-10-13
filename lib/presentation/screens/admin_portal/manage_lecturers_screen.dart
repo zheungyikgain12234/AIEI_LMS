@@ -251,7 +251,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Manage Lecturers', style: AdminTypography.headlineLg()),
+            Text('Manage and Assign Lecturers', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
@@ -383,7 +383,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLowest,
                 hintText: 'Search by faculty name, employee ID, email, or department...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -572,8 +572,8 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
               child: OutlinedButton(
                 onPressed: () => _openAssignedCourses(l),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.primaryContainer,
-                  backgroundColor: AdminColors.surfaceContainerLow,
+                  foregroundColor: Colors.white,
+                  backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -597,7 +597,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.root(title: 'Lecturers'),
+      appBar: const AdminMobileTopBar.root(title: 'Manage and Assign Lecturers'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -662,7 +662,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search by faculty name, employee ID, email, or department...',
-        hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -764,8 +764,8 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
     return OutlinedButton(
       onPressed: () => _openAssignedCourses(l),
       style: OutlinedButton.styleFrom(
-        foregroundColor: AdminColors.primaryContainer,
-        backgroundColor: AdminColors.surfaceContainerLow,
+        foregroundColor: Colors.white,
+        backgroundColor: AdminColors.primaryContainer,
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

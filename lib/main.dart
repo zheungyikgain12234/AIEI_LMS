@@ -46,6 +46,11 @@ class AieiLmsApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.background,
+        // Placeholder text meets the 4.5:1 contrast minimum but is italic, so
+        // it can't be mistaken for a value the user actually entered.
+        inputDecorationTheme: const InputDecorationTheme(
+          hintStyle: TextStyle(color: AdminColors.hint, fontStyle: FontStyle.italic),
+        ),
         // One blue for every clickable button in all three portals (the same
         // blue as the active sidebar item). Destructive red buttons set their
         // own colour explicitly.

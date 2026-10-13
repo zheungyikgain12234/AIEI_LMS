@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
@@ -819,6 +820,7 @@ class _ModeratedScoreCellState extends State<_ModeratedScoreCell> {
               controller: _controller,
               textAlign: TextAlign.right,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: decimalOnly,
               style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               onChanged: (_) => setState(() => _dirty = true),
               onSubmitted: (_) => _save(),
@@ -913,13 +915,14 @@ class _BulkModeratedScoreHeaderState extends State<_BulkModeratedScoreHeader> {
               controller: _controller,
               textAlign: TextAlign.right,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: decimalOnly,
               style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
                 filled: true,
                 fillColor: FacultyColors.surfaceContainerLowest,
                 hintText: 'All',
-                hintStyle: FacultyTypography.labelXs(color: FacultyColors.outline),
+                hintStyle: FacultyTypography.labelXs(color: FacultyColors.hint).copyWith(fontStyle: FontStyle.italic),
                 suffixText: '%',
                 suffixStyle: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),

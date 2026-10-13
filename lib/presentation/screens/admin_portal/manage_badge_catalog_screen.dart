@@ -200,7 +200,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search badge by code or name...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.outline),
+                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),

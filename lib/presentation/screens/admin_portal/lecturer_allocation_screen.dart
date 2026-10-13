@@ -638,7 +638,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                               icon: const Icon(Icons.person_add_alt_1, size: 14),
                               label: const Text('1-Click Assign'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AdminColors.secondary,
+                                backgroundColor: AdminColors.primaryContainer,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -848,7 +848,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
         icon: const Icon(Icons.person_add, size: 18),
         label: const Text('+ Assign Lecturer to Course'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AdminColors.secondary,
+          backgroundColor: AdminColors.primaryContainer,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1071,7 +1071,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
         ElevatedButton(
           onPressed: () => setState(() => _assigned.add(sectionId)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AdminColors.secondary,
+            backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1197,7 +1197,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                   onPressed: _notAvailable,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    backgroundColor: AdminColors.secondary,
+                    backgroundColor: AdminColors.primaryContainer,
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1232,7 +1232,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                 child: OutlinedButton(
                   onPressed: _notAvailable,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AdminColors.secondary,
+                    foregroundColor: AdminColors.primaryContainer,
                     side: const BorderSide(color: AdminColors.secondary),
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
@@ -1397,7 +1397,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Add Course'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.secondary,
+                  foregroundColor: AdminColors.primaryContainer,
                   backgroundColor: AdminColors.surfaceContainer,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:file_picker/file_picker.dart';
@@ -56,7 +57,11 @@ class CourseSyllabusScreen extends StatefulWidget {
   /// or module lock, an Approve button, and edits do not reset approval.
   final bool isAdmin;
 
-  const CourseSyllabusScreen({super.key, required this.sectionId, required this.courseTitle, this.isAdmin = false});
+  /// When set, the page is a read-only preview of this saved template (shown
+  /// before a lecturer imports it) instead of the class's own syllabus.
+  final SyllabusTemplate? previewTemplate;
+
+  const CourseSyllabusScreen({super.key, required this.sectionId, required this.courseTitle, this.isAdmin = false, this.previewTemplate});
 
   @override
   State<CourseSyllabusScreen> createState() => _CourseSyllabusScreenState();
@@ -82,6 +87,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   /// an override. Classes with no period set are unrestricted.
   bool get _canEdit {
     final s = _section;
+    if (_isTemplatePreview) return false;
     if (widget.isAdmin || s == null || _overrideMatches) return true;
     final start = s.editStartAt;
     final end = s.editEndAt;
@@ -91,7 +97,15 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   }
 
   /// Module add/rename/delete/rearrange is off when the admin locked modules or the edit period is closed.
-  bool get _modulesReadOnly => !widget.isAdmin && (_modulesLocked || !_canEdit);
+  bool get _modulesReadOnly => _isTemplatePreview || (!widget.isAdmin && (_modulesLocked || !_canEdit));
+
+  bool get _isTemplatePreview => widget.previewTemplate != null;
+
+  Future<List<CourseSession>> _fetchSessions(String moduleId) =>
+      _isTemplatePreview ? _repository.getTemplateSessions(moduleId) : _repository.getSessions(moduleId);
+
+  Future<List<ContentBlock>> _fetchBlocks(String sessionId) =>
+      _isTemplatePreview ? _repository.getTemplateContentBlocks(sessionId) : _repository.getContentBlocks(sessionId);
   List<CourseModule> _modules = [];
   final Map<String, List<CourseSession>> _sessionsByModule = {};
   final Map<String, List<ContentBlock>> _blocksBySession = {};
@@ -107,7 +121,16 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    if (_isTemplatePreview) {
+      final modules = await _repository.getTemplateModules(widget.previewTemplate!.id);
+      if (!mounted) return;
+      setState(() {
+        _modules = modules;
+        _hideMarkButtons = true;
+        _isLoading = false;
+      });
+      return;
+    }
     final modules = await _repository.getModules(widget.sectionId);
     final settings = await _settingsRepository.getSettings();
     final section = await _lecturersRepository.getSectionById(widget.sectionId);
@@ -117,12 +140,12 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
     final moduleIds = {for (final m in modules) m.id};
     final freshSessions = <String, List<CourseSession>>{};
     for (final id in _sessionsByModule.keys.where(moduleIds.contains)) {
-      freshSessions[id] = await _repository.getSessions(id);
+      freshSessions[id] = await _fetchSessions(id);
     }
     final liveSessionIds = {for (final list in freshSessions.values) for (final s in list) s.id};
     final freshBlocks = <String, List<ContentBlock>>{};
     for (final id in _blocksBySession.keys.where(liveSessionIds.contains)) {
-      freshBlocks[id] = await _repository.getContentBlocks(id);
+      freshBlocks[id] = await _fetchBlocks(id);
     }
     if (!mounted) return;
     setState(() {
@@ -153,7 +176,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
       _expandedModules.add(moduleId);
       _loadingModules.add(moduleId);
     });
-    final sessions = await _repository.getSessions(moduleId);
+    final sessions = await _fetchSessions(moduleId);
     if (!mounted) return;
     setState(() {
       _sessionsByModule[moduleId] = sessions;
@@ -170,7 +193,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
       _expandedSessions.add(sessionId);
       _loadingSessions.add(sessionId);
     });
-    final blocks = await _repository.getContentBlocks(sessionId);
+    final blocks = await _fetchBlocks(sessionId);
     if (!mounted) return;
     setState(() {
       _blocksBySession[sessionId] = blocks;
@@ -179,13 +202,13 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   }
 
   Future<void> _refreshSessionsFor(String moduleId) async {
-    final sessions = await _repository.getSessions(moduleId);
+    final sessions = await _fetchSessions(moduleId);
     if (!mounted) return;
     setState(() => _sessionsByModule[moduleId] = sessions);
   }
 
   Future<void> _refreshBlocksFor(String sessionId) async {
-    final blocks = await _repository.getContentBlocks(sessionId);
+    final blocks = await _fetchBlocks(sessionId);
     if (!mounted) return;
     setState(() => _blocksBySession[sessionId] = blocks);
   }
@@ -420,7 +443,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   Future<void> _copyFromTemplate() async {
     final template = await showDialog<SyllabusTemplate>(
       context: context,
-      builder: (_) => _CopyFromTemplateDialog(repository: _repository, classModuleNames: [for (final m in _modules) m.name]),
+      builder: (_) => _CopyFromTemplateDialog(repository: _repository, classModuleNames: [for (final m in _modules) m.name], sectionId: widget.sectionId, courseTitle: widget.courseTitle),
     );
     if (template == null || !mounted) return;
     final confirmed = await showDialog<bool>(
@@ -474,7 +497,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
               icon: const Icon(Icons.verified_outlined),
               label: const Text('Approve Syllabus'),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF2E7D32),
+                backgroundColor: AdminColors.primaryContainer,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 textStyle: FacultyTypography.titleSm(color: Colors.white),
               ),
@@ -519,6 +542,62 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     );
   }
 
+  /// The read-only template preview: the same Modules and Sessions layout as
+  /// the real syllabus page, minus every edit / mark / manage control.
+  Widget _buildTemplatePreviewScaffold(BuildContext context) {
+    final mobile = MediaQuery.of(context).size.width < 700;
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _previewBanner(),
+        Text('Modules and Sessions', style: mobile ? FacultyTypography.headlineMd() : FacultyTypography.headlineLg()),
+        const SizedBox(height: 2),
+        Text('Template: ${widget.previewTemplate!.name}', style: FacultyTypography.bodyLg(color: FacultyColors.onSurfaceVariant)),
+        const SizedBox(height: 16),
+      ],
+    );
+    final content = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 820),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (!mobile)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.arrow_back, size: 18, color: AdminColors.primaryContainer),
+                      const SizedBox(width: 4),
+                      Text('Back to templates', style: FacultyTypography.labelMd(color: AdminColors.primaryContainer)),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+          header,
+          _buildModuleListBody(),
+        ],
+      ),
+    );
+    if (mobile) {
+      return Scaffold(
+        backgroundColor: FacultyColors.background,
+        appBar: const FacultyMobileTopBar(title: 'Template Preview'),
+        body: SafeArea(top: false, child: Align(alignment: Alignment.topCenter, child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: content))),
+      );
+    }
+    return FacultyScaffold(
+      selected: FacultyNavDestination.myCourses,
+      onDestinationSelected: _handleNav,
+      body: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: content)),
+    );
+  }
+
   void _handleNav(FacultyNavDestination dest) {
     switch (dest) {
       case FacultyNavDestination.myCourses:
@@ -536,6 +615,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    if (_isTemplatePreview) return _buildTemplatePreviewScaffold(context);
     if (widget.isAdmin || MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -668,7 +748,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
       icon: const Icon(Icons.visibility_outlined, size: 16),
       label: const Text('View as Student'),
       style: OutlinedButton.styleFrom(
-        foregroundColor: FacultyColors.primary,
+        foregroundColor: AdminColors.primaryContainer,
         side: const BorderSide(color: FacultyColors.outlineVariant),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -683,7 +763,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
       icon: const Icon(Icons.add, size: 18),
       label: const Text('Add Module'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: FacultyColors.primary,
+        backgroundColor: AdminColors.primaryContainer,
         foregroundColor: Colors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -698,7 +778,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
       icon: const Icon(Icons.save_outlined, size: 16),
       label: const Text('Save as Template'),
       style: OutlinedButton.styleFrom(
-        foregroundColor: FacultyColors.primary,
+        foregroundColor: AdminColors.primaryContainer,
         side: const BorderSide(color: FacultyColors.outlineVariant),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -713,7 +793,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
       icon: const Icon(Icons.content_copy_outlined, size: 16),
       label: const Text('Copy from Template'),
       style: OutlinedButton.styleFrom(
-        foregroundColor: FacultyColors.primary,
+        foregroundColor: AdminColors.primaryContainer,
         side: const BorderSide(color: FacultyColors.outlineVariant),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -726,10 +806,31 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _approvalBar(),
-        if (!_canEdit) _editClosedBanner(),
+        if (_isTemplatePreview) _previewBanner() else _approvalBar(),
+        if (!_canEdit && !_isTemplatePreview) _editClosedBanner(),
         _buildModuleListBody(),
       ],
+    );
+  }
+
+  Widget _previewBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFFFF4CE), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE0B800))),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.visibility_outlined, size: 20, color: Color(0xFF7A5B00)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'PREVIEW ONLY — this is the template "${widget.previewTemplate!.name}", not your class. Nothing has been imported or changed.',
+              style: FacultyTypography.bodySm(color: const Color(0xFF7A5B00)).copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -871,7 +972,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
                         icon: const Icon(Icons.add, size: 16),
                         label: const Text('Add Session'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: FacultyColors.primary,
+                          foregroundColor: AdminColors.primaryContainer,
                           side: const BorderSide(color: FacultyColors.outlineVariant),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -973,7 +1074,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
                         onPressed: () => _addContentBlock(s.id),
                         icon: const Icon(Icons.add, size: 16),
                         label: const Text('Add Content'),
-                        style: TextButton.styleFrom(foregroundColor: FacultyColors.primary, textStyle: FacultyTypography.labelMd()),
+                        style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, textStyle: FacultyTypography.labelMd()),
                       ),
                     ),
                   ],
@@ -2249,7 +2350,10 @@ class _CopyFromTemplateDialog extends StatefulWidget {
   /// order — can be imported.
   final List<String> classModuleNames;
 
-  const _CopyFromTemplateDialog({required this.repository, required this.classModuleNames});
+  final String sectionId;
+  final String courseTitle;
+
+  const _CopyFromTemplateDialog({required this.repository, required this.classModuleNames, required this.sectionId, required this.courseTitle});
 
   @override
   State<_CopyFromTemplateDialog> createState() => _CopyFromTemplateDialogState();
@@ -2329,6 +2433,16 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
                                     ],
                                   ),
                                 ),
+                                FilledButton.icon(
+                                  onPressed: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => CourseSyllabusScreen(sectionId: widget.sectionId, courseTitle: widget.courseTitle, previewTemplate: t),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.visibility_outlined, size: 16),
+                                  label: const Text('Preview'),
+                                  style: FilledButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white),
+                                ),
                               ],
                             ),
                           ),
@@ -2347,6 +2461,7 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
     );
   }
 }
+
 
 String _numberedPrefix(String kind, int n) => numberedPrefix(kind, n);
 

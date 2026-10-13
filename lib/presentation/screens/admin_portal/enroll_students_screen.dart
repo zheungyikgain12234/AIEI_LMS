@@ -548,7 +548,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     )
                   : OutlinedButton(
                       onPressed: () => setState(() => _staged.add(c.id)),
-                      style: OutlinedButton.styleFrom(foregroundColor: AdminColors.primary, backgroundColor: AdminColors.surfaceContainerLow, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
+                      style: OutlinedButton.styleFrom(foregroundColor: AdminColors.primaryContainer, backgroundColor: AdminColors.surfaceContainerLow, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
                       child: const Text('+ Add'),
                     ),
             ),

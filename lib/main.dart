@@ -4,6 +4,7 @@ import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/supabase_env.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
@@ -45,6 +46,21 @@ class AieiLmsApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.background,
+        // One blue for every clickable button in all three portals (the same
+        // blue as the active sidebar item). Destructive red buttons set their
+        // own colour explicitly.
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
+        ),
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.secondary,
           primary: AppColors.primary,

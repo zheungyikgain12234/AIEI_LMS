@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:flutter/material.dart' hide MaterialType;
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -324,7 +325,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                   icon: const Icon(Icons.cloud_upload_outlined, size: 18),
                   label: const Text('Upload Material'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: FacultyColors.primary,
+                    backgroundColor: AdminColors.primaryContainer,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -889,7 +890,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                   showSuccessSnackBar(context, 'All curriculum changes published.');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: FacultyColors.primary,
+                  backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1016,7 +1017,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                 icon: const Icon(Icons.add_circle, size: 18),
                 label: const Text('Add Module'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: FacultyColors.secondary,
+                  backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: FacultyColors.onSecondary,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1032,7 +1033,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                 label: const Text('Upload Asset'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: FacultyColors.surfaceContainerLow,
-                  foregroundColor: FacultyColors.secondary,
+                  foregroundColor: AdminColors.primaryContainer,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1610,7 +1611,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                   label: const Text('Student Preview'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: FacultyColors.surfaceContainerLow,
-                    foregroundColor: FacultyColors.secondary,
+                    foregroundColor: AdminColors.primaryContainer,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1626,7 +1627,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                   icon: const Icon(Icons.check_circle, size: 18),
                   label: const Text('Publish Changes'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: FacultyColors.secondary,
+                    backgroundColor: AdminColors.primaryContainer,
                     foregroundColor: FacultyColors.onSecondary,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),

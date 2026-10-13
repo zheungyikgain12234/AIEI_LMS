@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
@@ -880,7 +881,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
                 onPressed: () => setState(() => _showAnnouncementForm = !_showAnnouncementForm),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Post New'),
-                style: TextButton.styleFrom(foregroundColor: FacultyColors.primary, textStyle: FacultyTypography.labelMd()),
+                style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, textStyle: FacultyTypography.labelMd()),
               ),
             ],
           ),
@@ -937,7 +938,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
                       ),
                       ElevatedButton(
                         onPressed: _postingAnnouncement ? null : _postAnnouncement,
-                        style: ElevatedButton.styleFrom(backgroundColor: FacultyColors.primary, foregroundColor: Colors.white, elevation: 0),
+                        style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0),
                         child: Text(_postingAnnouncement ? 'Publishing...' : 'Publish'),
                       ),
                     ],

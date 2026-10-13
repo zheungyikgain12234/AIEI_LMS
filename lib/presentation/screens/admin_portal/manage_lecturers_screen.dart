@@ -572,7 +572,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
               child: OutlinedButton(
                 onPressed: () => _openAssignedCourses(l),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.primary,
+                  foregroundColor: AdminColors.primaryContainer,
                   backgroundColor: AdminColors.surfaceContainerLow,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -764,7 +764,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
     return OutlinedButton(
       onPressed: () => _openAssignedCourses(l),
       style: OutlinedButton.styleFrom(
-        foregroundColor: AdminColors.primary,
+        foregroundColor: AdminColors.primaryContainer,
         backgroundColor: AdminColors.surfaceContainerLow,
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

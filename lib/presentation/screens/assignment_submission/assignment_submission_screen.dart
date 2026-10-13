@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -211,7 +212,7 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                         : const Icon(Icons.send_outlined, size: 18),
                     label: Text(_submission == null ? 'Submit Assignment' : 'Resubmit Assignment'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: FacultyColors.primary,
+                      backgroundColor: AdminColors.primaryContainer,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),

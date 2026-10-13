@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -340,7 +341,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                   icon: const Icon(Icons.archive_outlined, size: 15),
                   label: const Text('Download All (.zip)'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: FacultyColors.primary,
+                    foregroundColor: AdminColors.primaryContainer,
                     backgroundColor: FacultyColors.surfaceContainer,
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -435,7 +436,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
             icon: const Icon(Icons.download_outlined, size: 15),
             label: const Text('Download'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: FacultyColors.primary,
+              foregroundColor: AdminColors.primaryContainer,
               backgroundColor: FacultyColors.surfaceContainerLowest,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -569,7 +570,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                       icon: const Icon(Icons.publish_outlined, size: 16),
                       label: const Text('Save & Publish'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: FacultyColors.primaryContainer,
+                        backgroundColor: AdminColors.primaryContainer,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -587,7 +588,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                   icon: const Icon(Icons.arrow_forward, size: 16),
                   label: const Text('Save & Next Submission'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: FacultyColors.primary,
+                    foregroundColor: AdminColors.primaryContainer,
                     backgroundColor: FacultyColors.surfaceContainerHigh,
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -853,7 +854,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 icon: const Icon(Icons.download, size: 16),
                 label: const Text('Download All'),
                 style: TextButton.styleFrom(
-                  foregroundColor: FacultyColors.secondary,
+                  foregroundColor: AdminColors.primaryContainer,
                   backgroundColor: FacultyColors.surfaceContainerLow,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

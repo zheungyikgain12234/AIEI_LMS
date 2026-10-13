@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'dart:async';
@@ -689,7 +690,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
           : const Icon(Icons.send, size: 18),
       label: Text(_submission == null ? 'Submit Exam' : 'Resubmit Exam'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AdminColors.primaryContainer,
         foregroundColor: AppColors.onPrimary,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -917,7 +918,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
             onPressed: uploading ? null : () => _pickAndUploadFor(q),
             icon: uploading ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.upload_file, size: 16),
             label: const Text('Attach a file'),
-            style: OutlinedButton.styleFrom(foregroundColor: AppColors.secondary),
+            style: OutlinedButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
           )
         else if (files.isEmpty)
           Text('No file submitted.', style: AppTypography.bodySm(color: AppColors.onSurfaceVariant)),
@@ -1000,7 +1001,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
                 icon: const Icon(Icons.verified, size: 18),
                 label: const Text('Finish & Submit Exam'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: AppColors.onPrimary,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1140,7 +1141,7 @@ class _SubmitDialog extends StatelessWidget {
                 ElevatedButton(
                   onPressed: onConfirm,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondaryContainer,
+                    backgroundColor: AdminColors.primaryContainer,
                     foregroundColor: AppColors.onSecondaryContainer,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -164,7 +165,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Criterion'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: FacultyColors.primary,
+                          backgroundColor: AdminColors.primaryContainer,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

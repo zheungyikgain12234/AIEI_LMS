@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
@@ -411,7 +412,7 @@ class _CourseCardState extends State<CourseCard> {
         onPressed: widget.onAction,
         style: OutlinedButton.styleFrom(
           backgroundColor: AppColors.surfaceContainerLow,
-          foregroundColor: AppColors.secondary,
+          foregroundColor: AdminColors.primaryContainer,
           side: BorderSide.none,
           minimumSize: const Size(double.infinity, 40),
           shape: RoundedRectangleBorder(
@@ -435,7 +436,7 @@ class _CourseCardState extends State<CourseCard> {
     return ElevatedButton(
       onPressed: widget.onAction,
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.secondary,
+        backgroundColor: AdminColors.primaryContainer,
         foregroundColor: AppColors.onSecondary,
         elevation: 0,
         minimumSize: const Size(double.infinity, 40),

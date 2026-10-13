@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -736,7 +737,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
               icon: const Icon(Icons.speed, size: 16),
               label: const Text('Open Dashboard'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: FacultyColors.primary,
+                backgroundColor: AdminColors.primaryContainer,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

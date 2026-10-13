@@ -372,7 +372,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                   : const Icon(Icons.upload_outlined, size: 16),
               label: Text(_bannerImageUrl == null || _bannerImageUrl!.isEmpty ? 'Upload Banner Image' : 'Replace Banner Image'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AdminColors.primary,
+                foregroundColor: AdminColors.primaryContainer,
                 backgroundColor: AdminColors.surfaceContainer,
                 side: BorderSide.none,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

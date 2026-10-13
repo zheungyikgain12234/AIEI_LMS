@@ -85,6 +85,12 @@ abstract class LecturerSyllabusRepository {
   /// A template's module names in order — to check it against a class's modules.
   Future<List<String>> getTemplateModuleNames(String templateId);
 
+  /// A template's modules / sessions / content blocks, read-only, as the same
+  /// models the Syllabus page renders — for previewing before an import.
+  Future<List<CourseModule>> getTemplateModules(String templateId);
+  Future<List<CourseSession>> getTemplateSessions(String templateModuleId);
+  Future<List<ContentBlock>> getTemplateContentBlocks(String templateSessionId);
+
   /// Sum of `weightage` across every exam/assignment content block in this
   /// class's whole syllabus (every module/session, not just loaded ones) —
   /// used to enforce the "must not exceed 100%" rule when a lecturer sets a

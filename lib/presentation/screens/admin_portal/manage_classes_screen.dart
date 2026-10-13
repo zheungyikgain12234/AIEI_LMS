@@ -308,7 +308,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                   child: OutlinedButton(
                     onPressed: () => _openManageClass(s),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AdminColors.primary,
+                      foregroundColor: AdminColors.primaryContainer,
                       backgroundColor: AdminColors.surfaceContainerLow,
                       side: BorderSide.none,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -526,7 +526,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
               child: OutlinedButton(
                 onPressed: () => _openManageClass(s),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.primary,
+                  foregroundColor: AdminColors.primaryContainer,
                   backgroundColor: AdminColors.surfaceContainerLow,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

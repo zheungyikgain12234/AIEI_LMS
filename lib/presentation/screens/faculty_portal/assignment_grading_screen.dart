@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
@@ -361,7 +362,7 @@ class _AssignmentGradingScreenState extends State<AssignmentGradingScreen> {
                     : const Icon(Icons.logout, size: 18),
                 label: const Text('Save Marks and Exit'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: FacultyColors.primary,
+                  foregroundColor: AdminColors.primaryContainer,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -373,7 +374,7 @@ class _AssignmentGradingScreenState extends State<AssignmentGradingScreen> {
                     : const Icon(Icons.navigate_next, size: 18),
                 label: Text(_submission == null ? 'Next' : 'Save and Mark the Next Student'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: FacultyColors.primary,
+                  backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),

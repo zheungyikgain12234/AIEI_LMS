@@ -528,7 +528,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             icon: const Icon(Icons.person_add, size: 18),
             label: const Text('+ Enrol Students'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AdminColors.secondary,
+              backgroundColor: AdminColors.primaryContainer,
               foregroundColor: AdminColors.onSecondary,
               elevation: 1,
               padding: const EdgeInsets.symmetric(horizontal: 14),

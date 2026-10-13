@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -834,7 +835,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                 icon: const Icon(Icons.send, size: 16),
                 label: const Text('Release Grade & Feedback'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: FacultyColors.primary,
+                  backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1599,7 +1600,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                   icon: const Icon(Icons.save, size: 18),
                   label: const Text('Save Draft'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: FacultyColors.primary,
+                    foregroundColor: AdminColors.primaryContainer,
                     backgroundColor: FacultyColors.surfaceContainerLow,
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1614,7 +1615,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                   icon: const Icon(Icons.send, size: 18),
                   label: const Text('Release Grade'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: FacultyColors.secondary,
+                    backgroundColor: AdminColors.primaryContainer,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 10),

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -289,7 +290,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Section'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: FacultyColors.primary,
+                          backgroundColor: AdminColors.primaryContainer,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -494,7 +495,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                         onPressed: () => _addQuestion(s.id),
                         icon: const Icon(Icons.add, size: 16),
                         label: const Text('Add Question'),
-                        style: TextButton.styleFrom(foregroundColor: FacultyColors.primary, textStyle: FacultyTypography.labelMd()),
+                        style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, textStyle: FacultyTypography.labelMd()),
                       ),
                     ),
                   ],
@@ -903,7 +904,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                       onPressed: _addChoice,
                       icon: const Icon(Icons.add, size: 16),
                       label: const Text('Add choice'),
-                      style: TextButton.styleFrom(foregroundColor: FacultyColors.primary),
+                      style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
                     ),
                   ),
                 ],

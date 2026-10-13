@@ -283,6 +283,26 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
     }
   }
 
+
+
+  @override
+  Future<List<CourseModule>> getTemplateModules(String templateId) async {
+    final rows = await _client.from('template_modules').select().eq('template_id', templateId).order('module_sorting', ascending: true);
+    return [for (final row in rows as List) CourseModule.fromMap({...row as Map<String, dynamic>, 'section_id': templateId})];
+  }
+
+  @override
+  Future<List<CourseSession>> getTemplateSessions(String templateModuleId) async {
+    final rows = await _client.from('template_sessions').select().eq('template_module_id', templateModuleId).order('session_sorting', ascending: true);
+    return [for (final row in rows as List) CourseSession.fromMap({...row as Map<String, dynamic>, 'module_id': templateModuleId})];
+  }
+
+  @override
+  Future<List<ContentBlock>> getTemplateContentBlocks(String templateSessionId) async {
+    final rows = await _client.from('template_content_blocks').select().eq('template_session_id', templateSessionId).order('block_sorting', ascending: true);
+    return [for (final row in rows as List) ContentBlock.fromMap({...row as Map<String, dynamic>, 'session_id': templateSessionId})];
+  }
+
   bool _sameModuleName(String a, String b) => a.trim().toLowerCase() == b.trim().toLowerCase();
 
   /// Copies every session (and its content blocks) of one template module

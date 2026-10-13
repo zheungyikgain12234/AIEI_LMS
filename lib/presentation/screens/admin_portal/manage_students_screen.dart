@@ -146,7 +146,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             onPressed: _resetFilters,
             icon: const Icon(Icons.restart_alt, size: 16),
             label: const Text('Reset'),
-            style: TextButton.styleFrom(foregroundColor: AdminColors.secondary),
+            style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
           ),
       ],
     );
@@ -1082,7 +1082,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               child: OutlinedButton(
                 onPressed: () => _openEnrolledCourses(s),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.primary,
+                  foregroundColor: AdminColors.primaryContainer,
                   backgroundColor: AdminColors.surfaceContainerLow,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1416,7 +1416,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               OutlinedButton(
                 onPressed: () => _openEnrolledCourses(s),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AdminColors.primary,
+                  foregroundColor: AdminColors.primaryContainer,
                   backgroundColor: AdminColors.surfaceContainerLow,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

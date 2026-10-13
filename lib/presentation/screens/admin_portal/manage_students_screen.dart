@@ -655,6 +655,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    // Only rows still visible (after a search or filter) can stay selected, so
+    // the "N selected" count and bulk actions never include hidden records.
+    final visibleIds = {for (final r in _filteredStudents) r.id};
+    _selected.retainWhere(visibleIds.contains);
     if (_errorMessage != null) {
       return Scaffold(
         body: Center(

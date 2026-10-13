@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'widgets/admin_fixed_code.dart';
@@ -21,8 +22,8 @@ import 'widgets/searchable_dropdown.dart';
 // its primary key); omit it to register a new student. Saving pops back to
 // the caller with the created/updated Student so the table can refresh.
 //
-// Department / Program Track / Role are selected from the admin-managed
-// master data lists (Manage Student Depts / Manage Program Tracks / Manage
+// Department / Programme Track / Role are selected from the admin-managed
+// master data lists (Manage Student Depts / Manage Programme Tracks / Manage
 // Roles) rather than freely typed, so the values always satisfy the
 // `students` table's foreign keys. GPA is not editable here — it defaults
 // to 0 in the database and is updated elsewhere as the student progresses.
@@ -240,8 +241,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                           ],
                           if (_studentType == StudentType.external) ...[
                             _dropdown(
-                              label: 'Program Track',
-                              hint: 'Select a program track',
+                              label: 'Programme Track',
+                              hint: 'Select a programme track',
                               value: _selectedProgramTrack,
                               options: _programTracks,
                               onChanged: (v) => setState(() => _selectedProgramTrack = v),
@@ -455,7 +456,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                 suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),
               ),
               child: Text(
-                value == null ? 'Select a date' : '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
+                value == null ? 'Select a date' : formatDate(value),
                 style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
               ),
             ),

@@ -149,7 +149,7 @@ class _TrackCourseMappingScreenState extends State<TrackCourseMappingScreen> wit
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Text(
-            'Assign courses to program tracks — e.g. which courses belong under the AI Engineering Track or the Cloud & Distributed Systems track.',
+            'Assign courses to programme tracks — e.g. which courses belong under the AI Engineering Track or the Cloud & Distributed Systems track.',
             style: AdminTypography.bodyMd(),
           ),
         ),
@@ -162,7 +162,7 @@ class _TrackCourseMappingScreenState extends State<TrackCourseMappingScreen> wit
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No program tracks exist yet. Create one from Manage Program Tracks first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No programme tracks exist yet. Create one from Manage Programme Tracks first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(

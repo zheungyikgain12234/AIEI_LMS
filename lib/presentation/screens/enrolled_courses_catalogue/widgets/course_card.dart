@@ -45,9 +45,11 @@ class _CourseCardState extends State<CourseCard> {
           ],
         ),
         padding: const EdgeInsets.all(20),
+        // Stretches to the row's height (see CourseGrid) so every card in a
+        // row is the same height, with the button pinned to the bottom.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Top Section (Media + Title + Instructor + Progress + Badge)
             Column(

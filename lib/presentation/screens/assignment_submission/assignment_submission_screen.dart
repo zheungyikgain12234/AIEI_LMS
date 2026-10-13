@@ -118,6 +118,21 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
 
   Future<void> _submit() async {
     if (!_canSubmit) return;
+    final resubmit = _submission != null;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(resubmit ? 'Resubmit assignment?' : 'Submit assignment?'),
+        content: Text(resubmit
+            ? 'Your previous submission will be replaced. Do you want to resubmit?'
+            : 'Once submitted, your lecturer will be able to see and grade your work. Do you want to submit?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(resubmit ? 'Resubmit' : 'Submit')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     setState(() => _submitting = true);
     try {
       await runWithBusy(context, 'Submitting your assignment…', () => _gradingRepository.submitAnswer(
@@ -188,7 +203,10 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                   const SizedBox(height: 8),
                   TextField(
                     controller: _writeupController,
-                    decoration: const InputDecoration(hintText: 'Write your submission here (optional if attaching files)...'),
+                    decoration: const InputDecoration(
+                      hintText: 'Write your submission here (optional if attaching files)...',
+                      border: OutlineInputBorder(),
+                    ),
                     maxLines: 6,
                     readOnly: _locked,
                     onChanged: (_) => setState(() {}),

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:flutter/material.dart';
@@ -189,6 +190,35 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   }
 
   Future<void> _save() async {
+    // Every field marked with a red asterisk is compulsory.
+    String? missing;
+    if (_startDate == null) {
+      missing = 'Start Date';
+    } else if (_endDate == null) {
+      missing = 'End Date';
+    } else if (_dayOfWeek == null) {
+      missing = 'Day of Week';
+    } else if (_startTime == null) {
+      missing = 'Start Time';
+    } else if (_endTime == null) {
+      missing = 'End Time';
+    } else if (_deliveryMode != 'online' && _locationController.text.trim().isEmpty) {
+      missing = 'Location';
+    } else if (_selectedCohort == null) {
+      missing = 'Cohort';
+    }
+    if (missing != null) {
+      setState(() => _errorMessage = '$missing is required.');
+      return;
+    }
+    if (!_endDate!.isAfter(_startDate!)) {
+      setState(() => _errorMessage = 'End Date must be after Start Date.');
+      return;
+    }
+    if (_endTime!.hour * 60 + _endTime!.minute <= _startTime!.hour * 60 + _startTime!.minute) {
+      setState(() => _errorMessage = 'End Time must be after Start Time.');
+      return;
+    }
     final capacity = int.tryParse(_capacityController.text.trim());
     if (capacity == null || capacity <= 0) {
       setState(() => _errorMessage = 'Capacity must be a positive number.');
@@ -220,7 +250,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             : _locationController.text.trim(),
         capacity: capacity,
         deliveryMode: _deliveryMode,
-        cohort: _selectedCohort ?? _section!.cohort ?? '',
+        cohort: _selectedCohort!,
         status: _status,
         editStartAt: _editStartAt!,
         editEndAt: _editEndAt!,
@@ -349,6 +379,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final section = _section;
+    // Only students still visible after a search can stay selected.
+    final visibleIds = {for (final r in _visibleRoster) r.studentId};
+    _selected.retainWhere(visibleIds.contains);
     return Scaffold(
       backgroundColor: AdminColors.background,
       appBar: AppBar(
@@ -495,7 +528,24 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               ),
             ],
           ),
-if (_deliveryMode != 'online') ...[            const SizedBox(height: 14),            _textField(              label: 'Location',              controller: _locationController,              hint: 'Innovation Hall 204',            ),          ],
+          const SizedBox(height: 14),
+          _labeledDropdown(
+            label: 'Delivery Mode',
+            value: _deliveryMode,
+            options: _deliveryModeOptions,
+            onChanged: (v) => setState(() {
+              _deliveryMode = v!;
+              _locationController.clear();
+            }),
+          ),
+          if (_deliveryMode != 'online') ...[
+            const SizedBox(height: 14),
+            _textField(
+              label: 'Location',
+              controller: _locationController,
+              hint: 'Innovation Hall 204',
+            ),
+          ],
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -541,6 +591,7 @@ if (_deliveryMode != 'online') ...[            const SizedBox(height: 14),      
             label: 'Edit Override — Lecturer Code (optional)',
             controller: _overrideCodeController,
             hint: 'e.g. LEC-0042',
+            required: false,
           ),
           const SizedBox(height: 4),
           Text(
@@ -559,18 +610,6 @@ if (_deliveryMode != 'online') ...[            const SizedBox(height: 14),      
                   hint: '50',
                   keyboardType: TextInputType.number,
                   inputFormatters: digitsOnly,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _labeledDropdown(
-                  label: 'Delivery Mode',
-                  value: _deliveryMode,
-                  options: _deliveryModeOptions,
-                  onChanged: (v) => setState(() {
-                    _deliveryMode = v!;
-                    _locationController.clear();
-                  }),
                 ),
               ),
             ],
@@ -862,11 +901,12 @@ if (_deliveryMode != 'online') ...[            const SizedBox(height: 14),      
     required String hint,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    bool required = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AdminFieldLabel(label),
+        AdminFieldLabel(label, required: required),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -928,7 +968,7 @@ if (_deliveryMode != 'online') ...[            const SizedBox(height: 14),      
             child: Text(
               value == null
                   ? 'Select a date'
-                  : '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
+                  : formatDate(value),
               style: AdminTypography.bodyMd(
                 color: value == null
                     ? AdminColors.outline

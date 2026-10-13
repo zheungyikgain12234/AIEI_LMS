@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:flutter/material.dart';
@@ -104,13 +105,10 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
     if (iso == null) return 'Not submitted';
     final dt = DateTime.tryParse(iso)?.toLocal();
     if (dt == null) return iso;
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
     final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     final minute = dt.minute.toString().padLeft(2, '0');
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}, $hour12:$minute $period';
+    return '${formatDate(dt)}, $hour12:$minute $period';
   }
 
   String _letterGrade(int score) {

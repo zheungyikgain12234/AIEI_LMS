@@ -220,6 +220,10 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    // Only rows still visible (after a search or filter) can stay selected, so
+    // the "N selected" count and bulk actions never include hidden records.
+    final visibleIds = {for (final r in _filteredLecturers) r.id};
+    _selected.retainWhere(visibleIds.contains);
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -255,7 +259,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
-              child: Text('Institutional faculty roster, onboarding, credentials, and departmental appointments.', style: AdminTypography.bodyMd()),
+              child: Text('Institutional lecturer roster, onboarding, credentials, and departmental appointments.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -318,9 +322,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
       final activeProgress = total == 0 ? 0.0 : _activeFacultyCount / total;
       final assignedProgress = total == 0 ? 0.0 : (_courseCodesByLecturer.values.where((c) => c.isNotEmpty).length / total);
       final cards = [
-        _metricCard('TOTAL FACULTY', '$_activeFacultyCount Active', Icons.groups_outlined, 'of $total total faculty', activeProgress),
+        _metricCard('TOTAL LECTURERS', '$_activeFacultyCount Active', Icons.groups_outlined, 'of $total total lecturers', activeProgress),
         _metricCard('ASSIGNED COURSES', '$_totalAssignedCourses Assigned', Icons.menu_book_outlined,
-            '${(assignedProgress * 100).round()}% of faculty have an assignment', assignedProgress),
+            '${(assignedProgress * 100).round()}% of lecturers have an assignment', assignedProgress),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
@@ -382,7 +386,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                 isDense: true,
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLowest,
-                hintText: 'Search by faculty name, employee ID, email, or department...',
+                hintText: 'Search by lecturer name, employee ID, email, or department...',
                 hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -437,7 +441,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
               totalItems: _filteredLecturers.length,
               page: _page,
               pageSize: _pageSize,
-              itemLabel: 'faculty member',
+              itemLabel: 'lecturer',
               onPageChanged: (p) => setState(() => _page = p),
               onPageSizeChanged: (s) => setState(() {
                 _pageSize = s;
@@ -458,7 +462,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         children: [
           const SizedBox(width: 48),
           Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
-          Expanded(flex: 4, child: _sortHeader('Faculty', _SortColumn.name)),
+          Expanded(flex: 4, child: _sortHeader('Lecturer', _SortColumn.name)),
           Expanded(flex: 3, child: _sortHeader('Department', _SortColumn.department)),
           Expanded(flex: 2, child: _sortHeader('Status', _SortColumn.status)),
           const SizedBox(width: 170),
@@ -633,7 +637,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                 totalItems: _filteredLecturers.length,
                 page: _page,
                 pageSize: _pageSize,
-                itemLabel: 'faculty member',
+                itemLabel: 'lecturer',
                 onPageChanged: (p) => setState(() => _page = p),
                 onPageSizeChanged: (s) => setState(() {
                   _pageSize = s;
@@ -661,7 +665,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         isDense: true,
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
-        hintText: 'Search by faculty name, employee ID, email, or department...',
+        hintText: 'Search by lecturer name, employee ID, email, or department...',
         hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),

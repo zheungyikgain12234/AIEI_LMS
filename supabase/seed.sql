@@ -1597,3 +1597,13 @@ insert into module_list_items (module_list_id, module_name, item_sorting) values
 -- students can see the demo content (new classes start as 'draft'). ──────
 
 update course_sections set syllabus_status = 'approved', syllabus_approved_at = now();
+
+-- ── Class dates and syllabus edit period — compulsory fields, so every
+-- seeded class has them (the lecturer can edit the syllabus inside the
+-- period). ────────────────────────────────────────────────────────────────
+
+update course_sections set
+  start_date = coalesce(start_date, '2025-01-13'),
+  end_date = coalesce(end_date, '2026-12-18'),
+  edit_start_at = coalesce(edit_start_at, '2025-01-01 00:00:00+00'),
+  edit_end_at = coalesce(edit_end_at, '2027-12-31 23:59:00+00');

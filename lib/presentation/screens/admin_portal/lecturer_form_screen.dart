@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
@@ -201,8 +202,8 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                         children: [
                           Text(
                             widget.isEditing
-                                ? 'Update this faculty member\'s directory information.'
-                                : 'Onboard a new faculty member to the institutional roster.',
+                                ? 'Update this lecturer\'s directory information.'
+                                : 'Onboard a new lecturer to the institutional roster.',
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),
@@ -436,7 +437,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                 suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),
               ),
               child: Text(
-                value == null ? 'Select a date' : '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
+                value == null ? 'Select a date' : formatDate(value),
                 style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
               ),
             ),

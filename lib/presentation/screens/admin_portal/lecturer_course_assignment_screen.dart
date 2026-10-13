@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
@@ -311,7 +312,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     setState(() => isStart ? _courseStartDate = picked : _courseEndDate = picked);
   }
 
-  String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime d) => formatDate(d);
 
   Future<void> _assign() async {
     if (!_canAssign || _lecturer == null) return;
@@ -468,7 +469,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const AdminFieldLabel('Year'),
+                    const AdminFieldLabel('Year', required: false),
                     const SizedBox(height: 6),
                     SearchableDropdownFormField<int>(
                       initialValue: years.contains(_selectedYear) ? _selectedYear : null,

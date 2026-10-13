@@ -167,7 +167,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
             correctIndex: 2,
           ),
           const SizedBox(height: 24),
-          _sectionMarker('B', 'Instructor Evaluation: Free Response', 'Subjective assessment requiring rubric calibration & faculty sign-off',
+          _sectionMarker('B', 'Instructor Evaluation: Free Response', 'Subjective assessment requiring rubric calibration & lecturer sign-off',
               '2 Analytical Prompts Pending Final Release', FacultyColors.primary),
           const SizedBox(height: 12),
           _freeResponseCard(
@@ -1018,7 +1018,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: FacultyColors.secondaryContainer, borderRadius: BorderRadius.circular(9999)),
-                child: Text('Faculty Review', style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700)),
+                child: Text('Lecturer Review', style: FacultyTypography.labelXs(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700)),
               ),
               Text('Evaluator: Dr. Sarah Lin', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
             ],

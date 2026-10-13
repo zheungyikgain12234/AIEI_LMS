@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:flutter/material.dart' hide MaterialType;
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
@@ -96,8 +97,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
   int get _allFilterCount => _videoFilterCount + _docFilterCount + _codeFilterCount + _datasetFilterCount;
 
   String _formatDate(DateTime dt) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${months[dt.month - 1]} ${dt.day}';
+    return formatDate(dt);
   }
 
   String _formatDueDate(DateTime dt) {

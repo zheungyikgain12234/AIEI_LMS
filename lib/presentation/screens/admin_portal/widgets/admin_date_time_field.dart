@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -34,7 +35,7 @@ class AdminDateTimeField extends StatelessWidget {
             Expanded(
               child: _box(
                 icon: Icons.calendar_today_outlined,
-                text: v == null ? 'Select date' : '${v.year}-${_two(v.month)}-${_two(v.day)}',
+                text: v == null ? 'Select date' : formatDate(v),
                 placeholder: v == null,
                 onTap: () async {
                   final picked = await showDatePicker(

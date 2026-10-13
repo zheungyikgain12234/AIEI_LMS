@@ -187,7 +187,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       sectionId: sectionId,
       classCode: classCode,
       cohort: cohort,
-      instructorOrBoard: lecturerName ?? 'AIEI Faculty',
+      instructorOrBoard: lecturerName ?? 'AIEI Lecturer',
       instructorIcon: categoryIcon,
       instructorIconColor: AppColors.secondary,
       imageUrl: course['image_url'] as String? ?? '',

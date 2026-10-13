@@ -62,21 +62,39 @@ class CourseGrid extends StatelessWidget {
         }
 
         const double gap = 24;
-        final double itemWidth =
-            (width - (crossAxisCount - 1) * gap) / crossAxisCount;
 
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: courses.map((course) {
-            return SizedBox(
-              width: itemWidth,
-              child: CourseCard(
-                course: course,
-                onAction: () => onCourseAction?.call(course),
+        // Rows of equal-height cards: each row is as tall as its tallest card.
+        final rows = <Widget>[];
+        for (var i = 0; i < courses.length; i += crossAxisCount) {
+          final rowCourses = courses.skip(i).take(crossAxisCount).toList();
+          rows.add(
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var k = 0; k < crossAxisCount; k++) ...[
+                    if (k > 0) const SizedBox(width: gap),
+                    Expanded(
+                      child: k < rowCourses.length
+                          ? CourseCard(
+                              course: rowCourses[k],
+                              onAction: () => onCourseAction?.call(rowCourses[k]),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ],
               ),
-            );
-          }).toList(),
+            ),
+          );
+        }
+        return Column(
+          children: [
+            for (var r = 0; r < rows.length; r++) ...[
+              if (r > 0) const SizedBox(height: gap),
+              rows[r],
+            ],
+          ],
         );
       },
     );

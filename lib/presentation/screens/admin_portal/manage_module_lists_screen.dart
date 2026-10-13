@@ -174,6 +174,10 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    // Only rows still visible (after a search or filter) can stay selected, so
+    // the "N selected" count and bulk actions never include hidden records.
+    final visibleIds = {for (final r in _filtered) r.id};
+    _selected.retainWhere(visibleIds.contains);
     if (MediaQuery.of(context).size.width < 700) {
       return Scaffold(
         backgroundColor: AdminColors.background,

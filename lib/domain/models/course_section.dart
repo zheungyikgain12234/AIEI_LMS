@@ -94,7 +94,7 @@ class CourseSection {
       dayOfWeek: map['day_of_week'] as String?,
       startTime: map['start_time'] as String?,
       endTime: map['end_time'] as String?,
-      location: map['location'] as String?,
+      location: (map['delivery_mode'] as String?) == 'online' ? null : map['location'] as String?,
       lecturerId: map['lecturer_id'] as String?,
       lecturerName: lecturer?['name'] as String?,
       capacity: map['capacity'] as int,

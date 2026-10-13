@@ -44,7 +44,7 @@ class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
                   border: Border.all(color: FacultyColors.outlineVariant.withValues(alpha: 0.5)),
                 ),
                 child: Text(
-                  'FACULTY PORTAL',
+                  'LECTURER PORTAL',
                   style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)
                       .copyWith(fontWeight: FontWeight.w700),
                 ),

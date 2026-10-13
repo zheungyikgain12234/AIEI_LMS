@@ -66,6 +66,22 @@ class AieiLmsApp extends StatelessWidget {
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
         ),
+        datePickerTheme: DatePickerThemeData(
+          backgroundColor: AdminColors.surfaceContainerLowest,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          headerBackgroundColor: AdminColors.primaryContainer,
+          headerForegroundColor: Colors.white,
+          todayBorder: const BorderSide(color: AdminColors.primaryContainer),
+          dayShape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        timePickerTheme: TimePickerThemeData(
+          backgroundColor: AdminColors.surfaceContainerLowest,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.secondary,
           primary: AppColors.primary,
@@ -79,7 +95,9 @@ class AieiLmsApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('en')],
+      // en-GB makes the date picker (and its typed input) use DD/MM/YYYY.
+      locale: const Locale('en', 'GB'),
+      supportedLocales: const [Locale('en', 'GB')],
       navigatorObservers: [routeObserver],
       home: const LoginScreen(),
     );

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
@@ -123,7 +124,7 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
     return '${s.dayOfWeek} ${s.startTime!.substring(0, 5)}–${s.endTime!.substring(0, 5)}$dates';
   }
 
-  String _ymd(DateTime? d) => d == null ? '…' : d.toIso8601String().substring(0, 10);
+  String _ymd(DateTime? d) => d == null ? '…' : formatDate(d);
 
   @override
   Widget build(BuildContext context) {

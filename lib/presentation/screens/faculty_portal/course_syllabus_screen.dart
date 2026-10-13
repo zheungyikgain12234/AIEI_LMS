@@ -2141,7 +2141,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
               onChanged(DateTime(picked.year, picked.month, picked.day, value?.hour ?? defaultHour, value?.minute ?? 0));
             },
             icon: const Icon(Icons.event_outlined, size: 16),
-            label: Text(value == null ? '$label date *' : '${value.year}-${two(value.month)}-${two(value.day)}'),
+            label: Text(value == null ? '$label date *' : formatDate(value)),
           ),
         ),
         const SizedBox(width: 8),
@@ -2171,7 +2171,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           child: OutlinedButton.icon(
             onPressed: _pickDueDate,
             icon: const Icon(Icons.event_outlined, size: 16),
-            label: Text(due == null ? 'Due date *' : '${due.year}-${due.month.toString().padLeft(2, '0')}-${due.day.toString().padLeft(2, '0')}'),
+            label: Text(due == null ? 'Due date *' : formatDate(due)),
           ),
         ),
         const SizedBox(width: 8),
@@ -2209,7 +2209,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
                 onPressed: _pickAvailableFromDate,
                 icon: const Icon(Icons.event_available_outlined, size: 16),
                 label: Text(
-                  from == null ? 'Available from (optional)' : '${from.year}-${from.month.toString().padLeft(2, '0')}-${from.day.toString().padLeft(2, '0')}',
+                  from == null ? 'Available from (optional)' : formatDate(from),
                 ),
               ),
             ),

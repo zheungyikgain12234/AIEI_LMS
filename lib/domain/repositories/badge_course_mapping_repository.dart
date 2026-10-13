@@ -1,4 +1,4 @@
-/// Backs the Badge ↔ Course Mapping screen — which courses award a given
+/// Backs the Course ↔ Badge Mapping screen — which courses award a given
 /// badge on completion, stored in `course_badges`.
 abstract class BadgeCourseMappingRepository {
   /// Course ids currently mapped to [badgeId].

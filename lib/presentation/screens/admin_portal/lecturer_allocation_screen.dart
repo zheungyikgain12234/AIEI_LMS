@@ -207,7 +207,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
               Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.account_tree_outlined, size: 18, color: AdminColors.secondary),
                 const SizedBox(width: 6),
-                Text('FACULTY LOGISTICS & OPERATIONS', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
+                Text('LECTURER LOGISTICS & OPERATIONS', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
               ]),
               const SizedBox(height: 4),
               Text('Lecturer Course Allocation', style: AdminTypography.headlineLg()),
@@ -343,7 +343,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     isDense: true,
                     filled: true,
                     fillColor: AdminColors.surfaceContainerLow,
-                    hintText: 'Search by faculty name or assigned course code (e.g. PY-402)...',
+                    hintText: 'Search by lecturer name or assigned course code (e.g. PY-402)...',
                     hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                     prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -373,7 +373,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Showing ${_filteredLecturers.isEmpty ? 0 : 1}-${_filteredLecturers.length} of ${_filteredLecturers.length} Faculty Members', style: AdminTypography.bodySm()),
+              Text('Showing ${_filteredLecturers.isEmpty ? 0 : 1}-${_filteredLecturers.length} of ${_filteredLecturers.length} Lecturers', style: AdminTypography.bodySm()),
               Row(mainAxisSize: MainAxisSize.min, children: [1].map((p) {
                 const active = true;
                 return Container(
@@ -630,7 +630,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(_assigned.contains(u.id) ? 'Assigned' : 'No Faculty Assigned',
+                          Text(_assigned.contains(u.id) ? 'Assigned' : 'No Lecturer Assigned',
                               style: AdminTypography.labelSm(color: _assigned.contains(u.id) ? AdminColors.secondary : AdminColors.error).copyWith(fontWeight: FontWeight.w700)),
                           if (!_assigned.contains(u.id))
                             ElevatedButton.icon(
@@ -700,7 +700,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                               TextSpan(text: recLecturer.name, style: const TextStyle(fontWeight: FontWeight.w700, color: AdminColors.onSurface)),
                               const TextSpan(text: ' to '),
                               TextSpan(text: recSection.courseCode, style: const TextStyle(fontWeight: FontWeight.w700, color: AdminColors.onSurface)),
-                              const TextSpan(text: ' to balance senior faculty load.'),
+                              const TextSpan(text: ' to balance senior lecturer load.'),
                             ],
                           ),
                         ),
@@ -1033,7 +1033,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     ]),
                     const SizedBox(height: 6),
                     Text(
-                      'Classes start in 12 days. Immediate faculty assignment required to finalize syllabus publishing.',
+                      'Classes start in 12 days. Immediate lecturer assignment required to finalize syllabus publishing.',
                       style: AdminTypography.bodySm(),
                     ),
                     const SizedBox(height: 10),
@@ -1092,7 +1092,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
       decoration: InputDecoration(
         filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
-        hintText: 'Search by faculty name or assigned course code...',
+        hintText: 'Search by lecturer name or assigned course code...',
         hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -1107,7 +1107,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
     final underutilized = _lecturers.where((l) => l.capacityPercent < 80).length;
     final overloaded = _lecturers.where((l) => l.capacityPercent >= 100).length;
     final filters = [
-      ('All Faculty', total, true),
+      ('All Lecturers', total, true),
       ('Optimal (80-99%)', optimal, false),
       ('Underutilised', underutilized, false),
       ('Overloaded', overloaded, false),
@@ -1248,7 +1248,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
     );
   }
 
-  /// Single mobile faculty card, replacing the previous three hand-authored
+  /// Single mobile lecturer card, replacing the previous three hand-authored
   /// variants (_mobileOptimalCard / _mobileAvailableCard / _mobileLockedCard)
   /// which were each hardcoded to a specific named lecturer. The visual
   /// variant (locked / optimal / available) is now derived from
@@ -1618,7 +1618,7 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Select Faculty Member', style: AdminTypography.labelMd()),
+        Text('Select Lecturer', style: AdminTypography.labelMd()),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1627,7 +1627,7 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
             child: SearchableDropdownButton<String>(
               isExpanded: true,
               value: _lecturerId,
-              hint: const Text('No faculty with spare capacity'),
+              hint: const Text('No lecturers with spare capacity'),
               items: widget.lecturers
                   .map((l) => DropdownMenuItem(
                         value: l.id,

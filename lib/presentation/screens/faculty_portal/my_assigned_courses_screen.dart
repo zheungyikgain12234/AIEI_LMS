@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'dart:async';
@@ -422,7 +423,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     );
   }
 
-  static String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  static String _formatDate(DateTime d) => formatDate(d);
 
   static String _formatDateRange(DateTime? start, DateTime? end) {
     if (start == null && end == null) return 'Schedule TBD';

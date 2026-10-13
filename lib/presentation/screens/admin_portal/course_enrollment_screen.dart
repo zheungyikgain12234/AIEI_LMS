@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
@@ -98,9 +99,8 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
 
   bool _isAtRisk(String risk) => risk != 'on_track';
 
-  static const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  String _formatDate(DateTime d) => '${_monthNames[d.month - 1]} ${d.day}, ${d.year}';
+  String _formatDate(DateTime d) => formatDate(d);
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -125,6 +125,10 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    // Only rows still visible (after a search or filter) can stay selected, so
+    // the "N selected" count and bulk actions never include hidden records.
+    final visibleIds = {for (final r in _filteredRoster) r.studentCode};
+    _selected.retainWhere(visibleIds.contains);
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }

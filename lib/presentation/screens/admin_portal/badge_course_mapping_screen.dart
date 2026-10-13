@@ -144,7 +144,7 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Badge ↔ Course Mapping', style: AdminTypography.headlineLg()),
+        Text('Course ↔ Badge Mapping', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
@@ -278,7 +278,7 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     final courses = _filteredCourses;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Badge ↔ Course Mapping'),
+      appBar: const AdminMobileTopBar.detail(title: 'Course ↔ Badge Mapping'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(

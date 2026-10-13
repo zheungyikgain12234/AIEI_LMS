@@ -23,58 +23,11 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
   }
 
   @override
-  Future<BadgeAward> createBadgeAward({
-    required String studentId,
-    required String courseId,
-    required String badgeId,
-    required DateTime issueDate,
-    required bool isRevoked,
-    String? revokeReason,
-  }) async {
-    final row = await _client
-        .from('badge_awards')
-        .insert({
-          'student_id': studentId,
-          'course_id': courseId,
-          'badge_id': badgeId,
-          'issue_date': issueDate.toIso8601String().substring(0, 10),
-          'is_revoked': isRevoked,
-          'revoke_reason': isRevoked ? revokeReason : null,
-        })
-        .select(_selectWithJoins)
-        .single();
-    return BadgeAward.fromMap(row);
-  }
-
-  @override
-  Future<BadgeAward> updateBadgeAward(
-    String id, {
-    required String studentId,
-    required String courseId,
-    required String badgeId,
-    required DateTime issueDate,
-    required bool isRevoked,
-    String? revokeReason,
-  }) async {
-    final row = await _client
-        .from('badge_awards')
-        .update({
-          'student_id': studentId,
-          'course_id': courseId,
-          'badge_id': badgeId,
-          'issue_date': issueDate.toIso8601String().substring(0, 10),
-          'is_revoked': isRevoked,
-          'revoke_reason': isRevoked ? revokeReason : null,
-        })
-        .eq('id', id)
-        .select(_selectWithJoins)
-        .single();
-    return BadgeAward.fromMap(row);
-  }
-
-  @override
-  Future<void> deleteBadgeAwards(List<String> ids) async {
-    await _client.from('badge_awards').delete().inFilter('id', ids);
+  Future<void> setBadgeAwardRevoked(String id, {required bool revoked, String? reason}) async {
+    await _client.from('badge_awards').update({
+      'is_revoked': revoked,
+      'revoke_reason': revoked ? reason : null,
+    }).eq('id', id);
   }
 
   @override

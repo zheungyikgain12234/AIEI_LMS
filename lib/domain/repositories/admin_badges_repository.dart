@@ -1,6 +1,6 @@
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 
-/// Admin Portal CRUD for `badge_awards` — the Badge Award Management screen.
+/// Admin Portal access to `badge_awards` — the Badge Award Management screen.
 abstract class AdminBadgesRepository {
   Future<List<BadgeAward>> getBadgeAwards();
 
@@ -8,26 +8,8 @@ abstract class AdminBadgesRepository {
   /// catalog the Badge Award Management form picks from.
   Future<List<(String, String, String)>> getBadgeCatalog();
 
-  Future<BadgeAward> createBadgeAward({
-    required String studentId,
-    required String courseId,
-    required String badgeId,
-    required DateTime issueDate,
-    required bool isRevoked,
-    String? revokeReason,
-  });
-
-  Future<BadgeAward> updateBadgeAward(
-    String id, {
-    required String studentId,
-    required String courseId,
-    required String badgeId,
-    required DateTime issueDate,
-    required bool isRevoked,
-    String? revokeReason,
-  });
-
-  Future<void> deleteBadgeAwards(List<String> ids);
+  /// Revokes (with [reason]) or un-revokes a badge award.
+  Future<void> setBadgeAwardRevoked(String id, {required bool revoked, String? reason});
 
   /// Count of non-revoked badges issued per calendar month over the last 6
   /// months (monthLabel, count), oldest first — the Manage Students screen's

@@ -61,8 +61,8 @@ const List<_RoleOption> _kRoles = [
   ),
   _RoleOption(
     icon: Icons.badge_outlined,
-    label: 'Faculty',
-    portalTitle: 'Faculty Portal',
+    label: 'Lecturer',
+    portalTitle: 'Lecturer Portal',
     portalDescription: 'Course cohorts, rapid grading, syllabus orchestration & evaluations.',
     accent: _LoginColors.indigo,
     accentBg: Color(0xFFE0E7FF),
@@ -422,7 +422,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Text('Advance Your Career in AI Systems', style: _text(size: 20, weight: FontWeight.w700, color: Colors.white, height: 1.25)),
                           const SizedBox(height: 8),
                           Text(
-                            'Unified access portal for corporate learners, faculty researchers, and academic administrators.',
+                            'Unified access portal for corporate learners, lecturers, and academic administrators.',
                             style: _text(size: 12, color: const Color(0xFFCBD5E1), height: 1.4),
                           ),
                         ],
@@ -579,7 +579,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Text('Advance Your Career in\nAI Systems', style: _text(size: 28, weight: FontWeight.w800, color: Colors.white, height: 1.2)),
           const SizedBox(height: 14),
           Text(
-            'Unified access portal for corporate learners, faculty researchers, and academic administrators.',
+            'Unified access portal for corporate learners, lecturers, and academic administrators.',
             style: _text(size: 14, color: const Color(0xFFCBD5E1), height: 1.5),
           ),
           const SizedBox(height: 32),
@@ -721,7 +721,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text(role.label == 'Faculty' ? 'Lecturer Portal' : (role.label == 'Admin' ? 'Admin Portal' : 'Student Portal'),
+                          Text(role.label == 'Lecturer' ? 'Lecturer Portal' : (role.label == 'Admin' ? 'Admin Portal' : 'Student Portal'),
                               style: _text(size: 11.5, weight: FontWeight.w700, color: _LoginColors.slate900), maxLines: 1, overflow: TextOverflow.ellipsis),
                         ],
                       ),

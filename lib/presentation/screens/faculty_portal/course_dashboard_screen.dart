@@ -880,7 +880,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
               TextButton.icon(
                 onPressed: () => setState(() => _showAnnouncementForm = !_showAnnouncementForm),
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Post New'),
+                label: const Text('Post'),
                 style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, textStyle: FacultyTypography.labelMd()),
               ),
             ],
@@ -905,7 +905,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Draft Quick Broadcast', style: FacultyTypography.labelMd()),
+                  Text('Post', style: FacultyTypography.labelMd()),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _announcementTitleController,
@@ -939,7 +939,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
                       ElevatedButton(
                         onPressed: _postingAnnouncement ? null : _postAnnouncement,
                         style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0),
-                        child: Text(_postingAnnouncement ? 'Publishing...' : 'Publish'),
+                        child: Text(_postingAnnouncement ? 'Posting...' : 'Post'),
                       ),
                     ],
                   ),

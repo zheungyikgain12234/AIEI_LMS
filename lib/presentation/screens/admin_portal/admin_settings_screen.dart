@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -168,7 +169,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           const Divider(height: 1, color: AdminColors.surfaceContainer),
           _numericSettingRow(
             title: 'Max Moderated Score',
-            description: 'Caps how many points a lecturer may add at once via the Student Directory\'s "MODERATED SCORE" bulk "Apply All" input. Leave blank for no limit.',
+            description: 'Caps how many points a lecturer may add at once via the Student Directory\'s "MODERATED SCORE" bulk "Apply All" input. Maximum 100. Leave blank for no limit.',
             settingKey: AppSettingKeys.maxModeratedScore,
           ),
         ],
@@ -233,6 +234,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               key: ValueKey(settingKey),
               value: _numericSettings[settingKey],
               onSave: (value) => _saveNumeric(settingKey, value),
+              maxValue: 100,
             ),
         ],
       ),
@@ -432,7 +434,10 @@ class _NumericSettingInput extends StatefulWidget {
   final double? value;
   final ValueChanged<double?> onSave;
 
-  const _NumericSettingInput({super.key, required this.value, required this.onSave});
+  /// Largest allowed value (inclusive); typing or saving anything above it is refused.
+  final double maxValue;
+
+  const _NumericSettingInput({super.key, required this.value, required this.onSave, this.maxValue = 100});
 
   @override
   State<_NumericSettingInput> createState() => _NumericSettingInputState();
@@ -441,6 +446,7 @@ class _NumericSettingInput extends StatefulWidget {
 class _NumericSettingInputState extends State<_NumericSettingInput> {
   late final TextEditingController _controller = TextEditingController(text: widget.value?.toString() ?? '');
   bool _dirty = false;
+  String? _error;
 
   @override
   void didUpdateWidget(covariant _NumericSettingInput oldWidget) {
@@ -459,13 +465,38 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
   void _save() {
     final text = _controller.text.trim();
     final value = text.isEmpty ? null : double.tryParse(text);
-    if (text.isNotEmpty && value == null) return;
-    setState(() => _dirty = false);
+    if (text.isNotEmpty && value == null) {
+      setState(() => _error = 'Enter a number.');
+      return;
+    }
+    if (value != null && value > widget.maxValue) {
+      setState(() => _error = 'Maximum is ${widget.maxValue.toInt()}.');
+      return;
+    }
+    setState(() {
+      _dirty = false;
+      _error = null;
+    });
     widget.onSave(value);
   }
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _inputRow(),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(_error!, style: AdminTypography.labelSm(color: AdminColors.error)),
+          ),
+      ],
+    );
+  }
+
+  Widget _inputRow() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -475,9 +506,19 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
             controller: _controller,
             textAlign: TextAlign.right,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: decimalOnly,
+            inputFormatters: [
+              ...decimalOnly,
+              // Typing a number above the maximum is refused outright.
+              TextInputFormatter.withFunction((oldValue, newValue) {
+                final n = double.tryParse(newValue.text);
+                return n != null && n > widget.maxValue ? oldValue : newValue;
+              }),
+            ],
             style: AdminTypography.bodySm(color: AdminColors.onSurface),
-            onChanged: (_) => setState(() => _dirty = true),
+            onChanged: (_) => setState(() {
+              _dirty = true;
+              _error = null;
+            }),
             onSubmitted: (_) => _save(),
             decoration: InputDecoration(
               isDense: true,

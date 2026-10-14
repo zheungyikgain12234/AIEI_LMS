@@ -318,7 +318,11 @@ create table template_content_blocks (
   template_session_id uuid not null references template_sessions(id) on delete cascade,
   block_type text not null check (block_type in ('text', 'video', 'image', 'link', 'file', 'exam', 'assignment', 'physicalClass', 'physicalExam', 'physicalAssignment')),
   block_content jsonb not null default '{}'::jsonb,
-  block_sorting int not null default 0
+  block_sorting int not null default 0,
+  -- Snapshot of the block's exam sections/questions/options or assignment rubric
+  -- (those live in their own tables for a real class), so copying a template
+  -- recreates them as fresh rows independent of the original.
+  block_tree jsonb
 );
 
 -- The "Edit Exam" authoring tree for an `exam` content block — sections,

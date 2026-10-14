@@ -233,6 +233,9 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
             'block_type': block.type.name,
             'block_content': block.content,
             'block_sorting': block.sorting,
+            // Exam questions / assignment rubric live in their own tables, so
+            // they're snapshotted into the template too.
+            'block_tree': await _snapshotBlockTree(block.id, block.type.name),
           });
         }
       }
@@ -297,6 +300,14 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
     return [for (final row in rows as List) CourseSession.fromMap({...row as Map<String, dynamic>, 'module_id': templateModuleId})];
   }
 
+  /// The exam / assignment snapshot stored with a template content block, or
+  /// null when it has none (older templates, other block types).
+  Future<Map<String, dynamic>?> getTemplateBlockTree(String templateBlockId) async {
+    final row = await _client.from('template_content_blocks').select('block_tree').eq('id', templateBlockId).maybeSingle();
+    final tree = row?['block_tree'];
+    return tree is Map ? Map<String, dynamic>.from(tree) : null;
+  }
+
   @override
   Future<List<ContentBlock>> getTemplateContentBlocks(String templateSessionId) async {
     final rows = await _client.from('template_content_blocks').select().eq('template_session_id', templateSessionId).order('block_sorting', ascending: true);
@@ -335,13 +346,95 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
           .order('block_sorting', ascending: true);
       for (final tb in templateBlocks as List) {
         final tbMap = tb as Map<String, dynamic>;
-        await _client.from('content_blocks').insert({
-          'session_id': newSessionId,
-          'block_type': tbMap['block_type'],
-          'block_content': tbMap['block_content'],
-          'block_sorting': tbMap['block_sorting'],
-        });
+        final newBlock = await _client
+            .from('content_blocks')
+            .insert({
+              'session_id': newSessionId,
+              'block_type': tbMap['block_type'],
+              'block_content': tbMap['block_content'],
+              'block_sorting': tbMap['block_sorting'],
+            })
+            .select('id')
+            .single();
+        await _restoreBlockTree(newBlock['id'] as String, tbMap['block_type'] as String, tbMap['block_tree']);
       }
+    }
+  }
+
+  /// Reads an exam's sections → questions → options, or an assignment's
+  /// rubric criteria, as plain JSON (no ids), so a template holds its own
+  /// independent copy. Returns null for block types with no such tree.
+  Future<Map<String, dynamic>?> _snapshotBlockTree(String blockId, String blockType) async {
+    if (blockType == 'exam') {
+      final sections = await _client.from('exam_sections').select().eq('content_block_id', blockId).order('section_sorting');
+      final out = <Map<String, dynamic>>[];
+      for (final s in sections as List) {
+        final questions = await _client.from('exam_questions').select().eq('exam_section_id', s['id']).order('question_sorting');
+        final qOut = <Map<String, dynamic>>[];
+        for (final q in questions as List) {
+          final options = await _client.from('exam_question_options').select().eq('question_id', q['id']).order('option_sorting');
+          qOut.add({
+            'text': q['question_text'],
+            'type': q['question_type'],
+            'marks': q['marks'],
+            'sorting': q['question_sorting'],
+            'options': [
+              for (final o in options as List) {'text': o['option_text'], 'correct': o['is_correct'], 'sorting': o['option_sorting']},
+            ],
+          });
+        }
+        out.add({'name': s['section_name'], 'sorting': s['section_sorting'], 'questions': qOut});
+      }
+      return {'sections': out};
+    }
+    if (blockType == 'assignment') {
+      final criteria = await _client.from('assignment_criteria').select().eq('content_block_id', blockId).order('criterion_sorting');
+      return {
+        'criteria': [
+          for (final c in criteria as List) {'label': c['criterion_label'], 'maxMarks': c['max_marks'], 'sorting': c['criterion_sorting']},
+        ],
+      };
+    }
+    return null;
+  }
+
+  /// Inserts brand-new exam sections/questions/options (or rubric criteria)
+  /// for [blockId] from a [_snapshotBlockTree] snapshot. Every row gets a
+  /// fresh id, so later edits to the copy never touch the original.
+  Future<void> _restoreBlockTree(String blockId, String blockType, Object? tree) async {
+    if (tree is! Map) return;
+    if (blockType == 'exam') {
+      for (final s in (tree['sections'] as List? ?? const [])) {
+        final section = await _client
+            .from('exam_sections')
+            .insert({'content_block_id': blockId, 'section_name': s['name'], 'section_sorting': s['sorting']})
+            .select('id')
+            .single();
+        for (final q in (s['questions'] as List? ?? const [])) {
+          final question = await _client
+              .from('exam_questions')
+              .insert({
+                'exam_section_id': section['id'],
+                'question_text': q['text'],
+                'question_type': q['type'],
+                'marks': q['marks'],
+                'question_sorting': q['sorting'],
+              })
+              .select('id')
+              .single();
+          final options = [
+            for (final o in (q['options'] as List? ?? const []))
+              {'question_id': question['id'], 'option_text': o['text'], 'is_correct': o['correct'], 'option_sorting': o['sorting']},
+          ];
+          if (options.isNotEmpty) await _client.from('exam_question_options').insert(options);
+        }
+      }
+    } else if (blockType == 'assignment') {
+      final criteria = [
+        for (final c in (tree['criteria'] as List? ?? const []))
+          {'content_block_id': blockId, 'criterion_label': c['label'], 'max_marks': c['maxMarks'], 'criterion_sorting': c['sorting']},
+      ];
+      if (criteria.isNotEmpty) await _client.from('assignment_criteria').insert(criteria);
     }
   }
 

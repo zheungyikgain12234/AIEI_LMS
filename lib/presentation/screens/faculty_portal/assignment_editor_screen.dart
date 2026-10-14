@@ -28,8 +28,17 @@ class AssignmentEditorScreen extends StatefulWidget {
   final DateTime? dueDate;
   final List<Map<String, dynamic>> instructionFiles;
 
+  /// View-only: criteria can't be added, edited, deleted or reordered.
+  final bool readOnly;
+
+  /// A saved template's snapshot of this assignment's rubric. When given, the
+  /// screen shows it read-only instead of loading from the database.
+  final Map<String, dynamic>? previewTree;
+
   const AssignmentEditorScreen({
     super.key,
+    this.readOnly = false,
+    this.previewTree,
     required this.contentBlockId,
     required this.assignmentTitle,
     this.description,
@@ -56,6 +65,23 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
+    if (widget.previewTree != null) {
+      final raw = (widget.previewTree!['criteria'] as List?) ?? const [];
+      setState(() {
+        _criteria = [
+          for (var i = 0; i < raw.length; i++)
+            AssignmentCriterion(
+              id: 'preview-c$i',
+              contentBlockId: widget.contentBlockId,
+              label: ((raw[i] as Map)['label'] as String?) ?? '',
+              maxMarks: ((raw[i] as Map)['maxMarks'] as num?)?.toDouble() ?? 0,
+              sorting: i,
+            ),
+        ];
+        _isLoading = false;
+      });
+      return;
+    }
     final criteria = await _repository.getCriteria(widget.contentBlockId);
     if (!mounted) return;
     setState(() {
@@ -162,6 +188,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
                           style: FacultyTypography.bodySm(),
                         ),
                       ),
+                      if (!widget.readOnly)
                       ElevatedButton.icon(
                         onPressed: _addCriterion,
                         icon: const Icon(Icons.add, size: 18),
@@ -283,6 +310,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ReorderableDragStartListener(
+            enabled: !widget.readOnly,
             index: index,
             child: const Icon(Icons.drag_indicator, size: 18, color: FacultyColors.onSurfaceVariant),
           ),
@@ -295,6 +323,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
             decoration: BoxDecoration(color: FacultyColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(6)),
             child: Text('${_formatMarks(c.maxMarks)} marks', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
           ),
+          if (!widget.readOnly) ...[
           IconButton(
             onPressed: () => _editCriterion(c),
             icon: const Icon(Icons.edit_outlined, size: 16, color: FacultyColors.onSurfaceVariant),
@@ -307,6 +336,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
             tooltip: 'Remove',
             visualDensity: VisualDensity.compact,
           ),
+          ],
         ],
       ),
     );

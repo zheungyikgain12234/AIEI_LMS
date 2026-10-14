@@ -478,7 +478,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
   /// syllabus out of "submitted"/"approved" — it must be (re)submitted and
   /// approved before students see it. Admin edits never reset approval.
   Future<void> _markEdited() async {
-    if (widget.isAdmin || _syllabusStatus == SyllabusStatus.draft) return;
+    if (widget.isAdmin || _isTemplatePreview || _syllabusStatus == SyllabusStatus.draft) return;
     await _repository.setSyllabusStatus(widget.sectionId, SyllabusStatus.draft);
     if (!mounted) return;
     setState(() => _syllabusStatus = SyllabusStatus.draft);
@@ -1172,11 +1172,15 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     }
   }
 
-  void _openExamEditor(ContentBlock b) {
+  void _openExamEditor(ContentBlock b) async {
+    final previewTree = _isTemplatePreview ? (await _repository.getTemplateBlockTree(b.id) ?? const <String, dynamic>{}) : null;
+    if (!mounted) return;
     Navigator.of(context)
         .push(
       MaterialPageRoute(
         builder: (_) => ExamEditorScreen(
+          readOnly: !_canEdit,
+          previewTree: previewTree,
           contentBlockId: b.id,
           examTitle: b.title?.isNotEmpty == true ? b.title! : 'Exam',
           description: b.description,
@@ -1190,11 +1194,15 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
         .then((_) => _markEdited());
   }
 
-  void _openAssignmentEditor(ContentBlock b) {
+  void _openAssignmentEditor(ContentBlock b) async {
+    final previewTree = _isTemplatePreview ? (await _repository.getTemplateBlockTree(b.id) ?? const <String, dynamic>{}) : null;
+    if (!mounted) return;
     Navigator.of(context)
         .push(
       MaterialPageRoute(
         builder: (_) => AssignmentEditorScreen(
+          readOnly: !_canEdit,
+          previewTree: previewTree,
           contentBlockId: b.id,
           assignmentTitle: b.title?.isNotEmpty == true ? b.title! : 'Assignment',
           description: b.description,
@@ -1296,8 +1304,9 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
             ],
           ),
           [
-            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
-            if (_canEdit) OutlinedButton(onPressed: () => _openExamEditor(b), child: const Text('Manage Contents')),
+            // Admins never mark. They can always open the contents, read-only when editing is off.
+            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
+            if (_canEdit || widget.isAdmin || _isTemplatePreview) OutlinedButton(onPressed: () => _openExamEditor(b), child: Text(_canEdit ? 'Manage Contents' : 'View Contents')),
           ],
         );
       case ContentBlockType.assignment:
@@ -1316,8 +1325,8 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
             ],
           ),
           [
-            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
-            if (_canEdit) OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: const Text('Manage Contents')),
+            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
+            if (_canEdit || widget.isAdmin || _isTemplatePreview) OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: Text(_canEdit ? 'Manage Contents' : 'View Contents')),
           ],
         );
       case ContentBlockType.physicalExam:
@@ -1334,7 +1343,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
             ],
           ),
           [
-            if (!_hideMarkButtons) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
+            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
           ],
         );
       case ContentBlockType.physicalClass:

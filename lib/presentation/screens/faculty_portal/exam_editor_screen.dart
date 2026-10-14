@@ -33,8 +33,19 @@ class ExamEditorScreen extends StatefulWidget {
   final String? mode;
   final List<Map<String, dynamic>> instructionFiles;
 
+  /// View-only: nothing can be added, edited, deleted or reordered (admins
+  /// reviewing a syllabus they aren't allowed to edit).
+  final bool readOnly;
+
+  /// A saved template's snapshot of this exam (see the repository's block-tree
+  /// snapshot). When given, the screen shows it read-only instead of loading
+  /// a real content block from the database.
+  final Map<String, dynamic>? previewTree;
+
   const ExamEditorScreen({
     super.key,
+    this.readOnly = false,
+    this.previewTree,
     required this.contentBlockId,
     required this.examTitle,
     this.description,
@@ -70,6 +81,10 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
+    if (widget.previewTree != null) {
+      _loadPreview();
+      return;
+    }
     final sections = await _repository.getSections(widget.contentBlockId);
     final totalMarks = await _repository.getTotalMarks(widget.contentBlockId);
     final settings = await _settingsRepository.getSettings();
@@ -100,9 +115,56 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     setState(() => _totalMarks = totalMarks);
   }
 
+  /// Builds the section / question lists from the template snapshot (no database ids).
+  void _loadPreview() {
+    final raw = (widget.previewTree!['sections'] as List?) ?? const [];
+    final sections = <ExamSection>[];
+    var total = 0.0;
+    for (var i = 0; i < raw.length; i++) {
+      final s = raw[i] as Map;
+      final sectionId = 'preview-s$i';
+      sections.add(ExamSection(id: sectionId, contentBlockId: widget.contentBlockId, name: (s['name'] as String?) ?? '', sorting: i));
+      final questions = <ExamQuestion>[];
+      final rawQuestions = (s['questions'] as List?) ?? const [];
+      for (var j = 0; j < rawQuestions.length; j++) {
+        final q = rawQuestions[j] as Map;
+        final marks = (q['marks'] as num?)?.toDouble() ?? 1;
+        total += marks;
+        final rawOptions = (q['options'] as List?) ?? const [];
+        questions.add(ExamQuestion(
+          id: 'preview-s$i-q$j',
+          sectionId: sectionId,
+          text: (q['text'] as String?) ?? '',
+          type: ExamQuestionType.fromKey((q['type'] as String?) ?? 'text'),
+          marks: marks,
+          sorting: j,
+          options: [
+            for (var k = 0; k < rawOptions.length; k++)
+              ExamQuestionOption(
+                id: 'preview-s$i-q$j-o$k',
+                text: ((rawOptions[k] as Map)['text'] as String?) ?? '',
+                isCorrect: (rawOptions[k] as Map)['correct'] == true,
+                sorting: k,
+              ),
+          ],
+        ));
+      }
+      _questionsBySection[sectionId] = questions;
+    }
+    setState(() {
+      _sections = sections;
+      _totalMarks = total;
+      _isLoading = false;
+    });
+  }
+
   Future<void> _toggleSection(String sectionId) async {
     if (_expandedSections.contains(sectionId)) {
       setState(() => _expandedSections.remove(sectionId));
+      return;
+    }
+    if (widget.previewTree != null) {
+      setState(() => _expandedSections.add(sectionId));
       return;
     }
     setState(() {
@@ -260,7 +322,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _examInfoCard(),
-                  if (_allowExamReset) ...[
+                  if (_allowExamReset && !widget.readOnly) ...[
                     const SizedBox(height: 12),
                     _ResetAttemptCard(onReset: _resetAttempt),
                   ],
@@ -287,6 +349,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                           style: FacultyTypography.bodySm(),
                         ),
                       ),
+                      if (!widget.readOnly)
                       ElevatedButton.icon(
                         onPressed: _addSection,
                         icon: const Icon(Icons.add, size: 18),
@@ -438,12 +501,14 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                 children: [
                   ReorderableDragStartListener(
                     index: index,
+                    enabled: !widget.readOnly,
                     child: const Icon(Icons.drag_indicator, color: FacultyColors.onSurfaceVariant),
                   ),
                   const SizedBox(width: 8),
                   Icon(expanded ? Icons.expand_more : Icons.chevron_right, color: FacultyColors.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(child: Text(s.name, style: FacultyTypography.titleSm())),
+                  if (!widget.readOnly) ...[
                   IconButton(
                     onPressed: () => _editSection(s),
                     icon: const Icon(Icons.edit_outlined, size: 18, color: FacultyColors.onSurfaceVariant),
@@ -454,6 +519,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                     icon: const Icon(Icons.delete_outline, size: 18, color: FacultyColors.error),
                     tooltip: 'Delete section',
                   ),
+                  ],
                 ],
               ),
             ),
@@ -490,6 +556,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                           );
                         },
                       ),
+                    if (!widget.readOnly) ...[
                     const SizedBox(height: 4),
                     Align(
                       alignment: Alignment.centerLeft,
@@ -500,6 +567,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                         style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, textStyle: FacultyTypography.labelMd()),
                       ),
                     ),
+                    ],
                   ],
                 ],
               ),
@@ -518,6 +586,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
         children: [
           ReorderableDragStartListener(
             index: index,
+            enabled: !widget.readOnly,
             child: const Icon(Icons.drag_indicator, size: 18, color: FacultyColors.onSurfaceVariant),
           ),
           const SizedBox(width: 8),
@@ -569,6 +638,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
               ],
             ),
           ),
+          if (!widget.readOnly) ...[
           IconButton(
             onPressed: () => _editQuestion(sectionId, q),
             icon: const Icon(Icons.edit_outlined, size: 16, color: FacultyColors.onSurfaceVariant),
@@ -581,6 +651,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
             tooltip: 'Remove',
             visualDensity: VisualDensity.compact,
           ),
+          ],
         ],
       ),
     );

@@ -105,10 +105,14 @@ select setval(pg_get_serial_sequence('students', 'id'), 10, true);
 insert into admins (id, name, title, email, username) values
   ('33333333-3333-3333-3333-333333333301', 'Marcus Vance', 'Chief Academic Administrator', 'marcus.vance@aiei.edu', 'marcus.vance');
 
--- Global feature flags added after the initial schema. Off by default: admins
--- only review and approve syllabi; they cannot edit them.
-insert into app_settings (key, value) values ('admin_can_edit_syllabus', false)
-  on conflict (key) do nothing;
+-- Default values of the global feature flags (Admin "Settings" screen). Upserted
+-- so re-running the seed resets them to these defaults.
+insert into app_settings (key, value) values
+  ('hide_mark_buttons_in_syllabus', true),
+  ('allow_lecturer_exam_reset', false),
+  ('lock_modules_for_lecturers', true),
+  ('admin_can_edit_syllabus', false)
+on conflict (key) do update set value = excluded.value;
 
 -- ── Courses (catalogue courses Alex Chen is enrolled in, codes 1-6; plus
 -- additional courses used by the Faculty/Admin allocation views, 7-17) ──

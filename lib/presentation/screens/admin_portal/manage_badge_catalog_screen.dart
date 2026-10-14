@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
+import 'widgets/admin_row_action.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_searchable_dropdown.dart';
@@ -71,15 +72,19 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
   void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageBadgeCatalog, dest);
 
   Future<void> _openAdd() async {
-    final saved = await Navigator.of(context).push<BadgeCatalogItem>(
-      MaterialPageRoute(builder: (_) => const BadgeCatalogFormScreen()),
+    final saved = await showDialog<BadgeCatalogItem>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const BadgeCatalogFormScreen(),
     );
     if (saved != null) _load();
   }
 
   Future<void> _openEdit(BadgeCatalogItem b) async {
-    final saved = await Navigator.of(context).push<BadgeCatalogItem>(
-      MaterialPageRoute(builder: (_) => BadgeCatalogFormScreen(badgeId: b.id)),
+    final saved = await showDialog<BadgeCatalogItem>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => BadgeCatalogFormScreen(badgeId: b.id),
     );
     if (saved != null) _load();
   }
@@ -222,7 +227,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  Text('${_selected.length} selected', style: AdminTypography.titleSm()),
+                  adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -264,19 +269,12 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
-                  Flexible(child: Text(b.title, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 4),
-                  InkWell(
-                    onTap: () => _openEdit(b),
-                    borderRadius: BorderRadius.circular(6),
-                    child: const Padding(padding: EdgeInsets.all(2), child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant)),
-                  ),
-                ]),
+                Text(b.title, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
                 Text('${b.code} • ${b.issuingBody}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
+          adminEditAction(() => _openEdit(b)),
         ],
       ),
     );

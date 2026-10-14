@@ -291,7 +291,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.military_tech_outlined,
-                          label: 'Badge Award Management',
+                          label: 'Manage Badge Award',
                           isSelected:
                               selected == AdminNavDestination.manageBadges,
                           onTap: () => onDestinationSelected?.call(

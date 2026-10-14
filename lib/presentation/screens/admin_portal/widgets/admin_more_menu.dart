@@ -50,7 +50,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
               _tile(context, sheetContext, Icons.psychology_alt_outlined, 'Specialisation ↔ Course Mapping', AdminNavDestination.specializationCourseMapping),
               _tile(context, sheetContext, Icons.military_tech_outlined, 'Badge ↔ Course Mapping', AdminNavDestination.badgeCourseMapping),
               _tile(context, sheetContext, Icons.event_note_outlined, 'Manage Classes', AdminNavDestination.manageClasses),
-              _tile(context, sheetContext, Icons.military_tech_outlined, 'Badge Award Management', AdminNavDestination.manageBadges),
+              _tile(context, sheetContext, Icons.military_tech_outlined, 'Manage Badge Award', AdminNavDestination.manageBadges),
               _section('SYSTEM'),
               _tile(context, sheetContext, Icons.settings_outlined, 'Settings', AdminNavDestination.settings),
             ],

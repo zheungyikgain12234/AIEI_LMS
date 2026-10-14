@@ -15,8 +15,8 @@ import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 
 // ---------------------------------------------------------------------------
-// BadgeCatalogFormScreen — shared "Add New Badge" / "Edit Badge" form for the
-// Badges master data (`certifications` table). Pass `badgeId` to edit an
+// BadgeCatalogFormScreen — shared "Add New Badge" / "Edit Badge" popup for the
+// Badges master data (open it with showDialog) (`certifications` table). Pass `badgeId` to edit an
 // existing row; omit it to create a new one.
 // ---------------------------------------------------------------------------
 class BadgeCatalogFormScreen extends ConsumerStatefulWidget {
@@ -128,34 +128,31 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
   @override
   Widget build(BuildContext context) {
     final title = widget.isEditing ? 'Edit Badge' : 'Add New Badge';
-    return Scaffold(
-      backgroundColor: AdminColors.background,
-      appBar: AppBar(
-        backgroundColor: AdminColors.surfaceContainerLowest,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        foregroundColor: AdminColors.onSurface,
-        title: Text(title, style: AdminTypography.headlineSm()),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: SingleChildScrollView(
+    return Dialog(
+      backgroundColor: AdminColors.surfaceContainerLowest,
+      insetPadding: const EdgeInsets.all(24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: _isLoading
+            ? const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()))
+            : SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AdminColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(children: [
+                        Expanded(child: Text(title, style: AdminTypography.headlineSm())),
+                        IconButton(
+                          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Close',
+                        ),
+                      ]),
+                      const SizedBox(height: 4),
                           Text(
                             widget.isEditing
                                 ? 'Update this badge\'s catalogue information.'
@@ -218,13 +215,11 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 

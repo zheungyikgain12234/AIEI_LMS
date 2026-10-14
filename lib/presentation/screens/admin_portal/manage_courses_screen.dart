@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_row_action.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
@@ -484,6 +485,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
           Expanded(flex: 5, child: _sortHeader('Course', _SortColumn.title)),
           Expanded(flex: 3, child: _sortHeader('Tags', _SortColumn.tags)),
           Expanded(flex: 2, child: _sortHeader('Credits', _SortColumn.credits)),
+          adminActionHeader(),
         ],
       ),
     );
@@ -516,15 +518,6 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
               child: Row(
                 children: [
                   Flexible(child: Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 4),
-                  InkWell(
-                    onTap: () => _openEditCourse(c),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -540,6 +533,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
             flex: 2,
             child: Text('${c.credits} cr', style: AdminTypography.labelSm()),
           ),
+          adminEditAction(() => _openEditCourse(c)),
         ],
       ),
     );

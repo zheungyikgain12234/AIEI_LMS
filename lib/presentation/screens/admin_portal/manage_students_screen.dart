@@ -21,6 +21,8 @@ import 'package:stitch_aiei_lms/domain/models/department.dart';
 import 'package:stitch_aiei_lms/domain/models/program_track.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_field_error.dart';
+import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
@@ -1561,6 +1563,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
   String? _selectedCohort;
   String? _selectedProfileFilterKey;
   String? _selectedSectionId;
+  String? _sectionError;
 
   @override
   void initState() {
@@ -1601,11 +1604,18 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
     final cohortNames = _cohortNames;
     final profileFilters = _profileFilters;
     final sections = _sectionsForSelection;
-    return AlertDialog(
-      title: Text('Enrol $count student${count == 1 ? '' : 's'}'),
-      content: SizedBox(
-        width: 420,
-        child: Column(
+    return AdminFormDialog(
+      title: 'Enrol $count student${count == 1 ? '' : 's'}',
+      submitChild: const Text('Enrol'),
+      onSubmit: () {
+        final id = _selectedSectionId;
+        if (id == null) {
+          setState(() => _sectionError = 'Select a class to enrol into.');
+          return;
+        }
+        Navigator.of(context).pop(widget.sections.firstWhere((s) => s.id == id));
+      },
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1671,21 +1681,15 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                       child: Text('${s.sectionCode} • ${s.courseTitle}', overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: sections.isEmpty ? null : (v) => setState(() => _selectedSectionId = v),
+                onChanged: sections.isEmpty ? null : (v) => setState(() {
+                  _selectedSectionId = v;
+                  _sectionError = null;
+                }),
               ),
+              AdminFieldError(_sectionError),
             ],
           ],
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _selectedSectionId == null
-              ? null
-              : () => Navigator.of(context).pop(widget.sections.firstWhere((s) => s.id == _selectedSectionId)),
-          child: const Text('Save'),
-        ),
-      ],
     );
   }
 }

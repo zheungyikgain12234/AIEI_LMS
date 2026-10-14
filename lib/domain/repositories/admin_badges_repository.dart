@@ -1,11 +1,11 @@
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 
-/// Admin Portal access to `badge_awards` — the Badge Award Management screen.
+/// Admin Portal access to `badge_awards` — the Manage Badge Award screen.
 abstract class AdminBadgesRepository {
   Future<List<BadgeAward>> getBadgeAwards();
 
   /// (id, code, title) for every row in `certifications` — the badge
-  /// catalog the Badge Award Management form picks from.
+  /// catalog the Manage Badge Award form picks from.
   Future<List<(String, String, String)>> getBadgeCatalog();
 
   /// Revokes (with [reason]) or un-revokes a badge award.

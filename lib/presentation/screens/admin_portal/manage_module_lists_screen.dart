@@ -7,6 +7,9 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
+import 'widgets/admin_form_dialog.dart';
+import 'widgets/admin_field_label.dart';
+import 'widgets/admin_row_action.dart';
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
@@ -78,58 +81,54 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(list == null ? 'Add Module List' : 'Edit Module List'),
-          content: SizedBox(
-            width: 460,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    autofocus: true,
-                    decoration: const InputDecoration(labelText: 'List name', hintText: 'e.g. Standard 4-Module Course'),
-                  ),
-                  AdminFieldError(errorMessage),
-                  const SizedBox(height: 16),
-                  Text('Modules', style: AdminTypography.titleSm()),
-                  const SizedBox(height: 8),
-                  ModuleNamesEditor(controller: modules),
-                ],
+        builder: (ctx, setDialogState) => AdminFormDialog(
+          title: list == null ? 'Add Module List' : 'Edit Module List',
+          maxWidth: 560,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AdminFieldLabel('List name'),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                onChanged: (_) => setDialogState(() => errorMessage = null),
+                style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                decoration: adminFormDecoration(hint: 'e.g. Standard 4-Module Course'),
               ),
-            ),
+              const SizedBox(height: 16),
+              const AdminFieldLabel('Modules'),
+              const SizedBox(height: 8),
+              ModuleNamesEditor(controller: modules),
+              AdminFieldError(errorMessage),
+            ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final names = modules.names;
-                if (name.isEmpty) {
-                  setDialogState(() => errorMessage = 'List name is required.');
-                  return;
-                }
-                if (names.isEmpty) {
-                  setDialogState(() => errorMessage = 'Add at least one module.');
-                  return;
-                }
-                try {
-                  if (list == null) {
-                    await _repository.createModuleList(name, names);
-                  } else {
-                    await _repository.updateModuleList(list.id, name, names);
-                  }
-                  showSuccessSnackBar(context, list == null ? 'Module list added.' : 'Module list updated.');
-                  if (ctx.mounted) Navigator.of(ctx).pop(true);
-                } catch (e) {
-                  setDialogState(() => errorMessage = friendlyErrorMessage(e));
-                }
-              },
-              child: Text(list == null ? 'Add' : 'Save'),
-            ),
-          ],
+          submitChild: Text(list == null ? 'Add Module List' : 'Save Changes'),
+          onSubmit: () async {
+            final name = nameController.text.trim();
+            final names = modules.names;
+            if (name.isEmpty) {
+              setDialogState(() => errorMessage = 'List name is required.');
+              return;
+            }
+            if (names.isEmpty) {
+              setDialogState(() => errorMessage = 'Add at least one module.');
+              return;
+            }
+            try {
+              if (list == null) {
+                await _repository.createModuleList(name, names);
+              } else {
+                await _repository.updateModuleList(list.id, name, names);
+              }
+              if (!mounted) return;
+              showSuccessSnackBar(context, list == null ? 'Module list added.' : 'Module list updated.');
+              if (ctx.mounted) Navigator.of(ctx).pop(true);
+            } catch (e) {
+              setDialogState(() => errorMessage = friendlyErrorMessage(e));
+            }
+          },
         ),
       ),
     );
@@ -259,7 +258,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  Text('${_selected.length} selected', style: AdminTypography.titleSm()),
+                  adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -306,10 +305,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
               ],
             ),
           ),
-          IconButton(
-            onPressed: () => _openForm(list: l),
-            icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
-          ),
+          adminEditAction(() => _openForm(list: l)),
         ],
       ),
     );

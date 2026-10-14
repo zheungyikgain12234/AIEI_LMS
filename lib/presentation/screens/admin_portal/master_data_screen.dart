@@ -1,6 +1,8 @@
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'widgets/admin_form_dialog.dart';
+import 'widgets/admin_row_action.dart';
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_fixed_code.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -174,121 +176,112 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(id == null ? 'Add ${widget.itemLabel}' : 'Edit ${widget.itemLabel}'),
-          content: SizedBox(
-            width: 440,
-            child: Form(
+        builder: (ctx, setDialogState) => AdminFormDialog(
+          title: id == null ? 'Add ${widget.itemLabel}' : 'Edit ${widget.itemLabel}',
+          maxWidth: 520,
+          child: Form(
             key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (errorMessage != null && !isFieldConflictMessage(errorMessage!)) ...[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-                      child: Text(errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  if (id != null)
-                    AdminFixedCode(label: widget.codeLabel ?? '${widget.itemLabel} Code', value: codeController.text.trim().toUpperCase())
-                  else ...[
-                    AdminFieldLabel(widget.codeLabel ?? '${widget.itemLabel} Code'),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: codeController,
-                      autofocus: id == null,
-                      // Codes are fixed once created: editable only when adding.
-                      readOnly: id != null,
-                      enabled: id == null,
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: const [UpperCaseTextFormatter()],
-                      decoration: const InputDecoration(border: OutlineInputBorder()),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Code is required' : null,
-                    ),
-                    AdminFieldError(errorMessage == codeConflictMessage ? errorMessage : null),
-                    const SizedBox(height: 12),
-                  ],
-                  AdminFieldLabel(widget.nameLabel ?? widget.itemLabel),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? '${widget.itemLabel} is required' : null,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (errorMessage != null && !isFieldConflictMessage(errorMessage!)) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
+                    child: Text(errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
                   ),
-                  AdminFieldError(errorMessage == nameConflictMessage ? errorMessage : null),
-                  if (widget.showYear) ...[
-                    const SizedBox(height: 12),
-                    const AdminFieldLabel('Year'),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: yearController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: digitsOnly,
-                      decoration: const InputDecoration(border: OutlineInputBorder()),
-                      validator: (v) {
-                        final parsed = int.tryParse(v?.trim() ?? '');
-                        if (parsed == null) return 'Enter a valid year';
-                        if (parsed < 1990 || parsed > 2100) return 'Enter a year between 1990 and 2100';
-                        return null;
-                      },
-                    ),
-                  ],
                   const SizedBox(height: 12),
-                  AdminFieldLabel(widget.remarksLabel ?? 'Remarks', required: false),
+                ],
+                if (id != null)
+                  AdminFixedCode(label: widget.codeLabel ?? '${widget.itemLabel} Code', value: codeController.text.trim().toUpperCase())
+                else ...[
+                  AdminFieldLabel(widget.codeLabel ?? '${widget.itemLabel} Code'),
                   const SizedBox(height: 6),
                   TextFormField(
-                    controller: remarksController,
-                    minLines: 3,
-                    maxLines: 6,
-                    keyboardType: TextInputType.multiline,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    controller: codeController,
+                    autofocus: id == null,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [UpperCaseTextFormatter()],
+                    style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                    decoration: adminFormDecoration(),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Code is required' : null,
+                  ),
+                  AdminFieldError(errorMessage == codeConflictMessage ? errorMessage : null),
+                  const SizedBox(height: 14),
+                ],
+                AdminFieldLabel(widget.nameLabel ?? widget.itemLabel),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: nameController,
+                  style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                  decoration: adminFormDecoration(),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? '${widget.itemLabel} is required' : null,
+                ),
+                AdminFieldError(errorMessage == nameConflictMessage ? errorMessage : null),
+                if (widget.showYear) ...[
+                  const SizedBox(height: 14),
+                  const AdminFieldLabel('Year'),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: yearController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: digitsOnly,
+                    style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                    decoration: adminFormDecoration(),
+                    validator: (v) {
+                      final parsed = int.tryParse(v?.trim() ?? '');
+                      if (parsed == null) return 'Enter a valid year';
+                      if (parsed < 1990 || parsed > 2100) return 'Enter a year between 1990 and 2100';
+                      return null;
+                    },
                   ),
                 ],
-              ),
+                const SizedBox(height: 14),
+                AdminFieldLabel(widget.remarksLabel ?? 'Remarks', required: false),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: remarksController,
+                  minLines: 3,
+                  maxLines: 6,
+                  keyboardType: TextInputType.multiline,
+                  style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                  decoration: adminFormDecoration(),
+                ),
+              ],
             ),
-          )),
-          actions: [
-            TextButton(
-              onPressed: isSaving ? null : () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: isSaving
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      setDialogState(() {
-                        isSaving = true;
-                        errorMessage = null;
-                      });
-                      try {
-                        final savedCode = '${_tenantPrefix()}${codeController.text.trim().toUpperCase()}';
-                        final savedName = nameController.text.trim();
-                        final savedRemarks = remarksController.text.trim();
-                        final savedYear = widget.showYear ? int.parse(yearController.text.trim()) : null;
-                        if (id == null) {
-                          await widget.create(savedCode, savedName, savedRemarks, savedYear);
-                        } else {
-                          await widget.update(id, savedCode, savedName, savedRemarks, savedYear);
-                        }
-                        saved = true;
-                        if (ctx.mounted) Navigator.of(ctx).pop();
-                      } catch (e) {
-                        setDialogState(() {
-                          isSaving = false;
-                          errorMessage = friendlyErrorMessage(e);
-                        });
-                      }
-                    },
-              child: isSaving
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Save'),
-            ),
-          ],
+          ),
+          onCancel: isSaving ? null : () => Navigator.of(ctx).pop(),
+          submitChild: isSaving
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text(id == null ? 'Add ${widget.itemLabel}' : 'Save Changes'),
+          onSubmit: isSaving
+              ? null
+              : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  setDialogState(() {
+                    isSaving = true;
+                    errorMessage = null;
+                  });
+                  try {
+                    final savedCode = '${_tenantPrefix()}${codeController.text.trim().toUpperCase()}';
+                    final savedName = nameController.text.trim();
+                    final savedRemarks = remarksController.text.trim();
+                    final savedYear = widget.showYear ? int.parse(yearController.text.trim()) : null;
+                    if (id == null) {
+                      await widget.create(savedCode, savedName, savedRemarks, savedYear);
+                    } else {
+                      await widget.update(id, savedCode, savedName, savedRemarks, savedYear);
+                    }
+                    saved = true;
+                    if (ctx.mounted) Navigator.of(ctx).pop();
+                  } catch (e) {
+                    setDialogState(() {
+                      isSaving = false;
+                      errorMessage = friendlyErrorMessage(e);
+                    });
+                  }
+                },
         ),
       ),
     );
@@ -525,7 +518,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
           Expanded(flex: 3, child: _sortHeader(widget.nameLabel ?? widget.itemLabel, _SortColumn.name)),
           if (widget.showRemarksColumn) Expanded(flex: 4, child: Text(widget.remarksLabel ?? 'Remarks', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
           if (widget.showYear) SizedBox(width: 90, child: _sortHeader('Year', _SortColumn.year)),
-          const SizedBox(width: 88),
+          adminActionHeader(),
         ],
       ),
     );
@@ -566,24 +559,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
           Expanded(flex: 3, child: Text(row.name, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
           if (widget.showRemarksColumn) Expanded(flex: 4, child: Padding(padding: const EdgeInsets.only(right: 12), child: Text(row.remarks, style: AdminTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis))),
           if (widget.showYear) SizedBox(width: 90, child: Text('${row.year}', style: AdminTypography.bodySm())),
-          SizedBox(
-            width: 88,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  onPressed: () => _openForm(id: row.id, code: row.code, name: row.name, remarks: row.remarks, year: row.year),
-                  icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
-                  tooltip: 'Edit',
-                ),
-                IconButton(
-                  onPressed: () => _confirmAndDelete([row.id]),
-                  icon: const Icon(Icons.delete_outline, size: 18, color: AdminColors.error),
-                  tooltip: 'Delete',
-                ),
-              ],
-            ),
-          ),
+          adminEditAction(() => _openForm(id: row.id, code: row.code, name: row.name, remarks: row.remarks, year: row.year)),
         ],
       ),
     );

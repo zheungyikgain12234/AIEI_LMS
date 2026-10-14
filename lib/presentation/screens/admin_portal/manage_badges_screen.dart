@@ -188,9 +188,16 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   }
 
   Widget _revokeButton(BadgeAward a) {
-    return TextButton(
+    return ElevatedButton(
       onPressed: () => _setRevoked(a, !a.isRevoked),
-      style: TextButton.styleFrom(foregroundColor: a.isRevoked ? AdminColors.primaryContainer : AdminColors.error, visualDensity: VisualDensity.compact),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: a.isRevoked ? AdminColors.primaryContainer : AdminColors.error,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
       child: Text(a.isRevoked ? 'Unrevoke' : 'Revoke'),
     );
   }
@@ -227,7 +234,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     final awards = _filtered;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Badge Award Management'),
+      appBar: const AdminMobileTopBar.detail(title: 'Manage Badge Award'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -329,7 +336,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Badge Award Management', style: AdminTypography.headlineLg()),
+            Text('Manage Badge Award', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),

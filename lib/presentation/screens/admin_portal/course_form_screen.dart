@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_fixed_code.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -447,18 +448,22 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
         builder: (ctx, setDialogState) {
           final query = searchController.text.trim().toLowerCase();
           final filtered = query.isEmpty ? options : options.where((o) => o.label.toLowerCase().contains(query)).toList();
-          return AlertDialog(
-            title: Text('Select $label'),
-            content: SizedBox(
-              width: 400,
-              height: 420,
+          return AdminFormDialog(
+            title: 'Select $label',
+            maxWidth: 480,
+            showCancel: false,
+            submitChild: const Text('Done'),
+            onSubmit: () => Navigator.of(ctx).pop(),
+            child: SizedBox(
+              height: 380,
               child: Column(
                 children: [
                   TextField(
                     controller: searchController,
                     autofocus: true,
                     onChanged: (_) => setDialogState(() {}),
-                    decoration: const InputDecoration(prefixIcon: Icon(Icons.search, size: 18), hintText: 'Search...', isDense: true),
+                    style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                    decoration: adminFormDecoration(hint: 'Search...', prefixIcon: const Icon(Icons.search, size: 18)),
                   ),
                   const SizedBox(height: 8),
                   Expanded(
@@ -484,9 +489,6 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                 ],
               ),
             ),
-            actions: [
-              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Done')),
-            ],
           );
         },
       ),

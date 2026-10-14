@@ -19,6 +19,7 @@ import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show LecturerClassSlot;
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
+import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
@@ -1213,25 +1214,25 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     if (!mounted) return;
     final picked = await showDialog<ModuleList>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Import module list'),
-        content: SizedBox(
-          width: 420,
-          child: lists.isEmpty
-              ? const Text('No saved module lists yet. Create one under Master Data → Manage Module Lists, or use "Save as reusable list".')
-              : ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final l in lists)
-                      ListTile(
-                        title: Text('${l.name} (${l.moduleNames.length})'),
-                        subtitle: Text(l.moduleNames.join(' • '), maxLines: 2, overflow: TextOverflow.ellipsis),
-                        onTap: () => Navigator.of(ctx).pop(l),
-                      ),
-                  ],
-                ),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel'))],
+      builder: (ctx) => AdminFormDialog(
+        title: 'Import module list',
+        maxWidth: 520,
+        showCancel: false,
+        submitChild: const Text('Close'),
+        onSubmit: () => Navigator.of(ctx).pop(),
+        child: lists.isEmpty
+            ? Text('No saved module lists yet. Create one under Master Data → Manage Module Lists, or use "Save as reusable list".', style: AdminTypography.bodySm())
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final l in lists)
+                    ListTile(
+                      title: Text('${l.name} (${l.moduleNames.length})'),
+                      subtitle: Text(l.moduleNames.join(' • '), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      onTap: () => Navigator.of(ctx).pop(l),
+                    ),
+                ],
+              ),
       ),
     );
     if (picked == null || !mounted) return;
@@ -1250,44 +1251,41 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     final saved = await showDialog<String>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Save as reusable list'),
-          content: SizedBox(
-            width: 380,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Saves these ${names.length} module${names.length == 1 ? '' : 's'} so you can import them into other classes.', style: AdminTypography.bodySm()),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: 'List name', hintText: 'e.g. Standard 4-Module Course'),
-                ),
-                AdminFieldError(errorMessage),
-              ],
-            ),
+        builder: (ctx, setDialogState) => AdminFormDialog(
+          title: 'Save as reusable list',
+          maxWidth: 460,
+          submitChild: const Text('Save List'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Saves these ${names.length} module${names.length == 1 ? '' : 's'} so you can import them into other classes.', style: AdminTypography.bodySm()),
+              const SizedBox(height: 14),
+              const AdminFieldLabel('List name'),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                onChanged: (_) => setDialogState(() => errorMessage = null),
+                style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                decoration: adminFormDecoration(hint: 'e.g. Standard 4-Module Course'),
+              ),
+              AdminFieldError(errorMessage),
+            ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                if (name.isEmpty) {
-                  setDialogState(() => errorMessage = 'List name is required.');
-                  return;
-                }
-                try {
-                  await _moduleListsRepository.createModuleList(name, names);
-                  if (ctx.mounted) Navigator.of(ctx).pop(name);
-                } catch (e) {
-                  setDialogState(() => errorMessage = friendlyErrorMessage(e));
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
+          onSubmit: () async {
+            final name = nameController.text.trim();
+            if (name.isEmpty) {
+              setDialogState(() => errorMessage = 'List name is required.');
+              return;
+            }
+            try {
+              await _moduleListsRepository.createModuleList(name, names);
+              if (ctx.mounted) Navigator.of(ctx).pop(name);
+            } catch (e) {
+              setDialogState(() => errorMessage = friendlyErrorMessage(e));
+            }
+          },
         ),
       ),
     );

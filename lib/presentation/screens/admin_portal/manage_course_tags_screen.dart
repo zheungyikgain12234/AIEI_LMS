@@ -8,6 +8,9 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_form_dialog.dart';
+import 'widgets/admin_field_label.dart';
+import 'widgets/admin_row_action.dart';
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
@@ -77,47 +80,45 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(tag == null ? 'Add Course Tag' : 'Edit Course Tag'),
-          content: SizedBox(
-            width: 360,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: 'Tag', hintText: 'e.g. Compliance'),
-                ),
-                AdminFieldError(errorMessage),
-              ],
-            ),
+        builder: (ctx, setDialogState) => AdminFormDialog(
+          title: tag == null ? 'Add Course Tag' : 'Edit Course Tag',
+          maxWidth: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AdminFieldLabel('Tag'),
+              const SizedBox(height: 6),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                onChanged: (_) => setDialogState(() => errorMessage = null),
+                style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                decoration: adminFormDecoration(hint: 'e.g. Compliance'),
+              ),
+              AdminFieldError(errorMessage),
+            ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final label = controller.text.trim();
-                if (label.isEmpty) {
-                  setDialogState(() => errorMessage = 'Tag is required.');
-                  return;
-                }
-                try {
-                  if (tag == null) {
-                    await _repository.createTag(label);
-                  } else {
-                    await _repository.updateTag(tag.id, label);
-                  }
-                  showSuccessSnackBar(context, tag == null ? 'Tag added.' : 'Tag updated.');
-                  if (ctx.mounted) Navigator.of(ctx).pop(true);
-                } catch (e) {
-                  setDialogState(() => errorMessage = friendlyErrorMessage(e));
-                }
-              },
-              child: Text(tag == null ? 'Add' : 'Save'),
-            ),
-          ],
+          submitChild: Text(tag == null ? 'Add Tag' : 'Save Changes'),
+          onSubmit: () async {
+            final label = controller.text.trim();
+            if (label.isEmpty) {
+              setDialogState(() => errorMessage = 'Tag is required.');
+              return;
+            }
+            try {
+              if (tag == null) {
+                await _repository.createTag(label);
+              } else {
+                await _repository.updateTag(tag.id, label);
+              }
+              if (!mounted) return;
+              showSuccessSnackBar(context, tag == null ? 'Tag added.' : 'Tag updated.');
+              if (ctx.mounted) Navigator.of(ctx).pop(true);
+            } catch (e) {
+              setDialogState(() => errorMessage = friendlyErrorMessage(e));
+            }
+          },
         ),
       ),
     );
@@ -234,7 +235,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  Text('${_selected.length} selected', style: AdminTypography.titleSm()),
+                  adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -272,10 +273,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(child: Text(t.label, style: AdminTypography.bodyMd(color: AdminColors.onSurface))),
-          IconButton(
-            onPressed: () => _openForm(tag: t),
-            icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
-          ),
+          adminEditAction(() => _openForm(tag: t)),
         ],
       ),
     );

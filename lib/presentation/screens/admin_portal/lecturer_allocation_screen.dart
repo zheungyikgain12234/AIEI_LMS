@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
+import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_scaffold.dart';
@@ -1523,100 +1524,82 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
     if (widget.sections.isNotEmpty) _sectionId = widget.sections.first.id;
   }
 
+  Future<void> _submit() async {
+    setState(() {
+      _lecturerError = _lecturerId == null ? 'Select a lecturer.' : null;
+      _sectionError = _sectionId == null ? 'Select a course section.' : null;
+    });
+    if (_lecturerId == null || _sectionId == null) return;
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+    try {
+      await widget.onConfirm(_sectionId!, _lecturerId!);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _errorMessage = friendlyErrorMessage(e);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 480),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Icon(Icons.assignment_ind_outlined, color: AdminColors.primary, size: 22),
-              const SizedBox(width: 8),
-              Expanded(child: Text('Assign Lecturer to Course', style: AdminTypography.headlineSm())),
-              IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close)),
-            ]),
-            const SizedBox(height: 12),
-            _lecturerField(),
-            const SizedBox(height: 12),
-            _sectionField(),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: _staticField('Instruction Role', _roleOptions, _role, (v) => setState(() => _role = v))),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Term Window', style: AdminTypography.labelMd()),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(10)),
-                      child: Text('AY 2024 - Q3', style: AdminTypography.bodySm()),
-                    ),
-                  ],
-                ),
+    return AdminFormDialog(
+      title: 'Assign Lecturer to Course',
+      maxWidth: 520,
+      onCancel: _submitting ? null : () => Navigator.of(context).pop(),
+      onSubmit: _submitting ? null : _submit,
+      submitChild: _submitting
+          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : const Text('Confirm Allocation'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _lecturerField(),
+          const SizedBox(height: 12),
+          _sectionField(),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: _staticField('Instruction Role', _roleOptions, _role, (v) => setState(() => _role = v))),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Term Window', style: AdminTypography.labelMd()),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(10)),
+                    child: Text('AY 2024 - Q3', style: AdminTypography.bodySm()),
+                  ),
+                ],
               ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: Row(children: [
+              const Icon(Icons.verified, size: 18, color: AdminColors.secondary),
+              const SizedBox(width: 8),
+              Expanded(child: Text('System will automatically verify prerequisite certifications and notify registrar office upon commit.', style: AdminTypography.bodySm())),
             ]),
+          ),
+          if (_errorMessage != null) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-              child: Row(children: [
-                const Icon(Icons.verified, size: 18, color: AdminColors.secondary),
-                const SizedBox(width: 8),
-                Expanded(child: Text('System will automatically verify prerequisite certifications and notify registrar office upon commit.', style: AdminTypography.bodySm())),
-              ]),
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(10)),
-                child: Text(_errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
-              ),
-            ],
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _submitting
-                      ? null
-                      : () async {
-                          setState(() {
-                            _lecturerError = _lecturerId == null ? "Select a lecturer." : null;
-                            _sectionError = _sectionId == null ? "Select a course section." : null;
-                          });
-                          if (_lecturerId == null || _sectionId == null) return;
-                          setState(() {
-                            _submitting = true;
-                            _errorMessage = null;
-                          });
-                          try {
-                            await widget.onConfirm(_sectionId!, _lecturerId!);
-                          } catch (e) {
-                            if (!mounted) return;
-                            setState(() {
-                              _submitting = false;
-                              _errorMessage = friendlyErrorMessage(e);
-                            });
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                  child: const Text('Confirm Allocation'),
-                ),
-              ],
+              decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(10)),
+              child: Text(_errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
             ),
           ],
-        ),
+        ],
       ),
     );
   }

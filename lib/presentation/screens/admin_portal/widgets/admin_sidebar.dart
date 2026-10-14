@@ -66,126 +66,6 @@ class AdminSidebar extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
-                      'ACADEMIC OPERATIONS',
-                      style: AdminTypography.labelSm(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _NavItem(
-                          icon: Icons.badge_outlined,
-                          label: 'Manage and Assign Lecturers',
-                          isSelected:
-                              selected == AdminNavDestination.manageLecturers,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageLecturers,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.groups_outlined,
-                          label: 'Manage and Enrol Students',
-                          isSelected:
-                              selected == AdminNavDestination.manageStudents,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageStudents,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.menu_book_outlined,
-                          label: 'Manage Courses',
-                          isSelected:
-                              selected == AdminNavDestination.manageCourses,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageCourses,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.event_note_outlined,
-                          label: 'Manage Classes',
-                          isSelected:
-                              selected == AdminNavDestination.manageClasses,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageClasses,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.military_tech_outlined,
-                          label: 'Badge Award Management',
-                          isSelected:
-                              selected == AdminNavDestination.manageBadges,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageBadges,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.swap_horiz_outlined,
-                          label: 'Role ↔ Course Mapping',
-                          isSelected:
-                              selected == AdminNavDestination.roleCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.roleCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.account_tree_outlined,
-                          label: 'Department ↔ Course Mapping',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.departmentCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.departmentCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.school_outlined,
-                          label: 'Programme ↔ Course Mapping',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.programmeCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.programmeCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.alt_route,
-                          label: 'Track ↔ Course Mapping',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.trackCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.trackCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.psychology_alt_outlined,
-                          label: 'Specialisation ↔ Course Mapping',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.specializationCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.specializationCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.military_tech_outlined,
-                          label: 'Badge ↔ Course Mapping',
-                          isSelected:
-                              selected == AdminNavDestination.badgeCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.badgeCourseMapping,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
                       'MASTER DATA',
                       style: AdminTypography.labelSm(),
                     ),
@@ -196,6 +76,15 @@ class AdminSidebar extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        _NavItem(
+                          icon: Icons.hub_outlined,
+                          label: 'Manage Cohorts',
+                          isSelected:
+                              selected == AdminNavDestination.manageCohorts,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageCohorts,
+                          ),
+                        ),
                         _NavItem(
                           icon: Icons.apartment_outlined,
                           label: 'Manage Student Depts',
@@ -225,12 +114,12 @@ class AdminSidebar extends StatelessWidget {
                           ),
                         ),
                         _NavItem(
-                          icon: Icons.hub_outlined,
-                          label: 'Manage Cohorts',
+                          icon: Icons.work_outline,
+                          label: 'Manage Roles',
                           isSelected:
-                              selected == AdminNavDestination.manageCohorts,
+                              selected == AdminNavDestination.manageRoles,
                           onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageCohorts,
+                            AdminNavDestination.manageRoles,
                           ),
                         ),
                         _NavItem(
@@ -254,12 +143,12 @@ class AdminSidebar extends StatelessWidget {
                           ),
                         ),
                         _NavItem(
-                          icon: Icons.work_outline,
-                          label: 'Manage Roles',
+                          icon: Icons.sell_outlined,
+                          label: 'Manage Course Tags',
                           isSelected:
-                              selected == AdminNavDestination.manageRoles,
+                              selected == AdminNavDestination.manageCourseTags,
                           onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageRoles,
+                            AdminNavDestination.manageCourseTags,
                           ),
                         ),
                         _NavItem(
@@ -269,15 +158,6 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageBadgeCatalog,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageBadgeCatalog,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.sell_outlined,
-                          label: 'Manage Course Tags',
-                          isSelected:
-                              selected == AdminNavDestination.manageCourseTags,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageCourseTags,
                           ),
                         ),
                         _NavItem(
@@ -296,6 +176,126 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageSyllabi,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageSyllabi,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'ACADEMIC OPERATIONS',
+                      style: AdminTypography.labelSm(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _NavItem(
+                          icon: Icons.menu_book_outlined,
+                          label: 'Manage Courses',
+                          isSelected:
+                              selected == AdminNavDestination.manageCourses,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageCourses,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.school_outlined,
+                          label: 'Programme ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.programmeCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.programmeCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.alt_route,
+                          label: 'Track ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.trackCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.trackCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.swap_horiz_outlined,
+                          label: 'Role ↔ Course Mapping',
+                          isSelected:
+                              selected == AdminNavDestination.roleCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.roleCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.account_tree_outlined,
+                          label: 'Department ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.departmentCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.departmentCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.psychology_alt_outlined,
+                          label: 'Specialisation ↔ Course Mapping',
+                          isSelected:
+                              selected ==
+                              AdminNavDestination.specializationCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.specializationCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.military_tech_outlined,
+                          label: 'Badge ↔ Course Mapping',
+                          isSelected:
+                              selected == AdminNavDestination.badgeCourseMapping,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.badgeCourseMapping,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.badge_outlined,
+                          label: 'Manage and Assign Lecturers',
+                          isSelected:
+                              selected == AdminNavDestination.manageLecturers,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageLecturers,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.event_note_outlined,
+                          label: 'Manage Classes',
+                          isSelected:
+                              selected == AdminNavDestination.manageClasses,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageClasses,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.groups_outlined,
+                          label: 'Manage and Enrol Students',
+                          isSelected:
+                              selected == AdminNavDestination.manageStudents,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageStudents,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.military_tech_outlined,
+                          label: 'Badge Award Management',
+                          isSelected:
+                              selected == AdminNavDestination.manageBadges,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageBadges,
                           ),
                         ),
                       ],

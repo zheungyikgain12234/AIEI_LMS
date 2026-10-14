@@ -45,11 +45,10 @@ class _CourseCardState extends State<CourseCard> {
           ],
         ),
         padding: const EdgeInsets.all(20),
-        // Stretches to the row's height (see CourseGrid) so every card in a
-        // row is the same height, with the button pinned to the bottom.
+        // Each card is as tall as its own content, so nothing is clipped.
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Top Section (Media + Title + Instructor + Progress + Badge)
             Column(
@@ -68,8 +67,6 @@ class _CourseCardState extends State<CourseCard> {
                         ? AppColors.secondary
                         : AppColors.primary,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
 
                 if (c.isEnrolled) const SizedBox(height: 8),
@@ -90,8 +87,6 @@ class _CourseCardState extends State<CourseCard> {
                         style: AppTypography.bodySm(
                           color: AppColors.onSurfaceVariant,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (c.classCode != null) ...[
@@ -105,9 +100,7 @@ class _CourseCardState extends State<CourseCard> {
                         child: Text(
                           c.classCode!,
                           style: AppTypography.labelSm(color: AppColors.onSurfaceVariant).copyWith(fontSize: 10),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                                                  ),
                       ),
                     ],
                   ],

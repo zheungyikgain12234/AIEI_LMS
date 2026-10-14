@@ -13,6 +13,12 @@ class SupabaseBadgeCourseMappingRepositoryImpl implements BadgeCourseMappingRepo
   }
 
   @override
+  Future<Set<String>> getBadgeIdsForCourse(String courseId) async {
+    final rows = await _client.from('course_badges').select('badge_id').eq('course_id', courseId);
+    return {for (final row in rows as List) row['badge_id'] as String};
+  }
+
+  @override
   Future<void> setCourseForBadge(String badgeId, String courseId, bool allowed) async {
     if (allowed) {
       await _client.from('course_badges').upsert(

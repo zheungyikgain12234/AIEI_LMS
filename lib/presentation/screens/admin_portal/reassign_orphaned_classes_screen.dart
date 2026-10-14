@@ -272,7 +272,7 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
           ),
         ),
         ElevatedButton(
-          onPressed: _allChosen && !_isSubmitting ? _submit : null,
+          onPressed: _isSubmitting || _orphaned.isEmpty || _candidates.isEmpty ? null : _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.error,
             foregroundColor: Colors.white,

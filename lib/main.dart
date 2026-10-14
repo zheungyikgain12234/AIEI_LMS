@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/app_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations;
@@ -43,6 +44,7 @@ class AieiLmsApp extends StatelessWidget {
     return MaterialApp(
       title: 'AIEI Learning Management System',
       debugShowCheckedModeBanner: false,
+      builder: (context, child) => AppScale(child: child ?? const SizedBox.shrink()),
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.background,

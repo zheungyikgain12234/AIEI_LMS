@@ -86,6 +86,9 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     return counts;
   }
 
+  /// [cohort] is accepted for compatibility but ignored: a class's cohort is
+  /// fixed at creation (enrolled students and the lecturer's per-cohort credit
+  /// load depend on it).
   @override
   Future<CourseSection> updateSection(
     String id, {
@@ -106,7 +109,6 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     final scheduleText = (dayOfWeek != null && startTime != null && endTime != null)
         ? '${dayOfWeek.substring(0, 3)} $startTime–$endTime • ${deliveryMode == 'online' ? 'Online' : (location ?? 'TBD')}'
         : 'TBD';
-    final cohortId = await _cohortIdForName(cohort);
     final overrideCode = await _resolveOverrideCode(editOverrideLecturerCode);
     final row = await _client
         .from('course_sections')
@@ -120,7 +122,6 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'schedule_text': scheduleText,
           'capacity': capacity,
           'delivery_mode': deliveryMode,
-          'cohort_id': cohortId,
           'status': status,
           'edit_start_at': editStartAt.toUtc().toIso8601String(),
           'edit_end_at': editEndAt.toUtc().toIso8601String(),
@@ -455,6 +456,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
 
   @override
   Future<void> deleteSections(List<String> sectionIds) async {
+    await _client.from('student_courses').delete().inFilter('section_id', sectionIds);
     await _client.from('course_sections').delete().inFilter('id', sectionIds);
   }
 }

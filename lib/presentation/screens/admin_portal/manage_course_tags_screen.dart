@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
@@ -84,19 +85,12 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-                    child: Text(errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
-                  ),
-                  const SizedBox(height: 12),
-                ],
                 TextField(
                   controller: controller,
                   autofocus: true,
                   decoration: const InputDecoration(labelText: 'Tag', hintText: 'e.g. Compliance'),
                 ),
+                AdminFieldError(errorMessage),
               ],
             ),
           ),

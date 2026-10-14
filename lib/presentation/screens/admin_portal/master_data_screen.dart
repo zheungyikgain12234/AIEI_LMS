@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_fixed_code.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -184,7 +185,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (errorMessage != null) ...[
+                  if (errorMessage != null && !isFieldConflictMessage(errorMessage!)) ...[
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
@@ -208,6 +209,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                       decoration: const InputDecoration(border: OutlineInputBorder()),
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Code is required' : null,
                     ),
+                    AdminFieldError(errorMessage == codeConflictMessage ? errorMessage : null),
                     const SizedBox(height: 12),
                   ],
                   AdminFieldLabel(widget.nameLabel ?? widget.itemLabel),
@@ -217,6 +219,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                     decoration: const InputDecoration(border: OutlineInputBorder()),
                     validator: (v) => (v == null || v.trim().isEmpty) ? '${widget.itemLabel} is required' : null,
                   ),
+                  AdminFieldError(errorMessage == nameConflictMessage ? errorMessage : null),
                   if (widget.showYear) ...[
                     const SizedBox(height: 12),
                     const AdminFieldLabel('Year'),
@@ -229,6 +232,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                       validator: (v) {
                         final parsed = int.tryParse(v?.trim() ?? '');
                         if (parsed == null) return 'Enter a valid year';
+                        if (parsed < 1990 || parsed > 2100) return 'Enter a year between 1990 and 2100';
                         return null;
                       },
                     ),

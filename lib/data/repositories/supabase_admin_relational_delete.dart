@@ -268,8 +268,9 @@ class SupabaseAdminRelationalDelete {
 
   // ── Classes (course_sections) ─────────────────────────────────────────
 
-  /// Enrolled students keep their course enrolment; the class link just clears.
+  /// Students enrolled in a deleted class lose that enrolment too.
   Future<void> deleteSections(List<String> ids) async {
+    await _client.from('student_courses').delete().inFilter('section_id', ids);
     await _client.from('course_sections').delete().inFilter('id', ids);
   }
 

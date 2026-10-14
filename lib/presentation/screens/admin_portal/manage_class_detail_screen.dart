@@ -16,6 +16,8 @@ import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_date_time_field.dart';
+import 'widgets/admin_field_error.dart';
+import 'widgets/admin_fixed_code.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
 
@@ -79,6 +81,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
+  final Map<String, String> _fieldErrors = {};
   CourseSection? _section;
   List<RosterStudent> _roster = [];
   List<String> _cohorts = [];
@@ -190,49 +193,46 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   }
 
   Future<void> _save() async {
-    // Every field marked with a red asterisk is compulsory.
-    String? missing;
-    if (_startDate == null) {
-      missing = 'Start Date';
-    } else if (_endDate == null) {
-      missing = 'End Date';
-    } else if (_dayOfWeek == null) {
-      missing = 'Day of Week';
-    } else if (_startTime == null) {
-      missing = 'Start Time';
-    } else if (_endTime == null) {
-      missing = 'End Time';
-    } else if (_deliveryMode != 'online' && _locationController.text.trim().isEmpty) {
-      missing = 'Location';
-    } else if (_selectedCohort == null) {
-      missing = 'Cohort';
+    // Every field marked with a red asterisk is compulsory. Each problem is
+    // reported in a red box directly beneath its own field.
+    final errors = <String, String>{};
+    if (_startDate == null) errors['startDate'] = 'Start Date is required.';
+    if (_endDate == null) errors['endDate'] = 'End Date is required.';
+    if (_startDate != null && _endDate != null && !_endDate!.isAfter(_startDate!)) {
+      errors['endDate'] = 'End Date must be after Start Date.';
     }
-    if (missing != null) {
-      setState(() => _errorMessage = '$missing is required.');
-      return;
+    if (_dayOfWeek == null) errors['dayOfWeek'] = 'Day of Week is required.';
+    if (_startTime == null) errors['startTime'] = 'Start Time is required.';
+    if (_endTime == null) errors['endTime'] = 'End Time is required.';
+    if (_startTime != null &&
+        _endTime != null &&
+        _endTime!.hour * 60 + _endTime!.minute <= _startTime!.hour * 60 + _startTime!.minute) {
+      errors['endTime'] = 'End Time must be after Start Time.';
     }
-    if (!_endDate!.isAfter(_startDate!)) {
-      setState(() => _errorMessage = 'End Date must be after Start Date.');
-      return;
-    }
-    if (_endTime!.hour * 60 + _endTime!.minute <= _startTime!.hour * 60 + _startTime!.minute) {
-      setState(() => _errorMessage = 'End Time must be after Start Time.');
-      return;
+    if (_deliveryMode != 'online' && _locationController.text.trim().isEmpty) {
+      errors['location'] = 'Location is required.';
     }
     final capacity = int.tryParse(_capacityController.text.trim());
     if (capacity == null || capacity <= 0) {
-      setState(() => _errorMessage = 'Capacity must be a positive number.');
+      errors['capacity'] = 'Capacity must be a positive number.';
+    } else if (capacity > maxClassCapacity) {
+      errors['capacity'] = 'Capacity cannot exceed $maxClassCapacity.';
+    }
+    if (_editStartAt == null || _editEndAt == null) {
+      errors['editPeriod'] = 'Set a syllabus edit period — both start and end are required.';
+    } else if (!_editEndAt!.isAfter(_editStartAt!)) {
+      errors['editPeriod'] = 'Edit end must be after edit start.';
+    }
+    if (errors.isNotEmpty) {
+      setState(() {
+        _fieldErrors
+          ..clear()
+          ..addAll(errors);
+        _errorMessage = null;
+      });
       return;
     }
-    if (_editStartAt == null ||
-        _editEndAt == null ||
-        !_editEndAt!.isAfter(_editStartAt!)) {
-      setState(
-        () => _errorMessage =
-            'Set a syllabus edit period — the end must be after the start.',
-      );
-      return;
-    }
+    _fieldErrors.clear();
     setState(() {
       _isSaving = true;
       _errorMessage = null;
@@ -248,7 +248,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         location: _deliveryMode == 'online' || _locationController.text.trim().isEmpty
             ? null
             : _locationController.text.trim(),
-        capacity: capacity,
+        capacity: capacity!,
         deliveryMode: _deliveryMode,
         cohort: _selectedCohort!,
         status: _status,
@@ -424,6 +424,13 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     );
   }
 
+  Widget _codeLabel(String label, String value) => Text.rich(
+        TextSpan(children: [
+          TextSpan(text: '$label: ', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+          TextSpan(text: value, style: AdminTypography.labelMd(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+        ]),
+      );
+
   Widget _infoCard(CourseSection section) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -436,9 +443,15 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(section.courseTitle, style: AdminTypography.titleMd()),
-          Text(
-            '${section.courseCode} • ${section.sectionCode}',
-            style: AdminTypography.labelSm(),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 20,
+            runSpacing: 4,
+            children: [
+              _codeLabel('Course Code', section.courseCode),
+              _codeLabel('Class Code', section.sectionCode),
+              _codeLabel('Cohort Code', section.cohortCode ?? '—'),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -451,6 +464,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       ),
     );
   }
+
+  /// Appends the red validation box for [key] directly beneath [field].
+  Widget _err(String key, Widget field) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [field, AdminFieldError(_fieldErrors[key])]);
 
   Widget _editCard() {
     return Container(
@@ -484,47 +501,47 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           Row(
             children: [
               Expanded(
-                child: _dateField(
+                child: _err('startDate', _dateField(
                   label: 'Start Date',
                   value: _startDate,
                   onTap: () => _pickDate(isStart: true),
-                ),
+                )),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _dateField(
+                child: _err('endDate', _dateField(
                   label: 'End Date',
                   value: _endDate,
                   onTap: () => _pickDate(isStart: false),
-                ),
+                )),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          _dropdown(
+          _err('dayOfWeek', _dropdown(
             label: 'Day of Week',
             hint: 'Select a day',
             value: _dayOfWeek,
             options: _dayOptions,
             onChanged: (v) => setState(() => _dayOfWeek = v),
-          ),
+          )),
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
-                child: _timeField(
+                child: _err('startTime', _timeField(
                   label: 'Start Time',
                   value: _startTime,
                   onTap: () => _pickTime(isStart: true),
-                ),
+                )),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _timeField(
+                child: _err('endTime', _timeField(
                   label: 'End Time',
                   value: _endTime,
                   onTap: () => _pickTime(isStart: false),
-                ),
+                )),
               ),
             ],
           ),
@@ -540,11 +557,11 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           ),
           if (_deliveryMode != 'online') ...[
             const SizedBox(height: 14),
-            _textField(
+            _err('location', _textField(
               label: 'Location',
               controller: _locationController,
               hint: 'Innovation Hall 204',
-            ),
+            )),
           ],
           const SizedBox(height: 20),
           const Divider(height: 1),
@@ -577,15 +594,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               ),
             ],
           ),
-          if (_editStartAt != null &&
-              _editEndAt != null &&
-              !_editEndAt!.isAfter(_editStartAt!)) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Edit end must be after edit start.',
-              style: AdminTypography.labelSm(color: AdminColors.error),
-            ),
-          ],
+          AdminFieldError(_fieldErrors['editPeriod']),
           const SizedBox(height: 14),
           _textField(
             label: 'Edit Override — Lecturer Code (optional)',
@@ -604,25 +613,20 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           Row(
             children: [
               Expanded(
-                child: _textField(
+                child: _err('capacity', _textField(
                   label: 'Capacity',
                   controller: _capacityController,
                   hint: '50',
                   keyboardType: TextInputType.number,
                   inputFormatters: digitsOnly,
-                ),
+                )),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          _dropdown(
-            label: 'Cohort',
-            hint: 'Select a cohort',
-            value: _selectedCohort,
-            options: _cohorts,
-            onChanged: (v) => setState(() => _selectedCohort = v),
-          ),
-          const SizedBox(height: 14),
+          // A class's cohort is fixed once created: its enrolled students and the
+          // lecturer's per-cohort credit load both depend on it.
+          AdminFixedCode(label: 'Cohort', value: _selectedCohort ?? '—'),
           _labeledDropdown(
             label: 'Status',
             value: _status,

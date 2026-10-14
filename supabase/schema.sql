@@ -608,7 +608,6 @@ create table app_settings (
 );
 
 insert into app_settings (key, value) values
-  ('single_exam_attempt', false),
   ('hide_mark_buttons_in_syllabus', false),
   ('allow_lecturer_exam_reset', false),
   ('max_moderated_score', false),

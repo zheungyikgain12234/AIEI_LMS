@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +42,8 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
+  String? get _codeConflict => _errorMessage == codeConflictMessage ? _errorMessage : null;
+  String? get _nameConflict => _errorMessage == nameConflictMessage ? _errorMessage : null;
 
   /// Every code is stored tenant-prefixed (`TN01-CERT-PYAUTO`) to keep it
   /// unique across tenants, but the admin only ever types/sees the suffix.
@@ -160,7 +163,7 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),
-                          if (_errorMessage != null) ...[
+                          if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
@@ -172,9 +175,11 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                             AdminFixedCode(label: 'Badge Code', value: _codeController.text.trim().toUpperCase()),
                           if (!widget.isEditing) ...[
                             _field(controller: _codeController, label: 'Badge Code', hint: 'PYAUTO', inputFormatters: const [UpperCaseTextFormatter()]),
+                            AdminFieldError(_codeConflict),
                             const SizedBox(height: 14),
                           ],
                           _field(controller: _titleController, label: 'Badge Name', hint: 'Python Automation Specialist'),
+                          AdminFieldError(_nameConflict),
                           const SizedBox(height: 14),
                           _field(controller: _descriptionController, label: 'Description', hint: 'What this badge recognises...', maxLines: 4),
                           const SizedBox(height: 14),

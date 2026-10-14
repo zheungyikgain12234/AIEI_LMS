@@ -162,7 +162,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
       count: ids.length,
       pluralNoun: 'classes',
       dependents: const [],
-      note: 'Their modules, syllabus content and announcements will be deleted too. Enrolled students stay enrolled in the course.',
+      note: 'Their modules, syllabus content and announcements will be deleted too. Students enrolled in them will be unenrolled from the class.',
       perform: (_) => service.deleteSections(ids),
     );
     if (!done || !mounted) return;

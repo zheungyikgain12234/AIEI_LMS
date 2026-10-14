@@ -20,6 +20,7 @@ import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' s
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
 import 'widgets/admin_no_results.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_date_time_field.dart';
 import 'widgets/module_names_editor.dart';
@@ -87,6 +88,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   DateTime? _editStartAt;
   DateTime? _editEndAt;
   String? _assignErrorMessage;
+  final Map<String, String> _assignErrors = {};
 
   @override
   void initState() {
@@ -253,20 +255,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   bool get _editWindowValid => _editStartAt != null && _editEndAt != null && _editEndAt!.isAfter(_editStartAt!);
 
 
-  bool get _canAssign =>
-      _selectedCourseId != null &&
-      !_overCapacity &&
-      _dayOfWeek != null &&
-      _timeRangeValid &&
-      _dateRangeValid &&
-      (_deliveryMode == 'online' || _locationController.text.trim().isNotEmpty) &&
-      _classCodeController.text.trim().isNotEmpty &&
-      _classCapacity != null &&
-      _classCapacity! > 0 &&
-      _selectedCohort != null &&
-      _modules.names.isNotEmpty &&
-      _editWindowValid;
-
   int? get _classCapacity => int.tryParse(_capacityController.text.trim());
 
   /// Every code is stored tenant-prefixed (`TN01-CLS-...`) to keep it unique
@@ -314,8 +302,52 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   String _formatDate(DateTime d) => formatDate(d);
 
+  /// Validates the whole assignment form, returning one message per invalid
+  /// field (keyed by field) so each can be shown right beneath that field.
+  Map<String, String> _validateAssign() {
+    final errors = <String, String>{};
+    if (_selectedCohort == null) errors['cohort'] = 'Select a year and cohort at the top of the page.';
+    if (_selectedCourseId == null) errors['course'] = 'Select a course to assign.';
+    if (_overCapacity) errors['course'] = 'This assignment exceeds the lecturer\'s credit capacity for the cohort.';
+    if (_dayOfWeek == null) errors['day'] = 'Day is required.';
+    if (_startTime == null) errors['startTime'] = 'Start Time is required.';
+    if (_endTime == null) errors['endTime'] = 'End Time is required.';
+    if (_startTime != null && _endTime != null && !_timeRangeValid) {
+      errors['endTime'] = 'End time must be after start time.';
+    }
+    if (_courseStartDate == null) errors['startDate'] = 'Course Start Date is required.';
+    if (_courseEndDate == null) errors['endDate'] = 'Course End Date is required.';
+    if (_courseStartDate != null && _courseEndDate != null && !_dateRangeValid) {
+      errors['endDate'] = 'End date must be after start date.';
+    }
+    if (_classCodeController.text.trim().isEmpty) errors['classCode'] = 'Class Code is required.';
+    final capacity = _classCapacity;
+    if (capacity == null || capacity <= 0) {
+      errors['capacity'] = 'Capacity must be a positive number.';
+    } else if (capacity > maxClassCapacity) {
+      errors['capacity'] = 'Capacity cannot exceed $maxClassCapacity.';
+    }
+    if (_deliveryMode != 'online' && _locationController.text.trim().isEmpty) {
+      errors['location'] = 'Location is required.';
+    }
+    if (!_editWindowValid) {
+      errors['editPeriod'] = _editStartAt != null && _editEndAt != null
+          ? 'Edit end must be after edit start.'
+          : 'Set a syllabus edit period — both start and end are required.';
+    }
+    if (_modules.names.isEmpty) errors['modules'] = 'Add at least one module.';
+    return errors;
+  }
+
   Future<void> _assign() async {
-    if (!_canAssign || _lecturer == null) return;
+    if (_lecturer == null) return;
+    final errors = _validateAssign();
+    setState(() {
+      _assignErrors
+        ..clear()
+        ..addAll(errors);
+    });
+    if (errors.isNotEmpty) return;
     final courses = _availableCourses.where((c) => c.id == _selectedCourseId).toList();
 
     // The repository rejects the assignment (ScheduleConflictException) if
@@ -973,13 +1005,14 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       items: [for (final d in _dayOptions) DropdownMenuItem(value: d, child: Text(d))],
                       onChanged: (v) => setState(() => _dayOfWeek = v),
                     ),
+                    AdminFieldError(_assignErrors['day']),
                   ],
                 ),
               ),
-              _timeField(label: 'Start Time', value: _startTime, onTap: () => _pickTime(isStart: true)),
-              _timeField(label: 'End Time', value: _endTime, onTap: () => _pickTime(isStart: false)),
-              _dateField(label: 'Course Start Date', value: _courseStartDate, onTap: () => _pickDate(isStart: true)),
-              _dateField(label: 'Course End Date', value: _courseEndDate, onTap: () => _pickDate(isStart: false)),
+              _timeField(label: 'Start Time', value: _startTime, onTap: () => _pickTime(isStart: true), errorKey: 'startTime'),
+              _timeField(label: 'End Time', value: _endTime, onTap: () => _pickTime(isStart: false), errorKey: 'endTime'),
+              _dateField(label: 'Course Start Date', value: _courseStartDate, onTap: () => _pickDate(isStart: true), errorKey: 'startDate'),
+              _dateField(label: 'Course End Date', value: _courseEndDate, onTap: () => _pickDate(isStart: false), errorKey: 'endDate'),
               SizedBox(
                 width: 220,
                 child: Column(
@@ -1002,6 +1035,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),
+                    AdminFieldError(_assignErrors['classCode']),
                   ],
                 ),
               ),
@@ -1028,6 +1062,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),
+                    AdminFieldError(_assignErrors['capacity']),
                   ],
                 ),
               ),
@@ -1080,6 +1115,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),
+                    AdminFieldError(_assignErrors['location']),
                   ],
                 ),
               ),
@@ -1094,14 +1130,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
             ),
           ]),
-          if (_startTime != null && _endTime != null && !_timeRangeValid) ...[
-            const SizedBox(height: 8),
-            Text('End time must be after start time.', style: AdminTypography.labelSm(color: AdminColors.error)),
-          ],
-          if (_courseStartDate != null && _courseEndDate != null && !_dateRangeValid) ...[
-            const SizedBox(height: 8),
-            Text('Course end date must be after the course start date.', style: AdminTypography.labelSm(color: AdminColors.error)),
-          ],
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -1140,10 +1168,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             ),
           ],
         ),
-        if (_editStartAt != null && _editEndAt != null && !_editWindowValid) ...[
-          const SizedBox(height: 8),
-          Text('Edit end must be after edit start.', style: AdminTypography.labelSm(color: AdminColors.error)),
-        ],
+        AdminFieldError(_assignErrors['editPeriod']),
       ],
     );
   }
@@ -1157,6 +1182,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         Text('Type each module this class will teach. At least one is required.', style: AdminTypography.bodySm()),
         const SizedBox(height: 12),
         ModuleNamesEditor(controller: _modules, onChanged: () => setState(() {})),
+        AdminFieldError(_assignErrors['modules']),
         const SizedBox(height: 8),
         // Both buttons are shortcuts, not steps — kept visually distinct
         // from the required fields and from "Assign to Lecturer".
@@ -1172,7 +1198,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               label: const Text('Import from saved list'),
             ),
             OutlinedButton.icon(
-              onPressed: _modules.names.isEmpty ? null : _saveModuleList,
+              onPressed: _saveModuleList,
               icon: const Icon(Icons.bookmark_add_outlined, size: 16),
               label: const Text('Save as reusable list'),
             ),
@@ -1215,7 +1241,10 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   Future<void> _saveModuleList() async {
     final names = _modules.names;
-    if (names.isEmpty) return;
+    if (names.isEmpty) {
+      setState(() => _assignErrors['modules'] = 'Add at least one module before saving a reusable list.');
+      return;
+    }
     final nameController = TextEditingController();
     String? errorMessage;
     final saved = await showDialog<String>(
@@ -1231,15 +1260,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               children: [
                 Text('Saves these ${names.length} module${names.length == 1 ? '' : 's'} so you can import them into other classes.', style: AdminTypography.bodySm()),
                 const SizedBox(height: 12),
-                if (errorMessage != null) ...[
-                  Text(errorMessage!, style: AdminTypography.bodySm(color: AdminColors.error)),
-                  const SizedBox(height: 8),
-                ],
                 TextField(
                   controller: nameController,
                   autofocus: true,
                   decoration: const InputDecoration(labelText: 'List name', hintText: 'e.g. Standard 4-Module Course'),
                 ),
+                AdminFieldError(errorMessage),
               ],
             ),
           ),
@@ -1270,7 +1296,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     showSuccessSnackBar(context, 'Saved module list "$saved".');
   }
 
-  Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap}) {
+  Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap, String? errorKey}) {
     return SizedBox(
       width: 160,
       child: Column(
@@ -1296,12 +1322,13 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               ),
             ),
           ),
+          AdminFieldError(errorKey == null ? null : _assignErrors[errorKey]),
         ],
       ),
     );
   }
 
-  Widget _timeField({required String label, required TimeOfDay? value, required VoidCallback onTap}) {
+  Widget _timeField({required String label, required TimeOfDay? value, required VoidCallback onTap, String? errorKey}) {
     return SizedBox(
       width: 160,
       child: Column(
@@ -1327,53 +1354,41 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               ),
             ),
           ),
+          AdminFieldError(errorKey == null ? null : _assignErrors[errorKey]),
         ],
       ),
     );
   }
 
   Widget _buildAssignBar() {
-    final disabled = !_canAssign || _isAssigning;
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Text(
-            _selectedCohort == null
-                ? 'Select a year and cohort at the top of the page.'
-                : _selectedCourseId == null
-                    ? 'Select a course to assign.'
-                    : _dayOfWeek == null
-                        ? 'Set a day above.'
-                        : !_timeRangeValid
-                            ? 'Set a valid start/end time above.'
-                            : !_dateRangeValid
-                                ? 'Set a valid course start/end date above.'
-                                : _deliveryMode != 'online' && _locationController.text.trim().isEmpty
-                                ? 'Set a location above.'
-                                : _classCodeController.text.trim().isEmpty
-                                    ? 'Set a class code above.'
-                                    : _classCapacity == null || _classCapacity! <= 0
-                                        ? 'Set a valid capacity above.'
-                                    : !_editWindowValid
-                                        ? 'Set a valid syllabus edit period above.'
-                                    : _modules.names.isEmpty
-                                        ? 'Add at least one module above.'
-                                        : '1 course selected • $_assignCredits credits',
-            style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: disabled ? null : _assign,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AdminColors.primaryContainer,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          child: _isAssigning
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Assign to Lecturer'),
+        AdminFieldError(_assignErrors['cohort']),
+        AdminFieldError(_assignErrors['course']),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _selectedCourseId == null ? 'Select a course to assign.' : '1 course selected • $_assignCredits credits',
+                style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _isAssigning ? null : _assign,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminColors.primaryContainer,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: _isAssigning
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Assign to Lecturer'),
+            ),
+          ],
         ),
       ],
     );

@@ -13,6 +13,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
 
@@ -63,6 +64,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
+  String? get _codeConflict => _errorMessage == codeConflictMessage ? _errorMessage : null;
 
   /// Every code is stored tenant-prefixed (`TN01-EMP-88219`) to keep it
   /// unique across tenants, but the admin only ever types/sees the suffix.
@@ -212,7 +214,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),
-                          if (_errorMessage != null) ...[
+                          if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
@@ -229,6 +231,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                           const SizedBox(height: 14),
                           if (!widget.isEditing) ...[
                             _field(controller: _studentCodeController, label: 'Student Code', hint: 'EMP-88219', inputFormatters: const [UpperCaseTextFormatter()]),
+                            AdminFieldError(_codeConflict),
                             const SizedBox(height: 14),
                           ],
                           _studentTypeToggle(),

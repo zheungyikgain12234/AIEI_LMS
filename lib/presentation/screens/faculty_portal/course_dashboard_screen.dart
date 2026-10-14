@@ -552,12 +552,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       final cols = constraints.maxWidth >= 1100 ? 5 : (constraints.maxWidth >= 900 ? 3 : (constraints.maxWidth >= 500 ? 2 : 1));
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
-        _kpiCard('ENROLLED STUDENTS', '$_enrolledCount', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer,
-            footer: 'Live roster count'),
+        _kpiCard('ENROLLED STUDENTS', '$_enrolledCount', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer),
         _kpiCard('ASSIGNMENTS TO GRADE', '$_assignmentsToGrade', Icons.assignment_turned_in_outlined, FacultyColors.onSecondaryFixedVariant, FacultyColors.secondaryContainer,
             footer: '$_assignmentNonSubmissions non-submissions', footerColor: FacultyColors.onSecondaryFixedVariant, pillFooter: true),
         _kpiCard('QUIZZES TO GRADE', '$_quizzesToGrade', Icons.quiz_outlined, FacultyColors.primary, FacultyColors.surfaceContainerHigh,
-            footer: '$_quizNonSubmissions non-submissions'),
+            footer: '$_quizNonSubmissions non-submissions', footerColor: FacultyColors.onSecondaryFixedVariant, pillFooter: true),
         _kpiCard('AVERAGE STUDENT PROGRESS', '$_avgProgress%', Icons.donut_large, FacultyColors.primary, FacultyColors.surfaceContainer,
             progress: _avgProgress / 100),
         ScoreDistributionCard(

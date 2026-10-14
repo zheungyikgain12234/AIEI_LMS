@@ -42,7 +42,7 @@ class AdminSearchableDropdown extends FormField<String> {
                       : const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                   errorText: state.errorText,
-                  suffixIcon: const Icon(Icons.arrow_drop_down, color: AdminColors.onSurfaceVariant),
+                  suffixIcon: const Icon(Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
                 ),
                 child: Text(
                   label ?? hint,

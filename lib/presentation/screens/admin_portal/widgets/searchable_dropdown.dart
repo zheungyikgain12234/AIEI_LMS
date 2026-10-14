@@ -113,7 +113,7 @@ class SearchableDropdownButton<T> extends StatelessWidget {
       children: [
         if (isExpanded) Expanded(child: display) else Flexible(child: display),
         const SizedBox(width: 8),
-        icon ?? const Icon(Icons.arrow_drop_down, color: AdminColors.onSurfaceVariant),
+        icon ?? const Icon(Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
       ],
     );
     return Opacity(

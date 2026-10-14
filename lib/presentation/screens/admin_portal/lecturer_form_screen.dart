@@ -13,6 +13,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
 
@@ -57,6 +58,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
+  String? get _codeConflict => _errorMessage == codeConflictMessage ? _errorMessage : null;
 
   /// Every code is stored tenant-prefixed (`TN01-EMP-7721`) to keep it
   /// unique across tenants, but the admin only ever types/sees the suffix.
@@ -207,7 +209,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),
-                          if (_errorMessage != null) ...[
+                          if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
@@ -226,6 +228,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                           const SizedBox(height: 14),
                           if (!widget.isEditing) ...[
                             _field(controller: _lecturerCodeController, label: 'Lecturer Code', hint: 'EMP-7721', inputFormatters: const [UpperCaseTextFormatter()]),
+                            AdminFieldError(_codeConflict),
                             const SizedBox(height: 14),
                           ],
                           _field(controller: _emailController, label: 'Email', hint: 'sarah.lin@aiei.edu', keyboardType: TextInputType.emailAddress),
@@ -259,6 +262,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                               if (trimmed.isEmpty) return 'Credits Max is required';
                               final parsed = int.tryParse(trimmed);
                               if (parsed == null || parsed < 0) return 'Enter a valid whole number';
+                              if (parsed > maxLecturerCredits) return 'Credits Max cannot exceed $maxLecturerCredits';
                               return null;
                             },
                           ),

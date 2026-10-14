@@ -143,12 +143,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       child: Column(
         children: [
           _settingRow(
-            title: 'Single Exam Attempt',
-            description: 'Students may submit each exam/quiz at most once — the exam answering screen blocks re-entry once a submission exists.',
-            settingKey: AppSettingKeys.singleExamAttempt,
-          ),
-          const Divider(height: 1, color: AdminColors.surfaceContainer),
-          _settingRow(
             title: 'Hide Mark Buttons in Syllabus Editor',
             description: 'Removes the inline "Mark Assignment"/"Mark Exam"/"Import Marks" buttons from the Syllabus editor\'s content rows — the faculty sidebar\'s "Grading & Submissions" entry becomes the only way to grade.',
             settingKey: AppSettingKeys.hideMarkButtonsInSyllabus,

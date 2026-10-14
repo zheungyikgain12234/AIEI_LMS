@@ -9,14 +9,12 @@ import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/browser_fullscreen.dart' as browser_fullscreen;
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
-import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturer_syllabus_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
-import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/downloadable_file.dart';
 
 // ---------------------------------------------------------------------------
@@ -48,11 +46,9 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
   final _syllabusRepository = SupabaseLecturerSyllabusRepositoryImpl(Supabase.instance.client);
   final _examRepository = SupabaseExamRepositoryImpl(Supabase.instance.client);
   final _gradingRepository = SupabaseSubmissionGradingRepositoryImpl(Supabase.instance.client);
-  final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _submitting = false;
-  bool _singleAttemptEnabled = false;
   Timer? _countdownTimer;
   int? _remainingSeconds;
   bool _lockdownActive = false;
@@ -81,12 +77,12 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
 
   /// True once no further attempt should be accepted — because attempts
   /// haven't opened yet, the due date has passed, or (once graded submission
-  /// aside) the student already used their one permitted attempt under the
-  /// "Single Exam Attempt" setting or this exam's own time limit.
+  /// aside) the student already used their one permitted attempt on a
+  /// timed exam.
   bool get _locked {
     if (_graded) return false;
     if (_notYetOpen || _overdue) return true;
-    return (_singleAttemptEnabled || _timedExam) && _submission != null;
+    return _timedExam && _submission != null;
   }
 
   final Map<String, Set<String>> _selectedOptions = {};
@@ -154,7 +150,6 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
       for (final section in sections) ...await _examRepository.getQuestions(section.id),
     ];
     final submission = await _gradingRepository.getSubmission(widget.contentBlockId, widget.studentId);
-    final settings = await _settingsRepository.getSettings();
     if (!mounted) return;
 
     final rawAnswers = (submission?.submission['answers'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
@@ -176,7 +171,6 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
       _block = block;
       _questions = questions;
       _submission = submission;
-      _singleAttemptEnabled = settings[AppSettingKeys.singleExamAttempt] ?? false;
       _isLoading = false;
     });
     if (block != null) _startCountdown(block);

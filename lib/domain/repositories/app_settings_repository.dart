@@ -5,7 +5,6 @@ import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 class AppSettingKeys {
   /// When true, a student may submit an exam/quiz at most once — the exam
   /// answering screen blocks re-entry once a submission exists.
-  static const singleExamAttempt = 'single_exam_attempt';
 
   /// When true, the inline "Mark Assignment"/"Mark Exam" buttons on the
   /// Syllabus editor's content-block rows are hidden — the faculty

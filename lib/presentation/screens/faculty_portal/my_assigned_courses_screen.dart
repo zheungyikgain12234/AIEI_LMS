@@ -102,11 +102,15 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     ];
   }
 
+  /// Courses in the selected cohort only — drives the stat cards, which must
+  /// not react to the text filter.
+  List<AssignedCourse> get _cohortAssignedCourses {
+    if (_selectedCohort == null) return _assignedCourses;
+    return _assignedCourses.where((c) => c.cohort == _selectedCohort).toList();
+  }
+
   List<AssignedCourse> get _filteredAssignedCourses {
-    var courses = _assignedCourses;
-    if (_selectedCohort != null) {
-      courses = courses.where((c) => c.cohort == _selectedCohort).toList();
-    }
+    var courses = _cohortAssignedCourses;
     final query = _searchQuery.trim().toLowerCase();
     if (query.isNotEmpty) {
       courses = courses
@@ -339,10 +343,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     ];
   }
 
-  /// Recomputed against [_filteredAssignedCourses] so the cards react to the
-  /// Year/Cohort selection above the course list, not just the full roster.
+  /// Recomputed against [_cohortAssignedCourses] so the cards react to the
+  /// Year/Cohort selection, but never to the course-list text filter.
   List<_Stat> _computeStats() {
-    final courses = _filteredAssignedCourses;
+    final courses = _cohortAssignedCourses;
     final activeCourses = courses.where((c) => c.isActive).toList();
     final enrolledInActive = activeCourses.fold<int>(0, (sum, c) => sum + c.enrolledCount);
 
@@ -367,7 +371,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           Icons.history_toggle_off, const Color(0xFFD97706), const Color(0xFFFEF3C7)),
       _Stat(
           'Teaching Capacity',
-          _lecturer != null && creditsUsed != null ? '$creditsUsed / ${_lecturer!.creditsMax} Cr' : '— / — Cr',
+          _lecturer != null && creditsUsed != null ? '$creditsUsed / ${_lecturer!.creditsMax} Credits' : '— / — Credits',
           creditsFootnote,
           Icons.speed,
           const Color(0xFF4F46E5),
@@ -470,6 +474,8 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           const SizedBox(height: 24),
           _buildCriticalActions(),
           const SizedBox(height: 8),
+          _buildYearCohortFilters(),
+          const SizedBox(height: 16),
           _buildStatsRow(),
           const SizedBox(height: 24),
           _buildToolbar(),
@@ -565,6 +571,28 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     );
   }
 
+  /// Year + Cohort selectors above the stat cards: they scope the stats and the
+  /// course list below.
+  Widget _buildYearCohortFilters() {
+    return Wrap(
+      spacing: 16,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Text('Year', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+          const SizedBox(width: 8),
+          _yearDropdown(),
+        ]),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Text('Cohort', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+          const SizedBox(width: 8),
+          _cohortDropdown(),
+        ]),
+      ],
+    );
+  }
+
   Widget _buildToolbar() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -573,15 +601,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
         borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
         border: const Border(bottom: BorderSide(color: FacultyColors.surfaceContainer)),
       ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 12,
-        runSpacing: 8,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
-            child: TextField(
+          TextField(
               controller: _searchController,
               onChanged: _onSearchChanged,
               style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
@@ -595,13 +618,8 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
-            ),
           ),
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            _yearDropdown(),
-            const SizedBox(width: 8),
-            _cohortDropdown(),
-          ]),
+          const SizedBox(height: 8),
           Text('Showing ${_rows.length} assigned course${_rows.length == 1 ? '' : 's'}', style: FacultyTypography.labelXs()),
         ],
       ),
@@ -618,7 +636,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           value: years.contains(_selectedYear) ? _selectedYear : null,
           hint: Text('Year', style: FacultyTypography.bodySm(color: FacultyColors.outline)),
           isDense: true,
-          icon: const Icon(Icons.expand_more, size: 16, color: FacultyColors.outline),
+          icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.outline),
           style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
           items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
           onChanged: (y) {
@@ -641,7 +659,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           value: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
           hint: Text('Cohort', style: FacultyTypography.bodySm(color: FacultyColors.outline)),
           isDense: true,
-          icon: const Icon(Icons.expand_more, size: 16, color: FacultyColors.outline),
+          icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.outline),
           style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
           items: [for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))],
           onChanged: (c) {
@@ -726,7 +744,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           children: [
             _metric('Average Student Progress', '${c.avgProgress}%', progress: c.avgProgress / 100, barColor: c.accent),
             const SizedBox(width: 24),
-            _metric('Pending Grading', c.pendingCount, footnote: c.pendingLabel, valueColor: const Color(0xFFD97706)),
+            _metric('Pending Grading', c.pendingCount, footnote: c.pendingLabel),
           ],
         );
 
@@ -861,6 +879,8 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
               const SizedBox(height: 16),
               _buildCriticalActions(),
               const SizedBox(height: 8),
+              _buildYearCohortFilters(),
+              const SizedBox(height: 16),
               _buildStatsRow(),
               const SizedBox(height: 16),
               _buildToolbar(),

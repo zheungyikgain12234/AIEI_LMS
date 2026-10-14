@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/admin_field_error.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
@@ -720,6 +721,16 @@ class _SectionNameDialog extends StatefulWidget {
 
 class _SectionNameDialogState extends State<_SectionNameDialog> {
   late final _nameController = TextEditingController(text: widget.existingName ?? '');
+  String? _nameError;
+
+  void _submit() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _nameError = 'Section name is required.');
+      return;
+    }
+    Navigator.of(context).pop(name);
+  }
 
   @override
   void dispose() {
@@ -733,17 +744,25 @@ class _SectionNameDialogState extends State<_SectionNameDialog> {
       title: Text(widget.dialogTitle),
       content: SizedBox(
         width: 380,
-        child: TextField(
-          controller: _nameController,
-          autofocus: true,
-          decoration: InputDecoration(label: requiredLabel('Section name')),
-          onChanged: (_) => setState(() {}),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _nameController,
+              autofocus: true,
+              decoration: InputDecoration(label: requiredLabel('Section name')),
+              onChanged: (_) => setState(() => _nameError = null),
+              onSubmitted: (_) => _submit(),
+            ),
+            AdminFieldError(_nameError),
+          ],
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         FilledButton(
-          onPressed: _nameController.text.trim().isEmpty ? null : () => Navigator.of(context).pop(_nameController.text.trim()),
+          onPressed: _submit,
           child: const Text('Save'),
         ),
       ],
@@ -834,16 +853,36 @@ class _QuestionDialogState extends State<_QuestionDialog> {
 
   double? get _parsedMarks => double.tryParse(_marksController.text.trim());
 
-  bool get _canSave {
-    if (_textController.text.trim().isEmpty) return false;
+  bool _submitted = false;
+  Map<String, String> _errors = {};
+
+  Map<String, String> _validate() {
+    final errors = <String, String>{};
+    if (_textController.text.trim().isEmpty) errors['text'] = 'Question is required.';
     final marks = _parsedMarks;
-    if (marks == null || marks <= 0) return false;
-    if (!_type.hasOptions) return true;
-    final filled = _choices.where((c) => c._controller.text.trim().isNotEmpty).toList();
-    return filled.length >= 2 && filled.any((c) => c.isCorrect);
+    if (marks == null || marks <= 0) {
+      errors['marks'] = 'Marks must be greater than 0.';
+    } else if (marks > maxMarksLimit) {
+      errors['marks'] = 'Marks cannot exceed ${maxMarksLimit.toInt()}.';
+    }
+    if (_type.hasOptions) {
+      final filled = _choices.where((c) => c._controller.text.trim().isNotEmpty).toList();
+      if (filled.length < 2) {
+        errors['choices'] = 'Enter at least two choices.';
+      } else if (!filled.any((c) => c.isCorrect)) {
+        errors['choices'] = 'Mark at least one correct answer.';
+      }
+    }
+    return errors;
   }
 
   void _save() {
+    final errors = _validate();
+    setState(() {
+      _submitted = true;
+      _errors = errors;
+    });
+    if (errors.isNotEmpty) return;
     final options = <({String text, bool isCorrect})>[
       for (final c in _choices)
         if (c._controller.text.trim().isNotEmpty) (text: c._controller.text.trim(), isCorrect: c.isCorrect),
@@ -854,6 +893,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (_submitted) _errors = _validate();
     return AlertDialog(
       title: Text(widget.existing == null ? 'Add Question' : 'Edit Question'),
       content: SizedBox(
@@ -869,6 +909,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                 maxLines: 3,
                 onChanged: (_) => setState(() {}),
               ),
+              AdminFieldError(_errors['text']),
               const SizedBox(height: 14),
               TextField(
                 controller: _marksController,
@@ -877,10 +918,12 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                 decoration: InputDecoration(label: requiredLabel('Marks this question is worth')),
                 onChanged: (_) => setState(() {}),
               ),
+              AdminFieldError(_errors['marks']),
               const SizedBox(height: 14),
               DropdownButtonFormField<ExamQuestionType>(
                 initialValue: _type,
                 decoration: InputDecoration(label: requiredLabel('Question style')),
+                icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
                 items: const [
                   DropdownMenuItem(value: ExamQuestionType.singleChoice, child: Text('Single-select MCQ')),
                   DropdownMenuItem(value: ExamQuestionType.multiChoice, child: Text('Multi-select MCQ')),
@@ -898,6 +941,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                 ),
                 const SizedBox(height: 6),
                 ..._choices.asMap().entries.map((entry) => _choiceRow(entry.key, entry.value)),
+                AdminFieldError(_errors['choices']),
                 if (_type != ExamQuestionType.boolean) ...[
                   const SizedBox(height: 4),
                   Align(
@@ -924,7 +968,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(onPressed: _canSave ? _save : null, child: const Text('Save')),
+        FilledButton(onPressed: _save, child: const Text('Save')),
       ],
     );
   }

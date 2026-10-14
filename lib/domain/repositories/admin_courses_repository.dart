@@ -13,7 +13,7 @@ abstract class AdminCoursesRepository {
   Future<AdminCourse> getCourseById(String id);
 
   /// [tagIds] must be non-empty — at least one Course Tag is required per
-  /// course. Badges awarded on completion are mapped separately (Course ↔ Badge Mapping); [badgeIds], when given, replaces them.
+  /// course. Badges awarded on completion are mapped separately (Badge ↔ Course Mapping); [badgeIds], when given, replaces them.
   Future<AdminCourse> createCourse({
     required String courseCode,
     required String courseTitle,

@@ -1,4 +1,5 @@
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
+import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/admin_field_error.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
@@ -709,34 +710,26 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
   }
 
   Widget _buildTopBarRow() {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Modules and Sessions', style: FacultyTypography.headlineLg()),
-              const SizedBox(height: 2),
-              Text(widget.courseTitle, style: FacultyTypography.bodyLg(color: FacultyColors.onSurfaceVariant)),
-              const SizedBox(height: 4),
-              Text(
-                'Build the module and session timeline students will follow through this course.',
-                style: FacultyTypography.bodySm(),
-              ),
-            ],
-          ),
+        Text('Modules and Sessions', style: FacultyTypography.headlineLg()),
+        const SizedBox(height: 2),
+        Text(widget.courseTitle, style: FacultyTypography.bodyLg(color: FacultyColors.onSurfaceVariant)),
+        const SizedBox(height: 4),
+        Text(
+          'Build the module and session timeline students will follow through this course.',
+          style: FacultyTypography.bodySm(),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
           children: [
             _viewAsStudentButton(),
-            const SizedBox(height: 8),
-            if (!_modulesReadOnly) ...[
-              _addModuleButton(),
-              const SizedBox(height: 8),
-            ],
-            Row(children: [_saveAsTemplateButton(), if (_canEdit) ...[const SizedBox(width: 8), _copyFromTemplateButton()]]),
+            if (!_modulesReadOnly) _addModuleButton(),
+            _saveAsTemplateButton(),
+            if (_canEdit) _copyFromTemplateButton(),
           ],
         ),
       ],
@@ -1403,6 +1396,7 @@ class _NameDescriptionDialog extends StatefulWidget {
 class _NameDescriptionDialogState extends State<_NameDescriptionDialog> {
   late final _nameController = TextEditingController(text: widget.existingName ?? '');
   late final _descController = TextEditingController(text: widget.existingDescription ?? '');
+  String? _nameError;
 
   @override
   void dispose() {
@@ -1425,8 +1419,9 @@ class _NameDescriptionDialogState extends State<_NameDescriptionDialog> {
               controller: _nameController,
               autofocus: true,
               decoration: InputDecoration(label: requiredLabel(widget.nameLabel), prefixText: widget.prefix),
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) => setState(() => _nameError = null),
             ),
+            AdminFieldError(_nameError),
             const SizedBox(height: 12),
             TextField(
               controller: _descController,
@@ -1439,9 +1434,13 @@ class _NameDescriptionDialogState extends State<_NameDescriptionDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         FilledButton(
-          onPressed: _nameController.text.trim().isEmpty
-              ? null
-              : () => Navigator.of(context).pop((_nameController.text.trim(), _descController.text.trim())),
+          onPressed: () {
+            if (_nameController.text.trim().isEmpty) {
+              setState(() => _nameError = '' + widget.nameLabel + ' is required.');
+              return;
+            }
+            Navigator.of(context).pop((_nameController.text.trim(), _descController.text.trim()));
+          },
           child: const Text('Save'),
         ),
       ],
@@ -1485,6 +1484,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   DateTime? _classEnd;
   String? _uploadedFileName;
   bool _uploading = false;
+  bool _submitted = false;
+  Map<String, String> _fieldErrors = {};
   bool _uploadingThumbnail = false;
   bool _uploadingInstructionFile = false;
   bool _loadingWeightage = true;
@@ -1599,50 +1600,98 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     });
   }
 
-  bool get _canSave {
+  /// Validates the form for the selected content type, returning one message
+  /// per invalid field (keyed by field) so each shows right beneath it.
+  Map<String, String> _validate() {
+    final errors = <String, String>{};
+    void requireText(String key, TextEditingController c, String message) {
+      if (c.text.trim().isEmpty) errors[key] = message;
+    }
+
+    void requireWeightage() {
+      if (_parsedWeightage == null) errors['weightage'] = 'Weightage is required.';
+    }
+
+    void requireDue() {
+      if (_dueDate == null) errors['dueDate'] = 'Due date is required.';
+    }
+
     switch (_type) {
       case ContentBlockType.text:
-        return !isRichTextEmpty(_richTextController);
+        if (isRichTextEmpty(_richTextController)) errors['text'] = 'Enter some text content.';
       case ContentBlockType.video:
+        requireText('url', _urlController, 'Video URL is required.');
       case ContentBlockType.image:
+        requireText('url', _urlController, 'Image URL is required.');
       case ContentBlockType.link:
+        requireText('url', _urlController, 'URL is required.');
       case ContentBlockType.file:
-        return _urlController.text.trim().isNotEmpty;
+        requireText('url', _urlController, 'Upload a file.');
       case ContentBlockType.exam:
-        return _titleController.text.trim().isNotEmpty &&
-            _descriptionController.text.trim().isNotEmpty &&
-            _instructionsController.text.trim().isNotEmpty &&
-            _dueDate != null &&
-            !_loadingWeightage &&
-            _parsedWeightage != null &&
-            _weightageError == null &&
-            _availableFromError == null;
+        requireText('title', _titleController, 'Exam name is required.');
+        requireText('description', _descriptionController, 'Description is required.');
+        requireText('instructions', _instructionsController, 'Instructions are required.');
+        final limit = _parsedTimeLimit;
+        if (limit != null && (limit <= 0 || limit > maxExamMinutes)) {
+          errors['timeLimit'] = 'Time limit must be between 1 and $maxExamMinutes minutes.';
+        }
+        requireDue();
+        requireWeightage();
       case ContentBlockType.assignment:
-        return _titleController.text.trim().isNotEmpty &&
-            _descriptionController.text.trim().isNotEmpty &&
-            _instructionsController.text.trim().isNotEmpty &&
-            _dueDate != null &&
-            !_loadingWeightage &&
-            _parsedWeightage != null &&
-            _weightageError == null;
+        requireText('title', _titleController, 'Assignment name is required.');
+        requireText('description', _descriptionController, 'Description is required.');
+        requireText('instructions', _instructionsController, 'Instructions are required.');
+        requireDue();
+        requireWeightage();
       case ContentBlockType.physicalExam:
       case ContentBlockType.physicalAssignment:
-        return _titleController.text.trim().isNotEmpty &&
-            _descriptionController.text.trim().isNotEmpty &&
-            _dueDate != null &&
-            !_loadingWeightage &&
-            _parsedWeightage != null &&
-            _weightageError == null &&
-            _parsedMaxMarks != null &&
-            _parsedMaxMarks! > 0;
+        requireText(
+          'title',
+          _titleController,
+          _type == ContentBlockType.physicalExam ? 'Exam name is required.' : 'Assignment name is required.',
+        );
+        requireText('description', _descriptionController, 'Description is required.');
+        requireDue();
+        final marks = _parsedMaxMarks;
+        if (marks == null || marks <= 0) {
+          errors['maxMarks'] = 'Maximum marks must be greater than 0.';
+        } else if (marks > maxMarksLimit) {
+          errors['maxMarks'] = 'Maximum marks cannot exceed ${maxMarksLimit.toInt()}.';
+        }
+        requireWeightage();
       case ContentBlockType.physicalClass:
-        return _titleController.text.trim().isNotEmpty &&
-            _descriptionController.text.trim().isNotEmpty &&
-            _classStart != null &&
-            _classEnd != null &&
-            _classEnd!.isAfter(_classStart!);
+        requireText('title', _titleController, 'Name is required.');
+        requireText('description', _descriptionController, 'Description is required.');
+        if (_classStart == null) errors['classStart'] = 'Start date is required.';
+        if (_classEnd == null) {
+          errors['classEnd'] = 'End date is required.';
+        } else if (_classStart != null && !_classEnd!.isAfter(_classStart!)) {
+          errors['classEnd'] = 'The end must be after the start.';
+        }
     }
+    return errors;
   }
+
+  void _submit() {
+    final errors = _validate();
+    // A weightage / availability problem is already shown by its own field.
+    final blocked = errors.isNotEmpty ||
+        _loadingWeightage ||
+        ((_type == ContentBlockType.exam ||
+                _type == ContentBlockType.assignment ||
+                _type == ContentBlockType.physicalExam ||
+                _type == ContentBlockType.physicalAssignment) &&
+            _weightageError != null) ||
+        (_type == ContentBlockType.exam && _availableFromError != null);
+    setState(() {
+      _submitted = true;
+      _fieldErrors = errors;
+    });
+    if (blocked) return;
+    Navigator.of(context).pop((type: _type, content: _buildContent()));
+  }
+
+  Widget _fe(String key) => AdminFieldError(_fieldErrors[key]);
 
   String? get _availableFromError {
     if (_availableFrom == null || _dueDate == null) return null;
@@ -1800,6 +1849,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (_submitted) _fieldErrors = _validate();
     return AlertDialog(
       title: Text(_isEditing ? 'Edit Content' : 'Add Content'),
       content: SizedBox(
@@ -1812,6 +1862,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
               DropdownButtonFormField<ContentBlockType>(
                 initialValue: _type,
                 decoration: InputDecoration(label: requiredLabel('Content type')),
+                icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
                 items: [for (final t in ContentBlockType.values) DropdownMenuItem(value: t, child: Text(_labelFor(t)))],
                 onChanged: _isEditing
                     ? null
@@ -1833,7 +1884,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         FilledButton(
-          onPressed: !_canSave || _uploading ? null : () => Navigator.of(context).pop((type: _type, content: _buildContent())),
+          onPressed: _uploading ? null : _submit,
           child: Text(_isEditing ? 'Save' : 'Add'),
         ),
       ],
@@ -1868,7 +1919,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   List<Widget> _fieldsFor(ContentBlockType type) {
     switch (type) {
       case ContentBlockType.text:
-        return [RichTextField(controller: _richTextController)];
+        return [RichTextField(controller: _richTextController), _fe('text')];
       case ContentBlockType.video:
         return [
           TextField(
@@ -1880,6 +1931,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             ),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('url'),
           const SizedBox(height: 8),
           _orDivider(),
           const SizedBox(height: 8),
@@ -1916,6 +1968,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             decoration: InputDecoration(label: requiredLabel('Image URL')),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('url'),
           const SizedBox(height: 8),
           _orDivider(),
           const SizedBox(height: 8),
@@ -1934,12 +1987,14 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             decoration: InputDecoration(label: requiredLabel('URL')),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('url'),
           const SizedBox(height: 12),
           TextField(controller: _labelController, decoration: const InputDecoration(labelText: 'Link label (optional)')),
         ];
       case ContentBlockType.file:
         return [
           _uploadButton(fileType: FileType.any, label: 'Upload a file'),
+          _fe('url'),
           if (_uploadedFileName != null) ...[
             const SizedBox(height: 8),
             Text('Selected: $_uploadedFileName', style: const TextStyle(fontSize: 13)),
@@ -1952,6 +2007,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             decoration: InputDecoration(label: requiredLabel('Exam name')),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('title'),
           const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
@@ -1959,6 +2015,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             maxLines: 2,
             onChanged: (_) => setState(() {}),
           ),
+          _fe('description'),
           const SizedBox(height: 12),
           TextField(
             controller: _instructionsController,
@@ -1966,10 +2023,12 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             maxLines: 3,
             onChanged: (_) => setState(() {}),
           ),
+          _fe('instructions'),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _mode,
             decoration: InputDecoration(label: requiredLabel('Mode')),
+            icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
             items: const [
               DropdownMenuItem(value: 'normal', child: Text('Normal')),
               DropdownMenuItem(value: 'open_book', child: Text('Open-book')),
@@ -1988,12 +2047,15 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             ),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('timeLimit'),
           const SizedBox(height: 12),
           _availableFromRow(),
           const SizedBox(height: 12),
           _dueDateTimeRow(),
+          _fe('dueDate'),
           const SizedBox(height: 12),
           _weightageField(),
+          _fe('weightage'),
           const SizedBox(height: 12),
           _instructionFilesField(),
           const SizedBox(height: 8),
@@ -2009,6 +2071,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             decoration: InputDecoration(label: requiredLabel('Assignment name')),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('title'),
           const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
@@ -2016,6 +2079,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             maxLines: 2,
             onChanged: (_) => setState(() {}),
           ),
+          _fe('description'),
           const SizedBox(height: 12),
           TextField(
             controller: _instructionsController,
@@ -2023,10 +2087,13 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             maxLines: 3,
             onChanged: (_) => setState(() {}),
           ),
+          _fe('instructions'),
           const SizedBox(height: 12),
           _dueDateTimeRow(),
+          _fe('dueDate'),
           const SizedBox(height: 12),
           _weightageField(),
+          _fe('weightage'),
           const SizedBox(height: 12),
           _instructionFilesField(),
           const SizedBox(height: 8),
@@ -2043,6 +2110,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             decoration: InputDecoration(label: requiredLabel(type == ContentBlockType.physicalExam ? 'Exam name' : 'Assignment name')),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('title'),
           const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
@@ -2050,8 +2118,10 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             maxLines: 2,
             onChanged: (_) => setState(() {}),
           ),
+          _fe('description'),
           const SizedBox(height: 12),
           _dueDateTimeRow(),
+          _fe('dueDate'),
           const SizedBox(height: 12),
           TextField(
             controller: _maxMarksController,
@@ -2060,8 +2130,10 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             decoration: InputDecoration(label: requiredLabel('Maximum marks'), helperText: 'The full marks the paper is out of.'),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('maxMarks'),
           const SizedBox(height: 12),
           _weightageField(),
+          _fe('weightage'),
           const SizedBox(height: 8),
           Text(
             'Done on paper. Marks are imported from a CSV afterwards — via "Import Marks" here or the Grading and Submissions page.',
@@ -2075,6 +2147,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             decoration: InputDecoration(label: requiredLabel('Name')),
             onChanged: (_) => setState(() {}),
           ),
+          _fe('title'),
           const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
@@ -2082,14 +2155,13 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             maxLines: 2,
             onChanged: (_) => setState(() {}),
           ),
+          _fe('description'),
           const SizedBox(height: 12),
           _scheduleRow('Start', _classStart, (v) => setState(() => _classStart = v), defaultHour: 9),
+          _fe('classStart'),
           const SizedBox(height: 12),
           _scheduleRow('End', _classEnd, (v) => setState(() => _classEnd = v), defaultHour: 12),
-          if (_classStart != null && _classEnd != null && !_classEnd!.isAfter(_classStart!)) ...[
-            const SizedBox(height: 6),
-            Text('The end must be after the start.', style: FacultyTypography.labelXs(color: FacultyColors.error)),
-          ],
+          _fe('classEnd'),
           const SizedBox(height: 8),
           Text(
             'Students can tick their attendance between the start and end date/time.',
@@ -2309,11 +2381,21 @@ class _SaveAsTemplateDialog extends StatefulWidget {
 
 class _SaveAsTemplateDialogState extends State<_SaveAsTemplateDialog> {
   final _nameController = TextEditingController();
+  String? _nameError;
 
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  void _submit() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _nameError = 'Template name is required.');
+      return;
+    }
+    Navigator.of(context).pop(name);
   }
 
   @override
@@ -2322,20 +2404,25 @@ class _SaveAsTemplateDialogState extends State<_SaveAsTemplateDialog> {
       title: const Text('Save as Template'),
       content: SizedBox(
         width: 380,
-        child: TextField(
-          controller: _nameController,
-          autofocus: true,
-          decoration: InputDecoration(label: requiredLabel('Template name')),
-          onChanged: (_) => setState(() {}),
-          onSubmitted: (_) {
-            if (_nameController.text.trim().isNotEmpty) Navigator.of(context).pop(_nameController.text.trim());
-          },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _nameController,
+              autofocus: true,
+              decoration: InputDecoration(label: requiredLabel('Template name')),
+              onChanged: (_) => setState(() => _nameError = null),
+              onSubmitted: (_) => _submit(),
+            ),
+            AdminFieldError(_nameError),
+          ],
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         FilledButton(
-          onPressed: _nameController.text.trim().isEmpty ? null : () => Navigator.of(context).pop(_nameController.text.trim()),
+          onPressed: _submit,
           child: const Text('Save'),
         ),
       ],
@@ -2367,6 +2454,7 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
   bool _isLoading = true;
   List<SyllabusTemplate> _templates = [];
   SyllabusTemplate? _selected;
+  String? _selectError;
   final Set<String> _incompatible = {};
 
   @override
@@ -2395,7 +2483,11 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Copy from Template'),
-      content: SizedBox(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+      SizedBox(
         width: 420,
         height: 360,
         child: _isLoading
@@ -2416,7 +2508,7 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
                         borderRadius: BorderRadius.circular(8),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(8),
-                          onTap: incompatible ? null : () => setState(() => _selected = t),
+                          onTap: incompatible ? null : () => setState(() { _selected = t; _selectError = null; }),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             child: Row(
@@ -2455,10 +2547,19 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
                     },
                   ),
       ),
+          AdminFieldError(_selectError),
+        ],
+      ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         FilledButton(
-          onPressed: _selected == null ? null : () => Navigator.of(context).pop(_selected),
+          onPressed: () {
+            if (_selected == null) {
+              setState(() => _selectError = 'Select a template to copy.');
+              return;
+            }
+            Navigator.of(context).pop(_selected);
+          },
           child: const Text('Copy'),
         ),
       ],

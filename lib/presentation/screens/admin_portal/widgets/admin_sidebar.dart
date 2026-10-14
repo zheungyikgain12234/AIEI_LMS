@@ -172,7 +172,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.military_tech_outlined,
-                          label: 'Course ↔ Badge Mapping',
+                          label: 'Badge ↔ Course Mapping',
                           isSelected:
                               selected == AdminNavDestination.badgeCourseMapping,
                           onTap: () => onDestinationSelected?.call(

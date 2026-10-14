@@ -173,7 +173,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
         ElevatedButton.icon(
           onPressed: _openAdd,
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('+ Add New Badge'),
+          label: const Text('Add New Badge'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,

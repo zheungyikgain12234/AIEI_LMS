@@ -63,14 +63,14 @@ class CourseGrid extends StatelessWidget {
 
         const double gap = 24;
 
-        // Rows of equal-height cards: each row is as tall as its tallest card.
+        // Cards keep their natural height (no equal-height stretching) so all
+        // their content always fits.
         final rows = <Widget>[];
         for (var i = 0; i < courses.length; i += crossAxisCount) {
           final rowCourses = courses.skip(i).take(crossAxisCount).toList();
           rows.add(
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+            Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var k = 0; k < crossAxisCount; k++) ...[
                     if (k > 0) const SizedBox(width: gap),
@@ -85,7 +85,6 @@ class CourseGrid extends StatelessWidget {
                   ],
                 ],
               ),
-            ),
           );
         }
         return Column(

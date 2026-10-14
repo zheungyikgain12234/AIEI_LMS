@@ -693,19 +693,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           const SizedBox(height: 20),
           _buildTableCard(),
           const SizedBox(height: 20),
-          LayoutBuilder(builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 900;
-            final left = _buildTracksCard();
-            final right = _buildCredentialTrendCard();
-            if (wide) {
-              return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Expanded(flex: 4, child: left),
-                const SizedBox(width: 16),
-                Expanded(flex: 8, child: right),
-              ]);
-            }
-            return Column(children: [left, const SizedBox(height: 16), right]);
-          }),
+          _buildChartsGrid(),
         ],
       ),
     );
@@ -958,6 +946,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           Expanded(flex: 2, child: _sortHeader('Track', _SortColumn.track)),
           Expanded(flex: 3, child: _sortHeader('Department / Role', _SortColumn.department)),
           Expanded(flex: 3, child: Text('Badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          const SizedBox(width: 190),
         ],
       ),
     );
@@ -1005,8 +994,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                         const SizedBox(width: 4),
                         Tooltip(
                           message: s.studentType == StudentType.external
-                              ? 'One or more enrolled course is not mapped to this student\'s track'
-                              : 'One or more enrolled course is not mapped to this student\'s role or department',
+                              ? 'One or more enrolled course is not mapped to this student\'s track. Please click on the Manage Enrolled Courses button for more info.'
+                              : 'One or more enrolled course is not mapped to this student\'s role or department. Please click on the Manage Enrolled Courses button for more info.',
                           child: Icon(Icons.error, size: 15, color: AdminColors.error),
                         ),
                       ],
@@ -1030,19 +1019,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: s.studentType == StudentType.internal ? AdminColors.primaryFixed : AdminColors.tertiaryFixed,
-                  borderRadius: BorderRadius.circular(9999),
-                ),
-                child: Text(
-                  s.studentType.label,
-                  style: AdminTypography.labelSm(
-                    color: s.studentType == StudentType.internal ? AdminColors.onPrimaryFixed : AdminColors.onTertiaryFixedVariant,
-                  ),
-                ),
-              ),
+              child: Text(s.studentType.label, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
             ),
           ),
           Expanded(
@@ -1068,15 +1045,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                 ? Text('—', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
                 : Tooltip(
                     message: credentials.join('\n'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: flagged ? AdminColors.errorContainer : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.workspace_premium_outlined, size: 14, color: flagged ? AdminColors.onErrorContainer : AdminColors.onSurface),
-                        const SizedBox(width: 4),
-                        Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.labelSm(color: flagged ? AdminColors.onErrorContainer : AdminColors.onSurface)),
-                      ]),
-                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.workspace_premium_outlined, size: 14, color: flagged ? AdminColors.error : AdminColors.onSurface),
+                      const SizedBox(width: 4),
+                      Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface)),
+                    ]),
                   ),
           ),
           SizedBox(
@@ -1102,32 +1075,74 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     );
   }
 
-  Widget _buildTracksCard() {
-    final totalStudents = _tracks.fold<int>(0, (sum, t) => sum + t.$2);
+  int get _publicStudentCount => _students.where((s) => s.studentType == StudentType.external).length;
+  int get _staffStudentCount => _students.where((s) => s.studentType == StudentType.internal).length;
+
+  /// Counts of staff (internal) students per value of [pick], largest first;
+  /// students without a value are grouped under "Unassigned".
+  List<(String, int)> _staffCountsBy(String? Function(Student) pick) {
+    final counts = <String, int>{};
+    for (final s in _students) {
+      if (s.studentType != StudentType.internal) continue;
+      final key = pick(s) ?? 'Unassigned';
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return [for (final e in counts.entries) (e.key, e.value)]..sort((a, b) => b.$2.compareTo(a.$2));
+  }
+
+  Widget _buildTracksCard() => _buildDistributionCard(
+        title: 'Public Students by Track',
+        subtitle: 'Total public students: $_publicStudentCount',
+        entries: _tracks,
+        total: _publicStudentCount,
+      );
+
+  Widget _buildDepartmentCard() => _buildDistributionCard(
+        title: 'Staff Students by Department',
+        subtitle: 'Total staff students: $_staffStudentCount',
+        entries: _staffCountsBy((s) => s.department),
+        total: _staffStudentCount,
+      );
+
+  Widget _buildRoleCard() => _buildDistributionCard(
+        title: 'Staff Students by Role',
+        subtitle: 'Total staff students: $_staffStudentCount',
+        entries: _staffCountsBy((s) => s.role),
+        total: _staffStudentCount,
+      );
+
+  Widget _buildDistributionCard({
+    required String title,
+    required String subtitle,
+    required List<(String, int)> entries,
+    required int total,
+  }) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Learners by Academy Track', style: AdminTypography.titleMd()),
+          Text(title, style: AdminTypography.titleMd()),
           const SizedBox(height: 4),
-          Text('Distribution across active institutional specialisations.', style: AdminTypography.bodySm()),
+          Text(subtitle, style: AdminTypography.bodySm()),
           const SizedBox(height: 12),
-          for (final t in _tracks)
+          if (entries.isEmpty) Text('No students yet.', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+          for (final t in entries)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Expanded(child: Text(t.$1, style: AdminTypography.labelMd(color: AdminColors.onSurface))),
-                    Text('${t.$2} Students (${totalStudents == 0 ? 0 : (t.$2 * 100 / totalStudents).round()}%)', style: AdminTypography.labelSm()),
+                    const SizedBox(width: 8),
+                    Text('${t.$2} Students (${total == 0 ? 0 : (t.$2 * 100 / total).round()}%)', style: AdminTypography.labelSm()),
                   ]),
                   const SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(9999),
-                    child: LinearProgressIndicator(value: totalStudents == 0 ? 0 : t.$2 / totalStudents, minHeight: 6, backgroundColor: AdminColors.surfaceContainerLow, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.secondaryContainer)),
+                    child: LinearProgressIndicator(value: total == 0 ? 0 : t.$2 / total, minHeight: 6, backgroundColor: AdminColors.surfaceContainerLow, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.secondaryContainer)),
                   ),
                 ],
               ),
@@ -1137,9 +1152,58 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     );
   }
 
+  /// The four summary charts in an aligned 2×2 grid on wide screens (equal
+  /// column widths, equal heights per row), stacked on narrow ones.
+  Widget _buildChartsGrid() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final charts = [_buildTracksCard(), _buildDepartmentCard(), _buildRoleCard(), _buildCredentialTrendCard()];
+      if (constraints.maxWidth < 900) {
+        return Column(children: [
+          for (var i = 0; i < charts.length; i++) ...[
+            if (i > 0) const SizedBox(height: 16),
+            charts[i],
+          ],
+        ]);
+      }
+      Widget pair(Widget a, Widget b) => IntrinsicHeight(
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Expanded(child: a),
+              const SizedBox(width: 16),
+              Expanded(child: b),
+            ]),
+          );
+      return Column(children: [
+        pair(charts[0], charts[1]),
+        const SizedBox(height: 16),
+        pair(charts[2], charts[3]),
+      ]);
+    });
+  }
+
+  /// Round-number y-axis step (1, 2, 5 × 10^k, never below 1) giving about
+  /// four intervals, so the scale adapts to the data but always reads cleanly.
+  static int _niceStep(int maxValue) {
+    if (maxValue <= 4) return 1;
+    final raw = maxValue / 4;
+    var magnitude = 1;
+    while (magnitude * 10 <= raw) {
+      magnitude *= 10;
+    }
+    for (final m in const [1, 2, 5, 10]) {
+      if (m * magnitude >= raw) return m * magnitude;
+    }
+    return 10 * magnitude;
+  }
+
   Widget _buildCredentialTrendCard() {
     final months = _trend;
-    final maxValue = months.isEmpty ? 1 : months.map((m) => m.$2).reduce((a, b) => a > b ? a : b);
+    final maxValue = months.isEmpty ? 0 : months.map((m) => m.$2).reduce((a, b) => a > b ? a : b);
+    const intervals = 4;
+    final step = _niceStep(maxValue);
+    final axisMax = step * intervals;
+    const plotHeight = 140.0;
+    final axisLine = BorderSide(color: AdminColors.onSurfaceVariant, width: 1.5);
+    final gridLine = BorderSide(color: AdminColors.surfaceContainer);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
@@ -1147,73 +1211,89 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Expanded(child: Text('Monthly Credential Grant Rate', style: AdminTypography.titleMd())),
+            Expanded(child: Text('Monthly Badge Grant Rate', style: AdminTypography.titleMd())),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(6)),
               child: Text('Last 6 Months', style: AdminTypography.labelSm()),
             ),
           ]),
-          const SizedBox(height: 4),
-          Text('Volume of verified skill badges issued across corporate cohorts.', style: AdminTypography.bodySm()),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 170,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Y-axis tick labels, evenly spaced over the plot height.
+              SizedBox(
+                width: 30,
+                height: plotHeight,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    SizedBox(
-                      width: 26,
-                      height: 140,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                    for (var i = 0; i <= intervals; i++)
+                      Positioned(
+                        right: 6,
+                        bottom: plotHeight * i / intervals - 7,
+                        child: Text('${step * i}', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Container(
+                      height: plotHeight,
+                      decoration: BoxDecoration(border: Border(left: axisLine, bottom: axisLine)),
+                      child: Stack(
                         children: [
-                          for (final fraction in [1.0, 0.5, 0.0])
-                            Text('${(maxValue * fraction).round()}', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+                          for (var i = 1; i <= intervals; i++)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: plotHeight * i / intervals - 1,
+                              child: Container(height: 1, decoration: BoxDecoration(border: Border(top: gridLine))),
+                            ),
+                          Positioned.fill(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                for (final m in months)
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      child: Tooltip(
+                                        message: '${m.$1}: ${m.$2} badge${m.$2 == 1 ? '' : 's'}',
+                                        child: Container(
+                                          height: (m.$2 / axisMax) * (plotHeight - 1.5),
+                                          decoration: BoxDecoration(
+                                            color: m == months.last ? AdminColors.secondaryContainer : AdminColors.surfaceContainerHigh,
+                                            borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    // Reserves the same vertical space as the month-label row
-                    // below each bar, so the "0" tick lines up with the bars'
-                    // baseline rather than the month labels underneath them.
-                    const SizedBox(height: 4),
-                    Opacity(opacity: 0, child: Text('0', style: AdminTypography.labelSm())),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        for (final m in months)
+                          Expanded(
+                            child: Center(
+                              child: Text(m.$1, style: AdminTypography.labelSm(color: m == months.last ? AdminColors.secondary : AdminColors.onSurfaceVariant)),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: months.map((m) {
-                      final isLast = m == months.last;
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Container(
-                                height: maxValue == 0 ? 0 : (m.$2 / maxValue) * 140.0,
-                                decoration: BoxDecoration(
-                                  color: isLast ? AdminColors.secondaryContainer : AdminColors.surfaceContainerHigh,
-                                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(m.$1, style: AdminTypography.labelSm(color: isLast ? AdminColors.secondary : AdminColors.onSurfaceVariant)),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Container(
@@ -1292,6 +1372,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               const SizedBox(height: 20),
               _buildTracksCard(),
               const SizedBox(height: 16),
+              _buildDepartmentCard(),
+              const SizedBox(height: 16),
+              _buildRoleCard(),
+              const SizedBox(height: 16),
               _buildCredentialTrendCard(),
             ],
           ),
@@ -1322,7 +1406,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     final credentials = _credentialTitles[s.id] ?? const [];
     final selected = _selected.contains(s.id);
     final courseMismatch = _courseMismatchStudentIds.contains(s.id);
-    final internal = s.studentType == StudentType.internal;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1353,8 +1436,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                           const SizedBox(width: 4),
                           Tooltip(
                             message: s.studentType == StudentType.external
-                                ? 'One or more enrolled course is not mapped to this student\'s track'
-                                : 'One or more enrolled course is not mapped to this student\'s role or department',
+                                ? 'One or more enrolled course is not mapped to this student\'s track. Please click on the Manage Enrolled Courses button for more info.'
+                                : 'One or more enrolled course is not mapped to this student\'s role or department. Please click on the Manage Enrolled Courses button for more info.',
                             child: Icon(Icons.error, size: 15, color: AdminColors.error),
                           ),
                         ],
@@ -1373,17 +1456,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: internal ? AdminColors.primaryFixed : AdminColors.tertiaryFixed,
-                  borderRadius: BorderRadius.circular(9999),
-                ),
-                child: Text(
-                  s.studentType.label,
-                  style: AdminTypography.labelSm(color: internal ? AdminColors.onPrimaryFixed : AdminColors.onTertiaryFixedVariant),
-                ),
-              ),
+              Text(s.studentType.label, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
             ],
           ),
           const SizedBox(height: 10),
@@ -1405,15 +1478,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                         alignment: Alignment.centerLeft,
                         child: Tooltip(
                           message: credentials.join('\n'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              const Icon(Icons.workspace_premium_outlined, size: 14, color: AdminColors.onSurface),
-                              const SizedBox(width: 4),
-                              Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
-                            ]),
-                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.workspace_premium_outlined, size: 14, color: AdminColors.onSurface),
+                            const SizedBox(width: 4),
+                            Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+                          ]),
                         ),
                       ),
               ),

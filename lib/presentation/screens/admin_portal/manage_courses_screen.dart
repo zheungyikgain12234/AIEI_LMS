@@ -370,7 +370,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
         ElevatedButton.icon(
           onPressed: _openAddCourse,
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('+ Add New Course'),
+          label: const Text('Add New Course'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,

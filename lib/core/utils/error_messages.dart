@@ -8,14 +8,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Postgrest surfaces a unique-violation as error code `23505` with the
 /// failing constraint/index name inside `message`, so we sniff `_code_` vs
 /// `_name_` there instead of showing the admin a raw Postgres error.
+const codeConflictMessage = 'This code is already in use. Please choose a different code.';
+const nameConflictMessage = 'This name is already in use. Please choose a different name.';
+
+/// True when [message] describes a duplicate code or name — forms show those
+/// right beneath the offending field instead of in a banner.
+bool isFieldConflictMessage(String message) => message == codeConflictMessage || message == nameConflictMessage;
+
 String friendlyErrorMessage(Object error) {
   if (error is PostgrestException && error.code == '23505') {
     final message = error.message.toLowerCase();
     if (message.contains('_code_')) {
-      return 'This code is already in use. Please choose a different code.';
+      return codeConflictMessage;
     }
     if (message.contains('_name_')) {
-      return 'This name is already in use. Please choose a different name.';
+      return nameConflictMessage;
     }
     return 'This entry already exists. Please use different values.';
   }

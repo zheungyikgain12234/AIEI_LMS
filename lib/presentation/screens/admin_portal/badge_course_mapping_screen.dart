@@ -17,8 +17,8 @@ import 'widgets/admin_nav.dart';
 import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
-// BadgeCourseMappingScreen — "which courses award a given badge on
-// completion?" Pick a badge, then check/uncheck courses; each toggle is saved
+// BadgeCourseMappingScreen — "which badges does a given course award on
+// completion?" Pick a course, then check/uncheck badges; each toggle is saved
 // immediately to `course_badges`.
 // ---------------------------------------------------------------------------
 class BadgeCourseMappingScreen extends StatefulWidget {
@@ -40,8 +40,8 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   bool _isLoadingMapping = false;
   List<BadgeCatalogItem> _badges = [];
   List<AdminCourse> _courses = [];
-  String? _selectedBadgeId;
-  Set<String> _mappedCourseIds = {};
+  String? _selectedCourseId;
+  Set<String> _mappedBadgeIds = {};
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   String _query = '';
@@ -68,31 +68,30 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     setState(() {
       _badges = badges;
       _courses = courses;
-      _selectedBadgeId ??= badges.isEmpty ? null : badges.first.id;
+      _selectedCourseId ??= courses.isEmpty ? null : courses.first.id;
       _isLoading = false;
     });
-    if (_selectedBadgeId != null) await _loadMapping(_selectedBadgeId!);
+    if (_selectedCourseId != null) await _loadMapping(_selectedCourseId!);
   }
 
-  Future<void> _loadMapping(String badgeId) async {
+  Future<void> _loadMapping(String courseId) async {
     setState(() => _isLoadingMapping = true);
-    final ids = await _mappingRepository.getCourseIdsForBadge(badgeId);
+    final ids = await _mappingRepository.getBadgeIdsForCourse(courseId);
     if (!mounted) return;
     setState(() {
-      _mappedCourseIds = ids;
+      _mappedBadgeIds = ids;
       _isLoadingMapping = false;
     });
   }
 
-  List<AdminCourse> get _filteredCourses {
-    if (_query.isEmpty) return _courses;
-    return _courses.where((c) =>
-        c.courseCode.toLowerCase().contains(_query) || c.courseTitle.toLowerCase().contains(_query)).toList();
+  List<BadgeCatalogItem> get _filteredBadges {
+    if (_query.isEmpty) return _badges;
+    return _badges.where((b) => b.title.toLowerCase().contains(_query)).toList();
   }
 
-  BadgeCatalogItem? get _selectedBadge {
-    for (final t in _badges) {
-      if (t.id == _selectedBadgeId) return t;
+  AdminCourse? get _selectedCourse {
+    for (final c in _courses) {
+      if (c.id == _selectedCourseId) return c;
     }
     return null;
   }
@@ -100,16 +99,16 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   void _handleNav(AdminNavDestination dest) =>
       handleAdminNav(context, AdminNavDestination.badgeCourseMapping, dest);
 
-  Future<void> _toggleCourse(String courseId, bool allowed) async {
-    final badgeId = _selectedBadgeId;
-    if (badgeId == null) return;
-    setState(() => allowed ? _mappedCourseIds.add(courseId) : _mappedCourseIds.remove(courseId));
+  Future<void> _toggleBadge(String badgeId, bool allowed) async {
+    final courseId = _selectedCourseId;
+    if (courseId == null) return;
+    setState(() => allowed ? _mappedBadgeIds.add(badgeId) : _mappedBadgeIds.remove(badgeId));
     try {
       await _mappingRepository.setCourseForBadge(badgeId, courseId, allowed);
       if (mounted) showSuccessSnackBar(context, 'Mapping updated.');
     } catch (e) {
       if (!mounted) return;
-      setState(() => allowed ? _mappedCourseIds.remove(courseId) : _mappedCourseIds.add(courseId));
+      setState(() => allowed ? _mappedBadgeIds.remove(badgeId) : _mappedBadgeIds.add(badgeId));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to update mapping: $e'), backgroundColor: AdminColors.error),
       );
@@ -132,9 +131,9 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
         children: [
           _buildTopBar(),
           const SizedBox(height: 20),
-          _buildBadgeSelector(),
+          _buildCourseSelector(),
           const SizedBox(height: 20),
-          _buildCoursesCard(),
+          _buildBadgesCard(),
         ],
       ),
     );
@@ -144,12 +143,12 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Course ↔ Badge Mapping', style: AdminTypography.headlineLg()),
+        Text('Badge ↔ Course Mapping', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Text(
-            'Choose which courses award each badge when a student completes them.',
+            'Choose which badges each course awards when a student completes it.',
             style: AdminTypography.bodyMd(),
           ),
         ),
@@ -157,12 +156,12 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     );
   }
 
-  Widget _buildBadgeSelector() {
-    if (_badges.isEmpty) {
+  Widget _buildCourseSelector() {
+    if (_courses.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No badges exist yet. Create one from Manage Badges first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No courses exist yet.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(
@@ -170,11 +169,11 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
       child: Row(
         children: [
-          Text('Badge', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+          Text('Course', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
           const SizedBox(width: 12),
           Expanded(
             child: SearchableDropdownFormField<String>(
-              initialValue: _selectedBadgeId,
+              initialValue: _selectedCourseId,
               isExpanded: true,
               style: AdminTypography.bodyMd(color: AdminColors.onSurface),
               decoration: InputDecoration(
@@ -184,10 +183,13 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
-              items: [for (final t in _badges) DropdownMenuItem(value: t.id, child: Text(t.title))],
+              items: [
+                for (final c in _courses)
+                  DropdownMenuItem(value: c.id, child: Text('${c.courseCode} — ${c.courseTitle}', overflow: TextOverflow.ellipsis)),
+              ],
               onChanged: (v) {
                 if (v == null) return;
-                setState(() => _selectedBadgeId = v);
+                setState(() => _selectedCourseId = v);
                 _loadMapping(v);
               },
             ),
@@ -197,8 +199,8 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     );
   }
 
-  Widget _buildCoursesCard() {
-    final courses = _filteredCourses;
+  Widget _buildBadgesCard() {
+    final badges = _filteredBadges;
     return Container(
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
       clipBehavior: Clip.antiAlias,
@@ -214,7 +216,7 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
                 isDense: true,
                 filled: true,
                 fillColor: AdminColors.surfaceContainerLow,
-                hintText: 'Search course by code or title...',
+                hintText: 'Search badge by title...',
                 hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -224,16 +226,16 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
           ),
           if (_isLoadingMapping)
             const Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())
-          else if (courses.isEmpty)
+          else if (badges.isEmpty)
             Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
           else
-            Column(children: [for (final c in courses) _courseRow(c)]),
+            Column(children: [for (final b in badges) _badgeRow(b)]),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedBadge?.title ?? 'this badge'}',
+                '${_mappedBadgeIds.length} of ${_badges.length} badges awarded by ${_selectedCourse?.courseTitle ?? 'this course'}',
                 style: AdminTypography.bodySm(),
               ),
             ),
@@ -243,8 +245,8 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     );
   }
 
-  Widget _courseRow(AdminCourse c) {
-    final allowed = _mappedCourseIds.contains(c.id);
+  Widget _badgeRow(BadgeCatalogItem b) {
+    final allowed = _mappedBadgeIds.contains(b.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
@@ -252,17 +254,11 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
         children: [
           Checkbox(
             value: allowed,
-            onChanged: (v) => _toggleCourse(c.id, v ?? false),
+            onChanged: (v) => _toggleBadge(b.id, v ?? false),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                Text(c.courseCode, style: AdminTypography.labelSm()),
-              ],
-            ),
+            child: Text(b.title, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
           ),
         ],
       ),
@@ -275,10 +271,10 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   // ---------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {
-    final courses = _filteredCourses;
+    final badges = _filteredBadges;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Course ↔ Badge Mapping'),
+      appBar: const AdminMobileTopBar.detail(title: 'Badge ↔ Course Mapping'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -288,7 +284,7 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
             children: [
               _buildTopBar(),
               const SizedBox(height: 16),
-              _buildBadgeSelector(),
+              _buildCourseSelector(),
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
@@ -298,7 +294,7 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
                   isDense: true,
                   filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
-                  hintText: 'Search course by code or title...',
+                  hintText: 'Search badge by title...',
                   hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -308,17 +304,17 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
               const SizedBox(height: 12),
               if (_isLoadingMapping)
                 const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
-              else if (courses.isEmpty)
+              else if (badges.isEmpty)
                 Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
               else
                 Container(
                   decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
                   clipBehavior: Clip.antiAlias,
-                  child: Column(children: [for (final c in courses) _courseRow(c)]),
+                  child: Column(children: [for (final b in badges) _badgeRow(b)]),
                 ),
               const SizedBox(height: 12),
               Text(
-                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedBadge?.title ?? 'this badge'}',
+                '${_mappedBadgeIds.length} of ${_badges.length} badges awarded by ${_selectedCourse?.courseTitle ?? 'this course'}',
                 style: AdminTypography.bodySm(),
               ),
             ],

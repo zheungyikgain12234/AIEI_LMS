@@ -10,6 +10,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'widgets/admin_no_results.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -234,7 +235,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
               ElevatedButton.icon(
                 onPressed: _openAssignModal,
                 icon: const Icon(Icons.add_circle_outline, size: 18),
-                label: const Text('+ Assign Lecturer to Course'),
+                label: const Text('Assign Lecturer to Course'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: Colors.white,
@@ -830,7 +831,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
         child: SearchableDropdownButton<String>(
           isExpanded: true,
           value: options.first,
-          icon: const Icon(Icons.expand_more, color: AdminColors.onSurfaceVariant),
+          icon: const Icon(Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
           items: options
               .map((o) => DropdownMenuItem(value: o, child: Text(o, style: AdminTypography.bodySm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis)))
               .toList(),
@@ -846,7 +847,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
       child: ElevatedButton.icon(
         onPressed: _openAssignModal,
         icon: const Icon(Icons.person_add, size: 18),
-        label: const Text('+ Assign Lecturer to Course'),
+        label: const Text('Assign Lecturer to Course'),
         style: ElevatedButton.styleFrom(
           backgroundColor: AdminColors.primaryContainer,
           foregroundColor: Colors.white,
@@ -1512,6 +1513,8 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
   String _role = _roleOptions.first;
   bool _submitting = false;
   String? _errorMessage;
+  String? _lecturerError;
+  String? _sectionError;
 
   @override
   void initState() {
@@ -1522,7 +1525,6 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit = !_submitting && _lecturerId != null && _sectionId != null;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
@@ -1586,8 +1588,14 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
                 TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: canSubmit
-                      ? () async {
+                  onPressed: _submitting
+                      ? null
+                      : () async {
+                          setState(() {
+                            _lecturerError = _lecturerId == null ? "Select a lecturer." : null;
+                            _sectionError = _sectionId == null ? "Select a course section." : null;
+                          });
+                          if (_lecturerId == null || _sectionId == null) return;
                           setState(() {
                             _submitting = true;
                             _errorMessage = null;
@@ -1601,8 +1609,7 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
                               _errorMessage = friendlyErrorMessage(e);
                             });
                           }
-                        }
-                      : null,
+                        },
                   style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                   child: const Text('Confirm Allocation'),
                 ),
@@ -1638,10 +1645,11 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
                         ),
                       ))
                   .toList(),
-              onChanged: (v) => setState(() => _lecturerId = v),
+              onChanged: (v) => setState(() { _lecturerId = v; _lecturerError = null; }),
             ),
           ),
         ),
+        AdminFieldError(_lecturerError),
       ],
     );
   }
@@ -1670,10 +1678,11 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
                         ),
                       ))
                   .toList(),
-              onChanged: (v) => setState(() => _sectionId = v),
+              onChanged: (v) => setState(() { _sectionId = v; _sectionError = null; }),
             ),
           ),
         ),
+        AdminFieldError(_sectionError),
       ],
     );
   }

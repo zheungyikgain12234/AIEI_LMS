@@ -266,7 +266,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         ElevatedButton.icon(
           onPressed: _openAddLecturer,
           icon: const Icon(Icons.person_add_outlined, size: 18),
-          label: const Text('+ Add New Lecturer'),
+          label: const Text('Add New Lecturer'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,

@@ -239,16 +239,13 @@ class _LoginScreenState extends State<LoginScreen> {
       controller: _emailController,
       style: _text(size: 14, color: _LoginColors.slate900),
       decoration: InputDecoration(
-        prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 2),
-          child: Text('@', style: _text(size: 15, weight: FontWeight.w700, color: _LoginColors.slate400)),
-        ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 40),
+        prefixIcon: const Icon(Icons.mail_outline, size: 18, color: _LoginColors.slate400),
+        prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
         filled: true,
         fillColor: Colors.white,
         hintText: 'name@enterprise.com',
         hintStyle: _text(size: 14, color: _LoginColors.slate600).copyWith(fontStyle: FontStyle.italic),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _LoginColors.slate300)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _LoginColors.slate300)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _LoginColors.brandBlue, width: 2)),
@@ -263,6 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
       style: _text(size: 14, color: _LoginColors.slate900, letterSpacing: 1.5),
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.lock_outline, size: 18, color: _LoginColors.slate400),
+        prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
         suffixIcon: IconButton(
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
           icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18, color: _LoginColors.slate400),

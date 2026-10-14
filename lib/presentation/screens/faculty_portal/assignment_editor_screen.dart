@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/admin_field_error.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
@@ -340,14 +341,34 @@ class _CriterionDialogState extends State<_CriterionDialog> {
 
   double? get _parsedMarks => double.tryParse(_marksController.text.trim());
 
-  bool get _canSave {
-    if (_labelController.text.trim().isEmpty) return false;
+  bool _submitted = false;
+  Map<String, String> _errors = {};
+
+  Map<String, String> _validate() {
+    final errors = <String, String>{};
+    if (_labelController.text.trim().isEmpty) errors['label'] = 'Criterion is required.';
     final marks = _parsedMarks;
-    return marks != null && marks > 0;
+    if (marks == null || marks <= 0) {
+      errors['marks'] = 'Marks must be greater than 0.';
+    } else if (marks > maxMarksLimit) {
+      errors['marks'] = 'Marks cannot exceed ${maxMarksLimit.toInt()}.';
+    }
+    return errors;
+  }
+
+  void _save() {
+    final errors = _validate();
+    setState(() {
+      _submitted = true;
+      _errors = errors;
+    });
+    if (errors.isNotEmpty) return;
+    Navigator.of(context).pop<_CriterionFormResult>((label: _labelController.text.trim(), maxMarks: _parsedMarks!));
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_submitted) _errors = _validate();
     return AlertDialog(
       title: Text(widget.existing == null ? 'Add Criterion' : 'Edit Criterion'),
       content: SizedBox(
@@ -362,6 +383,7 @@ class _CriterionDialogState extends State<_CriterionDialog> {
               decoration: InputDecoration(label: requiredLabel('Criterion (e.g. "Code Correctness")')),
               onChanged: (_) => setState(() {}),
             ),
+            AdminFieldError(_errors['label']),
             const SizedBox(height: 12),
             TextField(
               controller: _marksController,
@@ -370,18 +392,13 @@ class _CriterionDialogState extends State<_CriterionDialog> {
               decoration: InputDecoration(label: requiredLabel('Marks this criterion is worth')),
               onChanged: (_) => setState(() {}),
             ),
+            AdminFieldError(_errors['marks']),
           ],
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _canSave
-              ? () => Navigator.of(context)
-                  .pop<_CriterionFormResult>((label: _labelController.text.trim(), maxMarks: _parsedMarks!))
-              : null,
-          child: const Text('Save'),
-        ),
+        FilledButton(onPressed: _save, child: const Text('Save')),
       ],
     );
   }

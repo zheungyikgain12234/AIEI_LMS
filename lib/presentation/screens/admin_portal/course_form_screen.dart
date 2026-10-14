@@ -14,6 +14,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
 
@@ -61,6 +62,9 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
+  String? get _codeConflict => _errorMessage == codeConflictMessage ? _errorMessage : null;
+  String? get _nameConflict => _errorMessage == nameConflictMessage ? _errorMessage : null;
+  String? _tagError;
 
   /// Every code is stored tenant-prefixed (`TN01-PY-402`) to keep it unique
   /// across tenants, but the admin only ever types/sees the suffix.
@@ -143,11 +147,10 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedTagIds.isEmpty) {
-      setState(() => _errorMessage = 'Select at least one Course Tag.');
-      return;
-    }
+    final formValid = _formKey.currentState!.validate();
+    final tagsValid = _selectedTagIds.isNotEmpty;
+    setState(() => _tagError = tagsValid ? null : 'Select at least one Course Tag.');
+    if (!formValid || !tagsValid) return;
     setState(() {
       _isSaving = true;
       _errorMessage = null;
@@ -227,7 +230,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),
-                          if (_errorMessage != null) ...[
+                          if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
@@ -244,9 +247,11 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                           const SizedBox(height: 14),
                           if (!widget.isEditing) ...[
                             _field(controller: _courseCodeController, label: 'Course Code', hint: 'PY-402', inputFormatters: const [UpperCaseTextFormatter()]),
+                            AdminFieldError(_codeConflict),
                             const SizedBox(height: 14),
                           ],
                           _field(controller: _courseTitleController, label: 'Course Title', hint: 'Python for Enterprise Data Analysis'),
+                          AdminFieldError(_nameConflict),
                           const SizedBox(height: 14),
                           _field(controller: _courseDescriptionController, label: 'Description', hint: 'What this course covers...', maxLines: 4),
                           const SizedBox(height: 14),
@@ -268,6 +273,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                               if (trimmed.isEmpty) return 'Credits is required';
                               final parsed = int.tryParse(trimmed);
                               if (parsed == null || parsed <= 0) return 'Enter a positive whole number';
+                              if (parsed > maxCredits) return 'Credits cannot exceed $maxCredits';
                               return null;
                             },
                           ),
@@ -279,6 +285,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                             options: [for (final t in _availableTags) (id: t.id, label: t.label)],
                             selectedIds: _selectedTagIds,
                           ),
+                          AdminFieldError(_tagError),
                           const SizedBox(height: 24),
                           Row(
                             children: [

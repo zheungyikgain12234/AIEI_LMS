@@ -32,6 +32,10 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
   Student? _student;
   List<EnrolledClass> _classes = [];
   final Set<String> _unenrolling = {};
+  /// Course ids this student is enrolled in that aren't mapped to their
+  /// profile (role/department for Internal, track for External) — same rule
+  /// as the red warning icon on the Manage Students table.
+  Set<String> _mismatchedCourseIds = {};
 
   @override
   void initState() {
@@ -43,12 +47,47 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
     setState(() => _isLoading = true);
     final student = await _repository.getStudentById(widget.studentId);
     final classes = await _repository.getEnrolledClasses(widget.studentId);
+    final mismatched = await _computeMismatches(student, classes);
     if (!mounted) return;
     setState(() {
       _student = student;
       _classes = classes;
+      _mismatchedCourseIds = mismatched;
       _isLoading = false;
     });
+  }
+
+  Future<Set<String>> _computeMismatches(Student s, List<EnrolledClass> classes) async {
+    final enrolled = {for (final c in classes) c.courseId};
+    if (enrolled.isEmpty) return {};
+    final client = Supabase.instance.client;
+    Future<String?> idByName(String table, String? name) async {
+      if (name == null) return null;
+      final row = await client.from(table).select('id').eq('name', name).maybeSingle();
+      return row?['id'] as String?;
+    }
+
+    final Set<String> allowed;
+    if (s.studentType == StudentType.external) {
+      final trackId = await idByName('program_tracks', s.programTrack);
+      if (trackId == null) return {};
+      final rows = await client.from('track_courses').select('course_id').eq('track_id', trackId);
+      allowed = {for (final r in rows) r['course_id'] as String};
+    } else {
+      final roleId = await idByName('roles', s.role);
+      final departmentId = await idByName('departments', s.department);
+      if (roleId == null && departmentId == null) return {};
+      allowed = {};
+      if (roleId != null) {
+        final rows = await client.from('role_courses').select('course_id').eq('role_id', roleId);
+        allowed.addAll([for (final r in rows) r['course_id'] as String]);
+      }
+      if (departmentId != null) {
+        final rows = await client.from('department_courses').select('course_id').eq('department_id', departmentId);
+        allowed.addAll([for (final r in rows) r['course_id'] as String]);
+      }
+    }
+    return enrolled.where((id) => !allowed.contains(id)).toSet();
   }
 
   Future<void> _unenroll(EnrolledClass c) async {
@@ -149,6 +188,7 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
 
   Widget _classRow(EnrolledClass c) {
     final busy = _unenrolling.contains(c.rowKey);
+    final mismatch = _mismatchedCourseIds.contains(c.courseId);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
@@ -167,7 +207,18 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(c.displayName, style: AdminTypography.titleSm()),
+                Row(children: [
+                  Flexible(child: Text(c.displayName, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  if (mismatch) ...[
+                    const SizedBox(width: 6),
+                    Tooltip(
+                      message: _student?.studentType == StudentType.external
+                          ? 'This course is not mapped to the student\x27s track'
+                          : 'This course is not mapped to the student\x27s role or department',
+                      child: const Icon(Icons.error, size: 15, color: AdminColors.error),
+                    ),
+                  ],
+                ]),
                 Text(c.courseTitle, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
               ],
             ),

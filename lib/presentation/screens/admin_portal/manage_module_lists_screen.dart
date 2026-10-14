@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
+import 'widgets/admin_field_error.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -86,19 +87,12 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (errorMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-                      child: Text(errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
                   TextField(
                     controller: nameController,
                     autofocus: true,
                     decoration: const InputDecoration(labelText: 'List name', hintText: 'e.g. Standard 4-Module Course'),
                   ),
+                  AdminFieldError(errorMessage),
                   const SizedBox(height: 16),
                   Text('Modules', style: AdminTypography.titleSm()),
                   const SizedBox(height: 8),

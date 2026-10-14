@@ -7,6 +7,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/course_syllabus_screen.dart';
 import 'widgets/admin_no_results.dart';
+import 'widgets/pending_syllabus_badge.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -15,7 +16,7 @@ import 'widgets/admin_nav.dart';
 // ---------------------------------------------------------------------------
 // ManageSyllabiScreen — master data page listing every class's syllabus with
 // its approval status. Opening one shows the full syllabus editor in admin
-// mode (edit anything, any time) with an Approve button; students only see a
+// mode (review only, unless admin editing is turned on in Settings) with an Approve button; students only see a
 // syllabus once it is approved.
 // ---------------------------------------------------------------------------
 class ManageSyllabiScreen extends StatefulWidget {
@@ -54,6 +55,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
   Future<void> _load() async {
     final sections = await _repository.getAllSections();
     if (!mounted) return;
+    refreshPendingSyllabusCount();
     setState(() {
       _sections = sections;
       _isLoading = false;
@@ -129,7 +131,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
         Text('Manage Syllabi', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         Text(
-          'Every class\'s syllabus. Open one to edit it in full and approve it — students only see a syllabus once it is approved.'
+          'Every class\'s syllabus. Open one to review and approve it — students only see a syllabus once it is approved.'
           '${pending > 0 ? ' $pending awaiting approval.' : ''}',
           style: AdminTypography.bodyMd(),
         ),

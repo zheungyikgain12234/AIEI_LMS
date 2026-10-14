@@ -79,7 +79,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
           for (var i = 0; i < preview.length; i++) ...[
             MapEntry(preview[i].module.id, numberedLabel('Module', i + 1, preview[i].module.name)),
             for (var j = 0; j < preview[i].sessions.length; j++)
-              MapEntry(preview[i].sessions[j].session.id, numberedLabel('Lesson', j + 1, preview[i].sessions[j].session.name)),
+              MapEntry(preview[i].sessions[j].session.id, numberedLabel('Session', j + 1, preview[i].sessions[j].session.name)),
           ],
         ]);
       _isLoading = false;

@@ -1,4 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
+import 'package:stitch_aiei_lms/core/utils/class_schedule.dart';
+import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/pending_syllabus_badge.dart';
 import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/admin_field_error.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
@@ -82,6 +84,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   bool _modulesLocked = false;
   CourseSection? _section;
   bool _overrideMatches = false;
+  bool _adminCanEdit = false;
   String _syllabusStatus = SyllabusStatus.draft;
 
   /// True while the lecturer may edit this class's syllabus: inside the
@@ -90,7 +93,10 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   bool get _canEdit {
     final s = _section;
     if (_isTemplatePreview) return false;
-    if (widget.isAdmin || s == null || _overrideMatches) return true;
+    // Admins only review and approve unless the "admin can edit syllabus"
+    // setting is on.
+    if (widget.isAdmin) return _adminCanEdit;
+    if (s == null || _overrideMatches) return true;
     final start = s.editStartAt;
     final end = s.editEndAt;
     if (start == null || end == null) return true;
@@ -99,7 +105,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   }
 
   /// Module add/rename/delete/rearrange is off when the admin locked modules or the edit period is closed.
-  bool get _modulesReadOnly => _isTemplatePreview || (!widget.isAdmin && (_modulesLocked || !_canEdit));
+  bool get _modulesReadOnly => _isTemplatePreview || (widget.isAdmin ? !_adminCanEdit : (_modulesLocked || !_canEdit));
 
   bool get _isTemplatePreview => widget.previewTemplate != null;
 
@@ -161,6 +167,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
       _expandedSessions.removeWhere((id) => !liveSessionIds.contains(id));
       _hideMarkButtons = settings[AppSettingKeys.hideMarkButtonsInSyllabus] ?? false;
       _modulesLocked = settings[AppSettingKeys.lockModulesForLecturers] ?? false;
+      _adminCanEdit = settings[AppSettingKeys.adminCanEditSyllabus] ?? false;
       _section = section;
       _syllabusStatus = section.syllabusStatus;
       _overrideMatches = section.editOverrideLecturerCode != null &&
@@ -296,7 +303,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   Future<void> _addSession(String moduleId) async {
     final result = await showDialog<(String, String)>(
       context: context,
-      builder: (_) => _NameDescriptionDialog(dialogTitle: 'Add Session', nameLabel: 'Session name', prefix: _numberedPrefix('Lesson', (_sessionsByModule[moduleId]?.length ?? 0) + 1)),
+      builder: (_) => _NameDescriptionDialog(dialogTitle: 'Add Session', nameLabel: 'Session name', prefix: _numberedPrefix('Session', (_sessionsByModule[moduleId]?.length ?? 0) + 1)),
     );
     if (result == null) return;
     await _repository.createSession(moduleId: moduleId, name: _bareName(result.$1), description: result.$2);
@@ -312,7 +319,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
         dialogTitle: 'Edit Session',
         nameLabel: 'Session name',
         existingName: _bareName(s.name),
-        prefix: _numberedPrefix('Lesson', (_sessionsByModule[moduleId]?.indexOf(s) ?? 0) + 1),
+        prefix: _numberedPrefix('Session', (_sessionsByModule[moduleId]?.indexOf(s) ?? 0) + 1),
         existingDescription: s.description,
       ),
     );
@@ -361,7 +368,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   Future<void> _addContentBlock(String sessionId) async {
     final result = await showDialog<({ContentBlockType type, Map<String, dynamic> content})>(
       context: context,
-      builder: (_) => _AddContentBlockDialog(repository: _repository, sessionId: sessionId, sectionId: widget.sectionId),
+      builder: (_) => _AddContentBlockDialog(repository: _repository, sessionId: sessionId, sectionId: widget.sectionId, classSchedule: _section == null ? null : classScheduleText(_section!)),
     );
     if (result == null) return;
     await _repository.addContentBlock(sessionId: sessionId, type: result.type, content: result.content);
@@ -373,7 +380,7 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   Future<void> _editContentBlock(String sessionId, ContentBlock b) async {
     final result = await showDialog<({ContentBlockType type, Map<String, dynamic> content})>(
       context: context,
-      builder: (_) => _AddContentBlockDialog(repository: _repository, sessionId: sessionId, sectionId: widget.sectionId, existing: b),
+      builder: (_) => _AddContentBlockDialog(repository: _repository, sessionId: sessionId, sectionId: widget.sectionId, existing: b, classSchedule: _section == null ? null : classScheduleText(_section!)),
     );
     if (result == null) return;
     await _repository.updateContentBlock(b.id, content: result.content);
@@ -481,6 +488,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     await runWithBusy(context, 'Updating syllabus status…', () => _repository.setSyllabusStatus(widget.sectionId, status));
     if (!mounted) return;
     setState(() => _syllabusStatus = status);
+    refreshPendingSyllabusCount();
     showSuccessSnackBar(context, message);
   }
 
@@ -829,6 +837,26 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
   }
 
   Widget _editClosedBanner() {
+    if (widget.isAdmin) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(10)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.info_outline, size: 18, color: FacultyColors.onSurfaceVariant),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'You can review and approve this syllabus, but not edit it. Editing by admins can be turned on in Settings.',
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final s = _section!;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1011,7 +1039,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${_numberedPrefix('Lesson', index + 1)}${_bareName(s.name)}', style: FacultyTypography.bodyLg(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                        Text('${_numberedPrefix('Session', index + 1)}${_bareName(s.name)}', style: FacultyTypography.bodyLg(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
                         if (s.description.isNotEmpty)
                           Text(s.description, style: FacultyTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ],
@@ -1318,9 +1346,9 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
                 b.title?.isNotEmpty == true ? b.title! : 'Physical Class',
                 style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               ),
-              if (b.scheduledAt != null) ...[
+              if (_section != null) ...[
                 const SizedBox(height: 2),
-                Text(formatDateRange(b.scheduledAt!, b.endsAt), style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+                Text(classScheduleText(_section!), style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
               ],
               if (b.description?.isNotEmpty == true) ...[
                 const SizedBox(height: 2),
@@ -1458,7 +1486,10 @@ class _AddContentBlockDialog extends StatefulWidget {
   final String sectionId;
   final ContentBlock? existing;
 
-  const _AddContentBlockDialog({required this.repository, required this.sessionId, required this.sectionId, this.existing});
+  /// The class's schedule text (from class creation), shown for Physical Class content.
+  final String? classSchedule;
+
+  const _AddContentBlockDialog({required this.repository, required this.sessionId, required this.sectionId, this.existing, this.classSchedule});
 
   @override
   State<_AddContentBlockDialog> createState() => _AddContentBlockDialogState();
@@ -1480,8 +1511,6 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   late String _mode = widget.existing?.mode ?? 'normal';
   DateTime? _dueDate;
   DateTime? _availableFrom;
-  DateTime? _classStart;
-  DateTime? _classEnd;
   String? _uploadedFileName;
   bool _uploading = false;
   bool _submitted = false;
@@ -1500,8 +1529,6 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     super.initState();
     _richTextController.addListener(() => setState(() {}));
     _dueDate = widget.existing?.dueDate;
-    _classStart = widget.existing?.scheduledAt;
-    _classEnd = widget.existing?.endsAt;
     _availableFrom = widget.existing?.availableFrom;
     _uploadedFileName = widget.existing?.fileName;
     _loadWeightageBudget();
@@ -1662,12 +1689,6 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.physicalClass:
         requireText('title', _titleController, 'Name is required.');
         requireText('description', _descriptionController, 'Description is required.');
-        if (_classStart == null) errors['classStart'] = 'Start date is required.';
-        if (_classEnd == null) {
-          errors['classEnd'] = 'End date is required.';
-        } else if (_classStart != null && !_classEnd!.isAfter(_classStart!)) {
-          errors['classEnd'] = 'The end must be after the start.';
-        }
     }
     return errors;
   }
@@ -1841,8 +1862,6 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return {
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),
-          'scheduledAt': _classStart!.toIso8601String(),
-          'endsAt': _classEnd!.toIso8601String(),
         };
     }
   }
@@ -1863,7 +1882,11 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
                 initialValue: _type,
                 decoration: InputDecoration(label: requiredLabel('Content type')),
                 icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
-                items: [for (final t in ContentBlockType.values) DropdownMenuItem(value: t, child: Text(_labelFor(t)))],
+                items: [
+                  for (final t in ContentBlockType.values)
+                    // Physical Assignment can no longer be added; an existing one keeps its type.
+                    if (t != ContentBlockType.physicalAssignment || t == _type) DropdownMenuItem(value: t, child: Text(_labelFor(t))),
+                ],
                 onChanged: _isEditing
                     ? null
                     : (t) => setState(() {
@@ -1904,7 +1927,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.file:
         return 'File';
       case ContentBlockType.exam:
-        return 'Exam';
+        return 'Online Exam';
       case ContentBlockType.assignment:
         return 'Assignment';
       case ContentBlockType.physicalClass:
@@ -2004,7 +2027,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return [
           TextField(
             controller: _titleController,
-            decoration: InputDecoration(label: requiredLabel('Exam name')),
+            decoration: InputDecoration(label: requiredLabel('Online exam name')),
             onChanged: (_) => setState(() {}),
           ),
           _fe('title'),
@@ -2157,14 +2180,21 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           ),
           _fe('description'),
           const SizedBox(height: 12),
-          _scheduleRow('Start', _classStart, (v) => setState(() => _classStart = v), defaultHour: 9),
-          _fe('classStart'),
-          const SizedBox(height: 12),
-          _scheduleRow('End', _classEnd, (v) => setState(() => _classEnd = v), defaultHour: 12),
-          _fe('classEnd'),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Schedule (set by the admin for this class)', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+                const SizedBox(height: 2),
+                Text(widget.classSchedule ?? 'Schedule TBD', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+              ],
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
-            'Students can tick their attendance between the start and end date/time.',
+            'The date and time follow the class schedule above. The lecturer marks attendance for each student afterwards.',
             style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
           ),
         ];
@@ -2190,47 +2220,6 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         errorText: _weightageError,
       ),
       onChanged: (_) => setState(() {}),
-    );
-  }
-
-  /// A "<label> date" + time picker pair for one end of a physical class's
-  /// window. Picking a date first defaults the time to [defaultHour]:00.
-  Widget _scheduleRow(String label, DateTime? value, ValueChanged<DateTime?> onChanged, {required int defaultHour}) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: value ?? _classStart ?? DateTime.now(),
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-              );
-              if (picked == null) return;
-              onChanged(DateTime(picked.year, picked.month, picked.day, value?.hour ?? defaultHour, value?.minute ?? 0));
-            },
-            icon: const Icon(Icons.event_outlined, size: 16),
-            label: Text(value == null ? '$label date *' : formatDate(value)),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: value == null
-                ? null
-                : () async {
-                    final picked = await showTimePicker(context: context, initialTime: TimeOfDay(hour: value.hour, minute: value.minute));
-                    if (picked == null) return;
-                    onChanged(DateTime(value.year, value.month, value.day, picked.hour, picked.minute));
-                  },
-            icon: const Icon(Icons.schedule_outlined, size: 16),
-            label: Text(value == null ? '$label time' : '${two(value.hour)}:${two(value.minute)}'),
-          ),
-        ),
-      ],
     );
   }
 

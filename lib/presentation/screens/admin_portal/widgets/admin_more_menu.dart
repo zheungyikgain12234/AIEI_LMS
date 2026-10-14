@@ -3,6 +3,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'admin_nav.dart';
 import 'admin_sidebar.dart';
+import 'pending_syllabus_badge.dart';
 
 /// The mobile "More" sheet — every entry of the desktop sidebar (same
 /// sections, same labels, same order) except the three that already have
@@ -52,6 +53,7 @@ Future<void> showAdminMoreMenu(BuildContext context) {
               _tile(context, sheetContext, Icons.event_note_outlined, 'Manage Classes', AdminNavDestination.manageClasses),
               _tile(context, sheetContext, Icons.military_tech_outlined, 'Manage Badge Award', AdminNavDestination.manageBadges),
               _section('SYSTEM'),
+              _tile(context, sheetContext, Icons.admin_panel_settings_outlined, 'Manage Admin', AdminNavDestination.manageAdmins),
               _tile(context, sheetContext, Icons.settings_outlined, 'Settings', AdminNavDestination.settings),
             ],
           ),
@@ -72,6 +74,7 @@ Widget _tile(BuildContext pageContext, BuildContext sheetContext, IconData icon,
   return ListTile(
     leading: Icon(icon, color: AdminColors.onSurfaceVariant),
     title: Text(label, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
+    trailing: dest == AdminNavDestination.manageSyllabi ? const PendingSyllabusDot() : null,
     onTap: () {
       Navigator.of(sheetContext).pop();
       // `lecturerAllocation` isn't in the menu, so it never equals [dest] and

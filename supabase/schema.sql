@@ -169,10 +169,13 @@ create table students (
 create table admins (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  title text not null,
+  title text not null default '',
   email text not null,
+  username text not null,
   created_at timestamptz not null default now()
 );
+create unique index admins_username_ci_idx on admins (lower(username));
+create unique index admins_email_ci_idx on admins (lower(email));
 
 -- ── Courses / Modules / Materials ──────────────────────────────────────
 

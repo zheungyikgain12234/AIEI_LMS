@@ -160,6 +160,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             settingKey: AppSettingKeys.lockModulesForLecturers,
           ),
           const Divider(height: 1, color: AdminColors.surfaceContainer),
+          _settingRow(
+            title: 'Allow Admins to Edit Syllabus',
+            description: 'Off by default: admins only review and approve syllabi. Turn on to let admins also edit a class\x27s modules, sessions and content from Manage Syllabi.',
+            settingKey: AppSettingKeys.adminCanEditSyllabus,
+          ),
+          const Divider(height: 1, color: AdminColors.surfaceContainer),
           _numericSettingRow(
             title: 'Max Moderated Score',
             description: 'Caps how many points a lecturer may add at once via the Student Directory\'s "MODERATED SCORE" bulk "Apply All" input. Leave blank for no limit.',

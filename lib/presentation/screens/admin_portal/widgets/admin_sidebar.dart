@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'pending_syllabus_badge.dart';
 
 enum AdminNavDestination {
   manageLecturers,
@@ -27,6 +28,7 @@ enum AdminNavDestination {
   manageCourseTags,
   manageModuleLists,
   manageSyllabi,
+  manageAdmins,
   settings,
 }
 
@@ -42,7 +44,8 @@ class AdminSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return PendingSyllabusRefresher(
+      child: Container(
       width: 256,
       decoration: const BoxDecoration(
         color: AdminColors.surfaceContainerLowest,
@@ -172,6 +175,7 @@ class AdminSidebar extends StatelessWidget {
                         _NavItem(
                           icon: Icons.fact_check_outlined,
                           label: 'Manage Syllabi',
+                          trailing: const PendingSyllabusDot(),
                           isSelected:
                               selected == AdminNavDestination.manageSyllabi,
                           onTap: () => onDestinationSelected?.call(
@@ -316,6 +320,14 @@ class AdminSidebar extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _NavItem(
+                          icon: Icons.admin_panel_settings_outlined,
+                          label: 'Manage Admin',
+                          isSelected: selected == AdminNavDestination.manageAdmins,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageAdmins,
+                          ),
+                        ),
+                        _NavItem(
                           icon: Icons.settings_outlined,
                           label: 'Settings',
                           isSelected: selected == AdminNavDestination.settings,
@@ -332,6 +344,7 @@ class AdminSidebar extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 }
@@ -341,12 +354,14 @@ class _NavItem extends StatefulWidget {
   final String label;
   final bool isSelected;
   final VoidCallback? onTap;
+  final Widget? trailing;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.isSelected,
     this.onTap,
+    this.trailing,
   });
 
   @override
@@ -391,6 +406,7 @@ class _NavItemState extends State<_NavItem> {
                   ),
                 ),
               ),
+              if (widget.trailing != null) ...[const SizedBox(width: 8), widget.trailing!],
             ],
           ),
         ),

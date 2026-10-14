@@ -99,8 +99,16 @@ insert into students (id, name, student_code, email, student_type, department, t
 -- New Student) auto-assigns 11, not 1.
 select setval(pg_get_serial_sequence('students', 'id'), 10, true);
 
-insert into admins (id, name, title, email) values
-  ('33333333-3333-3333-3333-333333333301', 'Marcus Vance', 'Chief Academic Administrator', 'marcus.vance@aiei.edu');
+-- The one seeded admin. Its id is DemoIdentity.adminId, which ties it to the
+-- Admin Portal session (header profile, "you" in Manage Admin) until real
+-- login exists.
+insert into admins (id, name, title, email, username) values
+  ('33333333-3333-3333-3333-333333333301', 'Marcus Vance', 'Chief Academic Administrator', 'marcus.vance@aiei.edu', 'marcus.vance');
+
+-- Global feature flags added after the initial schema. Off by default: admins
+-- only review and approve syllabi; they cannot edit them.
+insert into app_settings (key, value) values ('admin_can_edit_syllabus', false)
+  on conflict (key) do nothing;
 
 -- ── Courses (catalogue courses Alex Chen is enrolled in, codes 1-6; plus
 -- additional courses used by the Faculty/Admin allocation views, 7-17) ──

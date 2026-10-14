@@ -27,6 +27,10 @@ abstract class SubmissionGradingRepository {
   /// the row's status, so marks already imported for the student stay graded.
   Future<void> recordAttendance({required String contentBlockId, required String studentId});
 
+  /// Sets [studentId]'s attendance for a physical class session, marked by the
+  /// lecturer: one of [AttendanceStatus]. Stored as `submission.attendance`.
+  Future<void> setAttendanceStatus({required String contentBlockId, required String studentId, required String status});
+
   /// Records a lecturer's marks for one student's submission — upserts by
   /// (contentBlockId, studentId), setting status to `graded`. Also
   /// recomputes this student's real `student_courses.progress_percentage`
@@ -50,4 +54,24 @@ abstract class SubmissionGradingRepository {
   /// attempt" control. Does not touch `student_courses.progress_percentage`
   /// or any badges already awarded from a prior grade on this block.
   Future<void> resetAttempt({required String contentBlockId, required String studentId});
+}
+
+/// The four attendance outcomes a lecturer can mark for a physical class.
+class AttendanceStatus {
+  AttendanceStatus._();
+
+  static const present = 'present';
+  static const late = 'late';
+  static const validAbsent = 'valid_absent';
+  static const invalidAbsent = 'invalid_absent';
+
+  static const all = [present, late, validAbsent, invalidAbsent];
+
+  static String label(String status) => switch (status) {
+        present => 'Present',
+        late => 'Late',
+        validAbsent => 'Valid absent',
+        invalidAbsent => 'Invalid absent',
+        _ => status,
+      };
 }

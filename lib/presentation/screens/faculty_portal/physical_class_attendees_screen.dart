@@ -7,12 +7,15 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
+import 'package:stitch_aiei_lms/domain/repositories/submission_grading_repository.dart' show AttendanceStatus;
 import 'widgets/faculty_mobile_top_bar.dart';
 
 // ---------------------------------------------------------------------------
-// PhysicalClassAttendeesScreen — one physical class session's attendance:
-// the class roster split into attendees (who ticked attendance, with the
-// time they did) and absentees (everyone else enrolled in the class).
+// PhysicalClassAttendeesScreen — one physical session's attendance.
+//  - Physical class: a student list where the lecturer picks, per student,
+//    Present / Late / Valid absent / Invalid absent (saved as soon as picked).
+//  - Physical exam/assignment (requireAttendedFlag): the class roster split
+//    into attendees and absentees, as before.
 // ---------------------------------------------------------------------------
 class PhysicalClassAttendeesScreen extends StatefulWidget {
   final String contentBlockId;
@@ -68,6 +71,162 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
     });
   }
 
+  /// A physical class student's marked status (or null when not marked yet).
+  /// Older rows only have `attended: true`, which counts as Present.
+  String? _statusOf(RosterStudent s) {
+    final sub = _submissions[s.studentId];
+    if (sub == null) return null;
+    final marked = sub.submission['attendance'];
+    if (marked is String) return marked;
+    return sub.submission['attended'] == true ? AttendanceStatus.present : null;
+  }
+
+  Future<void> _mark(RosterStudent s, String status) async {
+    final previous = _submissions[s.studentId];
+    setState(() {
+      final base = previous?.submission ?? const <String, dynamic>{};
+      _submissions = {
+        ..._submissions,
+        s.studentId: ContentBlockSubmission(
+          id: previous?.id ?? '',
+          contentBlockId: widget.contentBlockId,
+          studentId: s.studentId,
+          status: previous?.status ?? 'submitted',
+          submission: {...base, 'attendance': status},
+          marks: previous?.marks ?? const {},
+          submittedAt: DateTime.now(),
+        ),
+      };
+    });
+    try {
+      await _gradingRepository.setAttendanceStatus(contentBlockId: widget.contentBlockId, studentId: s.studentId, status: status);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        final restored = {..._submissions};
+        if (previous == null) {
+          restored.remove(s.studentId);
+        } else {
+          restored[s.studentId] = previous;
+        }
+        _submissions = restored;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save attendance: $e'), backgroundColor: FacultyColors.error),
+      );
+    }
+  }
+
+  static const double _radioColumnWidth = 96;
+
+  Widget _buildMarkingView() {
+    final students = [..._roster]..sort(_byName);
+    final marked = students.where((s) => _statusOf(s) != null).length;
+    return Scaffold(
+      backgroundColor: FacultyColors.background,
+      appBar: FacultyMobileTopBar(title: widget.title),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(widget.title, style: FacultyTypography.headlineMd()),
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                      if (widget.scheduledAt != null) formatDateRange(widget.scheduledAt!, widget.endsAt),
+                      '$marked of ${students.length} marked',
+                    ].join(' • '),
+                    style: FacultyTypography.bodySm(),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: FacultyColors.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: students.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text('No students are enrolled in this class.', style: FacultyTypography.bodySm()),
+                          )
+                        : LayoutBuilder(builder: (context, constraints) {
+                            // Narrow screens scroll the table sideways instead of squashing the radios.
+                            final width = constraints.maxWidth < 640 ? 640.0 : constraints.maxWidth;
+                            return SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: width,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [_markingHeader(), for (final s in students) _markingRow(s)],
+                                ),
+                              ),
+                            );
+                          }),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _markingHeader() {
+    final style = FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      color: FacultyColors.surfaceContainerLow,
+      child: Row(
+        children: [
+          Expanded(child: Text('Student', style: style)),
+          for (final status in AttendanceStatus.all)
+            SizedBox(width: _radioColumnWidth, child: Center(child: Text(AttendanceStatus.label(status), style: style))),
+        ],
+      ),
+    );
+  }
+
+  Widget _markingRow(RosterStudent s) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainer))),
+      child: RadioGroup<String>(
+        groupValue: _statusOf(s),
+        onChanged: (v) {
+          if (v != null) _mark(s, v);
+        },
+        child: Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s.name, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                    Text(s.studentCode, style: FacultyTypography.labelXs()),
+                  ],
+                ),
+              ),
+            ),
+            for (final status in AttendanceStatus.all)
+              SizedBox(width: _radioColumnWidth, child: Center(child: Radio<String>(value: status))),
+          ],
+        ),
+      ),
+    );
+  }
+
   bool _attended(RosterStudent s) {
     final sub = _submissions[s.studentId];
     if (sub == null) return false;
@@ -81,6 +240,7 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    if (!widget.requireAttendedFlag) return _buildMarkingView();
     final attendees = _roster.where(_attended).toList()..sort(_byName);
     final absentees = _roster.where((s) => !_attended(s)).toList()..sort(_byName);
 

@@ -254,7 +254,9 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
     final kind = item.blockType == 'physicalExam' ? 'Physical Exam' : (assessment ? 'Physical Assignment' : null);
     final when = item.scheduledAt != null
         ? formatDateRange(item.scheduledAt!, item.endsAt)
-        : (item.dueDate != null ? 'Due ${formatDueDate(item.dueDate!)}' : 'No date set');
+        : (item.dueDate != null
+            ? 'Due ${formatDueDate(item.dueDate!)}'
+            : (assessment ? 'No date set' : 'Follows the class schedule'));
     return InkWell(
       onTap: () => _openItem(item),
       child: Container(

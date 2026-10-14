@@ -118,7 +118,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
             for (var i = 0; i < content.length; i++) ...[
               MapEntry(content[i].module.id, numberedLabel('Module', i + 1, content[i].module.name)),
               for (var j = 0; j < content[i].sessions.length; j++)
-                MapEntry(content[i].sessions[j].session.id, numberedLabel('Lesson', j + 1, content[i].sessions[j].session.name)),
+                MapEntry(content[i].sessions[j].session.id, numberedLabel('Session', j + 1, content[i].sessions[j].session.name)),
             ],
           ]);
         _approved = approved;

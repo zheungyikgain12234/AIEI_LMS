@@ -26,6 +26,11 @@ class AppSettingKeys {
   /// modules from the Syllabus editor (admins define them when creating the
   /// class). Sessions and content inside modules stay fully editable.
   static const lockModulesForLecturers = 'lock_modules_for_lecturers';
+
+  /// When true, admins may edit a class's syllabus (modules, sessions,
+  /// content) from Manage Syllabi. Off by default: admins only review and
+  /// approve it.
+  static const adminCanEditSyllabus = 'admin_can_edit_syllabus';
 }
 
 abstract class AppSettingsRepository {

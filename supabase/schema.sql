@@ -787,3 +787,40 @@ create index if not exists course_announcements_section_id_idx on course_announc
 
 -- Existing databases: revoking a badge award now records why (required in the UI).
 alter table badge_awards add column if not exists revoke_reason text;
+
+-- ── Email admins when a lecturer submits a syllabus for approval ─────────
+-- The trigger calls the `notify-syllabus-submitted` Edge Function (see
+-- supabase/functions) through pg_net. One-time setup per project: store the
+-- function URL and shared secret in Vault —
+--   select vault.create_secret('https://<project-ref>.functions.supabase.co/notify-syllabus-submitted', 'syllabus_notify_url');
+--   select vault.create_secret('<same value as the WEBHOOK_SECRET function secret>', 'syllabus_notify_secret');
+-- If they are missing, submitting still works; no email is sent.
+create extension if not exists pg_net;
+
+create or replace function notify_syllabus_submitted() returns trigger
+language plpgsql security definer set search_path = public, extensions, vault as $$
+declare
+  fn_url text;
+  fn_secret text;
+begin
+  if new.syllabus_status = 'submitted' and old.syllabus_status is distinct from 'submitted' then
+    select decrypted_secret into fn_url from vault.decrypted_secrets where name = 'syllabus_notify_url';
+    select decrypted_secret into fn_secret from vault.decrypted_secrets where name = 'syllabus_notify_secret';
+    if fn_url is not null and fn_secret is not null then
+      perform net.http_post(
+        url := fn_url,
+        headers := jsonb_build_object('Content-Type', 'application/json', 'x-webhook-secret', fn_secret),
+        body := jsonb_build_object('section_id', new.id)
+      );
+    end if;
+  end if;
+  return new;
+exception when others then
+  -- Never block a lecturer's submission because the email could not be queued.
+  return new;
+end $$;
+
+drop trigger if exists trg_syllabus_submitted on course_sections;
+create trigger trg_syllabus_submitted
+  after update of syllabus_status on course_sections
+  for each row execute function notify_syllabus_submitted();

@@ -18,6 +18,7 @@ import 'package:stitch_aiei_lms/domain/models/attendance_settings.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/repositories/submission_grading_repository.dart' show AttendanceStatus;
 import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
+import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
@@ -61,7 +62,15 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
   final _attendanceRepository = SupabaseAttendanceSettingsRepositoryImpl(Supabase.instance.client);
 
-  bool _isLoading = true;
+  // Each part of the page loads on its own and appears as soon as it is
+  // ready, so there is no full-screen spinner. These flip to true once and
+  // stay true: later refreshes (e.g. coming back from another screen) update
+  // the content in place instead of flashing placeholders again.
+  bool _headerReady = false;
+  bool _rosterReady = false;
+  bool _hubReady = false;
+  bool _announcementsReady = false;
+  bool _gradebookReady = false;
   bool _showAnnouncementForm = false;
   bool _postingAnnouncement = false;
   final _announcementTitleController = TextEditingController();
@@ -120,29 +129,125 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     super.dispose();
   }
 
+  /// Starts every part of the page at once. Each part sets its own state and
+  /// its own "ready" flag when done, so the page fills in piece by piece.
   Future<void> _load() async {
+    // Shared by several parts, so fetched once.
+    final rosterFuture = _rosterRepository.getSectionRoster(widget.sectionId);
+    final structureFuture = _loadStructure();
+    await Future.wait([
+      _loadPart(_loadHeader, () => _headerReady = true),
+      _loadPart(() => _loadRoster(rosterFuture), () => _rosterReady = true),
+      _loadPart(() => _loadHub(structureFuture), () => _hubReady = true),
+      _loadPart(_loadAnnouncements, () => _announcementsReady = true),
+      _loadPart(() => _loadGradebook(rosterFuture, structureFuture), () => _gradebookReady = true),
+    ]);
+  }
+
+  /// Runs one part; marks it ready even if it failed, so a placeholder never
+  /// spins forever (the failure is logged).
+  Future<void> _loadPart(Future<void> Function() part, void Function() markReady) async {
+    try {
+      await part();
+    } catch (e) {
+      debugPrint('Course dashboard: a section failed to load: $e');
+    }
+    if (mounted) setState(markReady);
+  }
+
+  /// The class's module and session ids and syllabus status — needed by both
+  /// the Manage Course Contents card and the gradebook.
+  Future<({List<String> moduleIds, List<String> sessionIds, String syllabusStatus})> _loadStructure() async {
+    // Supabase queries only start when awaited, so wrap each to run them together.
+    final results = await Future.wait<dynamic>([
+      Future(() async => await _client.from('course_modules').select('id').eq('section_id', widget.sectionId)),
+      Future(() async => await _client.from('course_sections').select('syllabus_status').eq('id', widget.sectionId).maybeSingle()),
+    ]);
+    final moduleIds = [for (final row in results[0] as List) row['id'] as String];
+    final statusRow = results[1] as Map<String, dynamic>?;
+    final sessionRows = moduleIds.isEmpty
+        ? const <dynamic>[]
+        : await _client.from('sessions').select('id').inFilter('module_id', moduleIds);
+    return (
+      moduleIds: moduleIds,
+      sessionIds: [for (final row in sessionRows) row['id'] as String],
+      syllabusStatus: statusRow?['syllabus_status'] as String? ?? SyllabusStatus.draft,
+    );
+  }
+
+  /// Course title, codes and capacity (top of the page).
+  Future<void> _loadHeader() async {
     final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
+    final course = assignedCourses.where((c) => c.sectionId == widget.sectionId).firstOrNull;
+    if (!mounted) return;
+    setState(() {
+      _courseTitle = course?.title ?? 'Course';
+      _courseCode = course?.courseCode ?? _courseCode;
+      _classCode = course?.sectionCode ?? _classCode;
+      _classCapacity = course?.capacity ?? _classCapacity;
+    });
+  }
+
+  /// How many students are enrolled — available long before the gradebook.
+  Future<void> _loadRoster(Future<List<RosterStudent>> rosterFuture) async {
+    final students = await rosterFuture;
+    if (!mounted) return;
+    setState(() => _enrolledCount = students.length);
+  }
+
+  /// The Manage Course Contents card: module / session counts and status.
+  Future<void> _loadHub(Future<({List<String> moduleIds, List<String> sessionIds, String syllabusStatus})> structureFuture) async {
+    final structure = await structureFuture;
+    final modules = await _facultyRepository.getCourseModules(widget.sectionId);
+    if (!mounted) return;
+    setState(() {
+      _moduleCount = modules.length;
+      _sessionCount = structure.sessionIds.length;
+      _syllabusStatus = structure.syllabusStatus;
+    });
+  }
+
+  Future<void> _loadAnnouncements() async {
+    final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
+    if (!mounted) return;
+    setState(() => _announcements = announcements);
+  }
+
+  /// Everything that needs the students' grades and submissions: the stat
+  /// cards and the Student Directory. The slowest part, so it runs alongside
+  /// the others and its own queries run in parallel where they can.
+  Future<void> _loadGradebook(
+    Future<List<RosterStudent>> rosterFuture,
+    Future<({List<String> moduleIds, List<String> sessionIds, String syllabusStatus})> structureFuture,
+  ) async {
     // Section-scoped, not course-scoped: a student enrolled in this course
     // through a different section/cohort (or with no section assigned at
     // all) must not count toward THIS class's progress/grading stats — this
     // is also what MyAssignedCoursesScreen's table now uses, so the two
     // pages agree on the same number for the same class.
-    final students = await _rosterRepository.getSectionRoster(widget.sectionId);
-    final modules = await _facultyRepository.getCourseModules(widget.sectionId);
-    final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
+    final numericSettingsFuture = _settingsRepository.getNumericSettings();
+    final gradeScaleFuture = _settingsRepository.getGradeScale();
+    final attendanceSettingsFuture = _attendanceRepository.getSettings(widget.sectionId);
+    final students = await rosterFuture;
+    final sessionIds = (await structureFuture).sessionIds;
+
+    // Attendance rows (physical classes/exams and who was marked) are
+    // independent of the assessments, so fetch them at the same time.
+    final attendanceFuture = () async {
+      final blockRows = sessionIds.isEmpty
+          ? const <dynamic>[]
+          : await _client.from('content_blocks').select('id').inFilter('session_id', sessionIds).inFilter('block_type', ['physicalClass', 'physicalExam']);
+      final ids = [for (final row in blockRows) row['id'] as String];
+      final rows = ids.isEmpty
+          ? const <dynamic>[]
+          : await _client.from('content_block_submissions').select('content_block_id, student_id, submission').inFilter('content_block_id', ids);
+      return (ids: ids, rows: rows);
+    }();
 
     // ── Real class-wide assessment coverage (course_modules -> sessions ->
     // content_blocks, filtered to exam/assignment) plus every submission
     // against those blocks — this is what backs the KPI row and the
     // Student Directory's progress/assignment/quiz columns below. ────────
-    final moduleRows = await _client.from('course_modules').select('id').eq('section_id', widget.sectionId);
-    final moduleIds = [for (final row in moduleRows as List) row['id'] as String];
-    final statusRow = await _client.from('course_sections').select('syllabus_status').eq('id', widget.sectionId).maybeSingle();
-    final syllabusStatus = statusRow?['syllabus_status'] as String? ?? SyllabusStatus.draft;
-    final sessionRows = moduleIds.isEmpty
-        ? const <dynamic>[]
-        : await _client.from('sessions').select('id').inFilter('module_id', moduleIds);
-    final sessionIds = [for (final row in sessionRows) row['id'] as String];
     final assessmentRows = sessionIds.isEmpty
         ? const <dynamic>[]
         : await _client
@@ -175,13 +280,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     final overdueBlockIds = {for (final b in assessmentBlocks) if (!b.physical && b.dueDate != null && b.dueDate!.isBefore(now)) b.id};
 
     final examMaxMarks = <String, double>{};
-    for (final id in examBlockIds) {
-      examMaxMarks[id] = await _examRepository.getTotalMarks(id);
-    }
     final assignmentMaxMarks = <String, double>{};
-    for (final id in assignmentBlockIds) {
-      assignmentMaxMarks[id] = await _assignmentRepository.getTotalMarks(id);
-    }
+    await Future.wait([
+      for (final id in examBlockIds) _examRepository.getTotalMarks(id).then((v) => examMaxMarks[id] = v),
+      for (final id in assignmentBlockIds) _assignmentRepository.getTotalMarks(id).then((v) => assignmentMaxMarks[id] = v),
+    ]);
     final maxMarksByBlock = {
       ...examMaxMarks,
       ...assignmentMaxMarks,
@@ -226,14 +329,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     // sessions, scored with this class's Attendance Settings. Their share =
     // (sum of their scores) * weightage / (Present score * number of physical
     // classes). ──────────────────────────────────────────────────────────
-    final attendanceSettings = await _attendanceRepository.getSettings(widget.sectionId);
-    final classBlockRows = sessionIds.isEmpty
-        ? const <dynamic>[]
-        : await _client.from('content_blocks').select('id').inFilter('session_id', sessionIds).inFilter('block_type', ['physicalClass', 'physicalExam']);
-    final classBlockIds = [for (final row in classBlockRows) row['id'] as String];
-    final attendanceRows = classBlockIds.isEmpty
-        ? const <dynamic>[]
-        : await _client.from('content_block_submissions').select('content_block_id, student_id, submission').inFilter('content_block_id', classBlockIds);
+    final attendanceSettings = await attendanceSettingsFuture;
+    final attendanceData = await attendanceFuture;
+    final classBlockIds = attendanceData.ids;
+    final attendanceRows = attendanceData.rows;
     final attendanceMarksByStudent = <String, double>{};
     for (final row in attendanceRows) {
       final submission = Map<String, dynamic>.from(row['submission'] as Map? ?? {});
@@ -249,8 +348,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     assessmentColumns.add(AssessmentColumn(blockId: _attendanceColumnId, label: 'Attendance', weightage: attendanceSettings.weightage));
     final totalWeightagePctWithAttendance = totalWeightagePct + attendanceSettings.weightage;
     if (!mounted) return;
-
-    final course = assignedCourses.where((c) => c.sectionId == widget.sectionId).firstOrNull;
 
     var assignmentsToGrade = 0;
     var quizzesToGrade = 0;
@@ -329,15 +426,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       ));
     }
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
-    final numericSettings = await _settingsRepository.getNumericSettings();
-    final gradeScale = await _settingsRepository.getGradeScale();
+    final numericSettings = await numericSettingsFuture;
+    final gradeScale = await gradeScaleFuture;
     if (!mounted) return;
 
     setState(() {
-      _courseTitle = course?.title ?? 'Course';
-      _courseCode = course?.courseCode ?? _courseCode;
-      _classCode = course?.sectionCode ?? _classCode;
-      _classCapacity = course?.capacity ?? _classCapacity;
       _enrolledCount = students.length;
       _avgProgress = avgProgress;
       _assignmentsToGrade = assignmentsToGrade;
@@ -345,9 +438,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       _assignmentNonSubmissions = assignmentNonSubmissions;
       _quizNonSubmissions = quizNonSubmissions;
       _flaggedCount = flaggedCount;
-      _moduleCount = modules.length;
-      _sessionCount = sessionIds.length;
-      _syllabusStatus = syllabusStatus;
       _totalAssignmentBlocks = totalAssignmentBlocks;
       _rosterRows = rosterRows;
       _assessmentColumns = assessmentColumns;
@@ -355,8 +445,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       _attendanceSettings = attendanceSettings;
       _maxModeratedScore = numericSettings[AppSettingKeys.maxModeratedScore];
       _gradeScale = gradeScale;
-      _announcements = announcements;
-      _isLoading = false;
     });
   }
 
@@ -487,9 +575,6 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -552,20 +637,26 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
               ),
             ),
             const SizedBox(height: 6),
-            Text(_courseTitle, style: FacultyTypography.displayLg()),
+            _headerReady ? Text(_courseTitle, style: FacultyTypography.displayLg()) : const _Skeleton(width: 280, height: 36),
             const SizedBox(height: 6),
             Wrap(
               spacing: 8,
               runSpacing: 6,
               children: [
-                _tag('COURSE ID: $_courseCode', FacultyColors.surfaceContainerHigh, FacultyColors.onSurface),
-                _tag('CLASS: $_classCode', FacultyColors.surfaceContainer, FacultyColors.onSurfaceVariant),
+                if (_headerReady) ...[
+                  _tag('COURSE ID: $_courseCode', FacultyColors.surfaceContainerHigh, FacultyColors.onSurface),
+                  _tag('CLASS: $_classCode', FacultyColors.surfaceContainer, FacultyColors.onSurfaceVariant),
+                ] else ...const [
+                  _Skeleton(width: 130, height: 24, radius: 8),
+                  _Skeleton(width: 110, height: 24, radius: 8),
+                ],
               ],
             ),
           ],
         ),
         OutlinedButton.icon(
-          onPressed: _openAttendanceSettings,
+          // Needs the class's assessment weightage, so waits for the gradebook.
+          onPressed: _gradebookReady ? _openAttendanceSettings : null,
           icon: const Icon(Icons.settings_outlined, size: 18),
           label: const Text('Attendance Settings', textAlign: TextAlign.center),
           style: OutlinedButton.styleFrom(
@@ -622,7 +713,10 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       final cols = constraints.maxWidth >= 1100 ? 5 : (constraints.maxWidth >= 900 ? 3 : (constraints.maxWidth >= 500 ? 2 : 1));
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
-        _kpiCard('ENROLLED STUDENTS', '$_enrolledCount', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer),
+        _rosterReady
+            ? _kpiCard('ENROLLED STUDENTS', '$_enrolledCount', Icons.groups_outlined, FacultyColors.primary, FacultyColors.surfaceContainer)
+            : _kpiSkeleton(),
+        if (!_gradebookReady) ...[_kpiSkeleton(), _kpiSkeleton(), _kpiSkeleton(), _kpiSkeleton()] else ...[
         _kpiCard('ASSIGNMENTS TO GRADE', '$_assignmentsToGrade', Icons.assignment_turned_in_outlined, FacultyColors.onSecondaryFixedVariant, FacultyColors.secondaryContainer,
             footer: '$_assignmentNonSubmissions non-submissions', footerColor: FacultyColors.onSecondaryFixedVariant, pillFooter: true),
         _kpiCard('QUIZZES TO GRADE', '$_quizzesToGrade', Icons.quiz_outlined, FacultyColors.primary, FacultyColors.surfaceContainerHigh,
@@ -633,9 +727,32 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
           rawScores: [for (final r in _rosterRows) r.totalAchievedPct],
           moderatedScores: [for (final r in _rosterRows) r.finalTotalPct],
         ),
+        ],
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
     });
+  }
+
+  /// Placeholder with the same footprint as a stat card.
+  Widget _kpiSkeleton() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: FacultyColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Skeleton(width: 120, height: 12),
+          SizedBox(height: 10),
+          _Skeleton(width: 70, height: 32),
+          SizedBox(height: 16),
+          _Skeleton(height: 8),
+        ],
+      ),
+    );
   }
 
   Widget _kpiCard(String label, String value, IconData icon, Color iconColor, Color iconBg,
@@ -721,6 +838,9 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
         children: [
           Text('Manage Course Contents', style: FacultyTypography.headlineMd()),
           const SizedBox(height: 16),
+          if (!_hubReady)
+            const _Skeleton(height: 68, radius: 12)
+          else
           _hubRow(
             icon: Icons.folder_copy_outlined,
             iconBg: FacultyColors.primary,
@@ -771,7 +891,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
                 const Icon(Icons.badge_outlined, color: FacultyColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Expanded(child: Text('Student Directory', style: FacultyTypography.headlineMd())),
-                Text('$total enrolled', style: FacultyTypography.labelXs()),
+                Text('${_gradebookReady ? total : _enrolledCount} enrolled', style: FacultyTypography.labelXs()),
                 if (_flaggedCount > 0) ...[
                   const SizedBox(width: 8),
                   Container(
@@ -783,7 +903,21 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
               ],
             ),
           ),
-          if (_rosterRows.isEmpty)
+          if (!_gradebookReady)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Wrap(spacing: 16, runSpacing: 16, children: [for (var i = 0; i < 4; i++) SizedBox(width: 220, child: _kpiSkeleton())]),
+                  const SizedBox(height: 20),
+                  for (var i = 0; i < 6; i++) ...const [
+                    _Skeleton(height: 44, radius: 8),
+                    SizedBox(height: 8),
+                  ],
+                ],
+              ),
+            )
+          else if (_rosterRows.isEmpty)
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text('No students enrolled in this class yet.', style: FacultyTypography.bodySm()),
@@ -951,7 +1085,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
             ],
           ),
           const SizedBox(height: 8),
-          if (_announcements.isEmpty && !_showAnnouncementForm)
+          if (!_announcementsReady) ...const [
+            _Skeleton(height: 64, radius: 10),
+            SizedBox(height: 8),
+            _Skeleton(height: 64, radius: 10),
+          ] else if (_announcements.isEmpty && !_showAnnouncementForm)
             const AnnouncementsEmptyState()
           else
             for (var i = 0; i < _announcements.length; i++) ...[
@@ -1024,7 +1162,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: FacultyColors.background,
-      appBar: FacultyMobileTopBar(title: _courseTitle),
+      appBar: FacultyMobileTopBar(title: _headerReady ? _courseTitle : ''),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -1174,6 +1312,44 @@ class _AttendanceSettingsDialogState extends State<_AttendanceSettingsDialog> {
             helper: '${_fmt(_budget)}% available — assignments and exams use ${_fmt(widget.otherWeightage)}%. Everything together cannot exceed 100%.',
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A softly pulsing grey block shown where content is still loading.
+class _Skeleton extends StatefulWidget {
+  final double? width;
+  final double height;
+  final double radius;
+
+  const _Skeleton({this.width, required this.height, this.radius = 6});
+
+  @override
+  State<_Skeleton> createState() => _SkeletonState();
+}
+
+class _SkeletonState extends State<_Skeleton> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: Color.lerp(const Color(0xFFE2E8F0), const Color(0xFFF1F5F9), _controller.value),
+          borderRadius: BorderRadius.circular(widget.radius),
+        ),
       ),
     );
   }

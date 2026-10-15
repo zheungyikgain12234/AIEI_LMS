@@ -23,7 +23,9 @@ enum ContentBlockType {
 /// - video: `{"url": "...", "caption": "...", "thumbnailUrl": "..."}`
 /// - image: `{"url": "...", "caption": "..."}`
 /// - link: `{"url": "...", "label": "..."}`
-/// - file: `{"url": "...", "name": "...", "sizeLabel": "..."}`
+/// - file: `{"files": [{"url": "...", "name": "..."}, ...up to 10],
+///   "url": "first file", "name": "first file name"}` (older blocks: just
+///   `url`/`name`/`sizeLabel`)
 /// - exam: `{"title": "...", "description": "...", "instructions": "...",
 ///   "dueDate": "ISO 8601 string", "mode": "normal|open_book|take_home"}` —
 ///   points at the exam editor's section/question tree, keyed by [id].
@@ -66,6 +68,14 @@ class ContentBlock {
   String? get label => content['label'] as String?;
   String? get fileName => content['name'] as String?;
   String? get sizeLabel => content['sizeLabel'] as String?;
+
+  /// A File block's files (each `{"url", "name"}`), up to 10. Older blocks
+  /// hold a single file in `url`/`name`, which is returned as a one-item list.
+  List<Map<String, dynamic>> get files {
+    final list = (content['files'] as List?)?.cast<Map<String, dynamic>>();
+    if (list != null && list.isNotEmpty) return list;
+    return url.isEmpty ? const [] : [{'url': url, 'name': fileName ?? url}];
+  }
   String? get title => content['title'] as String?;
   String? get description => content['description'] as String?;
   String? get instructions => content['instructions'] as String?;

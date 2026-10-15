@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -94,7 +95,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
       appBar: mobile
           ? const FacultyMobileTopBar(title: 'Student View')
           : AppBar(
-              backgroundColor: FacultyColors.surfaceContainerLowest,
+              backgroundColor: AdminColors.navSurface,
               elevation: 0,
               scrolledUnderElevation: 0,
               foregroundColor: FacultyColors.onSurface,
@@ -272,7 +273,20 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
           ],
         );
       case ContentBlockType.file:
-        return DownloadableFile(url: b.url, label: b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final f in b.files)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: DownloadableFile(
+                  url: f['url'] as String? ?? '',
+                  label: f['name'] as String? ?? f['url'] as String? ?? 'File',
+                  style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                ),
+              ),
+          ],
+        );
       case ContentBlockType.exam:
         return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Exam', onTap: () => _openExam(b));
       case ContentBlockType.assignment:

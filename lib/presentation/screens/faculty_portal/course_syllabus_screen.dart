@@ -5,7 +5,8 @@ import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/admin_
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart' show FileType;
+import 'package:stitch_aiei_lms/presentation/widgets/file_drop_zone.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -1285,7 +1286,20 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
           ],
         );
       case ContentBlockType.file:
-        return DownloadableFile(url: b.url, label: b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final f in b.files)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: DownloadableFile(
+                  url: f['url'] as String? ?? '',
+                  label: f['name'] as String? ?? f['url'] as String? ?? 'File',
+                  style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                ),
+              ),
+          ],
+        );
       case ContentBlockType.exam:
         return _infoWithActions(
           Column(
@@ -1542,12 +1556,12 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   late String _mode = widget.existing?.mode ?? 'normal';
   DateTime? _dueDate;
   DateTime? _availableFrom;
-  String? _uploadedFileName;
   bool _uploading = false;
   bool _submitted = false;
   Map<String, String> _fieldErrors = {};
   bool _uploadingThumbnail = false;
   bool _uploadingInstructionFile = false;
+  late List<Map<String, dynamic>> _blockFiles = List.from(widget.existing?.files ?? const []);
   bool _loadingWeightage = true;
   double _otherWeightageTotal = 0;
   late List<Map<String, dynamic>> _instructionFiles = List.from(widget.existing?.instructionFiles ?? const []);
@@ -1561,7 +1575,6 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     _richTextController.addListener(() => setState(() {}));
     _dueDate = widget.existing?.dueDate;
     _availableFrom = widget.existing?.availableFrom;
-    _uploadedFileName = widget.existing?.fileName;
     _loadWeightageBudget();
   }
 
@@ -1684,7 +1697,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.link:
         requireText('url', _urlController, 'URL is required.');
       case ContentBlockType.file:
-        requireText('url', _urlController, 'Upload a file.');
+        if (_blockFiles.isEmpty) errors['url'] = 'Upload at least one file.';
       case ContentBlockType.exam:
         requireText('title', _titleController, 'Exam name is required.');
         requireText('description', _descriptionController, 'Description is required.');
@@ -1752,83 +1765,66 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     return null;
   }
 
-  Future<void> _pickAndUpload({required FileType fileType}) async {
-    final result = await FilePicker.platform.pickFiles(type: fileType, withData: true);
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.single;
-    final bytes = file.bytes;
-    if (bytes == null) return;
+  /// Uploads [file] and returns its public URL, or sets [_error] and returns null.
+  Future<String?> _upload(PickedUpload file, String failureLabel) async {
+    try {
+      return await widget.repository.uploadContentFile(sessionId: widget.sessionId, fileName: file.name, bytes: file.bytes);
+    } catch (e) {
+      if (mounted) setState(() => _error = '$failureLabel: $e');
+      return null;
+    }
+  }
+
+  Future<void> _uploadMedia(PickedUpload file) async {
     setState(() {
       _uploading = true;
       _error = null;
     });
-    try {
-      final url = await widget.repository.uploadContentFile(sessionId: widget.sessionId, fileName: file.name, bytes: bytes);
-      if (!mounted) return;
-      setState(() {
+    final url = await _upload(file, 'Upload failed');
+    if (!mounted) return;
+    setState(() {
+      if (url != null) {
         _urlController.text = url;
-        _uploadedFileName = file.name;
-        _uploading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Upload failed: $e';
-        _uploading = false;
-      });
-    }
+      }
+      _uploading = false;
+    });
   }
 
-  Future<void> _pickAndUploadThumbnail() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.single;
-    final bytes = file.bytes;
-    if (bytes == null) return;
+  Future<void> _uploadThumbnail(PickedUpload file) async {
     setState(() {
       _uploadingThumbnail = true;
       _error = null;
     });
-    try {
-      final url = await widget.repository.uploadContentFile(sessionId: widget.sessionId, fileName: file.name, bytes: bytes);
-      if (!mounted) return;
-      setState(() {
-        _thumbnailUrlController.text = url;
-        _uploadingThumbnail = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Thumbnail upload failed: $e';
-        _uploadingThumbnail = false;
-      });
-    }
+    final url = await _upload(file, 'Thumbnail upload failed');
+    if (!mounted) return;
+    setState(() {
+      if (url != null) _thumbnailUrlController.text = url;
+      _uploadingThumbnail = false;
+    });
   }
 
-  Future<void> _pickAndUploadInstructionFile() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.single;
-    final bytes = file.bytes;
-    if (bytes == null) return;
+  /// Shared by the Attached Files area and File blocks: adds each file to [list].
+  Future<void> _uploadInto(List<PickedUpload> picked, List<Map<String, dynamic>> list, void Function(bool) setBusy, String failureLabel) async {
     setState(() {
-      _uploadingInstructionFile = true;
+      setBusy(true);
       _error = null;
     });
-    try {
-      final url = await widget.repository.uploadContentFile(sessionId: widget.sessionId, fileName: file.name, bytes: bytes);
+    for (final file in picked) {
+      final url = await _upload(file, failureLabel);
       if (!mounted) return;
-      setState(() {
-        _instructionFiles = [..._instructionFiles, {'url': url, 'name': file.name}];
-        _uploadingInstructionFile = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'File attachment failed: $e';
-        _uploadingInstructionFile = false;
-      });
+      if (url != null) setState(() => list.add({'url': url, 'name': file.name}));
     }
+    if (mounted) setState(() => setBusy(false));
+  }
+
+  Future<void> _uploadInstructionFiles(List<PickedUpload> picked) =>
+      _uploadInto(picked, _instructionFiles, (b) => _uploadingInstructionFile = b, 'File attachment failed');
+
+  Future<void> _uploadBlockFiles(List<PickedUpload> picked) =>
+      _uploadInto(picked, _blockFiles, (b) => _uploading = b, 'Upload failed');
+
+  void _removeBlockFile(int index) {
+    setState(() => _blockFiles = [..._blockFiles]..removeAt(index));
   }
 
   void _removeInstructionFile(int index) {
@@ -1857,8 +1853,9 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         };
       case ContentBlockType.file:
         return {
-          'url': _urlController.text.trim(),
-          if (_uploadedFileName != null) 'name': _uploadedFileName,
+          'files': _blockFiles,
+          'url': _blockFiles.isEmpty ? '' : _blockFiles.first['url'],
+          'name': _blockFiles.isEmpty ? '' : _blockFiles.first['name'],
         };
       case ContentBlockType.exam:
         return {
@@ -1981,7 +1978,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           const SizedBox(height: 8),
           _orDivider(),
           const SizedBox(height: 8),
-          _uploadButton(fileType: FileType.video, label: 'Upload a video file'),
+          FileDropZone(maxFiles: 1, fileType: FileType.video, title: 'Drag & drop a video file here', uploading: _uploading, onFiles: (f) => _uploadMedia(f.first)),
           const SizedBox(height: 12),
           LabeledField(label: 'Caption', required: false, child: TextField(controller: _captionController, decoration: const InputDecoration())),
           const SizedBox(height: 12),
@@ -1994,13 +1991,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             onChanged: (_) => setState(() {}),
           )),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _uploadingThumbnail ? null : _pickAndUploadThumbnail,
-            icon: _uploadingThumbnail
-                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.upload_file, size: 16),
-            label: const Text('Upload a thumbnail image', textAlign: TextAlign.center),
-          ),
+          FileDropZone(maxFiles: 1, fileType: FileType.image, title: 'Drag & drop a thumbnail image here', uploading: _uploadingThumbnail, onFiles: (f) => _uploadThumbnail(f.first)),
           if (_urlController.text.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
             EmbeddedVideoPlayer(url: _urlController.text.trim(), thumbnailUrl: _thumbnailUrlController.text.trim()),
@@ -2017,7 +2008,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           const SizedBox(height: 8),
           _orDivider(),
           const SizedBox(height: 8),
-          _uploadButton(fileType: FileType.image, label: 'Upload an image'),
+          FileDropZone(maxFiles: 1, fileType: FileType.image, title: 'Drag & drop an image here', uploading: _uploading, onFiles: (f) => _uploadMedia(f.first)),
           const SizedBox(height: 12),
           LabeledField(label: 'Caption', required: false, child: TextField(controller: _captionController, decoration: const InputDecoration())),
           if (_urlController.text.trim().isNotEmpty) ...[
@@ -2038,12 +2029,9 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         ];
       case ContentBlockType.file:
         return [
-          _uploadButton(fileType: FileType.any, label: 'Upload a file'),
+          _attachedFileList(_blockFiles, _removeBlockFile),
+          FileDropZone(currentCount: _blockFiles.length, uploading: _uploading, onFiles: _uploadBlockFiles),
           _fe('url'),
-          if (_uploadedFileName != null) ...[
-            const SizedBox(height: 8),
-            Text('Selected: $_uploadedFileName', style: const TextStyle(fontSize: 13)),
-          ],
         ];
       case ContentBlockType.exam:
         return [
@@ -2334,42 +2322,49 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     );
   }
 
+  /// The names of files already attached, each with a remove button.
+  Widget _attachedFileList(List<Map<String, dynamic>> files, void Function(int) onRemove) {
+    if (files.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        children: [
+          for (var i = 0; i < files.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  const Icon(Icons.attach_file, size: 16, color: FacultyColors.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      files[i]['name'] as String? ?? 'Attachment',
+                      style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => onRemove(i),
+                    icon: const Icon(Icons.close, size: 16, color: FacultyColors.onSurfaceVariant),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Remove',
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _instructionFilesField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const AdminFieldLabel('Attached Files', required: false),
         const SizedBox(height: 6),
-        for (var i = 0; i < _instructionFiles.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              children: [
-                const Icon(Icons.attach_file, size: 16, color: FacultyColors.onSurfaceVariant),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    _instructionFiles[i]['name'] as String? ?? 'Attachment',
-                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => _removeInstructionFile(i),
-                  icon: const Icon(Icons.close, size: 16, color: FacultyColors.onSurfaceVariant),
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Remove',
-                ),
-              ],
-            ),
-          ),
-        OutlinedButton.icon(
-          onPressed: _uploadingInstructionFile ? null : _pickAndUploadInstructionFile,
-          icon: _uploadingInstructionFile
-              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.upload_file, size: 16),
-          label: const Text('Attach a file', textAlign: TextAlign.center),
-        ),
+        _attachedFileList(_instructionFiles, _removeInstructionFile),
+        FileDropZone(currentCount: _instructionFiles.length, uploading: _uploadingInstructionFile, onFiles: _uploadInstructionFiles),
       ],
     );
   }
@@ -2380,15 +2375,6 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         Expanded(child: Divider()),
       ]);
 
-  Widget _uploadButton({required FileType fileType, required String label}) {
-    return OutlinedButton.icon(
-      onPressed: _uploading ? null : () => _pickAndUpload(fileType: fileType),
-      icon: _uploading
-          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-          : const Icon(Icons.upload_file, size: 16),
-      label: Text(label, textAlign: TextAlign.center),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------

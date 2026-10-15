@@ -536,7 +536,7 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
               color: _dirty ? AdminColors.primaryContainer : AdminColors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Icon(Icons.check, size: 16, color: AdminColors.onSurfaceVariant),
+            child: Icon(Icons.check, size: 18, color: _dirty ? Colors.white : AdminColors.onSurfaceVariant),
           ),
         ),
       ],

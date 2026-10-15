@@ -115,7 +115,7 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
     return Scaffold(
       backgroundColor: AdminColors.background,
       appBar: AppBar(
-        backgroundColor: AdminColors.surfaceContainerLowest,
+        backgroundColor: AdminColors.navSurface,
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AdminColors.onSurface,

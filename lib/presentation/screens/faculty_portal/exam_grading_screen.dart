@@ -13,6 +13,7 @@ import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/exam_question.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
+import 'widgets/grading_comments_field.dart';
 
 /// One roster entry in the grading queue an [ExamGradingScreen] was opened
 /// from — lets "Save and Mark the Next Student" step forward through the
@@ -255,11 +256,7 @@ class _ExamGradingScreenState extends State<ExamGradingScreen> {
                   else
                     for (var i = 0; i < _questions.length; i++) _questionCard(_questions[i], i + 1),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: _feedbackController,
-                    decoration: const InputDecoration(labelText: 'Overall feedback (optional)'),
-                    maxLines: 3,
-                  ),
+                  GradingCommentsField(controller: _feedbackController),
                   const SizedBox(height: 20),
                   _totalAndSaveBar(),
                 ],

@@ -13,6 +13,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_re
 import 'package:stitch_aiei_lms/domain/models/assignment_criterion.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
+import 'widgets/grading_comments_field.dart';
 
 /// One roster entry in the grading queue an [AssignmentGradingScreen] was
 /// opened from — lets "Save and Mark the Next Student" step forward through
@@ -215,11 +216,7 @@ class _AssignmentGradingScreenState extends State<AssignmentGradingScreen> {
                   else
                     for (final c in _criteria) _criterionRow(c),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: _feedbackController,
-                    decoration: const InputDecoration(labelText: 'Overall feedback (optional)'),
-                    maxLines: 3,
-                  ),
+                  GradingCommentsField(controller: _feedbackController),
                   const SizedBox(height: 20),
                   _totalAndSaveBar(),
                 ],

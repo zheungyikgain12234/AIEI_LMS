@@ -55,6 +55,7 @@ class UiContrast {
 
   /// Checkbox with a thick, visible outline when unticked.
   static CheckboxThemeData get checkboxTheme => CheckboxThemeData(
+        checkColor: const WidgetStatePropertyAll(Colors.white),
         side: WidgetStateBorderSide.resolveWith(
           (states) => states.contains(WidgetState.selected)
               ? const BorderSide(color: AdminColors.primaryContainer, width: 2)

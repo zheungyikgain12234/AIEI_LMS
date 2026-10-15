@@ -51,6 +51,14 @@ class AieiLmsApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         // Shared field look: filled, clear border, blue focus ring, and an
         // italic light placeholder that can't be mistaken for entered text.
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AdminColors.navSurface,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: AdminColors.onSurface,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          shape: Border(bottom: BorderSide(color: AdminColors.navBorder)),
+        ),
         inputDecorationTheme: UiContrast.inputTheme,
         checkboxTheme: UiContrast.checkboxTheme,
         dividerTheme: const DividerThemeData(color: UiContrast.divider),

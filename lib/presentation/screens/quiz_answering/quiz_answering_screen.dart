@@ -2,7 +2,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'dart:async';
-import 'package:file_picker/file_picker.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/file_drop_zone.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
@@ -242,29 +242,24 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 300), alignment: 0.1);
   }
 
-  Future<void> _pickAndUploadFor(ExamQuestion q) async {
+  Future<void> _uploadFilesFor(ExamQuestion q, List<PickedUpload> picked) async {
     final block = _block;
     if (block == null) return;
-    final result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.single;
-    final bytes = file.bytes;
-    if (bytes == null) return;
     setState(() => _uploadingQuestionIds.add(q.id));
-    try {
-      final url = await _syllabusRepository.uploadContentFile(sessionId: block.sessionId, fileName: file.name, bytes: bytes);
-      if (!mounted) return;
-      setState(() {
-        _fileAnswers[q.id] = [
-          ...(_fileAnswers[q.id] ?? const []),
-          {'name': file.name, 'url': url},
-        ];
-        _uploadingQuestionIds.remove(q.id);
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _uploadingQuestionIds.remove(q.id));
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+    var failed = 0;
+    for (final file in picked) {
+      try {
+        final url = await _syllabusRepository.uploadContentFile(sessionId: block.sessionId, fileName: file.name, bytes: file.bytes);
+        if (!mounted) return;
+        setState(() => _fileAnswers[q.id] = [...(_fileAnswers[q.id] ?? const []), {'name': file.name, 'url': url}]);
+      } catch (_) {
+        failed++;
+      }
+    }
+    if (!mounted) return;
+    setState(() => _uploadingQuestionIds.remove(q.id));
+    if (failed > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$failed file${failed == 1 ? '' : 's'} failed to upload.')));
     }
   }
 
@@ -327,7 +322,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     if (block == null) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(backgroundColor: AppColors.surfaceContainerLowest, elevation: 0, title: const Text('Exam')),
+        appBar: AppBar(title: const Text('Exam')),
         body: Center(child: Text('This exam is no longer available.', style: AppTypography.bodyMd())),
       );
     }
@@ -908,12 +903,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
                   ),
           ),
         if (!readOnly)
-          OutlinedButton.icon(
-            onPressed: uploading ? null : () => _pickAndUploadFor(q),
-            icon: uploading ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.upload_file, size: 16),
-            label: const Text('Attach a file', textAlign: TextAlign.center),
-            style: OutlinedButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
-          )
+          FileDropZone(currentCount: files.length, uploading: uploading, onFiles: (picked) => _uploadFilesFor(q, picked))
         else if (files.isEmpty)
           Text('No file submitted.', style: AppTypography.bodySm(color: AppColors.onSurfaceVariant)),
       ],

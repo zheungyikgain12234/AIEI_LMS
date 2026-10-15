@@ -1,6 +1,6 @@
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/file_drop_zone.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -88,29 +88,24 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
 
   bool get _canSubmit => _writeupController.text.trim().isNotEmpty || _files.isNotEmpty;
 
-  Future<void> _pickAndUploadFile() async {
+  Future<void> _uploadFiles(List<PickedUpload> picked) async {
     final block = _block;
     if (block == null) return;
-    final result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.single;
-    final bytes = file.bytes;
-    if (bytes == null) return;
     setState(() => _uploadingFile = true);
-    try {
-      final url = await _syllabusRepository.uploadContentFile(sessionId: block.sessionId, fileName: file.name, bytes: bytes);
-      if (!mounted) return;
-      setState(() {
-        _files = [
-          ..._files,
-          {'name': file.name, 'url': url},
-        ];
-        _uploadingFile = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _uploadingFile = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+    var failed = 0;
+    for (final file in picked) {
+      try {
+        final url = await _syllabusRepository.uploadContentFile(sessionId: block.sessionId, fileName: file.name, bytes: file.bytes);
+        if (!mounted) return;
+        setState(() => _files = [..._files, {'name': file.name, 'url': url}]);
+      } catch (_) {
+        failed++;
+      }
+    }
+    if (!mounted) return;
+    setState(() => _uploadingFile = false);
+    if (failed > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$failed file${failed == 1 ? '' : 's'} failed to upload.')));
     }
   }
 
@@ -213,14 +208,7 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                   ),
                   const SizedBox(height: 12),
                   for (var i = 0; i < _files.length; i++) _fileRow(i),
-                  if (!_locked)
-                    OutlinedButton.icon(
-                      onPressed: _uploadingFile ? null : _pickAndUploadFile,
-                      icon: _uploadingFile
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.upload_file, size: 16),
-                      label: const Text('Attach a file', textAlign: TextAlign.center),
-                    ),
+                  if (!_locked) FileDropZone(currentCount: _files.length, uploading: _uploadingFile, onFiles: _uploadFiles),
                   const SizedBox(height: 20),
                   if (!_locked)
                   ElevatedButton.icon(

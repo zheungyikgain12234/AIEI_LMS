@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -200,7 +201,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
       appBar: mobile
           ? FacultyMobileTopBar(title: widget.courseTitle)
           : AppBar(
-              backgroundColor: FacultyColors.surfaceContainerLowest,
+              backgroundColor: AdminColors.navSurface,
               elevation: 0,
               scrolledUnderElevation: 0,
               foregroundColor: FacultyColors.onSurface,
@@ -638,11 +639,11 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.event_note_outlined, size: 15, color: FacultyColors.onPrimaryContainer),
+                const Icon(Icons.event_note_outlined, size: 15, color: Colors.white),
                 const SizedBox(width: 6),
                 Text(
                   'Class: $_classCode',
-                  style: FacultyTypography.labelMd(color: FacultyColors.onPrimaryContainer).copyWith(fontWeight: FontWeight.w700),
+                  style: FacultyTypography.labelMd(color: Colors.white).copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -654,11 +655,11 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.person_outline, size: 15, color: FacultyColors.onSecondaryContainer),
+                const Icon(Icons.person_outline, size: 15, color: Color(0xFF1E3A8A)),
                 const SizedBox(width: 6),
                 Text(
                   'Lecturer: $_lecturerName',
-                  style: FacultyTypography.labelMd(color: FacultyColors.onSecondaryContainer).copyWith(fontWeight: FontWeight.w700),
+                  style: FacultyTypography.labelMd(color: const Color(0xFF1E3A8A)).copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -847,7 +848,20 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
           ],
         );
       case ContentBlockType.file:
-        return DownloadableFile(url: b.url, label: b.fileName ?? b.url, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final f in b.files)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: DownloadableFile(
+                  url: f['url'] as String? ?? '',
+                  label: f['name'] as String? ?? f['url'] as String? ?? 'File',
+                  style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                ),
+              ),
+          ],
+        );
       case ContentBlockType.exam:
         return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Exam', onTap: () => _openExam(b));
       case ContentBlockType.assignment:

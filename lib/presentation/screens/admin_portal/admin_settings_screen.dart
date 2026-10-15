@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/grade_distribution.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_grade_distribution_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'widgets/admin_scaffold.dart';
@@ -32,6 +34,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   Map<String, bool> _settings = {};
   Map<String, double?> _numericSettings = {};
   GradeScale _gradeScale = GradeScale.defaultScale;
+  final _distributionRepository = SupabaseGradeDistributionRepositoryImpl(Supabase.instance.client);
+  GradeDistributionRules _gradeRules = GradeDistributionRules.defaults;
   final Set<String> _saving = {};
 
   @override
@@ -45,8 +49,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     final settings = await _repository.getSettings();
     final numericSettings = await _repository.getNumericSettings();
     final gradeScale = await _repository.getGradeScale();
+    final gradeRules = await _distributionRepository.getRules();
     if (!mounted) return;
     setState(() {
+      _gradeRules = gradeRules;
       _settings = settings;
       _numericSettings = numericSettings;
       _gradeScale = gradeScale;
@@ -63,6 +69,18 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save grade scale: $e')));
+    }
+  }
+
+  Future<void> _saveGradeRules(GradeDistributionRules rules) async {
+    try {
+      await _distributionRepository.saveRules(rules);
+      if (!mounted) return;
+      setState(() => _gradeRules = rules);
+      showSuccessSnackBar(context, 'Grade distribution limits saved.');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save the limits: $e')));
     }
   }
 
@@ -113,6 +131,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           const SizedBox(height: 20),
           _settingsCard(),
           const SizedBox(height: 20),
+          _gradeDistributionCard(),
+          const SizedBox(height: 20),
           _gradeScaleCard(),
         ],
       ),
@@ -127,6 +147,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         const SizedBox(height: 2),
         Text('Global feature flags applied across every course and portal.', style: AdminTypography.bodyMd()),
       ],
+    );
+  }
+
+  Widget _gradeDistributionCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      padding: const EdgeInsets.all(16),
+      child: _GradeDistributionEditor(rules: _gradeRules, onSave: _saveGradeRules),
     );
   }
 
@@ -258,7 +287,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               const SizedBox(height: 16),
               _settingsCard(),
               const SizedBox(height: 16),
-              _gradeScaleCard(),
+              _gradeDistributionCard(),
+          const SizedBox(height: 20),
+          _gradeScaleCard(),
             ],
           ),
         ),
@@ -539,6 +570,136 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(Icons.check, size: 18, color: _dirty ? Colors.white : AdminColors.onSurfaceVariant),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Editor for the grade distribution limits: for each band, the most students
+/// (as a percentage of the class) who may get that grade or better. A class
+/// that goes over a limit is flagged to its lecturer, who must moderate the
+/// grades or send the distribution to an admin for approval.
+class _GradeDistributionEditor extends StatefulWidget {
+  final GradeDistributionRules rules;
+  final Future<void> Function(GradeDistributionRules rules) onSave;
+
+  const _GradeDistributionEditor({required this.rules, required this.onSave});
+
+  @override
+  State<_GradeDistributionEditor> createState() => _GradeDistributionEditorState();
+}
+
+class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
+  late final Map<GradeBandLimit, TextEditingController> _controllers = {
+    for (final band in GradeBandLimit.values)
+      band: TextEditingController(text: _fmt(widget.rules.percentFor(band))),
+  };
+  String? _error;
+  bool _saving = false;
+
+  static String _fmt(double? v) => v == null ? '' : (v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString());
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final values = <GradeBandLimit, double?>{};
+    for (final band in GradeBandLimit.values) {
+      final text = _controllers[band]!.text.trim();
+      if (text.isEmpty) {
+        values[band] = null;
+        continue;
+      }
+      final v = double.tryParse(text);
+      if (v == null || v < 0 || v > 100) {
+        setState(() => _error = '${band.label}: enter a percentage from 0 to 100, or leave it blank for no limit.');
+        return;
+      }
+      values[band] = v;
+    }
+    // The limits are cumulative ("A and above" includes A+), so each one can
+    // never be lower than the one before it.
+    double? previous;
+    GradeBandLimit? previousBand;
+    for (final band in GradeBandLimit.values) {
+      final v = values[band];
+      if (v == null) continue;
+      if (previous != null && v < previous) {
+        setState(() => _error = '${band.label} (${_fmt(v)}%) cannot be lower than ${previousBand!.label} (${_fmt(previous)}%), because it includes those students.');
+        return;
+      }
+      previous = v;
+      previousBand = band;
+    }
+    setState(() {
+      _error = null;
+      _saving = true;
+    });
+    await widget.onSave(GradeDistributionRules(values));
+    if (mounted) setState(() => _saving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Grade Distribution Limits', style: AdminTypography.titleMd()),
+        const SizedBox(height: 4),
+        Text(
+          'The most students in a class (as a percentage of those enrolled) who may receive each grade or better. '
+          'If a lecturer\'s grading goes over a limit, they are alerted and must either moderate their grades or send the '
+          'distribution to you for approval (see Grade Approvals). Leave a box blank for no limit.',
+          style: AdminTypography.bodySm(),
+        ),
+        const SizedBox(height: 16),
+        for (final band in GradeBandLimit.values)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                SizedBox(width: 150, child: Text(band.label, style: AdminTypography.titleSm())),
+                SizedBox(
+                  width: 110,
+                  child: TextField(
+                    controller: _controllers[band],
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: decimalOnly,
+                    textAlign: TextAlign.right,
+                    style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                    onChanged: (_) => setState(() => _error = null),
+                    decoration: const InputDecoration(hintText: 'No limit', suffixText: '%'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text('of enrolled students', style: AdminTypography.bodySm())),
+              ],
+            ),
+          ),
+        if (_error != null) ...[
+          const SizedBox(height: 4),
+          Text(_error!, style: AdminTypography.bodySm(color: AdminColors.error)),
+        ],
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton(
+            onPressed: _saving ? null : _save,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminColors.primaryContainer,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(_saving ? 'Saving…' : 'Save Limits', textAlign: TextAlign.center),
           ),
         ),
       ],

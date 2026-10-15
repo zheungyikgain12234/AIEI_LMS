@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -11,6 +12,8 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_attendance_settings_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_grade_distribution_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/grade_distribution.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
@@ -61,6 +64,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
   final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
   final _attendanceRepository = SupabaseAttendanceSettingsRepositoryImpl(Supabase.instance.client);
+  final _distributionRepository = SupabaseGradeDistributionRepositoryImpl(Supabase.instance.client);
+  final _directoryKey = GlobalKey();
 
   // Each part of the page loads on its own and appears as soon as it is
   // ready, so there is no full-screen spinner. These flip to true once and
@@ -111,6 +116,17 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
             r.studentCode.toLowerCase().contains(query))
         .toList();
   }
+  /// How this class's final grades compare with the admin's grade distribution
+  /// limits, and the lecturer's latest request to have them approved.
+  GradeDistributionRules _gradeRules = GradeDistributionRules.defaults;
+
+  /// Worked out from the Student Directory as it is right now (each student's
+  /// FINAL SCORE = raw score + moderation, capped at 100, turned into a letter
+  /// by the grade scale), so moderating a score updates the alert at once.
+  GradeDistributionCheck? get _distribution => !_gradebookReady
+      ? null
+      : _gradeRules.evaluate([for (final r in _rosterRows) _gradeScale.letterFor(r.finalTotalPct)]);
+  GradeDistributionRequest? _distributionRequest;
   double? _maxModeratedScore;
   GradeScale _gradeScale = GradeScale.defaultScale;
   List<CourseAnnouncement> _announcements = const [];
@@ -228,6 +244,9 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     final numericSettingsFuture = _settingsRepository.getNumericSettings();
     final gradeScaleFuture = _settingsRepository.getGradeScale();
     final attendanceSettingsFuture = _attendanceRepository.getSettings(widget.sectionId);
+    final rulesFuture = _distributionRepository.getRules();
+    // A missing requests table (not set up yet) just means "no request".
+    final requestFuture = _distributionRepository.getLatestRequest(widget.sectionId).then<GradeDistributionRequest?>((r) => r, onError: (_) => null);
     final students = await rosterFuture;
     final sessionIds = (await structureFuture).sessionIds;
 
@@ -428,9 +447,13 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     final avgProgress = students.isEmpty ? 0 : (progressSum / students.length).round();
     final numericSettings = await numericSettingsFuture;
     final gradeScale = await gradeScaleFuture;
+    final gradeRules = await rulesFuture;
+    final distributionRequest = await requestFuture;
     if (!mounted) return;
 
     setState(() {
+      _gradeRules = gradeRules;
+      _distributionRequest = distributionRequest;
       _enrolledCount = students.length;
       _avgProgress = avgProgress;
       _assignmentsToGrade = assignmentsToGrade;
@@ -588,6 +611,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
           const SizedBox(height: 20),
           _buildKpiRow(),
           const SizedBox(height: 24),
+          _buildDistributionAlert(),
           LayoutBuilder(builder: (context, constraints) {
             final wide = constraints.maxWidth >= 1000;
             final left = _buildQuickAccessHub();
@@ -704,6 +728,128 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
           ],
           Text(text, style: FacultyTypography.labelXs(color: fg).copyWith(fontWeight: FontWeight.w700)),
         ],
+      ),
+    );
+  }
+
+  static String _pctText(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString();
+
+  void _scrollToDirectory() {
+    final ctx = _directoryKey.currentContext;
+    if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
+  }
+
+  Future<void> _sendDistributionForApproval(GradeDistributionCheck check) async {
+    final justification = await showDialog<String>(
+      context: context,
+      builder: (_) => _DistributionRequestDialog(check: check),
+    );
+    if (justification == null || !mounted) return;
+    try {
+      await _distributionRepository.submitRequest(
+        sectionId: widget.sectionId,
+        lecturerId: DemoIdentity.lecturerId,
+        justification: justification,
+        check: check,
+      );
+      final request = await _distributionRepository.getLatestRequest(widget.sectionId);
+      if (!mounted) return;
+      setState(() => _distributionRequest = request);
+      showSuccessSnackBar(context, 'Sent to the admin for approval.');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not send the request: $e')));
+    }
+  }
+
+  /// Alerts the lecturer when the class has more top grades than the admin's
+  /// limits allow. They can either moderate their grading to fit, or send the
+  /// distribution to the admin for approval. Hidden while the grades are
+  /// within the limits.
+  Widget _buildDistributionAlert() {
+    final check = _distribution;
+    if (!_gradebookReady || check == null || check.isWithinLimits) return const SizedBox.shrink();
+    final request = _distributionRequest;
+    final approved = request != null && request.isApproved && request.coversCounts(check.counts);
+    final pending = request != null && request.isPending;
+
+    final (Color bg, Color border, Color fg, IconData icon, String title) = approved
+        ? (const Color(0xFFDCFCE7), const Color(0xFF86EFAC), const Color(0xFF14532D), Icons.verified_outlined, 'Grade distribution approved by the admin')
+        : pending
+            ? (const Color(0xFFDBEAFE), const Color(0xFF93C5FD), const Color(0xFF1E3A8A), Icons.hourglass_top_outlined, 'Waiting for the admin to review your grade distribution')
+            : (const Color(0xFFFEF3C7), const Color(0xFFF59E0B), const Color(0xFF7C2D12), Icons.warning_amber_rounded, 'Your grade distribution is outside the allowed limits');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: bg, border: Border.all(color: border, width: 1.5), borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: fg),
+                const SizedBox(width: 10),
+                Expanded(child: Text(title, style: FacultyTypography.titleSm(color: fg).copyWith(fontSize: 16))),
+              ],
+            ),
+            const SizedBox(height: 10),
+            for (final b in check.violations)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  '• ${b.band.label}: ${b.actual} of ${check.enrolled} students — at most ${b.allowed} allowed (${_pctText(b.maxPercent!)}%)',
+                  style: FacultyTypography.bodyMd(color: fg),
+                ),
+              ),
+            const SizedBox(height: 8),
+            if (approved)
+              Text('The admin approved these grades${request.decidedAt == null ? '' : ' on ${formatDate(request.decidedAt!)}'}. If you raise more grades, you will need to ask again.',
+                  style: FacultyTypography.bodyMd(color: fg))
+            else if (pending)
+              Text('Sent ${formatDate(request.createdAt)}. You can still moderate your grades if you would rather keep within the limits.',
+                  style: FacultyTypography.bodyMd(color: fg))
+            else ...[
+              if (request != null && request.isRejected)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'The admin did not approve your last request${(request.adminNote ?? '').isEmpty ? '.' : ': "${request.adminNote}"'}',
+                    style: FacultyTypography.bodyMd(color: fg).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              Text(
+                'Please either moderate your grading to follow the distribution, or send your distribution to the admin for approval.',
+                style: FacultyTypography.bodyMd(color: fg),
+              ),
+            ],
+            if (!approved) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _scrollToDirectory,
+                    icon: const Icon(Icons.fact_check_outlined, size: 18),
+                    label: const Text('Review & moderate grades', textAlign: TextAlign.center),
+                    style: OutlinedButton.styleFrom(foregroundColor: fg, side: BorderSide(color: fg)),
+                  ),
+                  if (!pending)
+                    ElevatedButton.icon(
+                      onPressed: () => _sendDistributionForApproval(check),
+                      icon: const Icon(Icons.send_outlined, size: 18),
+                      label: const Text('Send to admin for approval', textAlign: TextAlign.center),
+                      style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -874,6 +1020,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     final onPace = _rosterRows.where((s) => !s.flagged).length;
 
     return Container(
+      key: _directoryKey,
       decoration: BoxDecoration(
         color: FacultyColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
@@ -1174,6 +1321,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
               const SizedBox(height: 20),
               _buildKpiRow(),
               const SizedBox(height: 24),
+              _buildDistributionAlert(),
               _buildQuickAccessHub(),
               const SizedBox(height: 24),
               _buildAnnouncementsCard(),
@@ -1350,6 +1498,75 @@ class _SkeletonState extends State<_Skeleton> with SingleTickerProviderStateMixi
           color: Color.lerp(const Color(0xFFE2E8F0), const Color(0xFFF1F5F9), _controller.value),
           borderRadius: BorderRadius.circular(widget.radius),
         ),
+      ),
+    );
+  }
+}
+
+/// Asks the lecturer why their grade distribution is outside the limits, then
+/// sends it to the admin. Pops the reason, or nothing if cancelled.
+class _DistributionRequestDialog extends StatefulWidget {
+  final GradeDistributionCheck check;
+
+  const _DistributionRequestDialog({required this.check});
+
+  @override
+  State<_DistributionRequestDialog> createState() => _DistributionRequestDialogState();
+}
+
+class _DistributionRequestDialogState extends State<_DistributionRequestDialog> {
+  final _reason = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  void _send() {
+    final text = _reason.text.trim();
+    if (text.length < 10) {
+      setState(() => _error = 'Please explain why in a sentence or two (at least 10 characters).');
+      return;
+    }
+    Navigator.of(context).pop(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FacultyDialog(
+      title: 'Send to admin for approval',
+      subtitle: 'The admin will review your grade distribution and either approve it or ask you to moderate it.',
+      confirmLabel: 'Send Request',
+      onConfirm: _send,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final b in widget.check.bands)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(child: Text(b.band.label, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface))),
+                  Text(
+                    '${b.actual} of ${widget.check.enrolled}'
+                    '${b.allowed == null ? '' : '  (limit ${b.allowed})'}',
+                    style: FacultyTypography.titleSm(color: b.exceeds ? FacultyColors.error : FacultyColors.onSurface),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 14),
+          FacultyFormField(
+            controller: _reason,
+            label: 'Why is the distribution higher than the limits?',
+            maxLines: 4,
+            errorText: _error,
+            hint: 'e.g. This cohort did exceptionally well on the final project.',
+            onChanged: (_) => setState(() => _error = null),
+          ),
+        ],
       ),
     );
   }

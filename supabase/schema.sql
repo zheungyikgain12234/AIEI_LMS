@@ -11,7 +11,7 @@
 -- set into a real production deployment with real user data.
 
 drop table if exists
-  app_settings, grade_scale, section_attendance_settings,
+  app_settings, grade_scale, section_attendance_settings, grade_distribution_requests,
   course_announcements, course_sections,
   badge_awards, course_badges, student_certifications, student_materials, student_courses,
   course_programmes, specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
@@ -619,6 +619,24 @@ create table section_attendance_settings (
   attendance_weightage numeric not null default 0 check (attendance_weightage >= 0 and attendance_weightage <= 100)
 );
 
+-- A lecturer's request for the admin to approve a class's grade distribution
+-- when it is outside the admin's limits (Settings > Grade Distribution
+-- Limits: max % of enrolled students at A+, A and above, A- and above, B+ and
+-- above). `distribution` holds the per-band student counts at the time of the
+-- request, so an approval only covers grades that are no worse than those.
+create table grade_distribution_requests (
+  id uuid primary key default gen_random_uuid(),
+  section_id uuid not null references course_sections(id) on delete cascade,
+  lecturer_id uuid not null references lecturers(id),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  justification text not null default '',
+  distribution jsonb not null default '{}'::jsonb,
+  enrolled_count int not null default 0,
+  admin_note text,
+  created_at timestamptz not null default now(),
+  decided_at timestamptz
+);
+
 -- Global admin-toggleable feature flags (Admin "Settings" screen). Row-per-key
 -- rather than a single JSON blob so each toggle is a plain boolean column read.
 -- `numeric_value` backs the handful of settings that are a number rather
@@ -704,6 +722,7 @@ alter table course_announcements enable row level security;
 alter table app_settings enable row level security;
 alter table grade_scale enable row level security;
 alter table section_attendance_settings enable row level security;
+alter table grade_distribution_requests enable row level security;
 
 do $$
 declare
@@ -720,7 +739,7 @@ begin
     'tags', 'course_tags', 'module_lists', 'module_list_items', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'course_announcements',
-    'app_settings', 'grade_scale', 'section_attendance_settings'
+    'app_settings', 'grade_scale', 'section_attendance_settings', 'grade_distribution_requests'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

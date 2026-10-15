@@ -211,7 +211,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                           Text(
                             widget.isEditing
                                 ? 'Update this learner\'s registry information.'
-                                : 'Add a new learner to the institutional registry.',
+                                : 'Add a new student.',
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),

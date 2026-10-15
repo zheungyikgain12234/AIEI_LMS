@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
+import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
@@ -12,8 +13,9 @@ import 'package:stitch_aiei_lms/domain/models/enrolled_class.dart';
 
 // ---------------------------------------------------------------------------
 // StudentEnrolledCoursesScreen — "Manage Enrolled Courses" for a single
-// student. Lists the classes they're currently enrolled in, each pre-checked;
-// unchecking one unenrolls the student immediately.
+// student. Lists the classes they're currently enrolled in, each with an
+// unticked box: tick the ones to remove and press the red "Unenroll Selected"
+// button (after a confirmation dialog they are unenrolled in one go).
 // ---------------------------------------------------------------------------
 class StudentEnrolledCoursesScreen extends StatefulWidget {
   final String studentId;
@@ -34,6 +36,9 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
   Student? _student;
   List<EnrolledClass> _classes = [];
   final Set<String> _unenrolling = {};
+
+  /// The classes ticked for removal (by [EnrolledClass.rowKey]). Empty by default.
+  final Set<String> _selected = {};
   /// Course ids this student is enrolled in that aren't mapped to their
   /// profile (role/department for Internal, track for External) — same rule
   /// as the red warning icon on the Manage Students table.
@@ -92,21 +97,54 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
     return enrolled.where((id) => !allowed.contains(id)).toSet();
   }
 
-  Future<void> _unenroll(EnrolledClass c) async {
-    setState(() => _unenrolling.add(c.rowKey));
-    try {
-      await _repository.unenrollStudentFromCourse(widget.studentId, c.courseId, sectionId: c.sectionId);
-      if (!mounted) return;
-      setState(() {
-        _classes.removeWhere((e) => e.rowKey == c.rowKey);
-        _unenrolling.remove(c.rowKey);
-      });
-      showSuccessSnackBar(context, 'Unenrolled from ${c.displayName}.');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _unenrolling.remove(c.rowKey));
+  Future<void> _unenrollSelected() async {
+    final targets = _classes.where((c) => _selected.contains(c.rowKey)).toList();
+    if (targets.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unenroll from courses?'),
+        content: Text(
+          targets.length == 1
+              ? 'Unenroll ${_student?.name ?? 'this student'} from ${targets.first.displayName}?'
+              : 'Unenroll ${_student?.name ?? 'this student'} from the ${targets.length} selected courses?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AdminColors.error, foregroundColor: Colors.white),
+            child: const Text('Unenroll', textAlign: TextAlign.center),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _unenrolling.addAll(targets.map((t) => t.rowKey)));
+    final removed = <String>{};
+    Object? failure;
+    await runWithBusy(context, 'Unenrolling…', () async {
+      for (final c in targets) {
+        try {
+          await _repository.unenrollStudentFromCourse(widget.studentId, c.courseId, sectionId: c.sectionId);
+          removed.add(c.rowKey);
+        } catch (e) {
+          failure = e;
+        }
+      }
+    });
+    if (!mounted) return;
+    setState(() {
+      _classes.removeWhere((e) => removed.contains(e.rowKey));
+      _selected.removeAll(removed);
+      _unenrolling.clear();
+    });
+    if (failure == null) {
+      showSuccessSnackBar(context, removed.length == 1 ? 'Unenrolled successfully.' : 'Unenrolled from ${removed.length} courses successfully.');
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to unenroll: $e'), backgroundColor: AdminColors.error),
+        SnackBar(content: Text('Failed to unenroll from some courses: $failure'), backgroundColor: AdminColors.error),
       );
     }
   }
@@ -161,8 +199,29 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
                         ),
                       ),
                       const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: Text('Enrolled Courses (${_classes.length})', style: AdminTypography.titleSm())),
+                          ElevatedButton.icon(
+                            onPressed: _selected.isEmpty || _unenrolling.isNotEmpty ? null : _unenrollSelected,
+                            icon: const Icon(Icons.person_remove_outlined, size: 18),
+                            label: Text(
+                              _selected.isEmpty ? 'Unenroll Selected' : 'Unenroll Selected (${_selected.length})',
+                              textAlign: TextAlign.center,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AdminColors.error,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: AdminColors.error.withValues(alpha: 0.35),
+                              disabledForegroundColor: Colors.white,
+                              elevation: 0,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
                       Text(
-                        'Uncheck to unenroll.',
+                        'Tick the courses to remove, then click Unenroll Selected.',
                         style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontStyle: FontStyle.italic),
                       ),
                       const SizedBox(height: 12),
@@ -199,10 +258,8 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
           busy
               ? const SizedBox(width: 24, height: 24, child: Padding(padding: EdgeInsets.all(2), child: CircularProgressIndicator(strokeWidth: 2)))
               : Checkbox(
-                  value: true,
-                  onChanged: (v) {
-                    if (v == false) _unenroll(c);
-                  },
+                  value: _selected.contains(c.rowKey),
+                  onChanged: (v) => setState(() => v == true ? _selected.add(c.rowKey) : _selected.remove(c.rowKey)),
                   activeColor: AdminColors.primaryContainer,
                 ),
           Expanded(

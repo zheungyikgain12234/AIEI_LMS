@@ -15,7 +15,7 @@ class ManageRolesScreen extends StatelessWidget {
       title: 'Manage Student Roles',
       description: 'The job roles of internal students, such as IT Support Specialist or HVAC Installer. Each student has one role, and courses can be linked to a role so people get training that fits their job.',
       itemLabel: 'Role',
-      note: 'For internal, role list are controlled externally by HRIQ system. For external customers, manage roles here.',
+      note: '',
       navDestination: AdminNavDestination.manageRoles,
       load: () async => [
         for (final r in await repository.getRoles()) MasterDataRow(id: r.id, code: r.code, name: r.name, remarks: r.remarks),

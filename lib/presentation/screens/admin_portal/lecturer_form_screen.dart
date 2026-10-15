@@ -206,7 +206,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                           Text(
                             widget.isEditing
                                 ? 'Update this lecturer\'s directory information.'
-                                : 'Onboard a new lecturer to the institutional roster.',
+                                : 'Onboard a new lecturer.',
                             style: AdminTypography.bodyMd(),
                           ),
                           const SizedBox(height: 20),

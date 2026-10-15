@@ -187,7 +187,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Text(
-            'Assign courses to lecturer specializations — drives the "not related to specialization" warning when assigning courses to a lecturer.',
+            'Assign courses to lecturer specializations',
             style: AdminTypography.bodyMd(),
           ),
         ),

@@ -28,6 +28,7 @@ enum AdminNavDestination {
   manageCourseTags,
   manageModuleLists,
   manageSyllabi,
+  gradeApprovals,
   manageAdmins,
   settings,
 }
@@ -230,7 +231,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.account_tree_outlined,
-                          label: 'Department ↔ Course Mapping',
+                          label: 'Staff Student Department ↔ Course Mapping',
                           isSelected:
                               selected ==
                               AdminNavDestination.departmentCourseMapping,
@@ -292,6 +293,15 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageSyllabi,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageSyllabi,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.rule_outlined,
+                          label: 'Grade Approvals',
+                          isSelected:
+                              selected == AdminNavDestination.gradeApprovals,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.gradeApprovals,
                           ),
                         ),
                         _NavItem(

@@ -962,7 +962,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         children: [
           Text('Class Details', style: AdminTypography.titleSm()),
           const SizedBox(height: 2),
-          Text('Applied to every class section created by this assignment.', style: AdminTypography.bodySm()),
+          Text('', style: AdminTypography.bodySm()),
           const SizedBox(height: 12),
           if (_assignErrorMessage != null) ...[
             Container(

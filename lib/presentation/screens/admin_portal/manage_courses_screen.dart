@@ -364,7 +364,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('The list of all courses on offer. Create a course here first, then create classes for it and assign a lecturer.', style: AdminTypography.bodyMd()),
+              child: Text('Create a course here, so that classes can create and assigned with lecturer', style: AdminTypography.bodyMd()),
             ),
           ],
         ),

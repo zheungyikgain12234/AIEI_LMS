@@ -41,7 +41,7 @@ class FacultySidebar extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.only(top: 24),
       child: LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
           child: SizedBox(

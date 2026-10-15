@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -65,18 +66,24 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    // A slightly deeper blue than the menu above so the section reads as its own
+    // area; the class cards inside are white, so their dark text stays crisp.
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFDFE7FA),
+        border: Border(top: BorderSide(color: AdminColors.navBorder)),
+      ),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Divider(height: 1, indent: 16, endIndent: 16, color: FacultyColors.surfaceContainer),
         Padding(
-          padding: const EdgeInsets.fromLTRB(30, 16, 20, 4),
+          padding: const EdgeInsets.fromLTRB(30, 14, 20, 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('MY ACTIVE CLASSES', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              Text('MY ACTIVE CLASSES', style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
-              Text('Where and when you teach', style: FacultyTypography.bodySm()),
+              Text('Where and when you teach', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
             ],
           ),
         ),
@@ -88,13 +95,14 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
                   : _classes.isEmpty
                       ? Padding(padding: const EdgeInsets.fromLTRB(30, 12, 20, 12), child: Text('No active classes right now.', style: FacultyTypography.bodySm()))
                       : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                           itemCount: _classes.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 10),
                           itemBuilder: (_, i) => _classCard(_classes[i]),
                         ),
         ),
       ],
+    ),
     );
   }
 
@@ -114,7 +122,7 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
         );
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AdminColors.navBorder)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

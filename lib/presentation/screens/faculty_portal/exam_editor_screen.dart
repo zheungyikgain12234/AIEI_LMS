@@ -42,8 +42,14 @@ class ExamEditorScreen extends StatefulWidget {
   /// a real content block from the database.
   final Map<String, dynamic>? previewTree;
 
+  /// Called whenever this screen changes the syllabus itself (sections,
+  /// questions, criteria, ordering). Not called by actions that leave the
+  /// syllabus untouched, such as allowing a student to re-attempt.
+  final VoidCallback? onEdited;
+
   const ExamEditorScreen({
     super.key,
+    this.onEdited,
     this.readOnly = false,
     this.previewTree,
     required this.contentBlockId,
@@ -190,6 +196,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   Future<void> _addSection() async {
     final name = await showDialog<String>(context: context, builder: (_) => const _SectionNameDialog(dialogTitle: 'Add Section'));
     if (name == null || name.trim().isEmpty) return;
+    widget.onEdited?.call();
     await _repository.createSection(contentBlockId: widget.contentBlockId, name: name.trim());
     if (mounted) showSuccessSnackBar(context, 'Section added.');
     await _load();
@@ -201,6 +208,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
       builder: (_) => _SectionNameDialog(dialogTitle: 'Rename Section', existingName: s.name),
     );
     if (name == null || name.trim().isEmpty) return;
+    widget.onEdited?.call();
     await _repository.renameSection(s.id, name: name.trim());
     if (mounted) showSuccessSnackBar(context, 'Section renamed.');
     await _load();
@@ -212,6 +220,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
       message: 'This deletes "${s.name}" and every question inside it. This cannot be undone.',
     );
     if (confirmed != true) return;
+    widget.onEdited?.call();
     await _repository.deleteSection(s.id);
     if (mounted) showSuccessSnackBar(context, 'Section deleted.');
     _expandedSections.remove(s.id);
@@ -227,6 +236,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
       _sections.insert(newIndex, s);
     });
     try {
+      widget.onEdited?.call();
       await _repository.reorderSections(widget.contentBlockId, [for (final s in _sections) s.id]);
     } catch (e) {
       if (!mounted) return;
@@ -240,6 +250,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   Future<void> _addQuestion(String sectionId) async {
     final result = await showDialog<_QuestionFormResult>(context: context, builder: (_) => const _QuestionDialog());
     if (result == null) return;
+    widget.onEdited?.call();
     await _repository.createQuestion(
         sectionId: sectionId, text: result.text, type: result.type, marks: result.marks, options: result.options);
     if (mounted) showSuccessSnackBar(context, 'Question added.');
@@ -250,6 +261,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   Future<void> _editQuestion(String sectionId, ExamQuestion q) async {
     final result = await showDialog<_QuestionFormResult>(context: context, builder: (_) => _QuestionDialog(existing: q));
     if (result == null) return;
+    widget.onEdited?.call();
     await _repository.updateQuestion(q.id, text: result.text, type: result.type, marks: result.marks, options: result.options);
     if (mounted) showSuccessSnackBar(context, 'Question updated.');
     await _refreshQuestionsFor(sectionId);
@@ -259,6 +271,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   Future<void> _deleteQuestion(String sectionId, ExamQuestion q) async {
     final confirmed = await _confirmDelete(title: 'Delete question?', message: 'This cannot be undone.');
     if (confirmed != true) return;
+    widget.onEdited?.call();
     await _repository.deleteQuestion(q.id);
     if (mounted) showSuccessSnackBar(context, 'Question deleted.');
     await _refreshQuestionsFor(sectionId);
@@ -273,6 +286,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
     questions.insert(newIndex, q);
     setState(() => _questionsBySection[sectionId] = questions);
     try {
+      widget.onEdited?.call();
       await _repository.reorderQuestions(sectionId, [for (final q in questions) q.id]);
     } catch (e) {
       if (!mounted) return;

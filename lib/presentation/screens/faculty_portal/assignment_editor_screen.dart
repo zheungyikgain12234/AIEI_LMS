@@ -34,8 +34,14 @@ class AssignmentEditorScreen extends StatefulWidget {
   /// screen shows it read-only instead of loading from the database.
   final Map<String, dynamic>? previewTree;
 
+  /// Called whenever this screen changes the syllabus itself (sections,
+  /// questions, criteria, ordering). Not called by actions that leave the
+  /// syllabus untouched, such as allowing a student to re-attempt.
+  final VoidCallback? onEdited;
+
   const AssignmentEditorScreen({
     super.key,
+    this.onEdited,
     this.readOnly = false,
     this.previewTree,
     required this.contentBlockId,
@@ -94,6 +100,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
   Future<void> _addCriterion() async {
     final result = await showDialog<_CriterionFormResult>(context: context, builder: (_) => const _CriterionDialog());
     if (result == null) return;
+    widget.onEdited?.call();
     await _repository.createCriterion(contentBlockId: widget.contentBlockId, label: result.label, maxMarks: result.maxMarks);
     await _load();
     if (mounted) showSuccessSnackBar(context, 'Criterion added.');
@@ -102,6 +109,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
   Future<void> _editCriterion(AssignmentCriterion c) async {
     final result = await showDialog<_CriterionFormResult>(context: context, builder: (_) => _CriterionDialog(existing: c));
     if (result == null) return;
+    widget.onEdited?.call();
     await _repository.updateCriterion(c.id, label: result.label, maxMarks: result.maxMarks);
     await _load();
     if (mounted) showSuccessSnackBar(context, 'Criterion updated.');
@@ -119,6 +127,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
       ),
     );
     if (confirmed != true) return;
+    widget.onEdited?.call();
     await _repository.deleteCriterion(c.id);
     await _load();
     if (mounted) showSuccessSnackBar(context, 'Criterion deleted.');
@@ -132,6 +141,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
       _criteria.insert(newIndex, c);
     });
     try {
+      widget.onEdited?.call();
       await _repository.reorderCriteria(widget.contentBlockId, [for (final c in _criteria) c.id]);
     } catch (e) {
       if (!mounted) return;

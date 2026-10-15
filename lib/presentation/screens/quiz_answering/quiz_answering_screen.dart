@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/browser_fullscreen.dart' as browser_fullscreen;
+import 'package:stitch_aiei_lms/core/utils/file_pick_guard.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
@@ -52,6 +53,11 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
   Timer? _countdownTimer;
   int? _remainingSeconds;
   bool _lockdownActive = false;
+
+  /// True after the student left fullscreen only to pick a file: the exam is
+  /// covered by a "return to fullscreen" screen (re-entering needs a click)
+  /// instead of being auto-submitted.
+  bool _needsFullscreenReturn = false;
   browser_fullscreen.Unsubscribe? _fullscreenExitSub;
   browser_fullscreen.Unsubscribe? _pageHiddenSub;
   ContentBlock? _block;
@@ -124,17 +130,57 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
     browser_fullscreen.requestFullscreen();
     _fullscreenExitSub = browser_fullscreen.listenFullscreenChange(() {
       if (!mounted || !_lockdownActive) return;
-      if (!browser_fullscreen.isFullscreenActive) _submit(force: true);
+      if (browser_fullscreen.isFullscreenActive) return;
+      if (_needsFullscreenReturn) return; // already waiting for the student to return
+      // The browser's file dialog drops fullscreen: not cheating, ask them back.
+      if (FilePickGuard.active) {
+        setState(() => _needsFullscreenReturn = true);
+        return;
+      }
+      _submit(force: true);
     });
     _pageHiddenSub = browser_fullscreen.listenPageHidden(() {
       if (!mounted || !_lockdownActive) return;
+      if (FilePickGuard.active) return; // the dialog blurs the page too
       _submit(force: true);
     });
+    FilePickGuard.finished.addListener(_onFilePickFinished);
+    // The picker is a loophole, so ration it: 3 opens, each open for at most
+    // 30 seconds. Staying in the dialog longer submits the exam.
+    FilePickGuard.startExam(
+      maxPicks: 3,
+      maxOpen: const Duration(seconds: 30),
+      onOverrun: () {
+        if (mounted && _lockdownActive) _submit(force: true);
+      },
+    );
+  }
+
+  /// Once the file dialog has closed (and its late browser events have
+  /// settled), check whether fullscreen was lost and ask the student to
+  /// return to it.
+  Future<void> _onFilePickFinished() async {
+    await Future<void>.delayed(FilePickGuard.grace + const Duration(milliseconds: 100));
+    if (!mounted || !_lockdownActive || _submitting) return;
+    if (!browser_fullscreen.isFullscreenActive && !_needsFullscreenReturn) {
+      setState(() => _needsFullscreenReturn = true);
+    }
+  }
+
+  /// Runs from the "Return to fullscreen" button, which counts as the click
+  /// the browser requires before it allows fullscreen again.
+  Future<void> _returnToFullscreen() async {
+    await browser_fullscreen.requestFullscreen();
+    if (!mounted) return;
+    if (browser_fullscreen.isFullscreenActive) setState(() => _needsFullscreenReturn = false);
   }
 
   void _exitLockdown() {
     if (!_lockdownActive) return;
     _lockdownActive = false;
+    _needsFullscreenReturn = false;
+    FilePickGuard.finished.removeListener(_onFilePickFinished);
+    FilePickGuard.endExam();
     _fullscreenExitSub?.call();
     _fullscreenExitSub = null;
     _pageHiddenSub?.call();
@@ -393,7 +439,56 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
           backgroundColor: AppColors.error,
         ));
       },
-      child: child,
+      child: Stack(
+        children: [
+          child,
+          if (_lockdownActive && _needsFullscreenReturn) Positioned.fill(child: _fullscreenReturnOverlay()),
+        ],
+      ),
+    );
+  }
+
+  /// Covers the exam after a file dialog took the browser out of fullscreen.
+  /// The countdown keeps running; leaving fullscreen again, or switching
+  /// away, still auto-submits.
+  Widget _fullscreenReturnOverlay() {
+    return Container(
+      color: AppColors.primary.withValues(alpha: 0.96),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.fullscreen, size: 56, color: Colors.white),
+            const SizedBox(height: 16),
+            Text(
+              'Return to fullscreen to continue',
+              textAlign: TextAlign.center,
+              style: AppTypography.headlineSm(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Choosing a file takes the exam out of fullscreen. Your answers are kept and the timer is still running. '
+              'Click below to carry on. Leaving fullscreen again will submit your exam.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMd(color: Colors.white),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _returnToFullscreen,
+              icon: const Icon(Icons.fullscreen),
+              label: const Text('Return to fullscreen', textAlign: TextAlign.center),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AdminColors.primaryContainer,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

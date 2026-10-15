@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
+import 'package:stitch_aiei_lms/core/utils/file_pick_guard.dart';
 
 /// Maximum number of files any attachment area accepts.
 const int kMaxAttachments = 10;
@@ -94,7 +95,14 @@ class _FileDropZoneState extends State<FileDropZone> {
 
   Future<void> _browse() async {
     if (_full || widget.uploading) return;
-    final result = await FilePicker.platform.pickFiles(type: widget.fileType, allowMultiple: _remaining > 1, withData: true);
+    if (!FilePickGuard.canOpen) {
+      _say('The file browser can only be opened ${FilePickGuard.maxPicks} times during this exam. Drag your files in instead.');
+      return;
+    }
+    // Guarded so the exam lockdown doesn't mistake the dialog for leaving fullscreen.
+    final result = await FilePickGuard.run(
+      () => FilePicker.platform.pickFiles(type: widget.fileType, allowMultiple: _remaining > 1, withData: true),
+    );
     if (result == null) return;
     await _accept([
       for (final f in result.files)

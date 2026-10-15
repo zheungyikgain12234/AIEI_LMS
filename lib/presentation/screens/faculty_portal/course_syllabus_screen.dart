@@ -1171,10 +1171,12 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
   void _openExamEditor(ContentBlock b) async {
     final previewTree = _isTemplatePreview ? (await _repository.getTemplateBlockTree(b.id) ?? const <String, dynamic>{}) : null;
     if (!mounted) return;
+    var edited = false;
     Navigator.of(context)
         .push(
       MaterialPageRoute(
         builder: (_) => ExamEditorScreen(
+          onEdited: () => edited = true,
           readOnly: !_canEdit,
           previewTree: previewTree,
           contentBlockId: b.id,
@@ -1187,16 +1189,20 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
         ),
       ),
     )
-        .then((_) => _markEdited());
+        .then((_) {
+      if (edited) _markEdited();
+    });
   }
 
   void _openAssignmentEditor(ContentBlock b) async {
     final previewTree = _isTemplatePreview ? (await _repository.getTemplateBlockTree(b.id) ?? const <String, dynamic>{}) : null;
     if (!mounted) return;
+    var edited = false;
     Navigator.of(context)
         .push(
       MaterialPageRoute(
         builder: (_) => AssignmentEditorScreen(
+          onEdited: () => edited = true,
           readOnly: !_canEdit,
           previewTree: previewTree,
           contentBlockId: b.id,
@@ -1208,7 +1214,9 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
         ),
       ),
     )
-        .then((_) => _markEdited());
+        .then((_) {
+      if (edited) _markEdited();
+    });
   }
 
   void _openMarkExam(ContentBlock b) {

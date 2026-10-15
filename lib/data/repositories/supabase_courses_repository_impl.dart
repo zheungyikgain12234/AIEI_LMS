@@ -26,7 +26,8 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     final courseRows = await _client.from('courses').select('''
       id, course_title, course_description, category, image_url,
       course_tags(tags(label, color_hex)),
-      course_badges(certifications(title))
+      course_badges(badge_id, certifications(title)),
+      course_programmes(programmes(name))
     ''');
 
     final enrollmentRows = await _client
@@ -36,6 +37,16 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     // Module content is class-scoped: a student's course content is
     // whichever class (`section_id`) they're enrolled in for that course,
     // which may be null if they haven't been assigned to a class yet.
+    // Badges the student has actually been granted (not revoked), per course.
+    final awardRows = await _client
+        .from('badge_awards')
+        .select('course_id, badge_id')
+        .eq('student_id', DemoIdentity.studentId)
+        .eq('is_revoked', false);
+    final earnedBadgeIdsByCourse = <String, Set<String>>{};
+    for (final row in awardRows as List) {
+      earnedBadgeIdsByCourse.putIfAbsent(row['course_id'] as String, () => {}).add(row['badge_id'] as String);
+    }
     final enrollments = <({String courseId, String? sectionId})>[
       for (final row in enrollmentRows as List) (courseId: row['course_id'] as String, sectionId: row['section_id'] as String?),
     ];
@@ -79,6 +90,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
             lecturerNameBySection[e.sectionId],
             classCodeBySection[e.sectionId],
             cohortNameBySection[e.sectionId],
+            earnedBadgeIds: earnedBadgeIdsByCourse[e.courseId] ?? const {},
           ),
     ];
   }
@@ -150,6 +162,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     String? classCode,
     String? cohort, {
     String? ctaOverride,
+    Set<String> earnedBadgeIds = const {},
   }) {
     final id = course['id'] as String;
     final category = CourseCategory.fromKey(course['category'] as String);
@@ -168,9 +181,15 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
           ),
     ];
 
-    final badgeNames = [
+    final badges = [
       for (final entry in (course['course_badges'] as List? ?? []))
-        if (entry['certifications'] != null) entry['certifications']['title'] as String,
+        if (entry['certifications'] != null)
+          CourseBadgeInfo(name: entry['certifications']['title'] as String, earned: earnedBadgeIds.contains(entry['badge_id'] as String?)),
+    ];
+    final badgeNames = [for (final b in badges) b.name];
+    final programmeNames = [
+      for (final entry in (course['course_programmes'] as List? ?? []))
+        if (entry['programmes'] != null) entry['programmes']['name'] as String,
     ];
 
     final categoryIcon = switch (category) {
@@ -195,6 +214,8 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       progressPercentage: progress,
       badgeCount: badgeNames.length,
       badgeNames: badgeNames,
+      badges: badges,
+      programmeNames: programmeNames,
       ctaButtonText: ctaOverride ?? (isCompleted ? 'Review Course' : 'View Course'),
       isCompleted: isCompleted,
       isEnrolled: ctaOverride == null,
@@ -371,7 +392,8 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     final courseRows = await _client.from('courses').select('''
       id, course_title, course_description, category, image_url,
       course_tags(tags(label, color_hex)),
-      course_badges(certifications(title))
+      course_badges(badge_id, certifications(title)),
+      course_programmes(programmes(name))
     ''').inFilter('id', compulsoryCourseIds.toList());
 
     final progressByCourse = {for (final id in compulsoryCourseIds) id: 0};

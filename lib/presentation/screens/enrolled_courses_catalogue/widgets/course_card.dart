@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
+import 'hint_scroll_row.dart';
 
 class CourseCard extends StatefulWidget {
   final EnrolledCourse course;
@@ -68,6 +69,12 @@ class _CourseCardState extends State<CourseCard> {
                         : AppColors.primary,
                   ),
                 ),
+
+                // Programmes this course is mapped to (scrolls sideways if many).
+                if (c.programmeNames.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  HintScrollRow(children: [for (final name in c.programmeNames) CardPill.programme(name)]),
+                ],
 
                 if (c.isEnrolled) const SizedBox(height: 8),
 
@@ -366,38 +373,44 @@ class _CourseCardState extends State<CourseCard> {
 
   Widget _buildBadgeSnippet(EnrolledCourse c) {
     if (c.badgeCount == 0) return const SizedBox.shrink();
-    return Tooltip(
-      message: c.badgeNames.join(', '),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: c.isCompleted
-              ? AppColors.surfaceContainerHigh.withValues(alpha: 0.6)
-              : AppColors.surfaceContainerHigh.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.military_tech_outlined,
-              size: 18,
-              color: c.isCompleted
-                  ? AppColors.onTertiaryContainer
-                  : AppColors.secondary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${c.badgeCount} Badge${c.badgeCount == 1 ? '' : 's'} to Unlock',
-              style: AppTypography.labelSm(
-                color: AppColors.onSurface,
-              ).copyWith(
-                fontWeight: c.isCompleted ? FontWeight.w600 : FontWeight.w500,
+    final earned = c.isCompleted;
+    final n = c.badgeCount;
+    final summary = earned
+        ? 'Earned $n Badge${n == 1 ? '' : 's'}'
+        : '$n Badge${n == 1 ? '' : 's'} to Unlock';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: earned ? const Color(0xFFDCFCE7) : AppColors.surfaceContainerHigh.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                earned ? Icons.verified : Icons.military_tech_outlined,
+                size: 18,
+                color: earned ? const Color(0xFF166534) : AppColors.secondary,
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                summary,
+                style: AppTypography.labelSm(color: earned ? const Color(0xFF166534) : AppColors.onSurface)
+                    .copyWith(fontWeight: earned ? FontWeight.w700 : FontWeight.w500),
+              ),
+            ],
+          ),
         ),
-      ),
+        if (c.badges.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          HintScrollRow(children: [
+            for (final badge in c.badges) badge.earned ? CardPill.badgeGranted(badge.name) : CardPill.badgePending(badge.name),
+          ]),
+        ],
+      ],
     );
   }
 
@@ -406,7 +419,7 @@ class _CourseCardState extends State<CourseCard> {
       return OutlinedButton(
         onPressed: widget.onAction,
         style: OutlinedButton.styleFrom(
-          backgroundColor: AdminColors.primaryContainer,
+          backgroundColor: const Color(0xFF15803D),
           foregroundColor: Colors.white,
           side: BorderSide.none,
           minimumSize: const Size(double.infinity, 40),
@@ -421,7 +434,7 @@ class _CourseCardState extends State<CourseCard> {
             const SizedBox(width: 6),
             Text(
               c.ctaButtonText,
-              style: AppTypography.labelMd(color: AppColors.secondary),
+              style: AppTypography.labelMd(color: Colors.white),
             ),
           ],
         ),

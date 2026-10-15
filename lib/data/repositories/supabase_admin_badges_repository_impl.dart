@@ -31,6 +31,12 @@ class SupabaseAdminBadgesRepositoryImpl implements AdminBadgesRepository {
   }
 
   @override
+  Future<void> deleteBadgeAwards(List<String> ids) async {
+    if (ids.isEmpty) return;
+    await _client.from('badge_awards').delete().inFilter('id', ids);
+  }
+
+  @override
   Future<List<(String, int)>> getMonthlyIssueCounts() async {
     final now = DateTime.now();
     final earliest = DateTime(now.year, now.month - 5, 1);

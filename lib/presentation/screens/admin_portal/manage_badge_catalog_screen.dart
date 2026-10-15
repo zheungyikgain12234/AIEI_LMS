@@ -347,8 +347,8 @@ class _DeleteBadgesDialogState extends State<_DeleteBadgesDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(awards.isEmpty
-                  ? 'This will permanently delete ${widget.badgeCount} $noun from the catalogue and any course that awards it. This cannot be undone.'
-                  : '${awards.length} award${awards.length == 1 ? ' is' : 's are'} still linked to the selected $noun. Choose what happens to each one. Courses that award the $noun will stop awarding it.'),
+                  ? 'This will permanently delete ${widget.badgeCount} $noun from the catalogue. Courses that give out this $noun will simply stop giving it out — the courses themselves are not deleted. This cannot be undone.'
+                  : '${awards.length} award${awards.length == 1 ? ' is' : 's are'} still linked to the selected $noun. Choose what happens to each one. Courses that give out the $noun will stop giving it out — the courses themselves are not deleted.'),
               for (final a in awards) ...[
                 const SizedBox(height: 12),
                 Text('${a.studentName} • ${a.courseCode}', style: AdminTypography.titleSm()),

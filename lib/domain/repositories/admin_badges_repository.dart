@@ -11,6 +11,9 @@ abstract class AdminBadgesRepository {
   /// Revokes (with [reason]) or un-revokes a badge award.
   Future<void> setBadgeAwardRevoked(String id, {required bool revoked, String? reason});
 
+  /// Permanently removes the given award records.
+  Future<void> deleteBadgeAwards(List<String> ids);
+
   /// Count of non-revoked badges issued per calendar month over the last 6
   /// months (monthLabel, count), oldest first — the Manage Students screen's
   /// "Monthly Credential Grant Rate" chart.

@@ -18,12 +18,20 @@ class CourseFiltersBar extends StatelessWidget {
   final String? selectedCohort;
   final ValueChanged<String> onCohortChanged;
   final bool showYearCohort;
+
+  /// Programmes to filter by; the dropdown is hidden when there are none.
+  final List<String> programmeNames;
+  final String? selectedProgramme;
+  final ValueChanged<String?>? onProgrammeChanged;
   /// How the controls align when they wrap — end beside the tags row on
   /// desktop, start when stacked under it on a phone.
   final WrapAlignment alignment;
 
   const CourseFiltersBar({
     this.showYearCohort = true,
+    this.programmeNames = const [],
+    this.selectedProgramme,
+    this.onProgrammeChanged,
     this.alignment = WrapAlignment.end,
     super.key,
     required this.onSearchChanged,
@@ -45,6 +53,7 @@ class CourseFiltersBar extends StatelessWidget {
       spacing: 12,
       runSpacing: 8,
       children: [
+        if (programmeNames.isNotEmpty) _programmeDropdown(),
         if (showYearCohort) ...[_yearDropdown(), _cohortDropdown()],
         // Search Input
         ConstrainedBox(
@@ -123,6 +132,32 @@ class CourseFiltersBar extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _programmeDropdown() {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1))],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          // '' stands for "all programmes".
+          value: programmeNames.contains(selectedProgramme) ? selectedProgramme : '',
+          icon: const Icon(Icons.expand_more, size: 18, color: AppColors.outline),
+          borderRadius: BorderRadius.circular(8),
+          style: AppTypography.labelMd(color: AppColors.onSurface),
+          onChanged: (value) => onProgrammeChanged?.call(value == null || value.isEmpty ? null : value),
+          items: [
+            DropdownMenuItem(value: '', child: Text('All programmes', style: AppTypography.labelMd(color: AppColors.onSurface))),
+            for (final name in programmeNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis)),
+          ],
+        ),
+      ),
     );
   }
 

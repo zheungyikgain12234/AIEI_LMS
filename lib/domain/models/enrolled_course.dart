@@ -33,6 +33,14 @@ class CourseTag {
   });
 }
 
+/// One badge a course awards, and whether this student has been granted it.
+class CourseBadgeInfo {
+  final String name;
+  final bool earned;
+
+  const CourseBadgeInfo({required this.name, required this.earned});
+}
+
 class EnrolledCourse {
   final String id;
   final String title;
@@ -67,6 +75,13 @@ class EnrolledCourse {
   /// catalogue card (names only on hover), not per-badge detail.
   final int badgeCount;
   final List<String> badgeNames;
+
+  /// The same badges with whether each one is already granted to the student
+  /// (light blue pill if not yet, green if granted).
+  final List<CourseBadgeInfo> badges;
+
+  /// Programmes (`course_programmes`) this course is mapped to.
+  final List<String> programmeNames;
   final String ctaButtonText;
   final bool isCompleted;
 
@@ -92,6 +107,8 @@ class EnrolledCourse {
     required this.progressPercentage,
     this.badgeCount = 0,
     this.badgeNames = const [],
+    this.badges = const [],
+    this.programmeNames = const [],
     required this.ctaButtonText,
     this.isCompleted = false,
     this.isEnrolled = true,

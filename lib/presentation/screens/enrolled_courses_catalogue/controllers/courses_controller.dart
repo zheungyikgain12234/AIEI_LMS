@@ -92,6 +92,16 @@ class CoursesNotifier extends Notifier<CoursesState> {
     }
   }
 
+  void selectProgramme(String? programme) {
+    state = programme == null ? state.copyWith(clearSelectedProgramme: true) : state.copyWith(selectedProgramme: programme);
+  }
+
+  void selectCompulsoryProgramme(String? programme) {
+    state = programme == null
+        ? state.copyWith(clearSelectedCompulsoryProgramme: true)
+        : state.copyWith(selectedCompulsoryProgramme: programme);
+  }
+
   void setCompulsorySearchQuery(String query) {
     state = state.copyWith(compulsorySearchQuery: query);
   }

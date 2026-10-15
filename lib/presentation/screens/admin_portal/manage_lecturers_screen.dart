@@ -184,10 +184,12 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          // With classes to reassign, nothing is deleted yet: this only opens the
+          // reassignment review. With none, this is the final confirmation.
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete', textAlign: TextAlign.center),
+            style: orphaned.isEmpty ? FilledButton.styleFrom(backgroundColor: AdminColors.error) : null,
+            child: Text(orphaned.isEmpty ? 'Delete' : 'Review', textAlign: TextAlign.center),
           ),
         ],
       ),

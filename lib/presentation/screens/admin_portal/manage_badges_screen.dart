@@ -10,6 +10,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badges_reposito
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_no_results.dart';
+import 'widgets/admin_row_action.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -38,6 +39,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   final _repository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   List<BadgeAward> _awards = [];
+  final Set<String> _selected = {};
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   String _query = '';
@@ -188,6 +190,75 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     await _load();
   }
 
+  Future<void> _deleteSelected() async {
+    final count = _selected.length;
+    final noun = count == 1 ? 'badge award' : 'badge awards';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete $noun?'),
+        content: Text(
+          'This will permanently delete $count $noun. The record of the student earning the badge in that course is removed. '
+          'If you only want to take a badge back, use Revoke instead. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
+            child: const Text('Delete', textAlign: TextAlign.center),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _repository.deleteBadgeAwards(_selected.toList());
+    if (!mounted) return;
+    setState(_selected.clear);
+    showSuccessSnackBar(context, '$count $noun deleted.');
+    await _load();
+  }
+
+  /// "N selected · Deselect all" with a Delete button, shown once something is ticked.
+  Widget _selectionBar() {
+    if (_selected.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: UiContrast.selectedRow, borderRadius: BorderRadius.circular(12), border: Border.all(color: UiContrast.divider)),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 10,
+        runSpacing: 8,
+        children: [
+          adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
+          OutlinedButton.icon(
+            onPressed: _deleteSelected,
+            icon: const Icon(Icons.delete_outline, size: 16),
+            label: const Text('Delete', textAlign: TextAlign.center),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AdminColors.onErrorContainer,
+              backgroundColor: AdminColors.errorContainer,
+              side: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _checkbox(BadgeAward a) => SizedBox(
+        width: 40,
+        child: Checkbox(
+          value: _selected.contains(a.id),
+          onChanged: (v) => setState(() => v == true ? _selected.add(a.id) : _selected.remove(a.id)),
+          activeColor: AdminColors.primaryContainer,
+        ),
+      );
+
   Widget _revokeButton(BadgeAward a) {
     return ElevatedButton(
       onPressed: () => _setRevoked(a, !a.isRevoked),
@@ -208,6 +279,10 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    // Only rows still visible (after a search) can stay selected, so the count
+    // and Delete never include hidden records.
+    final visibleIds = {for (final r in _filtered) r.id};
+    _selected.retainWhere(visibleIds.contains);
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -258,6 +333,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
                 ),
               ),
               const SizedBox(height: 16),
+              if (_selected.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 4), child: _selectionBar()),
               if (awards.isEmpty)
                 Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
               else ...[
@@ -295,6 +371,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _checkbox(a),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,6 +444,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
               ),
             ),
           ),
+          _selectionBar(),
           if (awards.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
@@ -394,12 +472,28 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     );
   }
 
+  bool get _pageAllSelected {
+    final page = _paged(_filtered);
+    return page.isNotEmpty && page.every((a) => _selected.contains(a.id));
+  }
+
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
+          SizedBox(
+            width: 40,
+            child: Checkbox(
+              value: _pageAllSelected,
+              onChanged: (v) => setState(() {
+                final ids = [for (final a in _paged(_filtered)) a.id];
+                v == true ? _selected.addAll(ids) : _selected.removeAll(ids);
+              }),
+              activeColor: AdminColors.primaryContainer,
+            ),
+          ),
           Expanded(flex: 3, child: _sortHeader('Student', _SortColumn.student)),
           Expanded(flex: 3, child: _sortHeader('Course', _SortColumn.course)),
           Expanded(flex: 3, child: _sortHeader('Badge', _SortColumn.badge)),
@@ -424,6 +518,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _checkbox(a),
           Expanded(
             flex: 3,
             child: Padding(

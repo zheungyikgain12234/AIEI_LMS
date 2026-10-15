@@ -125,6 +125,9 @@ class _EnrolledCoursesCatalogueScreenState
                                 const SizedBox(width: 16),
                                 Flexible(
                                   child: CourseFiltersBar(
+                                    programmeNames: state.availableProgrammes,
+                                    selectedProgramme: state.selectedProgramme,
+                                    onProgrammeChanged: notifier.selectProgramme,
                                     onSearchChanged: notifier.setSearchQuery,
                                     selectedSort: state.sortOption,
                                     onSortChanged: notifier.setSortOption,
@@ -168,6 +171,9 @@ class _EnrolledCoursesCatalogueScreenState
                                   Flexible(
                                     child: CourseFiltersBar(
                                       showYearCohort: false,
+                                      programmeNames: state.availableCompulsoryProgrammes,
+                                      selectedProgramme: state.selectedCompulsoryProgramme,
+                                      onProgrammeChanged: notifier.selectCompulsoryProgramme,
                                       onSearchChanged: notifier.setCompulsorySearchQuery,
                                       selectedSort: state.compulsorySortOption,
                                       onSortChanged: notifier.setCompulsorySortOption,
@@ -267,7 +273,10 @@ class _EnrolledCoursesCatalogueScreenState
                     const SizedBox(height: 12),
                     CourseFiltersBar(
                       alignment: WrapAlignment.start,
-                      onSearchChanged: notifier.setSearchQuery,
+                      programmeNames: state.availableProgrammes,
+                                    selectedProgramme: state.selectedProgramme,
+                                    onProgrammeChanged: notifier.selectProgramme,
+                                    onSearchChanged: notifier.setSearchQuery,
                       selectedSort: state.sortOption,
                       onSortChanged: notifier.setSortOption,
                       availableYears: state.availableYears,
@@ -301,7 +310,10 @@ class _EnrolledCoursesCatalogueScreenState
                       CourseFiltersBar(
                         showYearCohort: false,
                         alignment: WrapAlignment.start,
-                        onSearchChanged: notifier.setCompulsorySearchQuery,
+                        programmeNames: state.availableCompulsoryProgrammes,
+                                      selectedProgramme: state.selectedCompulsoryProgramme,
+                                      onProgrammeChanged: notifier.selectCompulsoryProgramme,
+                                      onSearchChanged: notifier.setCompulsorySearchQuery,
                         selectedSort: state.compulsorySortOption,
                         onSortChanged: notifier.setCompulsorySortOption,
                         availableYears: const [],

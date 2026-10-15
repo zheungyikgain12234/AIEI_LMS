@@ -29,6 +29,10 @@ class CoursesState {
   /// Separate tag filter for the "Compulsory for You" section.
   final String? selectedCompulsoryTag;
 
+  /// Programme filter (null = all programmes), one for each course list.
+  final String? selectedProgramme;
+  final String? selectedCompulsoryProgramme;
+
   /// Own search / sort / Year / Cohort for "Compulsory for You". Year/Cohort
   /// choose which cohort's class a course is enrolled into; when unset they
   /// fall back to the enrolled-courses selection above.
@@ -56,6 +60,8 @@ class CoursesState {
     this.compulsoryCourses = const [],
     this.selectedTag,
     this.selectedCompulsoryTag,
+    this.selectedProgramme,
+    this.selectedCompulsoryProgramme,
     this.compulsorySearchQuery = '',
     this.compulsorySortOption = CourseSortOption.name,
     this.selectedCompulsoryYear,
@@ -78,6 +84,10 @@ class CoursesState {
     bool clearSelectedTag = false,
     String? selectedCompulsoryTag,
     bool clearSelectedCompulsoryTag = false,
+    String? selectedProgramme,
+    bool clearSelectedProgramme = false,
+    String? selectedCompulsoryProgramme,
+    bool clearSelectedCompulsoryProgramme = false,
     String? compulsorySearchQuery,
     CourseSortOption? compulsorySortOption,
     int? selectedCompulsoryYear,
@@ -100,6 +110,9 @@ class CoursesState {
       compulsoryCourses: compulsoryCourses ?? this.compulsoryCourses,
       selectedTag: clearSelectedTag ? null : (selectedTag ?? this.selectedTag),
       selectedCompulsoryTag: clearSelectedCompulsoryTag ? null : (selectedCompulsoryTag ?? this.selectedCompulsoryTag),
+      selectedProgramme: clearSelectedProgramme ? null : (selectedProgramme ?? this.selectedProgramme),
+      selectedCompulsoryProgramme:
+          clearSelectedCompulsoryProgramme ? null : (selectedCompulsoryProgramme ?? this.selectedCompulsoryProgramme),
       compulsorySearchQuery: compulsorySearchQuery ?? this.compulsorySearchQuery,
       compulsorySortOption: compulsorySortOption ?? this.compulsorySortOption,
       selectedCompulsoryYear: selectedCompulsoryYear ?? this.selectedCompulsoryYear,
@@ -135,6 +148,12 @@ class CoursesState {
         if (c.year == year && enrolledNames.contains(c.name)) c.name,
     ];
   }
+
+  /// Programmes any enrolled course is mapped to, sorted by name.
+  List<String> get availableProgrammes => ({for (final c in allCourses) ...c.programmeNames}.toList()..sort());
+
+  /// Programmes any compulsory course is mapped to, sorted by name.
+  List<String> get availableCompulsoryProgrammes => ({for (final c in compulsoryCourses) ...c.programmeNames}.toList()..sort());
 
   /// Distinct tag labels across every enrolled course, in first-seen order —
   /// the horizontally scrollable filter row above the course grid.
@@ -179,10 +198,11 @@ class CoursesState {
     final query = compulsorySearchQuery.trim().toLowerCase();
     final filtered = compulsoryCourses.where((course) {
       final matchesTag = selectedCompulsoryTag == null || course.tags.any((t) => t.label == selectedCompulsoryTag);
+      final matchesProgramme = selectedCompulsoryProgramme == null || course.programmeNames.contains(selectedCompulsoryProgramme);
       final matchesQuery = query.isEmpty ||
           course.title.toLowerCase().contains(query) ||
           course.tags.any((t) => t.label.toLowerCase().contains(query));
-      return matchesTag && matchesQuery;
+      return matchesTag && matchesProgramme && matchesQuery;
     }).toList();
     filtered.sort((a, b) => switch (compulsorySortOption) {
           CourseSortOption.progressDesc => b.progressPercentage.compareTo(a.progressPercentage),
@@ -194,6 +214,7 @@ class CoursesState {
   List<EnrolledCourse> get filteredAndSortedCourses {
     var filtered = allCourses.where((course) {
       final matchesTag = selectedTag == null || course.tags.any((t) => t.label == selectedTag);
+      final matchesProgramme = selectedProgramme == null || course.programmeNames.contains(selectedProgramme);
       final matchesCohort = selectedCohort == null || course.cohort == selectedCohort;
 
       final query = searchQuery.trim().toLowerCase();
@@ -202,7 +223,7 @@ class CoursesState {
           course.instructorOrBoard.toLowerCase().contains(query) ||
           course.tags.any((t) => t.label.toLowerCase().contains(query));
 
-      return matchesTag && matchesCohort && matchesQuery;
+      return matchesTag && matchesProgramme && matchesCohort && matchesQuery;
     }).toList();
 
     filtered.sort((a, b) {

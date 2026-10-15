@@ -107,6 +107,11 @@ class CertificationsBadgesScreen extends ConsumerWidget {
             'My Badges',
             style: mobile ? AppTypography.headlineLg() : AppTypography.headlineXl(),
           ),
+          const SizedBox(height: 8),
+          Text(
+            'Badges are granted to you automatically when you complete a course. There is nothing to apply for.',
+            style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant),
+          ),
           if (state.studentCode != null) ...[
             const SizedBox(height: 8),
             Text(

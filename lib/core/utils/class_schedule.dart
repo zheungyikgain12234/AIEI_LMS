@@ -19,3 +19,13 @@ String classScheduleText(CourseSection s) {
   ];
   return parts.isEmpty ? 'Schedule TBD' : parts.join(' • ');
 }
+
+/// Just the weekday and time of the class: "Thu • 09:00–11:00". Null when the
+/// admin never set either.
+String? classDayTimeText({String? dayOfWeek, String? startTime, String? endTime}) {
+  final parts = <String>[
+    if (dayOfWeek != null && dayOfWeek.length >= 3) dayOfWeek.substring(0, 3),
+    if (startTime != null && endTime != null) '${_trim(startTime)}–${_trim(endTime)}',
+  ];
+  return parts.isEmpty ? null : parts.join(' • ');
+}

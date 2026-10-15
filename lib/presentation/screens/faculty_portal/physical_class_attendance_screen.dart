@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
-import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/repositories/faculty_repository.dart' show PhysicalClassItem;
 import 'grading_queue_screen.dart';
@@ -103,7 +102,8 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
     }
   }
 
-  bool _isAssessment(PhysicalClassItem item) => item.blockType != 'physicalClass';
+  /// Only physical assignments keep the old attendee/absentee split; classes and exams share the marking flow.
+  bool _isAssessment(PhysicalClassItem item) => item.blockType == 'physicalAssignment';
 
   void _openItem(PhysicalClassItem item) {
     Navigator.of(context).push(
@@ -250,13 +250,6 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
   }
 
   Widget _itemRow(PhysicalClassItem item) {
-    final assessment = _isAssessment(item);
-    final kind = item.blockType == 'physicalExam' ? 'Physical Exam' : (assessment ? 'Physical Assignment' : null);
-    final when = item.scheduledAt != null
-        ? formatDateRange(item.scheduledAt!, item.endsAt)
-        : (item.dueDate != null
-            ? 'Due ${formatDueDate(item.dueDate!)}'
-            : (assessment ? 'No date set' : 'Follows the class schedule'));
     return InkWell(
       onTap: () => _openItem(item),
       child: Container(
@@ -264,16 +257,10 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
         decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainer))),
         child: Row(
           children: [
-            Icon(item.blockType == 'physicalExam' ? Icons.edit_note : (assessment ? Icons.draw_outlined : Icons.meeting_room_outlined), size: 18, color: FacultyColors.primary),
+            Icon(item.blockType == 'physicalExam' ? Icons.edit_note : (_isAssessment(item) ? Icons.draw_outlined : Icons.meeting_room_outlined), size: 18, color: FacultyColors.primary),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.title, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                  Text(kind == null ? when : '$kind • $when', style: FacultyTypography.labelXs()),
-                ],
-              ),
+              child: Text(item.title, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
             ),
             const Icon(Icons.chevron_right, color: FacultyColors.onSurfaceVariant),
           ],

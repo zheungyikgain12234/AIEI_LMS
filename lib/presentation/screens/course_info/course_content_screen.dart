@@ -860,6 +860,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
       case ContentBlockType.physicalClass:
         return PhysicalClassAttendanceCard(block: b, studentId: DemoIdentity.studentId);
       case ContentBlockType.physicalExam:
+        return PhysicalClassAttendanceCard(block: b, studentId: DemoIdentity.studentId, fallbackTitle: 'Physical Exam');
       case ContentBlockType.physicalAssignment:
         return PhysicalAssessmentCard(block: b, studentId: DemoIdentity.studentId);
     }

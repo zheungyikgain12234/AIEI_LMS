@@ -440,13 +440,18 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
 
   @override
   Future<double> getTotalWeightage(String sectionId, {String? excludeContentBlockId}) async {
+    // Attendance shares the same 100% budget as the exam/assignment blocks.
+    final attendanceRow =
+        await _client.from('section_attendance_settings').select('attendance_weightage').eq('section_id', sectionId).maybeSingle();
+    final attendanceWeightage = (attendanceRow?['attendance_weightage'] as num?)?.toDouble() ?? 0;
+
     final moduleRows = await _client.from('course_modules').select('id').eq('section_id', sectionId);
     final moduleIds = [for (final row in moduleRows as List) row['id'] as String];
-    if (moduleIds.isEmpty) return 0;
+    if (moduleIds.isEmpty) return attendanceWeightage;
 
     final sessionRows = await _client.from('sessions').select('id').inFilter('module_id', moduleIds);
     final sessionIds = [for (final row in sessionRows as List) row['id'] as String];
-    if (sessionIds.isEmpty) return 0;
+    if (sessionIds.isEmpty) return attendanceWeightage;
 
     final blockRows = await _client
         .from('content_blocks')
@@ -454,7 +459,7 @@ class SupabaseLecturerSyllabusRepositoryImpl implements LecturerSyllabusReposito
         .inFilter('session_id', sessionIds)
         .inFilter('block_type', ['exam', 'assignment', 'physicalExam', 'physicalAssignment']);
 
-    var total = 0.0;
+    var total = attendanceWeightage;
     for (final row in blockRows as List) {
       final map = row as Map<String, dynamic>;
       if (excludeContentBlockId != null && map['id'] == excludeContentBlockId) continue;

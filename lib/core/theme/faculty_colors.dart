@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 /// Design tokens for the Faculty Portal (Stitch "SkillBridge" design system).
-/// Distinct palette from the student AppColors — faculty uses a brighter
-/// royal-blue primary rather than the student portal's deep navy.
+/// Primary blue is shared with AppColors and AdminColors (one blue across
+/// every portal).
 class FacultyColors {
   FacultyColors._();
 
-  static const Color primary = Color(0xFF004AC6);
-  static const Color primaryContainer = Color(0xFF2563EB);
+  static const Color primary = Color(0xFF00288E);
+  static const Color primaryContainer = Color(0xFF1E40AF);
   static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color onPrimaryContainer = Color(0xFFEEEFFF);
-  static const Color onPrimaryFixedVariant = Color(0xFF003EA8);
+  static const Color onPrimaryContainer = Color(0xFFA8B8FF);
+  static const Color onPrimaryFixedVariant = Color(0xFF173BAB);
 
   static const Color secondary = Color(0xFF565E74);
   static const Color secondaryContainer = Color(0xFFDAE2FD);

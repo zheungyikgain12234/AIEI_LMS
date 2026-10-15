@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -9,15 +10,19 @@ import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_attendance_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_exam_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
+import 'package:stitch_aiei_lms/domain/models/attendance_settings.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
+import 'package:stitch_aiei_lms/domain/repositories/submission_grading_repository.dart' show AttendanceStatus;
 import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/course_announcement.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'widgets/announcements_panel.dart';
+import 'widgets/faculty_dialog.dart';
 import 'physical_class_attendance_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
@@ -54,6 +59,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   final _assignmentRepository = SupabaseAssignmentRepositoryImpl(Supabase.instance.client);
   final _announcementsRepository = SupabaseAnnouncementsRepositoryImpl(Supabase.instance.client);
   final _settingsRepository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
+  final _attendanceRepository = SupabaseAttendanceSettingsRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
   bool _showAnnouncementForm = false;
@@ -78,6 +84,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   int _totalAssignmentBlocks = 0;
   List<RosterRow> _rosterRows = const [];
   List<AssessmentColumn> _assessmentColumns = const [];
+  /// Sum of every exam/assignment weightage (attendance excluded) — what the
+  /// Attendance Settings weightage has to fit in alongside.
+  double _assessmentWeightage = 0;
+  AttendanceSettings _attendanceSettings = AttendanceSettings.defaults;
+  static const _attendanceColumnId = '__attendance__';
   final _studentSearchController = TextEditingController();
   String _studentSearchQuery = '';
 
@@ -210,6 +221,33 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       if (physicalBlockIds.contains(sub.contentBlockId) && sub.status != 'graded') continue;
       submissionsByStudent.putIfAbsent(sub.studentId, () => []).add(sub);
     }
+
+    // ── Attendance: each student's raw score across the class's physical
+    // sessions, scored with this class's Attendance Settings. Their share =
+    // (sum of their scores) * weightage / (Present score * number of physical
+    // classes). ──────────────────────────────────────────────────────────
+    final attendanceSettings = await _attendanceRepository.getSettings(widget.sectionId);
+    final classBlockRows = sessionIds.isEmpty
+        ? const <dynamic>[]
+        : await _client.from('content_blocks').select('id').inFilter('session_id', sessionIds).inFilter('block_type', ['physicalClass', 'physicalExam']);
+    final classBlockIds = [for (final row in classBlockRows) row['id'] as String];
+    final attendanceRows = classBlockIds.isEmpty
+        ? const <dynamic>[]
+        : await _client.from('content_block_submissions').select('content_block_id, student_id, submission').inFilter('content_block_id', classBlockIds);
+    final attendanceMarksByStudent = <String, double>{};
+    for (final row in attendanceRows) {
+      final submission = Map<String, dynamic>.from(row['submission'] as Map? ?? {});
+      final marked = submission['attendance'];
+      final status = marked is String ? marked : (submission['attended'] == true ? AttendanceStatus.present : null);
+      if (status == null) continue;
+      final studentId = (row['student_id'] as num).toString();
+      attendanceMarksByStudent[studentId] = (attendanceMarksByStudent[studentId] ?? 0) + attendanceSettings.marksFor(status);
+    }
+    // Full attendance = Present in every physical session (classes and exams) of the syllabus.
+    final attendanceMaxMarks = classBlockIds.length * attendanceSettings.presentMarks;
+    // Always shown, even at 0% weightage, so the lecturer can see attendance.
+    assessmentColumns.add(AssessmentColumn(blockId: _attendanceColumnId, label: 'Attendance', weightage: attendanceSettings.weightage));
+    final totalWeightagePctWithAttendance = totalWeightagePct + attendanceSettings.weightage;
     if (!mounted) return;
 
     final course = assignedCourses.where((c) => c.sectionId == widget.sectionId).firstOrNull;
@@ -256,14 +294,20 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       // Each column shows the student's share of that block's weightage:
       // (marks scored / max marks) * weightage%.
       final gradedScoreByBlock = {for (final sub in graded) sub.contentBlockId: sub.totalScore ?? 0};
+      final attendanceMarks = attendanceMarksByStudent[s.studentId] ?? 0;
       final assessmentScores = <String, double?>{
         for (final col in assessmentColumns)
-          col.blockId: gradedScoreByBlock.containsKey(col.blockId) && (maxMarksByBlock[col.blockId] ?? 0) > 0
-              ? gradedScoreByBlock[col.blockId]! / maxMarksByBlock[col.blockId]! * col.weightage
-              : (gradedScoreByBlock.containsKey(col.blockId) ? 0.0 : null),
+          col.blockId: col.blockId == _attendanceColumnId
+              ? (attendanceMaxMarks > 0 ? (attendanceMarks / attendanceMaxMarks * col.weightage).clamp(0.0, col.weightage) : 0.0)
+              : gradedScoreByBlock.containsKey(col.blockId) && (maxMarksByBlock[col.blockId] ?? 0) > 0
+                  ? gradedScoreByBlock[col.blockId]! / maxMarksByBlock[col.blockId]! * col.weightage
+                  : (gradedScoreByBlock.containsKey(col.blockId) ? 0.0 : null),
       };
       final assessmentMarks = <String, double?>{
-        for (final col in assessmentColumns) col.blockId: gradedScoreByBlock.containsKey(col.blockId) ? gradedScoreByBlock[col.blockId] : null,
+        for (final col in assessmentColumns)
+          col.blockId: col.blockId == _attendanceColumnId
+              ? attendanceMarks
+              : (gradedScoreByBlock.containsKey(col.blockId) ? gradedScoreByBlock[col.blockId] : null),
       };
       final totalAchievedPct = assessmentScores.values.fold<double>(0, (sum, v) => sum + (v ?? 0));
 
@@ -280,7 +324,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
         assessmentScores: assessmentScores,
         assessmentMarks: assessmentMarks,
         totalAchievedPct: totalAchievedPct,
-        totalPossiblePct: totalWeightagePct,
+        totalPossiblePct: totalWeightagePctWithAttendance,
         moderatedScore: s.moderatedScore,
       ));
     }
@@ -307,6 +351,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       _totalAssignmentBlocks = totalAssignmentBlocks;
       _rosterRows = rosterRows;
       _assessmentColumns = assessmentColumns;
+      _assessmentWeightage = totalWeightagePct;
+      _attendanceSettings = attendanceSettings;
       _maxModeratedScore = numericSettings[AppSettingKeys.maxModeratedScore];
       _gradeScale = gradeScale;
       _announcements = announcements;
@@ -348,23 +394,19 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     final bodyController = TextEditingController(text: a.body);
     final saved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Announcement'),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Subject')),
-              const SizedBox(height: 12),
-              TextField(controller: bodyController, maxLines: 4, decoration: const InputDecoration(labelText: 'Content')),
-            ],
-          ),
+      builder: (ctx) => FacultyDialog(
+        title: 'Edit Announcement',
+        subtitle: 'Update this announcement for every student in the class.',
+        confirmLabel: 'Save Changes',
+        onConfirm: () => Navigator.pop(ctx, true),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FacultyFormField(controller: titleController, label: 'Subject', hint: 'Announcement subject'),
+            const SizedBox(height: 14),
+            FacultyFormField(controller: bodyController, label: 'Content', required: false, maxLines: 4, hint: 'What do you want to tell the class...'),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
-        ],
       ),
     );
     final title = titleController.text.trim();
@@ -380,17 +422,12 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   Future<void> _deleteAnnouncement(CourseAnnouncement a) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete announcement?'),
-        content: Text('"${a.title}" will be removed for all students in this class.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: FacultyColors.error, foregroundColor: Colors.white),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (ctx) => FacultyDialog(
+        title: 'Delete announcement?',
+        confirmLabel: 'Delete',
+        destructive: true,
+        onConfirm: () => Navigator.pop(ctx, true),
+        child: Text('"${a.title}" will be removed for all students in this class.', style: FacultyTypography.bodyMd()),
       ),
     );
     if (confirmed != true) return;
@@ -490,7 +527,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   }
 
   Widget _buildTopBar() {
-    return Wrap(
+    // Full width so spaceBetween pushes the settings button to the right edge.
+    return SizedBox(width: double.infinity, child: Wrap(
       alignment: WrapAlignment.spaceBetween,
       crossAxisAlignment: WrapCrossAlignment.start,
       spacing: 16,
@@ -526,8 +564,40 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
             ),
           ],
         ),
+        OutlinedButton.icon(
+          onPressed: _openAttendanceSettings,
+          icon: const Icon(Icons.settings_outlined, size: 18),
+          label: const Text('Attendance Settings'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: FacultyColors.primary,
+            side: const BorderSide(color: FacultyColors.outline),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            textStyle: FacultyTypography.labelMd(),
+          ),
+        ),
       ],
+    ));
+  }
+
+  Future<void> _openAttendanceSettings() async {
+    final updated = await showDialog<AttendanceSettings>(
+      context: context,
+      builder: (_) => _AttendanceSettingsDialog(initial: _attendanceSettings, otherWeightage: _assessmentWeightage),
     );
+    if (updated == null) return;
+    try {
+      await _attendanceRepository.saveSettings(widget.sectionId, updated);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save attendance settings: $e'), backgroundColor: FacultyColors.error),
+      );
+      return;
+    }
+    if (!mounted) return;
+    showSuccessSnackBar(context, 'Attendance settings saved.');
+    await _load();
   }
 
   Widget _tag(String text, Color bg, Color fg, {bool dot = false}) {
@@ -982,6 +1052,136 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "Attendance Settings" dialog: the raw score each attendance status earns
+/// and the attendance share of the final grade. [otherWeightage] is what the
+/// class's exam/assignment blocks already use, so attendance can only take
+/// the remainder of the 100%.
+class _AttendanceSettingsDialog extends StatefulWidget {
+  final AttendanceSettings initial;
+  final double otherWeightage;
+
+  const _AttendanceSettingsDialog({required this.initial, required this.otherWeightage});
+
+  @override
+  State<_AttendanceSettingsDialog> createState() => _AttendanceSettingsDialogState();
+}
+
+class _AttendanceSettingsDialogState extends State<_AttendanceSettingsDialog> {
+  late final _present = TextEditingController(text: _fmt(widget.initial.presentMarks));
+  late final _late = TextEditingController(text: _fmt(widget.initial.lateMarks));
+  late final _validAbsent = TextEditingController(text: _fmt(widget.initial.validAbsentMarks));
+  late final _invalidAbsent = TextEditingController(text: _fmt(widget.initial.invalidAbsentMarks));
+  late final _weightage = TextEditingController(text: _fmt(widget.initial.weightage));
+  bool _submitted = false;
+
+  static String _fmt(double v) => v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1);
+
+  double get _budget => (100 - widget.otherWeightage).clamp(0, 100).toDouble();
+
+  @override
+  void dispose() {
+    for (final c in [_present, _late, _validAbsent, _invalidAbsent, _weightage]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /// Present >= Late >= Valid absent >= Invalid absent: the attendance share
+  /// divides by (Present score x classes), so no status may beat the one above.
+  String? _marksError(TextEditingController c) {
+    final order = [(_present, 'Present'), (_late, 'Late'), (_validAbsent, 'Valid absent'), (_invalidAbsent, 'Invalid absent')];
+    final value = double.tryParse(c.text.trim());
+    if (value == null) return 'Enter a score (0 or more).';
+    final i = order.indexWhere((e) => e.$1 == c);
+    if (i > 0) {
+      final above = double.tryParse(order[i - 1].$1.text.trim());
+      if (above != null && value > above) {
+        return '${order[i].$2} cannot be higher than ${order[i - 1].$2} (${_fmt(above)}). Use Present ≥ Late ≥ Valid absent ≥ Invalid absent.';
+      }
+    }
+    return null;
+  }
+
+  String? get _weightageError {
+    final w = double.tryParse(_weightage.text.trim());
+    if (w == null) return 'Enter a number between 0 and 100.';
+    if (w > _budget + 0.001) {
+      return 'Only ${_fmt(_budget)}% is available — assignments and exams already use ${_fmt(widget.otherWeightage)}%, and the total cannot exceed 100%.';
+    }
+    return null;
+  }
+
+  void _save() {
+    setState(() => _submitted = true);
+    if ([_present, _late, _validAbsent, _invalidAbsent].any((c) => _marksError(c) != null) || _weightageError != null) return;
+    Navigator.pop(
+      context,
+      AttendanceSettings(
+        presentMarks: double.parse(_present.text.trim()),
+        lateMarks: double.parse(_late.text.trim()),
+        validAbsentMarks: double.parse(_validAbsent.text.trim()),
+        invalidAbsentMarks: double.parse(_invalidAbsent.text.trim()),
+        weightage: double.parse(_weightage.text.trim()),
+      ),
+    );
+  }
+
+  Widget _field(TextEditingController c, String label, {String? error, String? suffix, String? helper}) {
+    return FacultyFormField(
+      controller: c,
+      label: label,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: decimalOnly,
+      onChanged: (_) => setState(() {}),
+      suffixText: suffix,
+      helperText: helper,
+      errorText: _submitted ? error : null,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FacultyDialog(
+      title: 'Attendance Settings',
+      subtitle: 'Set the raw score each attendance status earns, and how much attendance counts toward the final grade.',
+      confirmLabel: 'Save Settings',
+      onConfirm: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Raw score per physical class', style: FacultyTypography.labelMd().copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          _field(_present, 'Present', error: _marksError(_present)),
+          const SizedBox(height: 14),
+          _field(_late, 'Late', error: _marksError(_late)),
+          const SizedBox(height: 14),
+          Text('Absent', style: FacultyTypography.labelMd()),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _field(_validAbsent, 'Valid reason', error: _marksError(_validAbsent))),
+              const SizedBox(width: 12),
+              Expanded(child: _field(_invalidAbsent, 'Invalid reason', error: _marksError(_invalidAbsent))),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text('Weightage', style: FacultyTypography.labelMd().copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          _field(
+            _weightage,
+            'Attendance weightage',
+            suffix: '%',
+            error: _weightageError,
+            helper: '${_fmt(_budget)}% available — assignments and exams use ${_fmt(widget.otherWeightage)}%. Everything together cannot exceed 100%.',
+          ),
+        ],
       ),
     );
   }

@@ -16,7 +16,7 @@ import 'package:stitch_aiei_lms/domain/models/exam_section.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
-import 'widgets/required_field_label.dart';
+import 'widgets/faculty_dialog.dart';
 
 // ---------------------------------------------------------------------------
 // ExamEditorScreen — reached via "Manage Contents" on an exam content block in the
@@ -284,17 +284,12 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
   Future<bool?> _confirmDelete({required String title, required String message}) {
     return showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: FacultyColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (ctx) => FacultyDialog(
+        title: title,
+        confirmLabel: 'Delete',
+        destructive: true,
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: Text(message, style: FacultyTypography.bodyMd()),
       ),
     );
   }
@@ -811,32 +806,18 @@ class _SectionNameDialogState extends State<_SectionNameDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.dialogTitle),
-      content: SizedBox(
-        width: 380,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: InputDecoration(label: requiredLabel('Section name')),
-              onChanged: (_) => setState(() => _nameError = null),
-              onSubmitted: (_) => _submit(),
-            ),
-            AdminFieldError(_nameError),
-          ],
-        ),
+    return FacultyDialog(
+      title: widget.dialogTitle,
+      subtitle: 'Sections group related questions in the exam.',
+      onConfirm: _submit,
+      child: FacultyFormField(
+        controller: _nameController,
+        label: 'Section name',
+        autofocus: true,
+        errorText: _nameError,
+        onChanged: (_) => setState(() => _nameError = null),
+        onSubmitted: (_) => _submit(),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Save'),
-        ),
-      ],
     );
   }
 }
@@ -965,35 +946,36 @@ class _QuestionDialogState extends State<_QuestionDialog> {
   @override
   Widget build(BuildContext context) {
     if (_submitted) _errors = _validate();
-    return AlertDialog(
-      title: Text(widget.existing == null ? 'Add Question' : 'Edit Question'),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
+    return FacultyDialog(
+      title: widget.existing == null ? 'Add Question' : 'Edit Question',
+      subtitle: 'Write the question, set its marks and choose how students answer.',
+      maxWidth: 560,
+      confirmLabel: widget.existing == null ? 'Add Question' : 'Save Changes',
+      onConfirm: _save,
+      child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
+              LabeledField(label: 'Question', required: true, child: TextField(
                 controller: _textController,
-                decoration: InputDecoration(label: requiredLabel('Question')),
+                decoration: const InputDecoration(),
                 maxLines: 3,
                 onChanged: (_) => setState(() {}),
-              ),
+              )),
               AdminFieldError(_errors['text']),
               const SizedBox(height: 14),
-              TextField(
+              LabeledField(label: 'Marks this question is worth', required: true, child: TextField(
                 controller: _marksController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: decimalOnly,
-                decoration: InputDecoration(label: requiredLabel('Marks this question is worth')),
+                decoration: const InputDecoration(),
                 onChanged: (_) => setState(() {}),
-              ),
+              )),
               AdminFieldError(_errors['marks']),
               const SizedBox(height: 14),
-              DropdownButtonFormField<ExamQuestionType>(
+              LabeledField(label: 'Question style', required: true, child: DropdownButtonFormField<ExamQuestionType>(
                 initialValue: _type,
-                decoration: InputDecoration(label: requiredLabel('Question style')),
+                decoration: const InputDecoration(),
                 icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
                 items: const [
                   DropdownMenuItem(value: ExamQuestionType.singleChoice, child: Text('Single-select MCQ')),
@@ -1003,7 +985,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                   DropdownMenuItem(value: ExamQuestionType.fileUpload, child: Text('File upload')),
                 ],
                 onChanged: _onTypeChanged,
-              ),
+              )),
               if (_type.hasOptions) ...[
                 const SizedBox(height: 14),
                 Text(
@@ -1035,12 +1017,6 @@ class _QuestionDialogState extends State<_QuestionDialog> {
               ],
             ],
           ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(onPressed: _save, child: const Text('Save')),
-      ],
     );
   }
 
@@ -1057,7 +1033,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
             child: TextField(
               controller: choice._controller,
               enabled: !isBoolean,
-              decoration: InputDecoration(labelText: 'Choice ${index + 1}'),
+              decoration: InputDecoration(hintText: 'Choice ${index + 1}'),
               onChanged: (_) => setState(() {}),
             ),
           ),

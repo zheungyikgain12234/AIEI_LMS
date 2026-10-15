@@ -11,7 +11,7 @@
 -- set into a real production deployment with real user data.
 
 drop table if exists
-  app_settings, grade_scale,
+  app_settings, grade_scale, section_attendance_settings,
   course_announcements, course_sections,
   badge_awards, course_badges, student_certifications, student_materials, student_courses,
   course_programmes, specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
@@ -604,6 +604,21 @@ create table course_announcements (
   created_at timestamptz not null default now()
 );
 
+-- Per-class attendance scoring (Course Dashboard "Attendance Settings"): the
+-- raw score a student earns for each physical class they were marked Present /
+-- Late / Valid absent / Invalid absent, and the share of the class's final
+-- grade attendance is worth. A class with no row uses the defaults below
+-- (3 / 2 / 1 / 0 marks, 0% weightage). The app keeps attendance_weightage plus
+-- every exam/assignment weightage at or under 100.
+create table section_attendance_settings (
+  section_id uuid primary key references course_sections(id) on delete cascade,
+  present_marks numeric not null default 3 check (present_marks >= 0),
+  late_marks numeric not null default 2 check (late_marks >= 0),
+  valid_absent_marks numeric not null default 1 check (valid_absent_marks >= 0),
+  invalid_absent_marks numeric not null default 0 check (invalid_absent_marks >= 0),
+  attendance_weightage numeric not null default 0 check (attendance_weightage >= 0 and attendance_weightage <= 100)
+);
+
 -- Global admin-toggleable feature flags (Admin "Settings" screen). Row-per-key
 -- rather than a single JSON blob so each toggle is a plain boolean column read.
 -- `numeric_value` backs the handful of settings that are a number rather
@@ -688,6 +703,7 @@ alter table course_sections enable row level security;
 alter table course_announcements enable row level security;
 alter table app_settings enable row level security;
 alter table grade_scale enable row level security;
+alter table section_attendance_settings enable row level security;
 
 do $$
 declare
@@ -704,7 +720,7 @@ begin
     'tags', 'course_tags', 'module_lists', 'module_list_items', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'course_announcements',
-    'app_settings', 'grade_scale'
+    'app_settings', 'grade_scale', 'section_attendance_settings'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

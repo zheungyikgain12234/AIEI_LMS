@@ -7,14 +7,13 @@ import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
 
-/// Right-hand reference panel on every Faculty Portal screen: all of this
-/// lecturer's own active classes with where (location / online), which day,
-/// what time and the date range they run — so the lecturer can check their
-/// timetable without leaving the page they're on.
+/// "My active classes" panel at the bottom of the left Faculty Portal sidebar:
+/// all of this lecturer's own active classes with where (location / online),
+/// which day, what time and the date range they run — so the lecturer can
+/// check their timetable without leaving the page they're on. Fills whatever
+/// height the nav items above it leave free and scrolls within it.
 class FacultyScheduleSidebar extends StatefulWidget {
   const FacultyScheduleSidebar({super.key});
-
-  static const double width = 300;
 
   @override
   State<FacultyScheduleSidebar> createState() => _FacultyScheduleSidebarState();
@@ -66,42 +65,36 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: FacultyScheduleSidebar.width,
-      decoration: const BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
-        boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(-1, 0))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('MY ACTIVE CLASSES', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                const SizedBox(height: 2),
-                Text('Where and when you teach', style: FacultyTypography.bodySm()),
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Divider(height: 1, indent: 16, endIndent: 16, color: FacultyColors.surfaceContainer),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(30, 16, 20, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('MY ACTIVE CLASSES', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              const SizedBox(height: 2),
+              Text('Where and when you teach', style: FacultyTypography.bodySm()),
+            ],
           ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Padding(padding: const EdgeInsets.all(20), child: Text(_error!, style: FacultyTypography.bodySm(color: FacultyColors.error)))
-                    : _classes.isEmpty
-                        ? Padding(padding: const EdgeInsets.all(20), child: Text('No active classes right now.', style: FacultyTypography.bodySm()))
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                            itemCount: _classes.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 10),
-                            itemBuilder: (_, i) => _classCard(_classes[i]),
-                          ),
-          ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Padding(padding: const EdgeInsets.fromLTRB(30, 12, 20, 12), child: Text(_error!, style: FacultyTypography.bodySm(color: FacultyColors.error)))
+                  : _classes.isEmpty
+                      ? Padding(padding: const EdgeInsets.fromLTRB(30, 12, 20, 12), child: Text('No active classes right now.', style: FacultyTypography.bodySm()))
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          itemCount: _classes.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 10),
+                          itemBuilder: (_, i) => _classCard(_classes[i]),
+                        ),
+        ),
+      ],
     );
   }
 

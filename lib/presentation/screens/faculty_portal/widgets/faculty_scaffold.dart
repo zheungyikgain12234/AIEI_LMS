@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'faculty_header.dart';
-import 'faculty_schedule_sidebar.dart';
 import 'faculty_sidebar.dart';
 
 /// Shared header + sidebar shell used by every Faculty Portal screen, mirroring
@@ -46,9 +45,6 @@ class FacultyScaffold extends StatelessWidget {
               ),
             ),
           ),
-          // Reference panel with the lecturer's own active classes; hidden on
-          // narrower windows where it would squeeze the page.
-          if (MediaQuery.of(context).size.width >= 1280) const FacultyScheduleSidebar(),
         ],
       ),
     );

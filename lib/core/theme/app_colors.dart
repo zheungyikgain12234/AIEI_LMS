@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Primary Palette (Deep Navy / Slate)
-  static const Color primary = Color(0xFF091426);
-  static const Color primaryContainer = Color(0xFF1E293B);
+  // Primary Palette (shared royal blue — identical in the admin and faculty portals)
+  static const Color primary = Color(0xFF00288E);
+  static const Color primaryContainer = Color(0xFF1E40AF);
   static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color primaryFixed = Color(0xFFD8E3FB);
-  static const Color primaryFixedDim = Color(0xFFBCC7DE);
+  static const Color primaryFixed = Color(0xFFDDE1FF);
+  static const Color primaryFixedDim = Color(0xFFB8C4FF);
 
   // Secondary Palette (Vibrant Royal Blue)
   static const Color secondary = Color(0xFF0051D5);

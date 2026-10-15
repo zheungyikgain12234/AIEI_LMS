@@ -4,6 +4,7 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
+import 'faculty_dialog.dart';
 
 /// One quiz/assignment content block, as a column in [StudentRosterTable].
 /// [weightage] is the percentage of the final grade this block is worth —
@@ -890,12 +891,15 @@ class _BulkModeratedScoreHeaderState extends State<_BulkModeratedScoreHeader> {
     if (max != null && parsed > max) {
       showDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Exceeds maximum moderated score'),
-          content: Text(
+        builder: (ctx) => FacultyDialog(
+          title: 'Exceeds maximum moderated score',
+          confirmLabel: 'OK',
+          showCancel: false,
+          onConfirm: () => Navigator.of(ctx).pop(),
+          child: Text(
             'The admin has capped moderated score adjustments at ${RosterRow._formatPct(max)}%. Enter a value at or below this limit.',
+            style: FacultyTypography.bodyMd(),
           ),
-          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK'))],
         ),
       );
       return;

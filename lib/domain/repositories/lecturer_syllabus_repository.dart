@@ -95,6 +95,7 @@ abstract class LecturerSyllabusRepository {
   /// class's whole syllabus (every module/session, not just loaded ones) —
   /// used to enforce the "must not exceed 100%" rule when a lecturer sets a
   /// block's weightage. Pass [excludeContentBlockId] (the block being
-  /// edited) so its own current weightage isn't double-counted.
+  /// edited) so its own current weightage isn't double-counted. Includes the
+  /// class's attendance weightage, which shares the same 100% budget.
   Future<double> getTotalWeightage(String sectionId, {String? excludeContentBlockId});
 }

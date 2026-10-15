@@ -1,4 +1,3 @@
-import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/admin_field_error.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
@@ -11,7 +10,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository
 import 'package:stitch_aiei_lms/domain/models/assignment_criterion.dart';
 import 'widgets/downloadable_file.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
-import 'widgets/required_field_label.dart';
+import 'widgets/faculty_dialog.dart';
 
 // ---------------------------------------------------------------------------
 // AssignmentEditorScreen — reached via "Manage Contents" on an assignment
@@ -111,17 +110,12 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
   Future<void> _deleteCriterion(AssignmentCriterion c) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete criterion?'),
-        content: Text('This deletes "${c.label}" from the grading criteria. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: FacultyColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (ctx) => FacultyDialog(
+        title: 'Delete criterion?',
+        confirmLabel: 'Delete',
+        destructive: true,
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: Text('This deletes "${c.label}" from the grading criteria. This cannot be undone.', style: FacultyTypography.bodyMd()),
       ),
     );
     if (confirmed != true) return;
@@ -399,37 +393,34 @@ class _CriterionDialogState extends State<_CriterionDialog> {
   @override
   Widget build(BuildContext context) {
     if (_submitted) _errors = _validate();
-    return AlertDialog(
-      title: Text(widget.existing == null ? 'Add Criterion' : 'Edit Criterion'),
-      content: SizedBox(
-        width: 380,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _labelController,
-              autofocus: true,
-              decoration: InputDecoration(label: requiredLabel('Criterion (e.g. "Code Correctness")')),
-              onChanged: (_) => setState(() {}),
-            ),
-            AdminFieldError(_errors['label']),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _marksController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: decimalOnly,
-              decoration: InputDecoration(label: requiredLabel('Marks this criterion is worth')),
-              onChanged: (_) => setState(() {}),
-            ),
-            AdminFieldError(_errors['marks']),
-          ],
-        ),
+    return FacultyDialog(
+      title: widget.existing == null ? 'Add Criterion' : 'Edit Criterion',
+      subtitle: 'A criterion is one thing the assignment is marked on.',
+      confirmLabel: widget.existing == null ? 'Add Criterion' : 'Save Changes',
+      onConfirm: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FacultyFormField(
+            controller: _labelController,
+            label: 'Criterion',
+            hint: 'Code Correctness',
+            autofocus: true,
+            errorText: _errors['label'],
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 14),
+          FacultyFormField(
+            controller: _marksController,
+            label: 'Marks this criterion is worth',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: decimalOnly,
+            errorText: _errors['marks'],
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(onPressed: _save, child: const Text('Save')),
-      ],
     );
   }
 }

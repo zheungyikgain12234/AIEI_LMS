@@ -15,7 +15,7 @@ class _LoginColors {
   static const Color heroVia = Color(0xFF102342);
   static const Color heroTo = Color(0xFF152E55);
 
-  static const Color brandBlue = Color(0xFF1D63ED);
+  static const Color brandBlue = Color(0xFF1E40AF);
   static const Color indigo = Color(0xFF4F46E5);
   static const Color amber = Color(0xFFD97706);
   static const Color emerald = Color(0xFF059669);

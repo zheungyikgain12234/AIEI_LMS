@@ -38,7 +38,8 @@ import 'physical_class_attendance_screen.dart';
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
-import 'widgets/required_field_label.dart';
+import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/admin_field_label.dart';
+import 'widgets/faculty_dialog.dart';
 import 'widgets/rich_text_field.dart';
 import 'widgets/rich_text_viewer.dart';
 import 'my_assigned_courses_screen.dart';
@@ -418,17 +419,12 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
   Future<bool?> _confirmDelete({required String title, required String message}) {
     return showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: FacultyColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (ctx) => FacultyDialog(
+        title: title,
+        confirmLabel: 'Delete',
+        destructive: true,
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: Text(message, style: FacultyTypography.bodyMd()),
       ),
     );
   }
@@ -457,13 +453,12 @@ class _CourseSyllabusScreenState extends State<CourseSyllabusScreen> with Refres
     if (template == null || !mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Overwrite syllabus?'),
-        content: Text('Importing "${template.name}" replaces all existing sessions and content in this class. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Overwrite')),
-        ],
+      builder: (ctx) => FacultyDialog(
+        title: 'Overwrite syllabus?',
+        confirmLabel: 'Overwrite',
+        destructive: true,
+        onConfirm: () => Navigator.pop(ctx, true),
+        child: Text('Importing "${template.name}" replaces all existing sessions and content in this class. This cannot be undone.', style: FacultyTypography.bodyMd()),
       ),
     );
     if (confirmed != true) return;
@@ -1330,6 +1325,44 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
           ],
         );
       case ContentBlockType.physicalExam:
+        return _infoWithActions(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                b.title?.isNotEmpty == true ? b.title! : 'Physical Exam',
+                style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              ),
+              if (_section != null) ...[
+                const SizedBox(height: 2),
+                Text(classScheduleText(_section!), style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+              if (b.description?.isNotEmpty == true) ...[
+                const SizedBox(height: 2),
+                Text(b.description!, style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+              if (b.weightage != null) ...[
+                const SizedBox(height: 2),
+                Text('Weightage: ${_formatWeightage(b.weightage!)}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+              ],
+            ],
+          ),
+          [
+            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PhysicalClassAttendeesScreen(
+                    contentBlockId: b.id,
+                    sectionId: widget.sectionId,
+                    title: b.title?.isNotEmpty == true ? b.title! : 'Physical Exam',
+                  ),
+                ),
+              ),
+              child: const Text('Attendance'),
+            ),
+          ],
+        );
       case ContentBlockType.physicalAssignment:
         return _infoWithActions(
           Column(
@@ -1444,43 +1477,32 @@ class _NameDescriptionDialogState extends State<_NameDescriptionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.dialogTitle),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: InputDecoration(label: requiredLabel(widget.nameLabel), prefixText: widget.prefix),
-              onChanged: (_) => setState(() => _nameError = null),
-            ),
-            AdminFieldError(_nameError),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descController,
-              decoration: const InputDecoration(labelText: 'Description (optional)'),
-              maxLines: 3,
-            ),
-          ],
-        ),
+    return FacultyDialog(
+      title: widget.dialogTitle,
+      subtitle: 'Give it a name and, if you like, a short description.',
+      onConfirm: () {
+        if (_nameController.text.trim().isEmpty) {
+          setState(() => _nameError = '${widget.nameLabel} is required.');
+          return;
+        }
+        Navigator.of(context).pop((_nameController.text.trim(), _descController.text.trim()));
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FacultyFormField(
+            controller: _nameController,
+            label: widget.nameLabel,
+            prefixText: widget.prefix,
+            autofocus: true,
+            errorText: _nameError,
+            onChanged: (_) => setState(() => _nameError = null),
+          ),
+          const SizedBox(height: 14),
+          FacultyFormField(controller: _descController, label: 'Description', required: false, maxLines: 3),
+        ],
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: () {
-            if (_nameController.text.trim().isEmpty) {
-              setState(() => _nameError = '' + widget.nameLabel + ' is required.');
-              return;
-            }
-            Navigator.of(context).pop((_nameController.text.trim(), _descController.text.trim()));
-          },
-          child: const Text('Save'),
-        ),
-      ],
     );
   }
 }
@@ -1583,7 +1605,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     if (w == null) return null;
     if (w < 0 || w > 100) return 'Weightage must be between 0 and 100.';
     if (w > _weightageBudget + 0.001) {
-      return 'Only ${_weightageBudget.toStringAsFixed(_weightageBudget.truncateToDouble() == _weightageBudget ? 0 : 1)}% is available for this class — the total across every assignment/exam cannot exceed 100%.';
+      return 'Only ${_weightageBudget.toStringAsFixed(_weightageBudget.truncateToDouble() == _weightageBudget ? 0 : 1)}% is available for this class — the total across every assignment/exam and attendance cannot exceed 100%.';
     }
     return null;
   }
@@ -1687,7 +1709,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           _type == ContentBlockType.physicalExam ? 'Exam name is required.' : 'Assignment name is required.',
         );
         requireText('description', _descriptionController, 'Description is required.');
-        requireDue();
+        // A physical exam follows the class schedule, so only the assignment has its own due date.
+        if (_type == ContentBlockType.physicalAssignment) requireDue();
         final marks = _parsedMaxMarks;
         if (marks == null || marks <= 0) {
           errors['maxMarks'] = 'Maximum marks must be greater than 0.';
@@ -1863,7 +1886,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return {
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),
-          'dueDate': _dueDate!.toIso8601String(),
+          if (_type == ContentBlockType.physicalAssignment) 'dueDate': _dueDate!.toIso8601String(),
           'weightage': _parsedWeightage,
           'maxMarks': _parsedMaxMarks,
         };
@@ -1878,18 +1901,19 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
   @override
   Widget build(BuildContext context) {
     if (_submitted) _fieldErrors = _validate();
-    return AlertDialog(
-      title: Text(_isEditing ? 'Edit Content' : 'Add Content'),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
+    return FacultyDialog(
+      title: _isEditing ? 'Edit Content' : 'Add Content',
+      subtitle: _isEditing ? 'Update this piece of content.' : 'Choose a content type, then fill in its details.',
+      maxWidth: 560,
+      confirmLabel: _isEditing ? 'Save Changes' : 'Add Content',
+      onConfirm: _uploading ? null : _submit,
+      child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DropdownButtonFormField<ContentBlockType>(
+              LabeledField(label: 'Content type', required: true, child: DropdownButtonFormField<ContentBlockType>(
                 initialValue: _type,
-                decoration: InputDecoration(label: requiredLabel('Content type')),
+                decoration: const InputDecoration(),
                 icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
                 items: [
                   for (final t in ContentBlockType.values)
@@ -1902,7 +1926,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
                           if (t != null) _type = t;
                           _error = null;
                         }),
-              ),
+              )),
               const SizedBox(height: 14),
               ..._fieldsFor(_type),
               if (_error != null) ...[
@@ -1911,15 +1935,6 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
               ],
             ],
           ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _uploading ? null : _submit,
-          child: Text(_isEditing ? 'Save' : 'Add'),
-        ),
-      ],
     );
   }
 
@@ -1954,32 +1969,30 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         return [RichTextField(controller: _richTextController), _fe('text')];
       case ContentBlockType.video:
         return [
-          TextField(
+          LabeledField(label: 'Video URL', required: true, child: TextField(
             controller: _urlController,
             decoration: InputDecoration(
-              label: requiredLabel('Video URL'),
               helperText: 'A YouTube link, or a direct video file link (.mp4/.webm) for an unskippable player',
               helperMaxLines: 2,
             ),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('url'),
           const SizedBox(height: 8),
           _orDivider(),
           const SizedBox(height: 8),
           _uploadButton(fileType: FileType.video, label: 'Upload a video file'),
           const SizedBox(height: 12),
-          TextField(controller: _captionController, decoration: const InputDecoration(labelText: 'Caption (optional)')),
+          LabeledField(label: 'Caption', required: false, child: TextField(controller: _captionController, decoration: const InputDecoration())),
           const SizedBox(height: 12),
-          TextField(
+          LabeledField(label: 'Thumbnail URL', required: false, child: TextField(
             controller: _thumbnailUrlController,
             decoration: const InputDecoration(
-              labelText: 'Thumbnail URL (optional)',
               helperText: 'Shown instead of a play icon until the video is started. Not needed for YouTube links.',
               helperMaxLines: 2,
             ),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _uploadingThumbnail ? null : _pickAndUploadThumbnail,
@@ -1995,18 +2008,18 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         ];
       case ContentBlockType.image:
         return [
-          TextField(
+          LabeledField(label: 'Image URL', required: true, child: TextField(
             controller: _urlController,
-            decoration: InputDecoration(label: requiredLabel('Image URL')),
+            decoration: const InputDecoration(),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('url'),
           const SizedBox(height: 8),
           _orDivider(),
           const SizedBox(height: 8),
           _uploadButton(fileType: FileType.image, label: 'Upload an image'),
           const SizedBox(height: 12),
-          TextField(controller: _captionController, decoration: const InputDecoration(labelText: 'Caption (optional)')),
+          LabeledField(label: 'Caption', required: false, child: TextField(controller: _captionController, decoration: const InputDecoration())),
           if (_urlController.text.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
             EmbeddedImage(url: _urlController.text.trim(), height: 140, width: double.infinity, enableTapToExpand: false),
@@ -2014,14 +2027,14 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         ];
       case ContentBlockType.link:
         return [
-          TextField(
+          LabeledField(label: 'URL', required: true, child: TextField(
             controller: _urlController,
-            decoration: InputDecoration(label: requiredLabel('URL')),
+            decoration: const InputDecoration(),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('url'),
           const SizedBox(height: 12),
-          TextField(controller: _labelController, decoration: const InputDecoration(labelText: 'Link label (optional)')),
+          LabeledField(label: 'Link label', required: false, child: TextField(controller: _labelController, decoration: const InputDecoration())),
         ];
       case ContentBlockType.file:
         return [
@@ -2034,32 +2047,32 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         ];
       case ContentBlockType.exam:
         return [
-          TextField(
+          LabeledField(label: 'Online exam name', required: true, child: TextField(
             controller: _titleController,
-            decoration: InputDecoration(label: requiredLabel('Online exam name')),
+            decoration: const InputDecoration(),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('title'),
           const SizedBox(height: 12),
-          TextField(
+          LabeledField(label: 'Description', required: true, child: TextField(
             controller: _descriptionController,
-            decoration: InputDecoration(label: requiredLabel('Description')),
+            decoration: const InputDecoration(),
             maxLines: 2,
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('description'),
           const SizedBox(height: 12),
-          TextField(
+          LabeledField(label: 'Instructions', required: true, child: TextField(
             controller: _instructionsController,
-            decoration: InputDecoration(label: requiredLabel('Instructions')),
+            decoration: const InputDecoration(),
             maxLines: 3,
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('instructions'),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
+          LabeledField(label: 'Mode', required: true, child: DropdownButtonFormField<String>(
             initialValue: _mode,
-            decoration: InputDecoration(label: requiredLabel('Mode')),
+            decoration: const InputDecoration(),
             icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
             items: const [
               DropdownMenuItem(value: 'normal', child: Text('Normal')),
@@ -2067,18 +2080,17 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
               DropdownMenuItem(value: 'take_home', child: Text('Take-home test')),
             ],
             onChanged: (v) => setState(() => _mode = v ?? 'normal'),
-          ),
+          )),
           const SizedBox(height: 12),
-          TextField(
+          LabeledField(label: 'Time limit (minutes)', required: false, child: TextField(
             controller: _timeLimitController,
             keyboardType: TextInputType.number,
             inputFormatters: digitsOnly,
             decoration: const InputDecoration(
-              labelText: 'Time limit (minutes, optional)',
               helperText: 'Shows a countdown timer on the exam page and auto-submits at zero. Leave blank for no limit.',
             ),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('timeLimit'),
           const SizedBox(height: 12),
           _availableFromRow(),
@@ -2098,27 +2110,27 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
         ];
       case ContentBlockType.assignment:
         return [
-          TextField(
+          LabeledField(label: 'Assignment name', required: true, child: TextField(
             controller: _titleController,
-            decoration: InputDecoration(label: requiredLabel('Assignment name')),
+            decoration: const InputDecoration(),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('title'),
           const SizedBox(height: 12),
-          TextField(
+          LabeledField(label: 'Description', required: true, child: TextField(
             controller: _descriptionController,
-            decoration: InputDecoration(label: requiredLabel('Description')),
+            decoration: const InputDecoration(),
             maxLines: 2,
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('description'),
           const SizedBox(height: 12),
-          TextField(
+          LabeledField(label: 'Instructions', required: true, child: TextField(
             controller: _instructionsController,
-            decoration: InputDecoration(label: requiredLabel('Instructions')),
+            decoration: const InputDecoration(),
             maxLines: 3,
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('instructions'),
           const SizedBox(height: 12),
           _dueDateTimeRow(),
@@ -2137,70 +2149,66 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       case ContentBlockType.physicalExam:
       case ContentBlockType.physicalAssignment:
         return [
-          TextField(
+          LabeledField(label: type == ContentBlockType.physicalExam ? 'Exam name' : 'Assignment name', required: true, child: TextField(
             controller: _titleController,
-            decoration: InputDecoration(label: requiredLabel(type == ContentBlockType.physicalExam ? 'Exam name' : 'Assignment name')),
+            decoration: const InputDecoration(),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('title'),
           const SizedBox(height: 12),
-          TextField(
+          LabeledField(label: 'Description', required: true, child: TextField(
             controller: _descriptionController,
-            decoration: InputDecoration(label: requiredLabel('Description')),
+            decoration: const InputDecoration(),
             maxLines: 2,
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('description'),
           const SizedBox(height: 12),
-          _dueDateTimeRow(),
-          _fe('dueDate'),
-          const SizedBox(height: 12),
-          TextField(
+          if (type == ContentBlockType.physicalExam) ...[
+            _classScheduleBox(),
+            const SizedBox(height: 12),
+          ] else ...[
+            _dueDateTimeRow(),
+            _fe('dueDate'),
+            const SizedBox(height: 12),
+          ],
+          LabeledField(label: 'Maximum marks', required: true, child: TextField(
             controller: _maxMarksController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: decimalOnly,
-            decoration: InputDecoration(label: requiredLabel('Maximum marks'), helperText: 'The full marks the paper is out of.'),
+            decoration: InputDecoration(helperText: 'The full marks the paper is out of.'),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('maxMarks'),
           const SizedBox(height: 12),
           _weightageField(),
           _fe('weightage'),
           const SizedBox(height: 8),
           Text(
-            'Done on paper. Marks are imported from a CSV afterwards — via "Import Marks" here or the Grading and Submissions page.',
+            type == ContentBlockType.physicalExam
+                ? 'Done on paper. The lecturer marks attendance for each student, then imports marks from a CSV — via "Import Marks" here or the Grading and Submissions page.'
+                : 'Done on paper. Marks are imported from a CSV afterwards — via "Import Marks" here or the Grading and Submissions page.',
             style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
           ),
         ];
       case ContentBlockType.physicalClass:
         return [
-          TextField(
+          LabeledField(label: 'Name', required: true, child: TextField(
             controller: _titleController,
-            decoration: InputDecoration(label: requiredLabel('Name')),
+            decoration: const InputDecoration(),
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('title'),
           const SizedBox(height: 12),
-          TextField(
+          LabeledField(label: 'Description', required: true, child: TextField(
             controller: _descriptionController,
-            decoration: InputDecoration(label: requiredLabel('Description')),
+            decoration: const InputDecoration(),
             maxLines: 2,
             onChanged: (_) => setState(() {}),
-          ),
+          )),
           _fe('description'),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Schedule (set by the admin for this class)', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
-                const SizedBox(height: 2),
-                Text(widget.classSchedule ?? 'Schedule TBD', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-              ],
-            ),
-          ),
+          _classScheduleBox(),
           const SizedBox(height: 8),
           Text(
             'The date and time follow the class schedule above. The lecturer marks attendance for each student afterwards.',
@@ -2208,6 +2216,23 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           ),
         ];
     }
+  }
+
+  /// Read-only class schedule: physical classes and physical exams take place
+  /// at the time the admin set for the class.
+  Widget _classScheduleBox() {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: FacultyColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Schedule (set by the admin for this class)', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant)),
+          const SizedBox(height: 2),
+          Text(widget.classSchedule ?? 'Schedule TBD', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+        ],
+      ),
+    );
   }
 
   Widget _weightageField() {
@@ -2218,30 +2243,29 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       );
     }
     final budgetLabel = _weightageBudget.toStringAsFixed(_weightageBudget.truncateToDouble() == _weightageBudget ? 0 : 1);
-    return TextField(
+    return LabeledField(label: 'Weightage (%)', required: true, child: TextField(
       controller: _weightageController,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: decimalOnly,
       decoration: InputDecoration(
-        label: requiredLabel('Weightage (%)'),
         suffixText: '%',
         helperText: '$budgetLabel% available for this class\'s syllabus',
         errorText: _weightageError,
       ),
       onChanged: (_) => setState(() {}),
-    );
+    ));
   }
 
   Widget _dueDateTimeRow() {
     final due = _dueDate;
-    return Row(
+    return LabeledField(label: 'Due date and time', child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: OutlinedButton.icon(
             onPressed: _pickDueDate,
             icon: const Icon(Icons.event_outlined, size: 16),
-            label: Text(due == null ? 'Due date *' : formatDate(due)),
+            label: Text(due == null ? 'Select date' : formatDate(due)),
           ),
         ),
         const SizedBox(width: 8),
@@ -2260,7 +2284,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             visualDensity: VisualDensity.compact,
           ),
       ],
-    );
+    ));
   }
 
   /// Exam-only: when attempts open. Left blank, the exam is open as soon as
@@ -2271,6 +2295,8 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const AdminFieldLabel('Available from', required: false),
+        const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2279,7 +2305,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
                 onPressed: _pickAvailableFromDate,
                 icon: const Icon(Icons.event_available_outlined, size: 16),
                 label: Text(
-                  from == null ? 'Available from (optional)' : formatDate(from),
+                  from == null ? 'Select date' : formatDate(from),
                 ),
               ),
             ),
@@ -2313,7 +2339,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Attached Files (optional)', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+        const AdminFieldLabel('Attached Files', required: false),
         const SizedBox(height: 6),
         for (var i = 0; i < _instructionFiles.length; i++)
           Padding(
@@ -2398,32 +2424,19 @@ class _SaveAsTemplateDialogState extends State<_SaveAsTemplateDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Save as Template'),
-      content: SizedBox(
-        width: 380,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: InputDecoration(label: requiredLabel('Template name')),
-              onChanged: (_) => setState(() => _nameError = null),
-              onSubmitted: (_) => _submit(),
-            ),
-            AdminFieldError(_nameError),
-          ],
-        ),
+    return FacultyDialog(
+      title: 'Save as Template',
+      subtitle: 'Save this syllabus so it can be copied into other classes.',
+      confirmLabel: 'Save Template',
+      onConfirm: _submit,
+      child: FacultyFormField(
+        controller: _nameController,
+        label: 'Template name',
+        autofocus: true,
+        errorText: _nameError,
+        onChanged: (_) => setState(() => _nameError = null),
+        onSubmitted: (_) => _submit(),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Save'),
-        ),
-      ],
     );
   }
 }
@@ -2479,9 +2492,19 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Copy from Template'),
-      content: Column(
+    return FacultyDialog(
+      title: 'Copy from Template',
+      subtitle: 'Pick a saved template to copy into this class.',
+      confirmLabel: 'Copy',
+      maxWidth: 560,
+      onConfirm: () {
+        if (_selected == null) {
+          setState(() => _selectError = 'Select a template to copy.');
+          return;
+        }
+        Navigator.of(context).pop(_selected);
+      },
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2548,19 +2571,6 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
           AdminFieldError(_selectError),
         ],
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: () {
-            if (_selected == null) {
-              setState(() => _selectError = 'Select a template to copy.');
-              return;
-            }
-            Navigator.of(context).pop(_selected);
-          },
-          child: const Text('Copy'),
-        ),
-      ],
     );
   }
 }

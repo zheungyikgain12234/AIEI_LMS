@@ -3,12 +3,21 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 
-enum FacultyNavDestination { myCourses, gradingAndSubmissions, physicalClassAttendance }
+import 'faculty_schedule_sidebar.dart';
+
+enum FacultyNavDestination {
+  myCourses,
+  gradingAndSubmissions,
+  physicalClassAttendance,
+}
 
 class FacultySidebar extends StatelessWidget {
   final FacultyNavDestination selected;
   final ValueChanged<FacultyNavDestination>? onDestinationSelected;
   final int? pendingCount;
+
+  // Below this the sidebar scrolls instead of squeezing the class list to nothing.
+  static const double _minHeight = 480;
 
   const FacultySidebar({
     super.key,
@@ -23,43 +32,69 @@ class FacultySidebar extends StatelessWidget {
       width: 280,
       decoration: const BoxDecoration(
         color: FacultyColors.surfaceContainerLowest,
-        boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(1, 0))],
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(1, 0),
+          ),
+        ],
       ),
       padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: SizedBox(
+            height: constraints.maxHeight < _minHeight
+                ? _minHeight
+                : constraints.maxHeight,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _NavItem(
-                  icon: Icons.auto_stories_outlined,
-                  label: 'My Courses',
-                  isSelected: selected == FacultyNavDestination.myCourses,
-                  onTap: () => onDestinationSelected?.call(FacultyNavDestination.myCourses),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _NavItem(
+                        icon: Icons.auto_stories_outlined,
+                        label: 'My Courses',
+                        isSelected: selected == FacultyNavDestination.myCourses,
+                        onTap: () => onDestinationSelected?.call(
+                          FacultyNavDestination.myCourses,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      _NavItem(
+                        icon: Icons.assignment_turned_in_outlined,
+                        label: 'Grading and Submissions',
+                        isSelected:
+                            selected ==
+                            FacultyNavDestination.gradingAndSubmissions,
+                        trailing: pendingCount,
+                        onTap: () => onDestinationSelected?.call(
+                          FacultyNavDestination.gradingAndSubmissions,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      _NavItem(
+                        icon: Icons.meeting_room_outlined,
+                        label: 'Physical Class Attendance',
+                        isSelected:
+                            selected ==
+                            FacultyNavDestination.physicalClassAttendance,
+                        onTap: () => onDestinationSelected?.call(
+                          FacultyNavDestination.physicalClassAttendance,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 4),
-                _NavItem(
-                  icon: Icons.assignment_turned_in_outlined,
-                  label: 'Grading and Submissions',
-                  isSelected: selected == FacultyNavDestination.gradingAndSubmissions,
-                  trailing: pendingCount,
-                  onTap: () => onDestinationSelected?.call(FacultyNavDestination.gradingAndSubmissions),
-                ),
-                const SizedBox(height: 4),
-                _NavItem(
-                  icon: Icons.meeting_room_outlined,
-                  label: 'Physical Class Attendance',
-                  isSelected: selected == FacultyNavDestination.physicalClassAttendance,
-                  onTap: () => onDestinationSelected?.call(FacultyNavDestination.physicalClassAttendance),
-                ),
+                const SizedBox(height: 16),
+                const Expanded(child: FacultyScheduleSidebar()),
               ],
             ),
           ),
-          const Spacer(),
-        ],
+        ),
       ),
     );
   }
@@ -94,7 +129,9 @@ class _NavItemState extends State<_NavItem> {
     final bg = selected
         ? AdminColors.primaryContainer
         : (_hovered ? AdminColors.surfaceContainerLow : Colors.transparent);
-    final fg = selected ? AdminColors.onSecondary : AdminColors.onSurfaceVariant;
+    final fg = selected
+        ? AdminColors.onSecondary
+        : AdminColors.onSurfaceVariant;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -105,7 +142,10 @@ class _NavItemState extends State<_NavItem> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Row(
             children: [
               Icon(widget.icon, size: 20, color: fg),
@@ -120,15 +160,22 @@ class _NavItemState extends State<_NavItem> {
               ),
               if (widget.trailing != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
-                    color: selected ? Colors.white.withValues(alpha: 0.2) : FacultyColors.surfaceContainer,
+                    color: selected
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : FacultyColors.surfaceContainer,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     '${widget.trailing}',
                     style: FacultyTypography.labelXs(
-                      color: selected ? AdminColors.onSecondary : FacultyColors.primary,
+                      color: selected
+                          ? AdminColors.onSecondary
+                          : FacultyColors.primary,
                     ).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),

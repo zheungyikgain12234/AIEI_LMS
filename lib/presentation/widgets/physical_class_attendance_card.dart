@@ -2,18 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/class_schedule.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/repositories/submission_grading_repository.dart' show AttendanceStatus;
 
-/// Student-facing view of a `physicalClass` content block: the class's name
-/// and description, plus — read-only — the attendance the lecturer has marked
-/// for this student (students can no longer tick their own attendance).
+/// Student-facing view of a `physicalClass` or `physicalExam` content block:
+/// its name, the day and time it takes place (the class's schedule), plus —
+/// read-only — the attendance the lecturer has marked for this student
+/// (students can't tick their own attendance).
 class PhysicalClassAttendanceCard extends StatefulWidget {
   final ContentBlock block;
   final String studentId;
 
-  const PhysicalClassAttendanceCard({super.key, required this.block, required this.studentId});
+  /// Shown when the block has no title.
+  final String fallbackTitle;
+
+  const PhysicalClassAttendanceCard({super.key, required this.block, required this.studentId, this.fallbackTitle = 'Physical Class'});
 
   @override
   State<PhysicalClassAttendanceCard> createState() => _PhysicalClassAttendanceCardState();
@@ -24,6 +29,7 @@ class _PhysicalClassAttendanceCardState extends State<PhysicalClassAttendanceCar
 
   bool _isLoading = true;
   String? _status;
+  String? _dayTime;
 
   @override
   void initState() {
@@ -33,13 +39,35 @@ class _PhysicalClassAttendanceCardState extends State<PhysicalClassAttendanceCar
 
   Future<void> _load() async {
     final submission = await _repository.getSubmission(widget.block.id, widget.studentId);
+    final dayTime = await _loadDayTime();
     if (!mounted) return;
     final marked = submission?.submission['attendance'];
     setState(() {
       // Older rows only have `attended: true`, which counts as Present.
       _status = marked is String ? marked : (submission?.submission['attended'] == true ? AttendanceStatus.present : null);
+      _dayTime = dayTime;
       _isLoading = false;
     });
+  }
+
+  /// The block's class (block -> session -> module -> section) day and time.
+  Future<String?> _loadDayTime() async {
+    try {
+      final row = await Supabase.instance.client
+          .from('content_blocks')
+          .select('sessions(course_modules(course_sections(day_of_week, start_time, end_time)))')
+          .eq('id', widget.block.id)
+          .maybeSingle();
+      final section = ((row?['sessions'] as Map?)?['course_modules'] as Map?)?['course_sections'] as Map?;
+      if (section == null) return null;
+      return classDayTimeText(
+        dayOfWeek: section['day_of_week'] as String?,
+        startTime: section['start_time'] as String?,
+        endTime: section['end_time'] as String?,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -49,12 +77,12 @@ class _PhysicalClassAttendanceCardState extends State<PhysicalClassAttendanceCar
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          b.title?.isNotEmpty == true ? b.title! : 'Physical Class',
+          b.title?.isNotEmpty == true ? b.title! : widget.fallbackTitle,
           style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600),
         ),
-        if (b.description?.isNotEmpty == true) ...[
+        if (_dayTime != null) ...[
           const SizedBox(height: 4),
-          Text(b.description!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+          Text(_dayTime!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
         ],
         const SizedBox(height: 8),
         if (_isLoading)

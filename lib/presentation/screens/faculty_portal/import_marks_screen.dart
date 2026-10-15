@@ -17,6 +17,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_submission_grading_re
 import 'package:stitch_aiei_lms/domain/models/content_block.dart';
 import 'package:stitch_aiei_lms/domain/models/content_block_submission.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
+import 'widgets/faculty_dialog.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 
 // ---------------------------------------------------------------------------
@@ -194,12 +195,12 @@ class _ImportMarksScreenState extends State<ImportMarksScreen> {
     if (!mounted) return;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Import complete'),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
+      builder: (ctx) => FacultyDialog(
+        title: 'Import complete',
+        confirmLabel: 'Close',
+        showCancel: false,
+        onConfirm: () => Navigator.of(ctx).pop(),
+        child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -212,9 +213,6 @@ class _ImportMarksScreenState extends State<ImportMarksScreen> {
                 ],
               ],
             ),
-          ),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
       ),
     );
   }

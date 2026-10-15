@@ -23,57 +23,73 @@ class CoursesNotifier extends Notifier<CoursesState> {
     _repository = ref.watch(coursesRepositoryProvider);
     _masterDataRepository = ref.watch(_masterDataRepositoryProvider);
     Future.microtask(() => loadInitialData());
-    return const CoursesState(isLoading: true);
+    return const CoursesState();
   }
 
+  /// Loads each part of the page independently and in parallel; every part
+  /// shows as soon as it is ready (see the `...Ready` flags on the state).
   Future<void> loadInitialData() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(errorMessage: null);
+    final coursesFuture = _repository.getEnrolledCourses();
+    final cohortsFuture = _masterDataRepository.getCohorts();
+    await Future.wait([
+      _loadPart(() async {
+        final courses = await coursesFuture;
+        final cohorts = await cohortsFuture;
+        state = state.copyWith(allCourses: courses, cohorts: cohorts);
+        _applyYearAndCohortSelection();
+      }, () => state = state.copyWith(coursesReady: true)),
+      _loadPart(() async {
+        // Reuses the courses above instead of fetching them a second time.
+        final stats = await _repository.getCourseStats(courses: await coursesFuture);
+        state = state.copyWith(stats: stats);
+      }, () => state = state.copyWith(statsReady: true)),
+      _loadPart(() async {
+        final actions = await _repository.getCriticalActions();
+        state = state.copyWith(criticalActions: actions);
+      }, () => state = state.copyWith(actionsReady: true)),
+      _loadPart(() async {
+        final compulsory = await _repository.getCompulsoryCourses();
+        state = state.copyWith(compulsoryCourses: compulsory);
+      }, () => state = state.copyWith(compulsoryReady: true)),
+    ]);
+  }
+
+  /// Runs one part, then marks it ready — even on failure, so a placeholder
+  /// never spins forever (the error is shown by the page).
+  Future<void> _loadPart(Future<void> Function() part, void Function() markReady) async {
     try {
-      final courses = await _repository.getEnrolledCourses();
-      final stats = await _repository.getCourseStats();
-      final criticalActions = await _repository.getCriticalActions();
-      final compulsoryCourses = await _repository.getCompulsoryCourses();
-      final cohorts = await _masterDataRepository.getCohorts();
-
-      state = state.copyWith(
-        allCourses: courses,
-        stats: stats,
-        criticalActions: criticalActions,
-        compulsoryCourses: compulsoryCourses,
-        cohorts: cohorts,
-        isLoading: false,
-      );
-
-      // Keep the student's existing Year/Cohort selection across a reload
-      // (this runs every time the screen re-mounts or data is refreshed, not
-      // just once) as long as it's still a valid option — only fall back to
-      // a default the first time, or if the previous choice no longer
-      // exists. Otherwise every reload silently snapped the picker back to
-      // "current year / first cohort", discarding whatever the student had
-      // deliberately selected.
-      final years = state.availableYears;
-      var selectedYear = state.selectedYear;
-      if (selectedYear == null || !years.contains(selectedYear)) {
-        final currentYear = DateTime.now().year;
-        selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
-      }
-      final cohortNames = selectedYear == null ? const <String>[] : state.cohortNamesForYear(selectedYear);
-      var selectedCohort = state.selectedCohort;
-      if (selectedCohort == null || !cohortNames.contains(selectedCohort)) {
-        selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
-      }
-      state = state.copyWith(
-        selectedYear: selectedYear,
-        clearSelectedYear: selectedYear == null,
-        selectedCohort: selectedCohort,
-        clearSelectedCohort: selectedCohort == null,
-      );
+      await part();
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(errorMessage: e.toString());
     }
+    markReady();
+  }
+
+  /// Keeps the student's existing Year/Cohort selection across a reload (this
+  /// runs every time the screen re-mounts or data is refreshed, not just once)
+  /// as long as it's still a valid option — only falls back to a default the
+  /// first time, or if the previous choice no longer exists. Otherwise every
+  /// reload would silently snap the picker back to "current year / first
+  /// cohort", discarding whatever the student had deliberately selected.
+  void _applyYearAndCohortSelection() {
+    final years = state.availableYears;
+    var selectedYear = state.selectedYear;
+    if (selectedYear == null || !years.contains(selectedYear)) {
+      final currentYear = DateTime.now().year;
+      selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
+    }
+    final cohortNames = selectedYear == null ? const <String>[] : state.cohortNamesForYear(selectedYear);
+    var selectedCohort = state.selectedCohort;
+    if (selectedCohort == null || !cohortNames.contains(selectedCohort)) {
+      selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
+    }
+    state = state.copyWith(
+      selectedYear: selectedYear,
+      clearSelectedYear: selectedYear == null,
+      selectedCohort: selectedCohort,
+      clearSelectedCohort: selectedCohort == null,
+    );
   }
 
   void selectTag(String? tag) {

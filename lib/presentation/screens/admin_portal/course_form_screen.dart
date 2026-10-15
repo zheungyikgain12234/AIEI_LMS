@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_fixed_code.dart';
 import 'package:flutter/services.dart';
@@ -206,7 +207,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
         title: Text(title, style: AdminTypography.headlineSm()),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonBody()
           : Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),

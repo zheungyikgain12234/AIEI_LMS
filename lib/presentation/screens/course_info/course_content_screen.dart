@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -62,7 +63,14 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
   final Map<String, GlobalKey> _sessionKeys = {};
   final Set<String> _expandedModuleIds = {};
 
+  /// The course contents are loading (placeholders show until they arrive).
   bool _isLoading = true;
+
+  /// The announcements load separately from the contents.
+  bool _announcementsReady = false;
+
+  /// After the first load a refresh updates in place, with no placeholders.
+  bool _contentLoadedOnce = false;
   bool _approved = true;
   String? _loadError;
   /// This student's submission status (`submitted` / `graded`) by assignment block id; absent = not submitted.
@@ -88,8 +96,25 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
   }
 
   Future<void> _load() async {
+    // The announcements don't depend on the syllabus, so they load alongside
+    // it; each side shows as soon as it is ready.
+    await Future.wait([_loadAnnouncements(), _loadContent()]);
+  }
+
+  Future<void> _loadAnnouncements() async {
+    try {
+      final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
+      if (!mounted) return;
+      setState(() => _announcements = announcements);
+    } catch (e) {
+      debugPrint('CourseContentScreen announcements failed: $e');
+    }
+    if (mounted) setState(() => _announcementsReady = true);
+  }
+
+  Future<void> _loadContent() async {
     setState(() {
-      _isLoading = true;
+      if (!_contentLoadedOnce) _isLoading = true;
       _loadError = null;
     });
     try {
@@ -98,8 +123,16 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
           .select('section_code, syllabus_status, lecturers(name)')
           .eq('id', widget.sectionId)
           .maybeSingle();
+      if (!mounted) return;
       // Students only see a syllabus once an admin has approved it.
       final approved = sectionRow?['syllabus_status'] == SyllabusStatus.approved;
+      // The class and lecturer are known already, so show them right away
+      // while the (much slower) module content is still loading.
+      setState(() {
+        _approved = approved;
+        _classCode = sectionRow == null ? null : displayCode(sectionRow['section_code'] as String);
+        _lecturerName = (sectionRow?['lecturers'] as Map<String, dynamic>?)?['name'] as String?;
+      });
       final modules = approved ? (await _repository.getModules(widget.sectionId)).where((m) => m.isPublished).toList() : <CourseModule>[];
       // Fetch every module's sessions, and every session's blocks, in
       // parallel rather than one round trip at a time.
@@ -108,7 +141,6 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
         final withBlocks = await Future.wait(sessions.map((s) async => (session: s, blocks: await _repository.getContentBlocks(s.id))));
         return (module: m, sessions: withBlocks);
       }));
-      final announcements = await _announcementsRepository.getAnnouncementsForSection(widget.sectionId);
       final submitted = await _loadSubmissionStatuses(content);
       if (!mounted) return;
       setState(() {
@@ -123,14 +155,11 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
                 MapEntry(content[i].sessions[j].session.id, numberedLabel('Session', j + 1, content[i].sessions[j].session.name)),
             ],
           ]);
-        _approved = approved;
-        _announcements = announcements;
-        _classCode = sectionRow == null ? null : displayCode(sectionRow['section_code'] as String);
-        _lecturerName = (sectionRow?['lecturers'] as Map<String, dynamic>?)?['name'] as String?;
         _expandedModuleIds
           ..clear()
           ..addAll(content.map((m) => m.module.id));
         _isLoading = false;
+        _contentLoadedOnce = true;
       });
     } catch (e, st) {
       debugPrint('CourseContentScreen load failed: $e\n$st');
@@ -207,11 +236,9 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
               foregroundColor: FacultyColors.onSurface,
               title: Text(widget.courseTitle, style: FacultyTypography.titleSm()),
             ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _loadError != null
-              ? _errorState()
-              : _modules.isEmpty
+      body: !_isLoading && _loadError != null
+          ? _errorState()
+          : !_isLoading && _modules.isEmpty
               ? _emptyState()
               : SafeArea(top: false, child: mobile ? _buildMobileBody() : _buildDesktopBody()),
     );
@@ -270,16 +297,18 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
           ),
           const Divider(height: 1, color: FacultyColors.surfaceContainerHigh),
           Expanded(
-            child: _announcements.isEmpty
-                ? const Padding(padding: EdgeInsets.all(20), child: AnnouncementsEmptyState())
-                : ListView.builder(
-                    padding: const EdgeInsets.all(14),
-                    itemCount: _announcements.length,
-                    itemBuilder: (context, i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: AnnouncementCard(announcement: _announcements[i]),
-                    ),
-                  ),
+            child: !_announcementsReady
+                ? const _AnnouncementsPlaceholder()
+                : _announcements.isEmpty
+                    ? const Padding(padding: EdgeInsets.all(20), child: AnnouncementsEmptyState())
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(14),
+                        itemCount: _announcements.length,
+                        itemBuilder: (context, i) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: AnnouncementCard(announcement: _announcements[i]),
+                        ),
+                      ),
           ),
         ],
       ),
@@ -311,11 +340,13 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
           ),
           const Divider(height: 1, color: FacultyColors.surfaceContainerHigh),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 16),
-              itemCount: _modules.length,
-              itemBuilder: (context, i) => Padding(padding: const EdgeInsets.only(bottom: 4), child: _moduleTreeItem(_modules[i], i)),
-            ),
+            child: _isLoading
+                ? const _ContentsPlaceholder()
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 16),
+                    itemCount: _modules.length,
+                    itemBuilder: (context, i) => Padding(padding: const EdgeInsets.only(bottom: 4), child: _moduleTreeItem(_modules[i], i)),
+                  ),
           ),
         ],
       ),
@@ -526,7 +557,9 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
               ),
               const Divider(height: 1, color: FacultyColors.surfaceContainer),
               Expanded(
-                child: _announcements.isEmpty
+                child: !_announcementsReady
+                    ? const _AnnouncementsPlaceholder()
+                    : _announcements.isEmpty
                     ? const Padding(padding: EdgeInsets.all(20), child: AnnouncementsEmptyState())
                     : ListView.builder(
                         padding: const EdgeInsets.all(14),
@@ -565,7 +598,9 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
               ),
               const Divider(height: 1, color: FacultyColors.surfaceContainer),
               Expanded(
-                child: StatefulBuilder(
+                child: _isLoading
+                    ? const _ContentsPlaceholder()
+                    : StatefulBuilder(
                   builder: (context, sheetSetState) => ListView.builder(
                     padding: const EdgeInsets.fromLTRB(10, 10, 10, 16),
                     itemCount: _modules.length,
@@ -602,11 +637,15 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
                 const SizedBox(height: 8),
                 _classAndLecturerBadges(),
                 const SizedBox(height: 10),
-                Text(
-                  '${_modules.length} module${_modules.length == 1 ? '' : 's'}',
-                  style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
-                ),
+                if (!_isLoading)
+                  Text(
+                    '${_modules.length} module${_modules.length == 1 ? '' : 's'}',
+                    style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant),
+                  ),
                 const SizedBox(height: 28),
+                if (_isLoading)
+                  const _ModulesPlaceholder()
+                else
                 for (int i = 0; i < _modules.length; i++) ...[
                   _moduleSection(_modules[i], i),
                   if (i != _modules.length - 1) ...[
@@ -934,4 +973,66 @@ enum _Pill {
   final Color background;
   final Color foreground;
   const _Pill(this.label, this.background, this.foreground);
+}
+
+/// Placeholder rows for the "Announcements" list while it loads.
+class _AnnouncementsPlaceholder extends StatelessWidget {
+  const _AnnouncementsPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(14),
+      child: Column(children: [
+        Skeleton(height: 84, radius: 10),
+        SizedBox(height: 10),
+        Skeleton(height: 84, radius: 10),
+      ]),
+    );
+  }
+}
+
+/// Placeholder rows for the "Course Contents" tree while it loads.
+class _ContentsPlaceholder extends StatelessWidget {
+  const _ContentsPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(14, 14, 14, 0),
+      child: Column(children: [
+        Skeleton(height: 30, radius: 8),
+        SizedBox(height: 10),
+        Skeleton(height: 30, radius: 8),
+        SizedBox(height: 10),
+        Skeleton(height: 30, radius: 8),
+        SizedBox(height: 10),
+        Skeleton(height: 30, radius: 8),
+      ]),
+    );
+  }
+}
+
+/// Placeholder for the module cards in the middle of the page while they load.
+class _ModulesPlaceholder extends StatelessWidget {
+  const _ModulesPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Skeleton(width: 240, height: 24),
+      SizedBox(height: 14),
+      Skeleton(height: 18),
+      SizedBox(height: 10),
+      Skeleton(height: 18),
+      SizedBox(height: 10),
+      Skeleton(width: 360, height: 18),
+      SizedBox(height: 30),
+      Skeleton(width: 220, height: 24),
+      SizedBox(height: 14),
+      Skeleton(height: 18),
+      SizedBox(height: 10),
+      Skeleton(width: 420, height: 18),
+    ]);
+  }
 }

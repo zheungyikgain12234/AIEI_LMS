@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
@@ -9,11 +10,18 @@ class TelemetryBanner extends StatelessWidget {
   final List<CriticalActionItem> criticalActions;
   final ValueChanged<CriticalActionItem>? onOpenAction;
 
+  /// Each half of the banner loads on its own; until its flag is true it shows
+  /// a placeholder instead of (wrongly) empty content.
+  final bool statsReady;
+  final bool actionsReady;
+
   const TelemetryBanner({
     super.key,
     this.stats,
     this.criticalActions = const [],
     this.onOpenAction,
+    this.statsReady = true,
+    this.actionsReady = true,
   });
 
   @override
@@ -28,12 +36,12 @@ class TelemetryBanner extends StatelessWidget {
             children: [
               Expanded(
                 flex: 8,
-                child: _MainTelemetryCard(stats: stats),
+                child: statsReady ? _MainTelemetryCard(stats: stats) : const _BannerCardPlaceholder(),
               ),
               const SizedBox(width: 24),
               Expanded(
                 flex: 4,
-                child: _CriticalActionsCard(actions: criticalActions, onOpenAction: onOpenAction),
+                child: actionsReady ? _CriticalActionsCard(actions: criticalActions, onOpenAction: onOpenAction) : const _BannerCardPlaceholder(),
               ),
             ],
           );
@@ -412,4 +420,28 @@ class _TelemetryCurvePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _BannerCardPlaceholder extends StatelessWidget {
+  const _BannerCardPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Skeleton(width: 200, height: 22),
+          SizedBox(height: 16),
+          Skeleton(height: 60, radius: 10),
+        ],
+      ),
+    );
+  }
 }

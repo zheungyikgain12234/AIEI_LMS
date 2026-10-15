@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -153,7 +154,8 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Show the page frame straight away; only the content area is a placeholder.
+      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.lecturerAllocation, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);

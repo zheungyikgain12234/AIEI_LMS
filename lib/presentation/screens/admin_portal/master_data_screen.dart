@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_row_action.dart';
@@ -336,7 +337,8 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Show the page frame straight away; only the content area is a placeholder.
+      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: widget.navDestination, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.

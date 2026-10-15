@@ -277,8 +277,8 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
-  Future<CourseStats> getCourseStats() async {
-    final courses = await getEnrolledCourses();
+  Future<CourseStats> getCourseStats({List<EnrolledCourse>? courses}) async {
+    courses ??= await getEnrolledCourses();
     // Real count from `badge_awards` (excluding revoked), matching the
     // "Total Badges Earned" figure on the My Badges page — previously this
     // just counted completed courses, which drifted from the actual badge

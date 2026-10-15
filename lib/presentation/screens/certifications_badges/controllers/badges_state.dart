@@ -12,12 +12,19 @@ class BadgesState {
   final bool isLoading;
   final String? errorMessage;
 
+  /// Which parts have loaded; each shows (with placeholders until then) as
+  /// soon as its own data is ready.
+  final bool statsReady;
+  final bool earnedReady;
+
   const BadgesState({
     this.stats,
     this.earnedCredentials = const [],
     this.inProgressBadges = const [],
     this.studentCode,
     this.isLoading = false,
+    this.statsReady = false,
+    this.earnedReady = false,
     this.errorMessage,
   });
 
@@ -27,6 +34,8 @@ class BadgesState {
     List<InProgressBadge>? inProgressBadges,
     String? studentCode,
     bool? isLoading,
+    bool? statsReady,
+    bool? earnedReady,
     String? errorMessage,
   }) {
     return BadgesState(
@@ -35,6 +44,8 @@ class BadgesState {
       inProgressBadges: inProgressBadges ?? this.inProgressBadges,
       studentCode: studentCode ?? this.studentCode,
       isLoading: isLoading ?? this.isLoading,
+      statsReady: statsReady ?? this.statsReady,
+      earnedReady: earnedReady ?? this.earnedReady,
       errorMessage: errorMessage,
     );
   }

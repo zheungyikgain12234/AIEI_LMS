@@ -3,6 +3,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -15,7 +16,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
 import 'package:stitch_aiei_lms/domain/models/cohort.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
-import 'package:stitch_aiei_lms/domain/repositories/faculty_repository.dart' show SyllabusDeadline;
+import 'package:stitch_aiei_lms/domain/repositories/faculty_repository.dart' show SyllabusDeadline, SectionAssessmentStats;
 import 'widgets/faculty_scaffold.dart';
 import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
@@ -48,7 +49,15 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
   final _programmesRepository = SupabaseProgrammesRepositoryImpl(Supabase.instance.client);
   Map<String, List<String>> _programmesByCourse = const {};
 
+  /// True until the lecturer's classes and cohorts are known (the Year /
+  /// Cohort filters wait for these).
   bool _isLoading = true;
+
+  // The stat cards and the class list are separate parts: each loads on its
+  // own and appears as soon as its data is ready. They stay true afterwards,
+  // so a later refresh updates in place without placeholders.
+  bool _statsReady = false;
+  bool _listReady = false;
   List<_CourseRow> _rows = const [];
   List<_Stat> _stats = const [];
 
@@ -148,53 +157,115 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
   }
 
   Future<void> _load() async {
-    final assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
-    final lecturers = await _lecturersRepository.getLecturers();
-    final cohorts = await _masterDataRepository.getCohorts();
-    final programmesByCourse = await _programmesRepository.getProgrammeNamesByCourse();
-    final sectionIds = [for (final c in assignedCourses) c.sectionId];
+    // Start everything that doesn't depend on anything else straight away.
+    final lecturersFuture = _lecturersRepository.getLecturers();
+    final cohortsFuture = _masterDataRepository.getCohorts();
+    final programmesFuture = _programmesRepository.getProgrammeNamesByCourse();
+    final List<AssignedCourse> assignedCourses;
+    try {
+      assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
+      final cohorts = await cohortsFuture;
+      if (!mounted) return;
+      setState(() {
+        _assignedCourses = assignedCourses;
+        _cohorts = cohorts;
+        // Default to the current calendar year if the lecturer has courses
+        // there, else fall back to the most recent year they do have. A
+        // refresh keeps the lecturer's own Year/Cohort choice if still valid.
+        final years = _availableYears;
+        final currentYear = DateTime.now().year;
+        if (_selectedYear == null || !years.contains(_selectedYear)) {
+          _selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
+        }
+        final cohortNames = _selectedYear == null ? const <String>[] : _cohortNamesForYear(_selectedYear!);
+        if (_selectedCohort == null || !cohortNames.contains(_selectedCohort)) {
+          _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('My Courses: could not load the classes: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _statsReady = true;
+          _listReady = true;
+        });
+      }
+      return;
+    }
 
-    // Real per-course module/session counts, computed for every assigned
-    // course in parallel (not just one hardcoded demo course).
+    // Pending-grading counts and avg progress are batched across every
+    // section in one round trip (see FacultyRepository.getSectionAssessmentStats).
+    // This is scoped by section (not course), so a student enrolled in the
+    // same course through a different section/cohort is correctly excluded.
+    // Both the stat cards and the class list use it, so fetch it once.
+    final sectionIds = [for (final c in assignedCourses) c.sectionId];
+    final assessmentStatsFuture = _facultyRepository.getSectionAssessmentStats(sectionIds);
+    final deadlinesFuture = _facultyRepository.getSyllabusDeadlines(sectionIds);
+
+    await Future.wait([
+      _loadPart(() => _loadStatsPart(lecturersFuture, assessmentStatsFuture, deadlinesFuture), () => _statsReady = true),
+      _loadPart(() => _loadListPart(assignedCourses, programmesFuture, assessmentStatsFuture), () => _listReady = true),
+    ]);
+  }
+
+  /// Runs one part, then marks it ready even on failure so its placeholder
+  /// never spins forever.
+  Future<void> _loadPart(Future<void> Function() part, void Function() markReady) async {
+    try {
+      await part();
+    } catch (e) {
+      debugPrint('My Courses: a section failed to load: $e');
+    }
+    if (mounted) setState(markReady);
+  }
+
+  void _applyAssessmentStats(Map<String, SectionAssessmentStats> stats) {
+    _avgProgressBySection = {for (final e in stats.entries) e.key: e.value.avgProgress};
+    _pendingAssignmentsBySection = {for (final e in stats.entries) e.key: e.value.pendingAssignments};
+    _pendingQuizzesBySection = {for (final e in stats.entries) e.key: e.value.pendingQuizzes};
+  }
+
+  /// The overall stat cards (and the Critical Action box).
+  Future<void> _loadStatsPart(
+    Future<List<Lecturer>> lecturersFuture,
+    Future<Map<String, SectionAssessmentStats>> assessmentStatsFuture,
+    Future<List<SyllabusDeadline>> deadlinesFuture,
+  ) async {
+    final lecturers = await lecturersFuture;
+    final assessmentStats = await assessmentStatsFuture;
+    final deadlines = await deadlinesFuture;
+    if (!mounted) return;
+    setState(() {
+      _lecturer = lecturers.where((l) => l.id == DemoIdentity.lecturerId).firstOrNull;
+      _applyAssessmentStats(assessmentStats);
+      _syllabusActions = _syllabusActionsFrom(_assignedCourses, deadlines);
+      _stats = _computeStats();
+    });
+  }
+
+  /// The assigned classes list.
+  Future<void> _loadListPart(
+    List<AssignedCourse> assignedCourses,
+    Future<Map<String, List<String>>> programmesFuture,
+    Future<Map<String, SectionAssessmentStats>> assessmentStatsFuture,
+  ) async {
+    // Real per-course module/session counts for every assigned course.
     final moduleCountBySection = <String, int>{};
     final sessionCountBySection = <String, int>{};
     await Future.wait([
       for (final c in assignedCourses) _loadCourseModuleCounts(c, moduleCountBySection, sessionCountBySection),
     ]);
-
-    // Real pending-grading counts and avg progress, batched across every
-    // section in one round trip (see FacultyRepository.getSectionAssessmentStats).
-    // This is scoped by section (not course), so a student enrolled in the
-    // same course through a different section/cohort is correctly excluded.
-    final assessmentStats = await _facultyRepository.getSectionAssessmentStats(sectionIds);
-    final deadlines = await _facultyRepository.getSyllabusDeadlines(sectionIds);
+    final programmesByCourse = await programmesFuture;
+    final assessmentStats = await assessmentStatsFuture;
     if (!mounted) return;
-
-    final lecturer = lecturers.where((l) => l.id == DemoIdentity.lecturerId).firstOrNull;
-
     setState(() {
-      _assignedCourses = assignedCourses;
-      _cohorts = cohorts;
       _programmesByCourse = programmesByCourse;
       _moduleCountBySection = moduleCountBySection;
       _sessionCountBySection = sessionCountBySection;
-      _avgProgressBySection = {for (final e in assessmentStats.entries) e.key: e.value.avgProgress};
-      _pendingAssignmentsBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingAssignments};
-      _pendingQuizzesBySection = {for (final e in assessmentStats.entries) e.key: e.value.pendingQuizzes};
-      _lecturer = lecturer;
-      _syllabusActions = _syllabusActionsFrom(assignedCourses, deadlines);
-
-      // Default to the current calendar year if the lecturer has courses
-      // there, else fall back to the most recent year they do have.
-      final years = _availableYears;
-      final currentYear = DateTime.now().year;
-      _selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
-      final cohortNames = _selectedYear == null ? const <String>[] : _cohortNamesForYear(_selectedYear!);
-      _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
-
+      _applyAssessmentStats(assessmentStats);
       _rows = _buildRows();
-      _stats = _computeStats();
-      _isLoading = false;
     });
   }
 
@@ -459,9 +530,6 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
     if (MediaQuery.of(context).size.width < 700) {
       return _buildMobileScaffold(context);
     }
@@ -475,9 +543,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           const SizedBox(height: 24),
           _buildCriticalActions(),
           const SizedBox(height: 8),
-          _buildYearCohortFilters(),
+          _isLoading ? const Skeleton(height: 40, radius: 8) : _buildYearCohortFilters(),
           const SizedBox(height: 16),
-          _buildStatsRow(),
+          _statsReady ? _buildStatsRow() : _statsSkeleton(),
           const SizedBox(height: 24),
           _buildToolbar(),
           Container(
@@ -491,7 +559,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
             ),
             child: Column(
               children: [
-                for (var i = 0; i < _rows.length; i++) ...[
+                if (!_listReady) ...const [Padding(padding: EdgeInsets.all(16), child: Column(children: [Skeleton(height: 56, radius: 8), SizedBox(height: 10), Skeleton(height: 56, radius: 8), SizedBox(height: 10), Skeleton(height: 56, radius: 8), SizedBox(height: 10), Skeleton(height: 56, radius: 8)]))] else for (var i = 0; i < _rows.length; i++) ...[
                   if (i > 0) const Divider(height: 1, color: FacultyColors.surfaceContainer),
                   _buildCourseRow(_rows[i]),
                 ],
@@ -522,6 +590,40 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
         ),
       ],
     );
+  }
+
+  /// Placeholder for the stat cards while they load.
+  Widget _statsSkeleton() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
+      final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
+      return Wrap(
+        spacing: 16,
+        runSpacing: 16,
+        children: [
+          for (var i = 0; i < 4; i++)
+            Container(
+              width: width,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: FacultyColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Skeleton(width: 110, height: 12),
+                  SizedBox(height: 10),
+                  Skeleton(width: 150, height: 28),
+                  SizedBox(height: 12),
+                  Skeleton(width: 180, height: 12),
+                ],
+              ),
+            ),
+        ],
+      );
+    });
   }
 
   Widget _buildStatsRow() {
@@ -876,9 +978,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
               const SizedBox(height: 16),
               _buildCriticalActions(),
               const SizedBox(height: 8),
-              _buildYearCohortFilters(),
+              _isLoading ? const Skeleton(height: 40, radius: 8) : _buildYearCohortFilters(),
               const SizedBox(height: 16),
-              _buildStatsRow(),
+              _statsReady ? _buildStatsRow() : _statsSkeleton(),
               const SizedBox(height: 16),
               _buildToolbar(),
               Container(
@@ -892,7 +994,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
                 ),
                 child: Column(
                   children: [
-                    for (var i = 0; i < _rows.length; i++) ...[
+                    if (!_listReady) ...const [Padding(padding: EdgeInsets.all(16), child: Column(children: [Skeleton(height: 56, radius: 8), SizedBox(height: 10), Skeleton(height: 56, radius: 8), SizedBox(height: 10), Skeleton(height: 56, radius: 8), SizedBox(height: 10), Skeleton(height: 56, radius: 8)]))] else for (var i = 0; i < _rows.length; i++) ...[
                       if (i > 0) const Divider(height: 1, color: FacultyColors.surfaceContainer),
                       _buildCourseRow(_rows[i]),
                     ],

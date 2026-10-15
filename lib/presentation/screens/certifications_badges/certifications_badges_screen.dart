@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
@@ -28,20 +29,18 @@ class CertificationsBadgesScreen extends ConsumerWidget {
           selectedIndex: 1,
           onTap: (index) => navigateStudentTab(context, index, current: 1),
         ),
-        body: state.isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
-            : SingleChildScrollView(
+        body: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildHeaderSection(context, state, mobile: true),
                     const SizedBox(height: 20),
-                    BadgeStatsRow(stats: state.stats),
+                    state.statsReady ? BadgeStatsRow(stats: state.stats) : const Skeleton(height: 110, radius: 12),
                     const SizedBox(height: 32),
                     _buildSectionHeader(title: 'Earned Badges'),
                     const SizedBox(height: 16),
-                    _buildEarnedCredentialsGrid(context, state),
+                    state.earnedReady ? _buildEarnedCredentialsGrid(context, state) : const SkeletonCourseGrid(count: 3),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -60,11 +59,7 @@ class CertificationsBadgesScreen extends ConsumerWidget {
             onDestinationSelected: (index) => navigateStudentTab(context, index, current: 1),
           ),
           Expanded(
-            child: state.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.secondary),
-                  )
-                : SingleChildScrollView(
+            child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                     child: Center(
                       child: ConstrainedBox(
@@ -74,11 +69,11 @@ class CertificationsBadgesScreen extends ConsumerWidget {
                           children: [
                             _buildHeaderSection(context, state),
                             const SizedBox(height: 32),
-                            BadgeStatsRow(stats: state.stats),
+                            state.statsReady ? BadgeStatsRow(stats: state.stats) : const Skeleton(height: 110, radius: 12),
                             const SizedBox(height: 48),
                             _buildSectionHeader(title: 'Earned Badges'),
                             const SizedBox(height: 16),
-                            _buildEarnedCredentialsGrid(context, state),
+                            state.earnedReady ? _buildEarnedCredentialsGrid(context, state) : const SkeletonCourseGrid(count: 3),
                             const SizedBox(height: 48),
                           ],
                         ),

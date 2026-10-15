@@ -5,7 +5,8 @@ import '../models/module_material.dart';
 
 abstract class CoursesRepository {
   Future<List<EnrolledCourse>> getEnrolledCourses();
-  Future<CourseStats> getCourseStats();
+  /// Pass [courses] (already loaded) to skip fetching them a second time.
+  Future<CourseStats> getCourseStats({List<EnrolledCourse>? courses});
 
   /// The 2 real assignments/quizzes (across every enrolled course) nearest
   /// their due date that the student hasn't submitted yet.

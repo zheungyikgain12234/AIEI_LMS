@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -135,7 +136,8 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Show the page frame straight away; only the content area is a placeholder.
+      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageBadgeCatalog, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.

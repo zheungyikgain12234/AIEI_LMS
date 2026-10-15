@@ -53,6 +53,17 @@ class CoursesState {
   final bool isLoading;
   final String? errorMessage;
 
+  /// Which parts of the page have loaded. Each part appears as soon as its
+  /// own data is ready (placeholders until then), instead of the whole page
+  /// waiting for the slowest query.
+  final bool coursesReady;
+  final bool statsReady;
+  final bool actionsReady;
+  final bool compulsoryReady;
+
+  /// The top banner needs both the stats and the critical actions.
+  bool get bannerReady => statsReady && actionsReady;
+
   const CoursesState({
     this.allCourses = const [],
     this.stats,
@@ -72,6 +83,10 @@ class CoursesState {
     this.selectedYear,
     this.selectedCohort,
     this.isLoading = false,
+    this.coursesReady = false,
+    this.statsReady = false,
+    this.actionsReady = false,
+    this.compulsoryReady = false,
     this.errorMessage,
   });
 
@@ -101,6 +116,10 @@ class CoursesState {
     String? selectedCohort,
     bool clearSelectedCohort = false,
     bool? isLoading,
+    bool? coursesReady,
+    bool? statsReady,
+    bool? actionsReady,
+    bool? compulsoryReady,
     String? errorMessage,
   }) {
     return CoursesState(
@@ -123,6 +142,10 @@ class CoursesState {
       selectedYear: clearSelectedYear ? null : (selectedYear ?? this.selectedYear),
       selectedCohort: clearSelectedCohort ? null : (selectedCohort ?? this.selectedCohort),
       isLoading: isLoading ?? this.isLoading,
+      coursesReady: coursesReady ?? this.coursesReady,
+      statsReady: statsReady ?? this.statsReady,
+      actionsReady: actionsReady ?? this.actionsReady,
+      compulsoryReady: compulsoryReady ?? this.compulsoryReady,
       errorMessage: errorMessage,
     );
   }

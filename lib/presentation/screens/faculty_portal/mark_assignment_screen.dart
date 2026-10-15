@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
@@ -153,9 +154,7 @@ class _MarkAssignmentScreenState extends State<MarkAssignmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    if (_isLoading) return const SkeletonScaffold();
     final sorted = _sortedRoster;
     final totalPages = sorted.isEmpty ? 1 : (sorted.length / _pageSize).ceil();
     final page = _page.clamp(0, totalPages - 1);

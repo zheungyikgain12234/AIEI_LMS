@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:file_picker/file_picker.dart' show FileType;
 import 'package:stitch_aiei_lms/presentation/widgets/file_drop_zone.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -619,7 +620,8 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Show the page frame straight away; only the content area is a placeholder.
+      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.myCourses, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     if (_isTemplatePreview) return _buildTemplatePreviewScaffold(context);
     if (widget.isAdmin || MediaQuery.of(context).size.width < 700) {

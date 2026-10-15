@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -277,7 +278,8 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Show the page frame straight away; only the content area is a placeholder.
+      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageBadges, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     // Only rows still visible (after a search) can stay selected, so the count
     // and Delete never include hidden records.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -238,9 +239,7 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    if (_isLoading) return const SkeletonScaffold();
     if (!widget.requireAttendedFlag) return _buildMarkingView();
     final attendees = _roster.where(_attended).toList()..sort(_byName);
     final absentees = _roster.where((s) => !_attended(s)).toList()..sort(_byName);

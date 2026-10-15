@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -89,7 +90,10 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
         ),
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Column(children: [Skeleton(height: 92, radius: 10), SizedBox(height: 10), Skeleton(height: 92, radius: 10)]),
+                )
               : _error != null
                   ? Padding(padding: const EdgeInsets.fromLTRB(30, 12, 20, 12), child: Text(_error!, style: FacultyTypography.bodySm(color: FacultyColors.error)))
                   : _classes.isEmpty

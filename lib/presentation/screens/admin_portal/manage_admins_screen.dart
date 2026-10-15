@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -231,7 +232,8 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Show the page frame straight away; only the content area is a placeholder.
+      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageAdmins, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     final visibleIds = {for (final r in _filtered) r.id};
     _selected.retainWhere(visibleIds.contains);

@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
@@ -86,13 +87,7 @@ class _EnrolledCoursesCatalogueScreenState
 
           // Scrollable Main Content Container
           Expanded(
-            child: state.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.secondary,
-                    ),
-                  )
-                : SingleChildScrollView(
+            child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 32,
@@ -105,6 +100,8 @@ class _EnrolledCoursesCatalogueScreenState
                           children: [
                             // Section 1: Top Stat Telemetry & Critical Action
                             TelemetryBanner(
+ statsReady: state.statsReady,
+ actionsReady: state.actionsReady,
                               stats: state.stats,
                               criticalActions: state.criticalActions,
                               onOpenAction: (action) => _openCriticalAction(context, action),
@@ -145,12 +142,12 @@ class _EnrolledCoursesCatalogueScreenState
                             const SizedBox(height: 24),
 
                             // Section 4: Course Grid (Interactive Cards)
-                            CourseGrid(
+                            state.coursesReady ? CourseGrid(
                               courses: state.filteredAndSortedCourses,
                               onCourseAction: (course) => _openCourse(context, course),
-                            ),
+                            ) : const SkeletonCourseGrid(),
 
-                            if (state.compulsoryCourses.isNotEmpty) ...[
+                            if (!state.compulsoryReady) ...const [SizedBox(height: 40), Skeleton(width: 220, height: 26), SizedBox(height: 16), SkeletonCourseGrid(count: 3)] else if (state.compulsoryCourses.isNotEmpty) ...[
                               const SizedBox(height: 40),
                               Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
                               const SizedBox(height: 4),
@@ -248,9 +245,7 @@ class _EnrolledCoursesCatalogueScreenState
         selectedIndex: 0,
         onTap: (index) => navigateStudentTab(context, index, current: 0),
       ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
-          : SafeArea(
+      body: SafeArea(
               top: false,
               bottom: false,
               child: SingleChildScrollView(
@@ -259,6 +254,8 @@ class _EnrolledCoursesCatalogueScreenState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     TelemetryBanner(
+ statsReady: state.statsReady,
+ actionsReady: state.actionsReady,
                       stats: state.stats,
                       criticalActions: state.criticalActions,
                       onOpenAction: (action) => _openCriticalAction(context, action),
@@ -287,11 +284,11 @@ class _EnrolledCoursesCatalogueScreenState
                       onCohortChanged: notifier.selectCohort,
                     ),
                     const SizedBox(height: 24),
-                    CourseGrid(
+                    state.coursesReady ? CourseGrid(
                       courses: state.filteredAndSortedCourses,
                       onCourseAction: (course) => _openCourse(context, course),
-                    ),
-                    if (state.compulsoryCourses.isNotEmpty) ...[
+                    ) : const SkeletonCourseGrid(),
+                    if (!state.compulsoryReady) ...const [SizedBox(height: 40), Skeleton(width: 220, height: 26), SizedBox(height: 16), SkeletonCourseGrid(count: 3)] else if (state.compulsoryCourses.isNotEmpty) ...[
                       const SizedBox(height: 40),
                       Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
                       const SizedBox(height: 4),

@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'widgets/admin_fixed_code.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -184,7 +185,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
         title: Text(title, style: AdminTypography.headlineSm()),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonBody()
           : Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),

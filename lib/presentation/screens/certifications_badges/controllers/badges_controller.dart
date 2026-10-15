@@ -28,30 +28,39 @@ class BadgesNotifier extends Notifier<BadgesState> {
     _repository = ref.watch(badgesRepositoryProvider);
     _studentsRepository = ref.watch(_studentsRepositoryProvider);
     Future.microtask(() => loadInitialData());
-    return const BadgesState(isLoading: true);
+    return const BadgesState();
   }
 
+  /// Loads the stats, the earned badges and the student's ID in parallel; each
+  /// appears as soon as it is ready.
   Future<void> loadInitialData() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-    try {
-      final stats = await _repository.getBadgeStats();
-      final earned = await _repository.getEarnedCredentials();
-      final inProgress = await _repository.getInProgressBadges();
-      final student = await _studentsRepository.getStudentById(DemoIdentity.studentId);
+    state = state.copyWith(errorMessage: null);
+    await Future.wait([
+      _loadPart(() async {
+        final stats = await _repository.getBadgeStats();
+        state = state.copyWith(stats: stats);
+      }, () => state = state.copyWith(statsReady: true)),
+      _loadPart(() async {
+        final earned = await _repository.getEarnedCredentials();
+        final inProgress = await _repository.getInProgressBadges();
+        state = state.copyWith(earnedCredentials: earned, inProgressBadges: inProgress);
+      }, () => state = state.copyWith(earnedReady: true)),
+      _loadPart(() async {
+        final student = await _studentsRepository.getStudentById(DemoIdentity.studentId);
+        state = state.copyWith(studentCode: student.studentCode);
+      }, () {}),
+    ]);
+  }
 
-      state = state.copyWith(
-        stats: stats,
-        earnedCredentials: earned,
-        inProgressBadges: inProgress,
-        studentCode: student.studentCode,
-        isLoading: false,
-      );
+  /// Runs one part, then marks it ready even on failure so a placeholder never
+  /// spins forever.
+  Future<void> _loadPart(Future<void> Function() part, void Function() markReady) async {
+    try {
+      await part();
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(errorMessage: e.toString());
     }
+    markReady();
   }
 }
 

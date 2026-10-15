@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -102,7 +103,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
               title: Text('Student View', style: FacultyTypography.titleSm()),
             ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonBody()
           : SafeArea(
               top: false,
               child: Center(

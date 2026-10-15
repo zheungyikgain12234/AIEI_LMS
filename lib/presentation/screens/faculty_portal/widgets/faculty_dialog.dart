@@ -112,7 +112,7 @@ class FacultyDialog extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: shape,
                           ),
-                          child: Text(cancelLabel),
+                          child: Text(cancelLabel, textAlign: TextAlign.center),
                         ),
                       ),
                       const SizedBox(width: 12),

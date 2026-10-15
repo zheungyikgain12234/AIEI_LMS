@@ -37,7 +37,7 @@ Widget adminMobileSelectionBar({
             OutlinedButton.icon(
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline, size: 16),
-              label: const Text('Delete'),
+              label: const Text('Delete', textAlign: TextAlign.center),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AdminColors.error,
                 backgroundColor: AdminColors.errorContainer,

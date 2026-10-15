@@ -820,7 +820,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
               OutlinedButton.icon(
                 onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Progress saved.'))),
                 icon: const Icon(Icons.save_outlined, size: 16),
-                label: const Text('Save Progress'),
+                label: const Text('Save Progress', textAlign: TextAlign.center),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: AdminColors.primaryContainer,
@@ -833,7 +833,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
               ElevatedButton.icon(
                 onPressed: _submitGrade,
                 icon: const Icon(Icons.send, size: 16),
-                label: const Text('Release Grade & Feedback'),
+                label: const Text('Release Grade & Feedback', textAlign: TextAlign.center),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: Colors.white,
@@ -1304,8 +1304,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
               icon: Icon(_mobileShowAllMcqs ? Icons.expand_less : Icons.expand_more, size: 18, color: FacultyColors.secondary),
               label: Text(
                 _mobileShowAllMcqs ? 'Hide Additional MCQs' : 'View Remaining 4 Validated MCQs',
-                style: FacultyTypography.labelMd(color: FacultyColors.secondary),
-              ),
+                style: FacultyTypography.labelMd(color: FacultyColors.secondary), textAlign: TextAlign.center),
             ),
           ),
         ],
@@ -1598,7 +1597,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Progress saved.'))),
                   icon: const Icon(Icons.save, size: 18),
-                  label: const Text('Save Draft'),
+                  label: const Text('Save Draft', textAlign: TextAlign.center),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: AdminColors.primaryContainer,
@@ -1613,7 +1612,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _submitGrade,
                   icon: const Icon(Icons.send, size: 18),
-                  label: const Text('Release Grade'),
+                  label: const Text('Release Grade', textAlign: TextAlign.center),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AdminColors.primaryContainer,
                     foregroundColor: Colors.white,

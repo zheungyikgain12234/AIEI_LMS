@@ -754,7 +754,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
             ElevatedButton.icon(
               onPressed: () => _openDashboard(c),
               icon: const Icon(Icons.speed, size: 16),
-              label: const Text('Open Dashboard'),
+              label: const Text('Open Dashboard', textAlign: TextAlign.center),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AdminColors.primaryContainer,
                 foregroundColor: Colors.white,

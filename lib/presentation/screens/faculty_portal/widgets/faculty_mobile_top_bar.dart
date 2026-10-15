@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
@@ -29,7 +30,8 @@ class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget
     return Container(
       height: 64,
       decoration: const BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
+        color: AdminColors.navSurface,
+        border: Border(bottom: BorderSide(color: AdminColors.navBorder)),
         boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 1))],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),

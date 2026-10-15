@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
@@ -16,7 +17,8 @@ class MobileTopBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: AdminColors.navSurface,
+        border: Border(bottom: BorderSide(color: AdminColors.navBorder)),
         boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 1))],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),

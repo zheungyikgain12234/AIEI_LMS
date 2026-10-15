@@ -147,7 +147,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           TextButton.icon(
             onPressed: _resetFilters,
             icon: const Icon(Icons.restart_alt, size: 16),
-            label: const Text('Reset'),
+            label: const Text('Reset', textAlign: TextAlign.center),
             style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
           ),
       ],
@@ -557,7 +557,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             ),
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close', textAlign: TextAlign.center))],
       ),
     );
   }
@@ -671,7 +671,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               children: [
                 Text(_errorMessage!, style: AdminTypography.bodyMd(color: AdminColors.error), textAlign: TextAlign.center),
                 const SizedBox(height: 12),
-                ElevatedButton(onPressed: _load, child: const Text('Retry')),
+                ElevatedButton(onPressed: _load, child: const Text('Retry', textAlign: TextAlign.center)),
               ],
             ),
           ),
@@ -727,7 +727,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             OutlinedButton.icon(
               onPressed: _downloadCsvTemplate,
               icon: const Icon(Icons.download_outlined, size: 18),
-              label: const Text('Download CSV Template'),
+              label: const Text('Download CSV Template', textAlign: TextAlign.center),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AdminColors.primaryContainer,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -737,7 +737,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             OutlinedButton.icon(
               onPressed: _importFromCsv,
               icon: const Icon(Icons.upload_file_outlined, size: 18),
-              label: const Text('Import from CSV'),
+              label: const Text('Import from CSV', textAlign: TextAlign.center),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AdminColors.primaryContainer,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -747,7 +747,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             ElevatedButton.icon(
               onPressed: _openRegisterStudent,
               icon: const Icon(Icons.person_add_outlined, size: 18),
-              label: const Text('Register New Student'),
+              label: const Text('Register New Student', textAlign: TextAlign.center),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AdminColors.primaryContainer,
                 foregroundColor: Colors.white,
@@ -885,11 +885,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                     ),
                   ]),
                   Wrap(spacing: 6, children: [
-                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enrol')),
+                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enrol', textAlign: TextAlign.center)),
                     OutlinedButton.icon(
                       onPressed: _deleteSelected,
                       icon: const Icon(Icons.delete_outline, size: 16),
-                      label: const Text('Delete'),
+                      label: const Text('Delete', textAlign: TextAlign.center),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AdminColors.error,
                         backgroundColor: AdminColors.errorContainer,
@@ -1068,7 +1068,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: const Text('Manage Enrolled Courses'),
+                child: const Text('Manage Enrolled Courses', textAlign: TextAlign.center),
               ),
             ),
           ),
@@ -1348,7 +1348,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   onDeselectAll: () => setState(_selected.clear),
                   onDelete: _deleteSelected,
                   extraActions: [
-                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enrol')),
+                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enrol', textAlign: TextAlign.center)),
                   ],
                 ),
               ],
@@ -1498,7 +1498,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: const Text('Manage Enrolled Courses'),
+                child: const Text('Manage Enrolled Courses', textAlign: TextAlign.center),
               ),
             ],
           ),

@@ -182,11 +182,11 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
               'which you will be asked to reassign first. Nobody is deleted until every class has a new lecturer.'}',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete'),
+            child: const Text('Delete', textAlign: TextAlign.center),
           ),
         ],
       ),
@@ -266,7 +266,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         ElevatedButton.icon(
           onPressed: _openAddLecturer,
           icon: const Icon(Icons.person_add_outlined, size: 18),
-          label: const Text('Add New Lecturer'),
+          label: const Text('Add New Lecturer', textAlign: TextAlign.center),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,
@@ -418,7 +418,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Delete'),
+                    label: const Text('Delete', textAlign: TextAlign.center),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,
@@ -583,7 +583,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: const Text('Manage Assigned Courses'),
+                child: const Text('Manage Assigned Courses', textAlign: TextAlign.center),
               ),
             ),
           ),
@@ -775,7 +775,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         textStyle: AdminTypography.labelSm(),
       ),
-      child: const Text('Manage Assigned Courses'),
+      child: const Text('Manage Assigned Courses', textAlign: TextAlign.center),
     );
   }
 }

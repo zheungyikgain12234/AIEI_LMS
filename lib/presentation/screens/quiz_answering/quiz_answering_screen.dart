@@ -682,7 +682,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
       icon: _submitting
           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary))
           : const Icon(Icons.send, size: 18),
-      label: Text(_submission == null ? 'Submit Exam' : 'Resubmit Exam'),
+      label: Text(_submission == null ? 'Submit Exam' : 'Resubmit Exam', textAlign: TextAlign.center),
       style: ElevatedButton.styleFrom(
         backgroundColor: AdminColors.primaryContainer,
         foregroundColor: AppColors.onPrimary,
@@ -911,7 +911,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
           OutlinedButton.icon(
             onPressed: uploading ? null : () => _pickAndUploadFor(q),
             icon: uploading ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.upload_file, size: 16),
-            label: const Text('Attach a file'),
+            label: const Text('Attach a file', textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
           )
         else if (files.isEmpty)
@@ -993,7 +993,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
               child: ElevatedButton.icon(
                 onPressed: !_canSubmit || _submitting ? null : _openSubmitModal,
                 icon: const Icon(Icons.verified, size: 18),
-                label: const Text('Finish & Submit Exam'),
+                label: const Text('Finish & Submit Exam', textAlign: TextAlign.center),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: AppColors.onPrimary,
@@ -1130,7 +1130,7 @@ class _SubmitDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Return to Exam')),
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Return to Exam', textAlign: TextAlign.center)),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: onConfirm,
@@ -1141,7 +1141,7 @@ class _SubmitDialog extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('Yes, Confirm Submission'),
+                  child: const Text('Yes, Confirm Submission', textAlign: TextAlign.center),
                 ),
               ],
             ),

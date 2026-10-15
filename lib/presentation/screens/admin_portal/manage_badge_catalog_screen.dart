@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_r
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'widgets/admin_row_action.dart';
+import 'widgets/badge_contrast.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_searchable_dropdown.dart';
@@ -113,11 +114,11 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             'This cannot be undone.',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Back')),
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Back', textAlign: TextAlign.center)),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-              child: const Text('Confirm & delete'),
+              child: const Text('Confirm & delete', textAlign: TextAlign.center),
             ),
           ],
         ),
@@ -167,18 +168,18 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Manage Badges', style: AdminTypography.headlineLg()),
+            Text('Manage Badges', style: AdminTypography.headlineLg(color: BadgeContrast.text)),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('The badge catalogue courses can be configured to award on completion.', style: AdminTypography.bodyMd()),
+              child: Text('The badge catalogue courses can be configured to award on completion.', style: AdminTypography.bodyMd(color: BadgeContrast.textSecondary)),
             ),
           ],
         ),
         ElevatedButton.icon(
           onPressed: _openAdd,
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('Add New Badge'),
+          label: const Text('Add New Badge', textAlign: TextAlign.center),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,
@@ -194,7 +195,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
   Widget _buildListCard() {
     final badges = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), border: Border.all(color: BadgeContrast.divider), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -203,15 +204,10 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocus,
-              style: AdminTypography.bodySm(color: AdminColors.onSurface),
-              decoration: InputDecoration(
-                isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
-                hintText: 'Search badge by code or name...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              style: AdminTypography.bodyMd(color: BadgeContrast.text),
+              decoration: BadgeContrast.fieldDecoration(
+                hint: 'Search badge by code or name...',
+                prefixIcon: const Icon(Icons.search, size: 20, color: BadgeContrast.textSecondary),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -220,7 +216,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: BadgeContrast.selectedRow, borderRadius: BorderRadius.circular(12), border: Border.all(color: BadgeContrast.divider)),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -231,9 +227,9 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Delete'),
+                    label: const Text('Delete', textAlign: TextAlign.center),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AdminColors.error,
+                      foregroundColor: AdminColors.onErrorContainer,
                       backgroundColor: AdminColors.errorContainer,
                       side: BorderSide.none,
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -256,7 +252,10 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
     final selected = _selected.contains(b.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: BoxDecoration(
+        color: selected ? BadgeContrast.selectedRow : null,
+        border: const Border(bottom: BorderSide(color: BadgeContrast.divider)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -264,17 +263,30 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             value: selected,
             onChanged: (v) => setState(() => v == true ? _selected.add(b.id) : _selected.remove(b.id)),
             activeColor: AdminColors.primaryContainer,
+            side: const BorderSide(color: BadgeContrast.border, width: 2),
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(b.title, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                Text('${b.code} • ${b.issuingBody}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                Text(b.title, style: AdminTypography.titleMd(color: BadgeContrast.text), overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text('${b.code} • ${b.issuingBody}', style: AdminTypography.bodySm(color: BadgeContrast.textSecondary), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          adminEditAction(() => _openEdit(b)),
+          SizedBox(
+            width: kAdminActionColumnWidth,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                onPressed: () => _openEdit(b),
+                tooltip: 'Edit',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.edit_outlined, size: 20, color: BadgeContrast.text),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -359,7 +371,7 @@ class _DeleteBadgesDialogState extends State<_DeleteBadgesDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel', textAlign: TextAlign.center)),
         FilledButton(
           onPressed: undecided == 0
               ? () => Navigator.of(context).pop({
@@ -368,7 +380,7 @@ class _DeleteBadgesDialogState extends State<_DeleteBadgesDialog> {
                   })
               : null,
           style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-          child: Text(undecided == 0 ? 'Delete $noun' : '$undecided left to decide'),
+          child: Text(undecided == 0 ? 'Delete $noun' : '$undecided left to decide', textAlign: TextAlign.center),
         ),
       ],
     );

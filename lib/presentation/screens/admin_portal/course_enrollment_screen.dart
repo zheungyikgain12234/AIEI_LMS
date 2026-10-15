@@ -182,19 +182,19 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
           OutlinedButton.icon(
             onPressed: _notAvailable,
             icon: const Icon(Icons.file_download_outlined, size: 16),
-            label: const Text('Export Roster'),
+            label: const Text('Export Roster', textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
           OutlinedButton.icon(
             onPressed: _notAvailable,
             icon: const Icon(Icons.move_up_outlined, size: 16),
-            label: const Text('Drop / Transfer'),
+            label: const Text('Drop / Transfer', textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen())),
             icon: const Icon(Icons.person_add_outlined, size: 16),
-            label: const Text('Enrol Students'),
+            label: const Text('Enrol Students', textAlign: TextAlign.center),
             style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
         ]),
@@ -227,7 +227,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
           OutlinedButton.icon(
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Only PY-402 is available in this preview.'))),
             icon: const Icon(Icons.swap_horiz, size: 16, color: AdminColors.onSurfaceVariant),
-            label: const Text('Switch Course Section'),
+            label: const Text('Switch Course Section', textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
           ),
         ],
@@ -530,7 +530,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen())),
             icon: const Icon(Icons.person_add, size: 18),
-            label: const Text('Enrol Students'),
+            label: const Text('Enrol Students', textAlign: TextAlign.center),
             style: ElevatedButton.styleFrom(
               backgroundColor: AdminColors.primaryContainer,
               foregroundColor: AdminColors.onSecondary,
@@ -543,7 +543,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
           OutlinedButton.icon(
             onPressed: _notAvailable,
             icon: const Icon(Icons.unfold_more, size: 18),
-            label: Text('$_courseCode (Active)'),
+            label: Text('$_courseCode (Active)', textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: AdminColors.primaryContainer,
@@ -556,7 +556,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
           OutlinedButton.icon(
             onPressed: _notAvailable,
             icon: const Icon(Icons.file_download, size: 18),
-            label: const Text('Export'),
+            label: const Text('Export', textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: AdminColors.primaryContainer,
@@ -569,7 +569,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
           OutlinedButton.icon(
             onPressed: _notAvailable,
             icon: const Icon(Icons.swap_horiz, size: 18),
-            label: const Text('Drop/Transfer'),
+            label: const Text('Drop/Transfer', textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: AdminColors.primaryContainer,
@@ -909,13 +909,13 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               TextButton.icon(
                 onPressed: _notAvailable,
                 icon: const Icon(Icons.visibility, size: 16),
-                label: const Text('Transcript'),
+                label: const Text('Transcript', textAlign: TextAlign.center),
                 style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, padding: const EdgeInsets.symmetric(horizontal: 8)),
               ),
               TextButton.icon(
                 onPressed: _notAvailable,
                 icon: const Icon(Icons.mail, size: 16),
-                label: const Text('Message'),
+                label: const Text('Message', textAlign: TextAlign.center),
                 style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, padding: const EdgeInsets.symmetric(horizontal: 8)),
               ),
             ]),

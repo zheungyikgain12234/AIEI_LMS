@@ -17,7 +17,8 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
     return Container(
       height: 64,
       decoration: const BoxDecoration(
-        color: AdminColors.surfaceContainerLowest,
+        color: AdminColors.navSurface,
+        border: Border(bottom: BorderSide(color: AdminColors.navBorder)),
         boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 1))],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24),

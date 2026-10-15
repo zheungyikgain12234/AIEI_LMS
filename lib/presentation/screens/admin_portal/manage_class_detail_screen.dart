@@ -288,7 +288,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', textAlign: TextAlign.center),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -296,7 +296,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               backgroundColor: AdminColors.error,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Unenroll'),
+            child: const Text('Unenroll', textAlign: TextAlign.center),
           ),
         ],
       ),
@@ -699,8 +699,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                       label: Text(
                         _selected.isEmpty
                             ? 'Unenroll Selected'
-                            : 'Unenroll Selected (${_selected.length})',
-                      ),
+                            : 'Unenroll Selected (${_selected.length})', textAlign: TextAlign.center),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AdminColors.error,
                         foregroundColor: Colors.white,

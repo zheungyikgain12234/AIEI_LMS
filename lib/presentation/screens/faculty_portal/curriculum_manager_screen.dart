@@ -310,7 +310,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                 OutlinedButton.icon(
                   onPressed: _notAvailable,
                   icon: const Icon(Icons.library_add_outlined, size: 18, color: FacultyColors.primary),
-                  label: const Text('Add Module'),
+                  label: const Text('Add Module', textAlign: TextAlign.center),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: AdminColors.primaryContainer,
@@ -323,7 +323,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                 ElevatedButton.icon(
                   onPressed: _notAvailable,
                   icon: const Icon(Icons.cloud_upload_outlined, size: 18),
-                  label: const Text('Upload Material'),
+                  label: const Text('Upload Material', textAlign: TextAlign.center),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AdminColors.primaryContainer,
                     foregroundColor: Colors.white,
@@ -882,7 +882,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text('Student Preview Mode'),
+                child: const Text('Student Preview Mode', textAlign: TextAlign.center),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
@@ -896,7 +896,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text('Publish All Changes'),
+                child: const Text('Publish All Changes', textAlign: TextAlign.center),
               ),
             ],
           ),
@@ -1015,7 +1015,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               child: ElevatedButton.icon(
                 onPressed: _notAvailable,
                 icon: const Icon(Icons.add_circle, size: 18),
-                label: const Text('Add Module'),
+                label: const Text('Add Module', textAlign: TextAlign.center),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: FacultyColors.onSecondary,
@@ -1030,7 +1030,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               child: ElevatedButton.icon(
                 onPressed: _notAvailable,
                 icon: const Icon(Icons.cloud_upload, size: 18),
-                label: const Text('Upload Asset'),
+                label: const Text('Upload Asset', textAlign: TextAlign.center),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: Colors.white,
@@ -1608,7 +1608,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _notAvailable,
                   icon: const Icon(Icons.visibility, size: 18),
-                  label: const Text('Student Preview'),
+                  label: const Text('Student Preview', textAlign: TextAlign.center),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AdminColors.primaryContainer,
                     foregroundColor: Colors.white,
@@ -1625,7 +1625,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                     showSuccessSnackBar(context, 'All curriculum changes published.');
                   },
                   icon: const Icon(Icons.check_circle, size: 18),
-                  label: const Text('Publish Changes'),
+                  label: const Text('Publish Changes', textAlign: TextAlign.center),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AdminColors.primaryContainer,
                     foregroundColor: FacultyColors.onSecondary,

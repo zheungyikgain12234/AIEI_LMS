@@ -500,7 +500,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
           : FilledButton.icon(
               onPressed: () => _setStatus(SyllabusStatus.approved, 'Syllabus approved — students can now see it.'),
               icon: const Icon(Icons.verified_outlined),
-              label: const Text('Approve Syllabus'),
+              label: const Text('Approve Syllabus', textAlign: TextAlign.center),
               style: FilledButton.styleFrom(
                 backgroundColor: AdminColors.primaryContainer,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -512,7 +512,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
           ? FilledButton.icon(
               onPressed: () => _setStatus(SyllabusStatus.submitted, 'Submitted for approval.'),
               icon: const Icon(Icons.send_outlined, size: 18),
-              label: const Text('Submit for Approval'),
+              label: const Text('Submit for Approval', textAlign: TextAlign.center),
             )
           : null;
     }
@@ -743,7 +743,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     return OutlinedButton.icon(
       onPressed: _viewAsStudent,
       icon: const Icon(Icons.visibility_outlined, size: 16),
-      label: const Text('View as Student'),
+      label: const Text('View as Student', textAlign: TextAlign.center),
       style: OutlinedButton.styleFrom(
         foregroundColor: AdminColors.primaryContainer,
         side: const BorderSide(color: FacultyColors.outlineVariant),
@@ -758,7 +758,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     return ElevatedButton.icon(
       onPressed: _addModule,
       icon: const Icon(Icons.add, size: 18),
-      label: const Text('Add Module'),
+      label: const Text('Add Module', textAlign: TextAlign.center),
       style: ElevatedButton.styleFrom(
         backgroundColor: AdminColors.primaryContainer,
         foregroundColor: Colors.white,
@@ -773,7 +773,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     return OutlinedButton.icon(
       onPressed: _saveAsTemplate,
       icon: const Icon(Icons.save_outlined, size: 16),
-      label: const Text('Save as Template'),
+      label: const Text('Save as Template', textAlign: TextAlign.center),
       style: OutlinedButton.styleFrom(
         foregroundColor: AdminColors.primaryContainer,
         side: const BorderSide(color: FacultyColors.outlineVariant),
@@ -788,7 +788,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
     return OutlinedButton.icon(
       onPressed: _copyFromTemplate,
       icon: const Icon(Icons.content_copy_outlined, size: 16),
-      label: const Text('Copy from Template'),
+      label: const Text('Copy from Template', textAlign: TextAlign.center),
       style: OutlinedButton.styleFrom(
         foregroundColor: AdminColors.primaryContainer,
         side: const BorderSide(color: FacultyColors.outlineVariant),
@@ -987,7 +987,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
                       child: OutlinedButton.icon(
                         onPressed: () => _addSession(m.id),
                         icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Session'),
+                        label: const Text('Add Session', textAlign: TextAlign.center),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AdminColors.primaryContainer,
                           side: const BorderSide(color: FacultyColors.outlineVariant),
@@ -1090,7 +1090,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
                       child: TextButton.icon(
                         onPressed: () => _addContentBlock(s.id),
                         icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Content'),
+                        label: const Text('Add Content', textAlign: TextAlign.center),
                         style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, textStyle: FacultyTypography.labelMd()),
                       ),
                     ),
@@ -1300,8 +1300,8 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
           ),
           [
             // Admins never mark. They can always open the contents, read-only when editing is off.
-            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam')),
-            if (_canEdit || widget.isAdmin || _isTemplatePreview) OutlinedButton(onPressed: () => _openExamEditor(b), child: Text(_canEdit ? 'Manage Contents' : 'View Contents')),
+            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openMarkExam(b), child: const Text('Mark Exam', textAlign: TextAlign.center)),
+            if (_canEdit || widget.isAdmin || _isTemplatePreview) OutlinedButton(onPressed: () => _openExamEditor(b), child: Text(_canEdit ? 'Manage Contents' : 'View Contents', textAlign: TextAlign.center)),
           ],
         );
       case ContentBlockType.assignment:
@@ -1320,8 +1320,8 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
             ],
           ),
           [
-            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment')),
-            if (_canEdit || widget.isAdmin || _isTemplatePreview) OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: Text(_canEdit ? 'Manage Contents' : 'View Contents')),
+            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openMarkAssignment(b), child: const Text('Mark Assignment', textAlign: TextAlign.center)),
+            if (_canEdit || widget.isAdmin || _isTemplatePreview) OutlinedButton(onPressed: () => _openAssignmentEditor(b), child: Text(_canEdit ? 'Manage Contents' : 'View Contents', textAlign: TextAlign.center)),
           ],
         );
       case ContentBlockType.physicalExam:
@@ -1348,7 +1348,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
             ],
           ),
           [
-            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
+            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks', textAlign: TextAlign.center)),
             OutlinedButton(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
@@ -1359,7 +1359,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
                   ),
                 ),
               ),
-              child: const Text('Attendance'),
+              child: const Text('Attendance', textAlign: TextAlign.center),
             ),
           ],
         );
@@ -1376,7 +1376,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
             ],
           ),
           [
-            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks')),
+            if (!_hideMarkButtons && !widget.isAdmin) OutlinedButton(onPressed: () => _openImportMarks(b), child: const Text('Import Marks', textAlign: TextAlign.center)),
           ],
         );
       case ContentBlockType.physicalClass:
@@ -1411,7 +1411,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
                   ),
                 ),
               ),
-              child: const Text('Attendance'),
+              child: const Text('Attendance', textAlign: TextAlign.center),
             ),
           ],
         );
@@ -1999,7 +1999,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             icon: _uploadingThumbnail
                 ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.upload_file, size: 16),
-            label: const Text('Upload a thumbnail image'),
+            label: const Text('Upload a thumbnail image', textAlign: TextAlign.center),
           ),
           if (_urlController.text.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -2265,7 +2265,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           child: OutlinedButton.icon(
             onPressed: _pickDueDate,
             icon: const Icon(Icons.event_outlined, size: 16),
-            label: Text(due == null ? 'Select date' : formatDate(due)),
+            label: Text(due == null ? 'Select date' : formatDate(due), textAlign: TextAlign.center),
           ),
         ),
         const SizedBox(width: 8),
@@ -2273,7 +2273,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           child: OutlinedButton.icon(
             onPressed: due == null ? null : _pickDueTime,
             icon: const Icon(Icons.schedule_outlined, size: 16),
-            label: Text(due == null ? 'Time' : '${due.hour.toString().padLeft(2, '0')}:${due.minute.toString().padLeft(2, '0')}'),
+            label: Text(due == null ? 'Time' : '${due.hour.toString().padLeft(2, '0')}:${due.minute.toString().padLeft(2, '0')}', textAlign: TextAlign.center),
           ),
         ),
         if (due != null)
@@ -2305,8 +2305,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
                 onPressed: _pickAvailableFromDate,
                 icon: const Icon(Icons.event_available_outlined, size: 16),
                 label: Text(
-                  from == null ? 'Select date' : formatDate(from),
-                ),
+                  from == null ? 'Select date' : formatDate(from), textAlign: TextAlign.center),
               ),
             ),
             const SizedBox(width: 8),
@@ -2314,7 +2313,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
               child: OutlinedButton.icon(
                 onPressed: from == null ? null : _pickAvailableFromTime,
                 icon: const Icon(Icons.schedule_outlined, size: 16),
-                label: Text(from == null ? 'Time' : '${from.hour.toString().padLeft(2, '0')}:${from.minute.toString().padLeft(2, '0')}'),
+                label: Text(from == null ? 'Time' : '${from.hour.toString().padLeft(2, '0')}:${from.minute.toString().padLeft(2, '0')}', textAlign: TextAlign.center),
               ),
             ),
             if (from != null)
@@ -2369,7 +2368,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
           icon: _uploadingInstructionFile
               ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.upload_file, size: 16),
-          label: const Text('Attach a file'),
+          label: const Text('Attach a file', textAlign: TextAlign.center),
         ),
       ],
     );
@@ -2387,7 +2386,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
       icon: _uploading
           ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
           : const Icon(Icons.upload_file, size: 16),
-      label: Text(label),
+      label: Text(label, textAlign: TextAlign.center),
     );
   }
 }
@@ -2557,7 +2556,7 @@ class _CopyFromTemplateDialogState extends State<_CopyFromTemplateDialog> {
                                     ),
                                   ),
                                   icon: const Icon(Icons.visibility_outlined, size: 16),
-                                  label: const Text('Preview'),
+                                  label: const Text('Preview', textAlign: TextAlign.center),
                                   style: FilledButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white),
                                 ),
                               ],

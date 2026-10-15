@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'faculty_sidebar.dart' show FacultyNavDestination;
@@ -23,7 +24,8 @@ class FacultyMobileBottomNav extends StatelessWidget {
       child: Container(
         height: 64,
         decoration: const BoxDecoration(
-          color: FacultyColors.surfaceContainerLowest,
+          color: AdminColors.navSurface,
+        border: Border(top: BorderSide(color: AdminColors.navBorder)),
           boxShadow: [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, -1))],
         ),
         child: Row(

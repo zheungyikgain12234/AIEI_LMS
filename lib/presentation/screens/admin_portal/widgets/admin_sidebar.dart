@@ -48,7 +48,8 @@ class AdminSidebar extends StatelessWidget {
       child: Container(
       width: 256,
       decoration: const BoxDecoration(
-        color: AdminColors.surfaceContainerLowest,
+        color: AdminColors.navSurface,
+        border: Border(right: BorderSide(color: AdminColors.navBorder)),
         boxShadow: [
           BoxShadow(
             color: Color(0x0A000000),
@@ -376,7 +377,7 @@ class _NavItemState extends State<_NavItem> {
     final selected = widget.isSelected;
     final bg = selected
         ? AdminColors.primaryContainer
-        : (_hovered ? AdminColors.surfaceContainerLow : Colors.transparent);
+        : (_hovered ? Colors.white : Colors.transparent);
     final fg = selected
         ? AdminColors.onSecondary
         : AdminColors.onSurfaceVariant;

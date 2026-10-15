@@ -544,12 +544,12 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   ? OutlinedButton(
                       onPressed: () => setState(() => _staged.remove(c.id)),
                       style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, backgroundColor: AdminColors.errorContainer.withValues(alpha: 0.3), side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
-                      child: const Text('Remove'),
+                      child: const Text('Remove', textAlign: TextAlign.center),
                     )
                   : OutlinedButton(
                       onPressed: () => setState(() => _staged.add(c.id)),
                       style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
-                      child: const Text('+ Add'),
+                      child: const Text('+ Add', textAlign: TextAlign.center),
                     ),
             ),
           ),
@@ -605,7 +605,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                       showSuccessSnackBar(context, '${_staged.length} student(s) enrolled into $_courseCode.');
                     },
               icon: const Icon(Icons.person_add_alt_1, size: 18),
-              label: Text('Confirm & Enrol ${_staged.length} Students'),
+              label: Text('Confirm & Enrol ${_staged.length} Students', textAlign: TextAlign.center),
               style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             ),
           ),
@@ -615,7 +615,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             child: OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              child: const Text('Cancel & Return'),
+              child: const Text('Cancel & Return', textAlign: TextAlign.center),
             ),
           ),
         ],
@@ -1023,7 +1023,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   showSuccessSnackBar(context, 'Waiver review requested for ${c.studentName}.');
                 },
                 style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: BorderSide(color: AdminColors.error), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                child: const Text('Review Waiver'),
+                child: const Text('Review Waiver', textAlign: TextAlign.center),
               ),
             ),
           ] else ...[
@@ -1041,8 +1041,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                   child: Text(
                     staged ? 'Remove' : '+ Stage',
-                    style: AdminTypography.labelMd(color: staged ? AdminColors.error : AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
-                  ),
+                    style: AdminTypography.labelMd(color: staged ? AdminColors.error : AdminColors.secondary).copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
                 ),
               ],
             ),
@@ -1104,7 +1103,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                       showSuccessSnackBar(context, '${_staged.length} student(s) enrolled into $_courseCode.');
                     },
               icon: const Icon(Icons.how_to_reg, size: 18),
-              label: Text('Confirm & Enrol ${_staged.length} Students', overflow: TextOverflow.ellipsis),
+              label: Text('Confirm & Enrol ${_staged.length} Students', overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
               style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             ),
           ),
@@ -1114,7 +1113,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             child: OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              child: const Text('Cancel & Return'),
+              child: const Text('Cancel & Return', textAlign: TextAlign.center),
             ),
           ),
         ],

@@ -567,7 +567,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
         OutlinedButton.icon(
           onPressed: _openAttendanceSettings,
           icon: const Icon(Icons.settings_outlined, size: 18),
-          label: const Text('Attendance Settings'),
+          label: const Text('Attendance Settings', textAlign: TextAlign.center),
           style: OutlinedButton.styleFrom(
             foregroundColor: FacultyColors.primary,
             side: const BorderSide(color: FacultyColors.outline),
@@ -915,7 +915,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
           OutlinedButton.icon(
             onPressed: onTap,
             icon: const Icon(Icons.arrow_forward, size: 14),
-            label: Text(ctaLabel),
+            label: Text(ctaLabel, textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: AdminColors.primaryContainer,
@@ -949,7 +949,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
               TextButton.icon(
                 onPressed: () => setState(() => _showAnnouncementForm = !_showAnnouncementForm),
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Post'),
+                label: const Text('Post', textAlign: TextAlign.center),
                 style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, textStyle: FacultyTypography.labelMd()),
               ),
             ],
@@ -1003,12 +1003,12 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
                     children: [
                       TextButton(
                         onPressed: _postingAnnouncement ? null : () => setState(() => _showAnnouncementForm = false),
-                        child: const Text('Cancel'),
+                        child: const Text('Cancel', textAlign: TextAlign.center),
                       ),
                       ElevatedButton(
                         onPressed: _postingAnnouncement ? null : _postAnnouncement,
                         style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0),
-                        child: Text(_postingAnnouncement ? 'Posting...' : 'Post'),
+                        child: Text(_postingAnnouncement ? 'Posting...' : 'Post', textAlign: TextAlign.center),
                       ),
                     ],
                   ),

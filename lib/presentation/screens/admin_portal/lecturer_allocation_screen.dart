@@ -236,7 +236,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
               ElevatedButton.icon(
                 onPressed: _openAssignModal,
                 icon: const Icon(Icons.add_circle_outline, size: 18),
-                label: const Text('Assign Lecturer to Course'),
+                label: const Text('Assign Lecturer to Course', textAlign: TextAlign.center),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: Colors.white,
@@ -521,7 +521,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                             textStyle: AdminTypography.labelSm(),
                           ),
-                          child: const Text('Details'),
+                          child: const Text('Details', textAlign: TextAlign.center),
                         ),
                       ],
                     ),
@@ -546,7 +546,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                 OutlinedButton.icon(
                   onPressed: _openAssignModal,
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Course'),
+                  label: const Text('Add Course', textAlign: TextAlign.center),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: AdminColors.primaryContainer,
@@ -638,7 +638,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                             ElevatedButton.icon(
                               onPressed: () => setState(() => _assigned.add(u.id)),
                               icon: const Icon(Icons.person_add_alt_1, size: 14),
-                              label: const Text('1-Click Assign'),
+                              label: const Text('1-Click Assign', textAlign: TextAlign.center),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AdminColors.primaryContainer,
                                 foregroundColor: Colors.white,
@@ -667,7 +667,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: Text('View All ${unassigned.length} Pending Unallocated Courses'),
+                  child: Text('View All ${unassigned.length} Pending Unallocated Courses', textAlign: TextAlign.center),
                 ),
               ),
             ],
@@ -848,7 +848,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
       child: ElevatedButton.icon(
         onPressed: _openAssignModal,
         icon: const Icon(Icons.person_add, size: 18),
-        label: const Text('Assign Lecturer to Course'),
+        label: const Text('Assign Lecturer to Course', textAlign: TextAlign.center),
         style: ElevatedButton.styleFrom(
           backgroundColor: AdminColors.primaryContainer,
           foregroundColor: Colors.white,
@@ -1080,7 +1080,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             textStyle: AdminTypography.labelSm(),
           ),
-          child: Text(_assigned.contains(sectionId) ? 'Assigned' : 'Assign'),
+          child: Text(_assigned.contains(sectionId) ? 'Assigned' : 'Assign', textAlign: TextAlign.center),
         ),
       ]),
     );
@@ -1190,7 +1190,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     textStyle: AdminTypography.labelSm(),
                   ),
-                  child: const Text('Syllabus'),
+                  child: const Text('Syllabus', textAlign: TextAlign.center),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1226,7 +1226,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     textStyle: AdminTypography.labelSm(),
                   ),
-                  child: const Text('Details'),
+                  child: const Text('Details', textAlign: TextAlign.center),
                 ),
               ),
               const SizedBox(width: 6),
@@ -1240,7 +1240,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     textStyle: AdminTypography.labelSm(),
                   ),
-                  child: const Text('Reassign'),
+                  child: const Text('Reassign', textAlign: TextAlign.center),
                 ),
               ),
             ]),
@@ -1377,7 +1377,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: AdminTypography.labelMd(),
                 ),
-                child: const Text('Max Load Reached'),
+                child: const Text('Max Load Reached', textAlign: TextAlign.center),
               ),
             )
           else
@@ -1397,7 +1397,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
               OutlinedButton.icon(
                 onPressed: _openAssignModal,
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Course'),
+                label: const Text('Add Course', textAlign: TextAlign.center),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: AdminColors.primaryContainer,
@@ -1462,7 +1462,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
         OutlinedButton.icon(
           onPressed: null,
           icon: const Icon(Icons.chevron_left, size: 16),
-          label: const Text('Previous'),
+          label: const Text('Previous', textAlign: TextAlign.center),
           style: OutlinedButton.styleFrom(
             foregroundColor: AdminColors.primaryContainer,
             side: const BorderSide(color: AdminColors.outlineVariant),
@@ -1477,7 +1477,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
         OutlinedButton.icon(
           onPressed: _notAvailable,
           icon: const Icon(Icons.chevron_right, size: 16),
-          label: const Text('Next'),
+          label: const Text('Next', textAlign: TextAlign.center),
           style: OutlinedButton.styleFrom(
             foregroundColor: AdminColors.primaryContainer,
             side: const BorderSide(color: AdminColors.outlineVariant),

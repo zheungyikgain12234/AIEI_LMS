@@ -419,7 +419,7 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
                   : const Text('Save Grade Scale'),
             ),
             const SizedBox(width: 8),
-            TextButton(onPressed: _saving ? null : _reset, child: const Text('Reset to Default')),
+            TextButton(onPressed: _saving ? null : _reset, child: const Text('Reset to Default', textAlign: TextAlign.center)),
           ],
         ),
       ],

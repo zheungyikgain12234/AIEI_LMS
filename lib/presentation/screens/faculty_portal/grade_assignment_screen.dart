@@ -338,7 +338,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 OutlinedButton.icon(
                   onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Downloading all files (.zip)...'))),
                   icon: const Icon(Icons.archive_outlined, size: 15),
-                  label: const Text('Download All (.zip)'),
+                  label: const Text('Download All (.zip)', textAlign: TextAlign.center),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: AdminColors.primaryContainer,
@@ -433,7 +433,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
           OutlinedButton.icon(
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Downloading $name...'))),
             icon: const Icon(Icons.download_outlined, size: 15),
-            label: const Text('Download'),
+            label: const Text('Download', textAlign: TextAlign.center),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: AdminColors.primaryContainer,
@@ -560,7 +560,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const Text('Save Draft'),
+                      child: const Text('Save Draft', textAlign: TextAlign.center),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -568,7 +568,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _publishGrade,
                       icon: const Icon(Icons.publish_outlined, size: 16),
-                      label: const Text('Save & Publish'),
+                      label: const Text('Save & Publish', textAlign: TextAlign.center),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AdminColors.primaryContainer,
                         foregroundColor: Colors.white,
@@ -586,7 +586,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _otherStudent,
                   icon: const Icon(Icons.arrow_forward, size: 16),
-                  label: const Text('Save & Next Submission'),
+                  label: const Text('Save & Next Submission', textAlign: TextAlign.center),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: AdminColors.primaryContainer,
@@ -852,7 +852,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 onPressed: () =>
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Downloading all files (.zip)...'))),
                 icon: const Icon(Icons.download, size: 16),
-                label: const Text('Download All'),
+                label: const Text('Download All', textAlign: TextAlign.center),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: AdminColors.primaryContainer,
@@ -1101,8 +1101,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
       ),
       child: Text(
         value,
-        style: FacultyTypography.labelMd(color: selected ? FacultyColors.onSecondary : FacultyColors.onSurface),
-      ),
+        style: FacultyTypography.labelMd(color: selected ? FacultyColors.onSecondary : FacultyColors.onSurface), textAlign: TextAlign.center),
     );
   }
 

@@ -127,8 +127,8 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
             ? 'Your previous submission will be replaced. Do you want to resubmit?'
             : 'Once submitted, your lecturer will be able to see and grade your work. Do you want to submit?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(resubmit ? 'Resubmit' : 'Submit')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(resubmit ? 'Resubmit' : 'Submit', textAlign: TextAlign.center)),
         ],
       ),
     );
@@ -219,7 +219,7 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                       icon: _uploadingFile
                           ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.upload_file, size: 16),
-                      label: const Text('Attach a file'),
+                      label: const Text('Attach a file', textAlign: TextAlign.center),
                     ),
                   const SizedBox(height: 20),
                   if (!_locked)
@@ -228,7 +228,7 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
                     icon: _submitting
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.send_outlined, size: 18),
-                    label: Text(_submission == null ? 'Submit Assignment' : 'Resubmit Assignment'),
+                    label: Text(_submission == null ? 'Submit Assignment' : 'Resubmit Assignment', textAlign: TextAlign.center),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AdminColors.primaryContainer,
                       foregroundColor: Colors.white,

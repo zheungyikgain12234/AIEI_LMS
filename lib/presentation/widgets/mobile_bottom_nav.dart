@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 
@@ -17,7 +18,8 @@ class MobileBottomNav extends StatelessWidget {
       child: Container(
         height: 64,
         decoration: const BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
+          color: AdminColors.navSurface,
+        border: Border(top: BorderSide(color: AdminColors.navBorder)),
           boxShadow: [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, -1))],
         ),
         child: Row(

@@ -101,12 +101,12 @@ Future<bool?> _confirm(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(cancel),
+          child: Text(cancel, textAlign: TextAlign.center),
         ),
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(true),
           style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-          child: Text(action),
+          child: Text(action, textAlign: TextAlign.center),
         ),
       ],
     ),
@@ -198,7 +198,7 @@ class _DependentsDialogState extends State<_DependentsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('Cancel', textAlign: TextAlign.center),
         ),
         FilledButton(
           onPressed: undecided == 0
@@ -213,8 +213,7 @@ class _DependentsDialogState extends State<_DependentsDialog> {
               : null,
           style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
           child: Text(
-            undecided == 0 ? 'Continue' : '$undecided left to decide',
-          ),
+            undecided == 0 ? 'Continue' : '$undecided left to decide', textAlign: TextAlign.center),
         ),
       ],
     );
@@ -304,11 +303,11 @@ class _TypedNameDialogState extends State<_TypedNameDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
         FilledButton(
           onPressed: _matches ? () => Navigator.of(context).pop(true) : null,
           style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-          child: const Text('Delete'),
+          child: const Text('Delete', textAlign: TextAlign.center),
         ),
       ],
     );

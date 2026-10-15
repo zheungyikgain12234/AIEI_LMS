@@ -31,7 +31,8 @@ class FacultySidebar extends StatelessWidget {
     return Container(
       width: 280,
       decoration: const BoxDecoration(
-        color: FacultyColors.surfaceContainerLowest,
+        color: AdminColors.navSurface,
+        border: Border(right: BorderSide(color: AdminColors.navBorder)),
         boxShadow: [
           BoxShadow(
             color: Color(0x0A000000),
@@ -128,7 +129,7 @@ class _NavItemState extends State<_NavItem> {
     // Matches the admin portal sidebar's selected / hover colours.
     final bg = selected
         ? AdminColors.primaryContainer
-        : (_hovered ? AdminColors.surfaceContainerLow : Colors.transparent);
+        : (_hovered ? Colors.white : Colors.transparent);
     final fg = selected
         ? AdminColors.onSecondary
         : AdminColors.onSurfaceVariant;

@@ -31,7 +31,8 @@ class AdminMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       height: 64,
       decoration: const BoxDecoration(
-        color: AdminColors.surfaceContainerLowest,
+        color: AdminColors.navSurface,
+        border: Border(bottom: BorderSide(color: AdminColors.navBorder)),
         boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 1))],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -50,7 +51,7 @@ class AdminMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(6)),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
           child: Text('ADMIN', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
         ),
         const SizedBox(width: 6),
@@ -96,7 +97,7 @@ class AdminMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(6)),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
           child: Text('ADMIN', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
         ),
         const SizedBox(width: 8),

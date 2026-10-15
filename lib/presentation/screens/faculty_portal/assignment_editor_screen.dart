@@ -186,7 +186,7 @@ class _AssignmentEditorScreenState extends State<AssignmentEditorScreen> {
                       ElevatedButton.icon(
                         onPressed: _addCriterion,
                         icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Criterion'),
+                        label: const Text('Add Criterion', textAlign: TextAlign.center),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AdminColors.primaryContainer,
                           foregroundColor: Colors.white,

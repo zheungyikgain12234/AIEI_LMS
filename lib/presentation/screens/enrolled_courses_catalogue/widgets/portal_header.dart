@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/session/current_user_profile.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
@@ -17,7 +18,7 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
     return Container(
       height: 64,
       decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: AdminColors.navSurface,
         boxShadow: [
           BoxShadow(
             color: Color(0x0A000000),
@@ -27,7 +28,7 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
         ],
         border: Border(
           bottom: BorderSide(
-            color: AppColors.surfaceContainer,
+            color: AdminColors.navBorder,
             width: 1,
           ),
         ),

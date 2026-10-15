@@ -186,7 +186,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
         ElevatedButton.icon(
           onPressed: () => _openForm(),
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('Add Tag'),
+          label: const Text('Add Tag', textAlign: TextAlign.center),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,
@@ -239,7 +239,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Delete'),
+                    label: const Text('Delete', textAlign: TextAlign.center),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,

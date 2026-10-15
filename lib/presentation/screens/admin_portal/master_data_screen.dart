@@ -412,7 +412,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
         ElevatedButton.icon(
           onPressed: () => _openForm(),
           icon: const Icon(Icons.add, size: 18),
-          label: Text('Add ${widget.itemLabel}'),
+          label: Text('Add ${widget.itemLabel}', textAlign: TextAlign.center),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,
@@ -474,7 +474,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
                   OutlinedButton.icon(
                     onPressed: () => _confirmAndDelete(_selected.toList()),
                     icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Delete'),
+                    label: const Text('Delete', textAlign: TextAlign.center),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,

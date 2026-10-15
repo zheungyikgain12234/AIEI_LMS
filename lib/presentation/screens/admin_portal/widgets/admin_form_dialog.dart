@@ -63,7 +63,7 @@ class AdminFormDialog extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: const Text('Cancel'),
+                      child: const Text('Cancel', textAlign: TextAlign.center),
                     ),
                   ),
                   const SizedBox(width: 12),

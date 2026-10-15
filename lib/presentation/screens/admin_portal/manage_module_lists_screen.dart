@@ -145,11 +145,11 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
         title: const Text('Delete module lists?'),
         content: Text('This will permanently delete $count module list${count == 1 ? '' : 's'}. Classes already created from them keep their modules. This cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Delete'),
+            child: const Text('Delete', textAlign: TextAlign.center),
           ),
         ],
       ),
@@ -209,7 +209,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
         ElevatedButton.icon(
           onPressed: () => _openForm(),
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('Add Module List'),
+          label: const Text('Add Module List', textAlign: TextAlign.center),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,
@@ -262,7 +262,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Delete'),
+                    label: const Text('Delete', textAlign: TextAlign.center),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,

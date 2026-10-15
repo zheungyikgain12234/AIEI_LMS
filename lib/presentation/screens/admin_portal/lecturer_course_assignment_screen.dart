@@ -834,7 +834,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           icon: _isUnassigning
               ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AdminColors.error))
               : const Icon(Icons.link_off, size: 16),
-          label: const Text('Unassign Selected'),
+          label: const Text('Unassign Selected', textAlign: TextAlign.center),
           style: OutlinedButton.styleFrom(
             foregroundColor: AdminColors.error,
             backgroundColor: AdminColors.errorContainer,
@@ -1196,12 +1196,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             OutlinedButton.icon(
               onPressed: _importModuleList,
               icon: const Icon(Icons.download_outlined, size: 16),
-              label: const Text('Import from saved list'),
+              label: const Text('Import from saved list', textAlign: TextAlign.center),
             ),
             OutlinedButton.icon(
               onPressed: _saveModuleList,
               icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-              label: const Text('Save as reusable list'),
+              label: const Text('Save as reusable list', textAlign: TextAlign.center),
             ),
           ],
         ),

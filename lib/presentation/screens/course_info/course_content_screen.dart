@@ -178,7 +178,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
             const SizedBox(height: 8),
             Text(_loadError ?? '', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant), textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            OutlinedButton(onPressed: _load, child: const Text('Retry')),
+            OutlinedButton(onPressed: _load, child: const Text('Retry', textAlign: TextAlign.center)),
           ],
         ),
       ),

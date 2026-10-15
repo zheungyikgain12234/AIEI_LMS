@@ -251,14 +251,14 @@ class _ImportMarksScreenState extends State<ImportMarksScreen> {
                       OutlinedButton.icon(
                         onPressed: _roster.isEmpty ? null : _downloadTemplate,
                         icon: const Icon(Icons.download_outlined, size: 18),
-                        label: const Text('Download CSV Template'),
+                        label: const Text('Download CSV Template', textAlign: TextAlign.center),
                       ),
                       ElevatedButton.icon(
                         onPressed: _importing || _roster.isEmpty ? null : _importCsv,
                         icon: _importing
                             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.upload_file_outlined, size: 18),
-                        label: const Text('Import Marks CSV'),
+                        label: const Text('Import Marks CSV', textAlign: TextAlign.center),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

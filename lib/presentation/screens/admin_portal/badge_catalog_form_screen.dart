@@ -1,6 +1,5 @@
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
-import 'widgets/admin_fixed_code.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +11,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'widgets/admin_field_error.dart';
-import 'widgets/admin_field_label.dart';
+import 'widgets/badge_contrast.dart';
 
 // ---------------------------------------------------------------------------
 // BadgeCatalogFormScreen — shared "Add New Badge" / "Edit Badge" popup for the
@@ -145,10 +144,10 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(children: [
-                        Expanded(child: Text(title, style: AdminTypography.headlineSm())),
+                        Expanded(child: Text(title, style: AdminTypography.headlineSm(color: BadgeContrast.text))),
                         IconButton(
                           onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.close, color: BadgeContrast.textSecondary),
                           tooltip: 'Close',
                         ),
                       ]),
@@ -157,7 +156,7 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                             widget.isEditing
                                 ? 'Update this badge\'s catalogue information.'
                                 : 'Add a new badge to the catalogue. Courses can then be configured to award it on completion.',
-                            style: AdminTypography.bodyMd(),
+                            style: AdminTypography.bodyMd(color: BadgeContrast.textSecondary),
                           ),
                           const SizedBox(height: 20),
                           if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
@@ -169,7 +168,13 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                             const SizedBox(height: 16),
                           ],
                           if (widget.isEditing)
-                            AdminFixedCode(label: 'Badge Code', value: _codeController.text.trim().toUpperCase()),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Text.rich(TextSpan(children: [
+                                TextSpan(text: 'Badge Code: ', style: AdminTypography.bodySm(color: BadgeContrast.textSecondary).copyWith(fontWeight: FontWeight.w700)),
+                                TextSpan(text: _codeController.text.trim().toUpperCase(), style: AdminTypography.titleSm(color: BadgeContrast.text)),
+                              ])),
+                            ),
                           if (!widget.isEditing) ...[
                             _field(controller: _codeController, label: 'Badge Code', hint: 'PYAUTO', inputFormatters: const [UpperCaseTextFormatter()]),
                             AdminFieldError(_codeConflict),
@@ -194,7 +199,7 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   ),
-                                  child: const Text('Cancel'),
+                                  child: const Text('Cancel', textAlign: TextAlign.center),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -234,7 +239,7 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AdminFieldLabel(label),
+        BadgeContrast.label(label),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -242,16 +247,8 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
           inputFormatters: inputFormatters,
           readOnly: readOnly,
           enabled: !readOnly,
-          style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
-            hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          ),
+          style: AdminTypography.bodyMd(color: BadgeContrast.text),
+          decoration: BadgeContrast.fieldDecoration(hint: hint),
           validator: (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null,
         ),
       ],

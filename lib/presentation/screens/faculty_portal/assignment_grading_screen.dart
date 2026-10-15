@@ -362,7 +362,7 @@ class _AssignmentGradingScreenState extends State<AssignmentGradingScreen> {
                 icon: _saving
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.logout, size: 18),
-                label: const Text('Save Marks and Exit'),
+                label: const Text('Save Marks and Exit', textAlign: TextAlign.center),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AdminColors.primaryContainer,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -374,7 +374,7 @@ class _AssignmentGradingScreenState extends State<AssignmentGradingScreen> {
                 icon: _saving
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.navigate_next, size: 18),
-                label: Text(_submission == null ? 'Next' : 'Save and Mark the Next Student'),
+                label: Text(_submission == null ? 'Next' : 'Save and Mark the Next Student', textAlign: TextAlign.center),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminColors.primaryContainer,
                   foregroundColor: Colors.white,

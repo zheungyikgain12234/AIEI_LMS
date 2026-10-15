@@ -300,7 +300,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   ),
-                                  child: const Text('Cancel'),
+                                  child: const Text('Cancel', textAlign: TextAlign.center),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -365,7 +365,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
               icon: _uploadingBanner
                   ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.upload_outlined, size: 16),
-              label: Text(_bannerImageUrl == null || _bannerImageUrl!.isEmpty ? 'Upload Banner Image' : 'Replace Banner Image'),
+              label: Text(_bannerImageUrl == null || _bannerImageUrl!.isEmpty ? 'Upload Banner Image' : 'Replace Banner Image', textAlign: TextAlign.center),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
                 backgroundColor: AdminColors.primaryContainer,
@@ -378,7 +378,7 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
               const SizedBox(width: 8),
               TextButton(
                 onPressed: _uploadingBanner ? null : () => setState(() => _bannerImageUrl = null),
-                child: const Text('Remove'),
+                child: const Text('Remove', textAlign: TextAlign.center),
               ),
             ],
           ],

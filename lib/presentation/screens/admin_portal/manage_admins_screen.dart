@@ -203,11 +203,11 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
             ? 'Delete ${targets.first.name}? This cannot be undone.'
             : 'Delete ${targets.length} admins? This cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', textAlign: TextAlign.center)),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: AdminColors.error, foregroundColor: Colors.white),
-            child: const Text('Delete'),
+            child: const Text('Delete', textAlign: TextAlign.center),
           ),
         ],
       ),
@@ -278,7 +278,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
         ElevatedButton.icon(
           onPressed: () => _openForm(),
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('Add Admin'),
+          label: const Text('Add Admin', textAlign: TextAlign.center),
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.primaryContainer,
             foregroundColor: Colors.white,
@@ -335,7 +335,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Delete'),
+                    label: const Text('Delete', textAlign: TextAlign.center),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,

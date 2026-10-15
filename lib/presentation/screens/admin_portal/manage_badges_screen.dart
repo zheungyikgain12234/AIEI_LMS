@@ -167,13 +167,13 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
           FilledButton(
             onPressed: () {
               if (formKey.currentState!.validate()) Navigator.of(ctx).pop(true);
             },
             style: revoke ? FilledButton.styleFrom(backgroundColor: AdminColors.error) : null,
-            child: Text(revoke ? 'Revoke' : 'Unrevoke'),
+            child: Text(revoke ? 'Revoke' : 'Unrevoke', textAlign: TextAlign.center),
           ),
         ],
       ),
@@ -198,7 +198,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      child: Text(a.isRevoked ? 'Unrevoke' : 'Revoke'),
+      child: Text(a.isRevoked ? 'Unrevoke' : 'Revoke', textAlign: TextAlign.center),
     );
   }
 

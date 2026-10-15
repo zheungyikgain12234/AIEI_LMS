@@ -320,7 +320,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       textStyle: AdminTypography.labelSm(),
                     ),
-                    child: const Text('Manage'),
+                    child: const Text('Manage', textAlign: TextAlign.center),
                   ),
                 ),
               ],
@@ -397,7 +397,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Delete'),
+                    label: const Text('Delete', textAlign: TextAlign.center),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,
@@ -538,7 +538,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: const Text('Manage'),
+                child: const Text('Manage', textAlign: TextAlign.center),
               ),
             ),
           ),

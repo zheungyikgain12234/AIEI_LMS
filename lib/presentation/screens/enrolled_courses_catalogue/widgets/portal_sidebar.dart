@@ -18,10 +18,10 @@ class PortalSidebar extends StatelessWidget {
     return Container(
       width: 256,
       decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: AdminColors.navSurface,
         border: Border(
           right: BorderSide(
-            color: AppColors.surfaceContainer,
+            color: AdminColors.navBorder,
             width: 1,
           ),
         ),
@@ -85,7 +85,7 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
     // Matches the admin portal sidebar's selected / hover colours.
     final Color bgColor = isSelected
         ? AdminColors.primaryContainer
-        : (_isHovered ? AdminColors.surfaceContainerLow : Colors.transparent);
+        : (_isHovered ? Colors.white : Colors.transparent);
     final Color textColor = isSelected ? AdminColors.onSecondary : AdminColors.onSurfaceVariant;
     final FontWeight fontWeight = isSelected ? FontWeight.w600 : FontWeight.w500;
 

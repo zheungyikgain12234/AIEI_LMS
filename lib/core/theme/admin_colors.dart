@@ -52,4 +52,8 @@ class AdminColors {
   /// Placeholder / hint text: >= 4.5:1 on white and on the light field fills, yet clearly lighter than entered values.
   static const Color hint = Color(0xFF5E6272);
   static const Color outlineVariant = Color(0xFFC4C5D5);
+
+  /// Background and edge shared by every portal's top bar, side bar and mobile bars.
+  static const Color navSurface = Color(0xFFEEF2FF);
+  static const Color navBorder = Color(0xFFCBD5E1);
 }

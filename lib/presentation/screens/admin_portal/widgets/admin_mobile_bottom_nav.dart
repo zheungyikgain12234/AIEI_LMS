@@ -26,7 +26,8 @@ class AdminMobileBottomNav extends StatelessWidget {
       child: Container(
         height: 64,
         decoration: const BoxDecoration(
-          color: AdminColors.surfaceContainerLowest,
+          color: AdminColors.navSurface,
+        border: Border(top: BorderSide(color: AdminColors.navBorder)),
           boxShadow: [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, -1))],
         ),
         child: Row(

@@ -109,7 +109,7 @@ class ModuleNamesEditor extends StatelessWidget {
                 onChanged?.call();
               },
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add module'),
+              label: const Text('Add module', textAlign: TextAlign.center),
             ),
           ],
         );

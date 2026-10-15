@@ -348,7 +348,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                       ElevatedButton.icon(
                         onPressed: _addSection,
                         icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Section'),
+                        label: const Text('Add Section', textAlign: TextAlign.center),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AdminColors.primaryContainer,
                           foregroundColor: Colors.white,
@@ -558,7 +558,7 @@ class _ExamEditorScreenState extends State<ExamEditorScreen> {
                       child: TextButton.icon(
                         onPressed: () => _addQuestion(s.id),
                         icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Question'),
+                        label: const Text('Add Question', textAlign: TextAlign.center),
                         style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, textStyle: FacultyTypography.labelMd()),
                       ),
                     ),
@@ -755,7 +755,7 @@ class _ResetAttemptCardState extends State<_ResetAttemptCard> {
                 icon: _resetting
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.restart_alt, size: 18),
-                label: const Text('Reset Attempt'),
+                label: const Text('Reset Attempt', textAlign: TextAlign.center),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: FacultyColors.error,
                   foregroundColor: Colors.white,
@@ -1002,7 +1002,7 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                     child: TextButton.icon(
                       onPressed: _addChoice,
                       icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add choice'),
+                      label: const Text('Add choice', textAlign: TextAlign.center),
                       style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
                     ),
                   ),

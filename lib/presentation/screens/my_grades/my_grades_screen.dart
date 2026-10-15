@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
@@ -307,7 +308,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
     final graded = item.score != null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Icon(
@@ -351,7 +352,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
   Widget _summaryRow(String label, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Expanded(child: Text(label, style: AppTypography.bodyMd(color: AppColors.onSurface))),

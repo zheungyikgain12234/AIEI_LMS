@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/supabase_env.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
 /// Lets pushed screens (e.g. course grading) tell screens beneath them
@@ -48,11 +49,11 @@ class AieiLmsApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.background,
-        // Placeholder text meets the 4.5:1 contrast minimum but is italic, so
-        // it can't be mistaken for a value the user actually entered.
-        inputDecorationTheme: const InputDecorationTheme(
-          hintStyle: TextStyle(color: AdminColors.hint, fontStyle: FontStyle.italic),
-        ),
+        // Shared field look: filled, clear border, blue focus ring, and an
+        // italic light placeholder that can't be mistaken for entered text.
+        inputDecorationTheme: UiContrast.inputTheme,
+        checkboxTheme: UiContrast.checkboxTheme,
+        dividerTheme: const DividerThemeData(color: UiContrast.divider),
         // One blue for every clickable button in all three portals (the same
         // blue as the active sidebar item). Destructive red buttons set their
         // own colour explicitly.

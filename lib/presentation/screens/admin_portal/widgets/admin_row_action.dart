@@ -23,7 +23,7 @@ Widget adminEditAction(VoidCallback onTap) => SizedBox(
           onPressed: onTap,
           tooltip: 'Edit',
           visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+          icon: const Icon(Icons.edit_outlined, size: 20, color: AdminColors.onSurface),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -222,12 +223,9 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search class by section code, course, or lecturer...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -340,7 +338,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Text(
-            'Class sections created when a lecturer is assigned to a course, from Manage Assigned Courses.',
+            'A class is one group of students taking a course with one lecturer, at a set day and time. Classes are created when you assign a lecturer to a course; open one here to change its schedule or students.',
             style: AdminTypography.bodyMd(),
           ),
         ),
@@ -363,12 +361,8 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search class by section code, course, or lecturer...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -440,7 +434,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           const SizedBox(width: 48),
@@ -475,7 +469,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
     final hasTime = s.dayOfWeek != null && s.startTime != null && s.endTime != null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

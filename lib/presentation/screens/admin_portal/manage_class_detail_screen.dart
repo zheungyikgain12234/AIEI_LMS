@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:flutter/services.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -732,10 +733,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
-                  fillColor: AdminColors.surfaceContainerLow,
                   hintText: 'Search by student code or name...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(
                     Icons.search,
                     size: 18,
@@ -753,7 +751,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
               decoration: const BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: AdminColors.surfaceContainer),
+                  bottom: BorderSide(color: UiContrast.divider),
                 ),
               ),
               child: Row(
@@ -853,7 +851,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Row(
         children: [
@@ -918,10 +916,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
@@ -952,8 +947,6 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           child: InputDecorator(
             decoration: InputDecoration(
               isDense: true,
-              filled: true,
-              fillColor: AdminColors.surfaceContainerLow,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
@@ -1000,8 +993,6 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           child: InputDecorator(
             decoration: InputDecoration(
               isDense: true,
-              filled: true,
-              fillColor: AdminColors.surfaceContainerLow,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
@@ -1048,8 +1039,6 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
@@ -1093,8 +1082,6 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,

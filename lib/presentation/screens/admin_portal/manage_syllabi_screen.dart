@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -131,7 +132,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
         Text('Manage Syllabi', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         Text(
-          'Every class\'s syllabus. Open one to review and approve it — students only see a syllabus once it is approved.'
+          'The syllabus is the lesson plan lecturers write for their class. Open one to review it and approve it — students can only see a syllabus after you approve it.'
           '${pending > 0 ? ' $pending awaiting approval.' : ''}',
           style: AdminTypography.bodyMd(),
         ),
@@ -157,12 +158,8 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
                   style: AdminTypography.bodySm(color: AdminColors.onSurface),
                   decoration: InputDecoration(
                     isDense: true,
-                    filled: true,
-                    fillColor: AdminColors.surfaceContainerLow,
                     hintText: 'Search by course, class, cohort or lecturer...',
-                    hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                     prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -196,7 +193,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
       onTap: () => _open(s),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: AdminColors.surfaceContainer))),
+        decoration: const BoxDecoration(border: Border(top: BorderSide(color: UiContrast.divider))),
         child: Row(
           children: [
             Expanded(

@@ -13,7 +13,7 @@ class ManageProgrammesScreen extends StatelessWidget {
     final repository = SupabaseProgrammesRepositoryImpl(Supabase.instance.client);
     return MasterDataScreen(
       title: 'Manage Programmes',
-      description: 'Academic programmes that courses can be mapped to.',
+      description: 'A programme is a full study path or qualification that students sign up for. Courses are linked to a programme, so students on it see the right courses.',
       itemLabel: 'Programme',
       codeLabel: 'Programme ID',
       nameLabel: 'Programme Name',

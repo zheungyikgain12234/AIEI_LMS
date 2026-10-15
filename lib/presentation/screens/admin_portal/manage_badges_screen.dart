@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -250,12 +251,9 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search by student, course, or badge...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -340,7 +338,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Per-course badge awards — which student earned or had revoked which badge.', style: AdminTypography.bodyMd()),
+              child: Text('A record of which student earned which badge in which course. Use it to check awards, or to take one back if it was given by mistake.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -363,12 +361,8 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search by student, course, or badge...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -403,7 +397,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Expanded(flex: 3, child: _sortHeader('Student', _SortColumn.student)),
@@ -425,7 +419,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: a.isRevoked ? AdminColors.errorContainer.withValues(alpha: 0.12) : null,
-        border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
+        border: const Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

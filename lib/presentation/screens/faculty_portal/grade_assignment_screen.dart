@@ -502,9 +502,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                             onChanged: (_) => setState(() {}),
                             style: FacultyTypography.headlineMd(color: FacultyColors.primary),
                             decoration: InputDecoration(
-                              filled: true,
                               fillColor: FacultyColors.surfaceContainerLowest,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                               contentPadding: const EdgeInsets.symmetric(vertical: 10),
                             ),
                           ),
@@ -529,9 +527,6 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 maxLines: 5,
                 style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
                 decoration: InputDecoration(
-                  filled: true,
-                  fillColor: FacultyColors.surfaceContainerLow,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.all(12),
                 ),
               ),
@@ -1016,7 +1011,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                               onChanged: (_) => setState(() {}),
                               style: FacultyTypography.headlineMd(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700),
                               decoration: const InputDecoration(
-                                border: InputBorder.none,
+                                border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, filled: false,
                                 isDense: true,
                                 contentPadding: EdgeInsets.zero,
                               ),
@@ -1062,9 +1057,6 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
             maxLines: 4,
             style: FacultyTypography.bodyMd(color: FacultyColors.onSurface),
             decoration: InputDecoration(
-              filled: true,
-              fillColor: FacultyColors.surfaceContainerLow,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.all(12),
             ),
           ),

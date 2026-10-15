@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -174,7 +175,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Manage course enrolment caps, register students into course sections, and monitor student academic performance per course.', style: AdminTypography.bodyMd()),
+              child: Text('Pick a course to see its classes. You can set how many students each class can hold, enrol students into a class, and check how they are doing.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -308,7 +309,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               controller: _searchController,
               focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
-              decoration: InputDecoration(isDense: true, filled: true, fillColor: AdminColors.surfaceContainerLow, hintText: 'Search enrolled students in $_courseCode...', hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic), prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
+              decoration: InputDecoration(isDense: true, hintText: 'Search enrolled students in $_courseCode...', prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
             ),
           ),
           Container(
@@ -370,7 +371,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
     final gradeLabel = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(1)}% (${s.grade ?? '—'})' : 'No grade yet';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)), color: atRisk ? AdminColors.errorContainer.withValues(alpha: 0.1) : null),
+      decoration: BoxDecoration(border: const Border(bottom: BorderSide(color: UiContrast.divider)), color: atRisk ? AdminColors.errorContainer.withValues(alpha: 0.1) : null),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -777,12 +778,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         isDense: true,
-        filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search by name, ID or email...',
-        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );

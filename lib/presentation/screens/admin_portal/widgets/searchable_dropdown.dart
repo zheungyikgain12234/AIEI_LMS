@@ -33,11 +33,8 @@ Future<T?> _showSearchDialog<T>(BuildContext context, List<DropdownMenuItem<T>> 
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
                         hintText: 'Search...',
                         prefixIcon: const Icon(Icons.search, size: 20),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
                     ),

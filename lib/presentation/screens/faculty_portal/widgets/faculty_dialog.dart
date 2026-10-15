@@ -50,92 +50,89 @@ class FacultyDialog extends StatelessWidget {
     this.maxWidth = 520,
   });
 
-  static ThemeData _theme(BuildContext context) {
-    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none);
-    return Theme.of(context).copyWith(
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AdminColors.surfaceContainerLow,
-        isDense: true,
-        border: border,
-        enabledBorder: border,
-        focusedBorder: border,
-        errorBorder: border,
-        focusedErrorBorder: border,
-        disabledBorder: border,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     void cancel() => (onCancel ?? () => Navigator.of(context).pop())();
-    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
-    final confirmColor = destructive ? FacultyColors.error : AdminColors.primaryContainer;
-    return Theme(
-      data: _theme(context),
-      child: Dialog(
-        backgroundColor: AdminColors.surfaceContainerLowest,
-        insetPadding: const EdgeInsets.all(24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(children: [
-                  Expanded(child: Text(title, style: AdminTypography.headlineSm())),
-                  IconButton(onPressed: isSaving ? null : cancel, icon: const Icon(Icons.close), tooltip: 'Close'),
-                ]),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(subtitle!, style: AdminTypography.bodyMd()),
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+    );
+    final confirmColor = destructive
+        ? FacultyColors.error
+        : AdminColors.primaryContainer;
+    return Dialog(
+      backgroundColor: AdminColors.surfaceContainerLowest,
+      insetPadding: const EdgeInsets.all(24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(title, style: AdminTypography.headlineSm()),
+                  ),
+                  IconButton(
+                    onPressed: isSaving ? null : cancel,
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Close',
+                  ),
                 ],
-                const SizedBox(height: 20),
-                child,
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    if (showCancel) ...[
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: isSaving ? null : cancel,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: AdminColors.primaryContainer,
-                            side: BorderSide.none,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: shape,
-                          ),
-                          child: Text(cancelLabel, textAlign: TextAlign.center),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                    ],
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(subtitle!, style: AdminTypography.bodyMd()),
+              ],
+              const SizedBox(height: 20),
+              child,
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  if (showCancel) ...[
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: isSaving ? null : onConfirm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: confirmColor,
+                      child: OutlinedButton(
+                        onPressed: isSaving ? null : cancel,
+                        style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          elevation: 0,
+                          backgroundColor: AdminColors.primaryContainer,
+                          side: BorderSide.none,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: shape,
                         ),
-                        child: isSaving
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : Text(confirmLabel),
+                        child: Text(cancelLabel, textAlign: TextAlign.center),
                       ),
                     ),
+                    const SizedBox(width: 12),
                   ],
-                ),
-              ],
-            ),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: isSaving ? null : onConfirm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: confirmColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: shape,
+                      ),
+                      child: isSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(confirmLabel),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -195,7 +192,13 @@ class FacultyFormField extends StatelessWidget {
           onChanged: onChanged,
           onSubmitted: onSubmitted,
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-          decoration: InputDecoration(hintText: hint, helperText: helperText, helperMaxLines: 3, prefixText: prefixText, suffixText: suffixText),
+          decoration: InputDecoration(
+            hintText: hint,
+            helperText: helperText,
+            helperMaxLines: 3,
+            prefixText: prefixText,
+            suffixText: suffixText,
+          ),
         ),
         AdminFieldError(errorText),
       ],
@@ -209,7 +212,12 @@ class LabeledField extends StatelessWidget {
   final bool required;
   final Widget child;
 
-  const LabeledField({super.key, required this.label, this.required = true, required this.child});
+  const LabeledField({
+    super.key,
+    required this.label,
+    this.required = true,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {

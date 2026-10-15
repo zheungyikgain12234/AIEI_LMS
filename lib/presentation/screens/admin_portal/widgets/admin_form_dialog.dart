@@ -93,11 +93,7 @@ class AdminFormDialog extends StatelessWidget {
 /// The filled, borderless text-field look used inside every admin popup form.
 InputDecoration adminFormDecoration({String? hint, Widget? prefixIcon}) => InputDecoration(
       isDense: true,
-      filled: true,
-      fillColor: AdminColors.surfaceContainerLow,
       hintText: hint,
-      hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
       prefixIcon: prefixIcon,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     );

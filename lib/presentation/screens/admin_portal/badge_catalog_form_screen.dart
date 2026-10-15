@@ -11,7 +11,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'widgets/admin_field_error.dart';
-import 'widgets/badge_contrast.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 
 // ---------------------------------------------------------------------------
 // BadgeCatalogFormScreen — shared "Add New Badge" / "Edit Badge" popup for the
@@ -144,10 +144,10 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(children: [
-                        Expanded(child: Text(title, style: AdminTypography.headlineSm(color: BadgeContrast.text))),
+                        Expanded(child: Text(title, style: AdminTypography.headlineSm(color: UiContrast.text))),
                         IconButton(
                           onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close, color: BadgeContrast.textSecondary),
+                          icon: const Icon(Icons.close, color: UiContrast.textSecondary),
                           tooltip: 'Close',
                         ),
                       ]),
@@ -156,7 +156,7 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                             widget.isEditing
                                 ? 'Update this badge\'s catalogue information.'
                                 : 'Add a new badge to the catalogue. Courses can then be configured to award it on completion.',
-                            style: AdminTypography.bodyMd(color: BadgeContrast.textSecondary),
+                            style: AdminTypography.bodyMd(color: UiContrast.textSecondary),
                           ),
                           const SizedBox(height: 20),
                           if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
@@ -171,8 +171,8 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                             Padding(
                               padding: const EdgeInsets.only(bottom: 16),
                               child: Text.rich(TextSpan(children: [
-                                TextSpan(text: 'Badge Code: ', style: AdminTypography.bodySm(color: BadgeContrast.textSecondary).copyWith(fontWeight: FontWeight.w700)),
-                                TextSpan(text: _codeController.text.trim().toUpperCase(), style: AdminTypography.titleSm(color: BadgeContrast.text)),
+                                TextSpan(text: 'Badge Code: ', style: AdminTypography.bodySm(color: UiContrast.textSecondary).copyWith(fontWeight: FontWeight.w700)),
+                                TextSpan(text: _codeController.text.trim().toUpperCase(), style: AdminTypography.titleSm(color: UiContrast.text)),
                               ])),
                             ),
                           if (!widget.isEditing) ...[
@@ -239,7 +239,7 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        BadgeContrast.label(label),
+        UiContrast.label(label),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -247,8 +247,8 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
           inputFormatters: inputFormatters,
           readOnly: readOnly,
           enabled: !readOnly,
-          style: AdminTypography.bodyMd(color: BadgeContrast.text),
-          decoration: BadgeContrast.fieldDecoration(hint: hint),
+          style: AdminTypography.bodyMd(color: UiContrast.text),
+          decoration: UiContrast.fieldDecoration(hint: hint),
           validator: (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null,
         ),
       ],

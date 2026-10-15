@@ -343,12 +343,8 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                   style: AdminTypography.bodySm(color: AdminColors.onSurface),
                   decoration: InputDecoration(
                     isDense: true,
-                    filled: true,
-                    fillColor: AdminColors.surfaceContainerLow,
                     hintText: 'Search by lecturer name or assigned course code (e.g. PY-402)...',
-                    hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                     prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
@@ -1092,12 +1088,9 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
       focusNode: _searchFocus,
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
-        filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search by lecturer name or assigned course code...',
-        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );

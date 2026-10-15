@@ -3,6 +3,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -599,7 +600,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
       decoration: BoxDecoration(
         color: FacultyColors.surfaceContainerLowest,
         borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
-        border: const Border(bottom: BorderSide(color: FacultyColors.surfaceContainer)),
+        border: const Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -610,12 +611,8 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
               style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: FacultyColors.surfaceContainerLow,
                 hintText: 'Filter by course name or code...',
-                hintStyle: FacultyTypography.bodySm(color: FacultyColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 16, color: FacultyColors.outline),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
           ),

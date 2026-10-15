@@ -818,12 +818,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
                 style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
-                  fillColor: FacultyColors.surfaceContainerLow,
                   hintText: 'Search by student name, email and code...',
-                  hintStyle: FacultyTypography.bodySm(color: FacultyColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: FacultyColors.outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -980,22 +976,18 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
                     controller: _announcementTitleController,
                     decoration: InputDecoration(
                       isDense: true,
-                      filled: true,
                       fillColor: FacultyColors.surfaceContainerLowest,
                       hintText: 'Subject line...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    ),
+                      ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _announcementBodyController,
                     maxLines: 2,
                     decoration: InputDecoration(
-                      filled: true,
                       fillColor: FacultyColors.surfaceContainerLowest,
                       hintText: 'Announcement content...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    ),
+                      ),
                   ),
                   const SizedBox(height: 8),
                   Row(

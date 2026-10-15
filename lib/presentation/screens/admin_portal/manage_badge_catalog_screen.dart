@@ -8,7 +8,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_r
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'widgets/admin_row_action.dart';
-import 'widgets/badge_contrast.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_searchable_dropdown.dart';
@@ -168,11 +168,11 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Manage Badges', style: AdminTypography.headlineLg(color: BadgeContrast.text)),
+            Text('Manage Badges', style: AdminTypography.headlineLg(color: UiContrast.text)),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('The badge catalogue courses can be configured to award on completion.', style: AdminTypography.bodyMd(color: BadgeContrast.textSecondary)),
+              child: Text('Badges are rewards students earn when they complete a course. Create the badges here, then choose which badges each course gives out.', style: AdminTypography.bodyMd(color: UiContrast.textSecondary)),
             ),
           ],
         ),
@@ -195,7 +195,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
   Widget _buildListCard() {
     final badges = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), border: Border.all(color: BadgeContrast.divider), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), border: Border.all(color: UiContrast.divider), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -204,10 +204,10 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocus,
-              style: AdminTypography.bodyMd(color: BadgeContrast.text),
-              decoration: BadgeContrast.fieldDecoration(
+              style: AdminTypography.bodyMd(color: UiContrast.text),
+              decoration: UiContrast.fieldDecoration(
                 hint: 'Search badge by code or name...',
-                prefixIcon: const Icon(Icons.search, size: 20, color: BadgeContrast.textSecondary),
+                prefixIcon: const Icon(Icons.search, size: 20, color: UiContrast.textSecondary),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -216,7 +216,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: BadgeContrast.selectedRow, borderRadius: BorderRadius.circular(12), border: Border.all(color: BadgeContrast.divider)),
+              decoration: BoxDecoration(color: UiContrast.selectedRow, borderRadius: BorderRadius.circular(12), border: Border.all(color: UiContrast.divider)),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -253,8 +253,8 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: selected ? BadgeContrast.selectedRow : null,
-        border: const Border(bottom: BorderSide(color: BadgeContrast.divider)),
+        color: selected ? UiContrast.selectedRow : null,
+        border: const Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,15 +263,15 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             value: selected,
             onChanged: (v) => setState(() => v == true ? _selected.add(b.id) : _selected.remove(b.id)),
             activeColor: AdminColors.primaryContainer,
-            side: const BorderSide(color: BadgeContrast.border, width: 2),
+            side: const BorderSide(color: UiContrast.border, width: 2),
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(b.title, style: AdminTypography.titleMd(color: BadgeContrast.text), overflow: TextOverflow.ellipsis),
+                Text(b.title, style: AdminTypography.titleMd(color: UiContrast.text), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text('${b.code} • ${b.issuingBody}', style: AdminTypography.bodySm(color: BadgeContrast.textSecondary), overflow: TextOverflow.ellipsis),
+                Text('${b.code} • ${b.issuingBody}', style: AdminTypography.bodySm(color: UiContrast.textSecondary), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -283,7 +283,7 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
                 onPressed: () => _openEdit(b),
                 tooltip: 'Edit',
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.edit_outlined, size: 20, color: BadgeContrast.text),
+                icon: const Icon(Icons.edit_outlined, size: 20, color: UiContrast.text),
               ),
             ),
           ),

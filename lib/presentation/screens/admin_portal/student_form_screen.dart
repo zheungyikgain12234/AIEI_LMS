@@ -23,8 +23,8 @@ import 'widgets/searchable_dropdown.dart';
 // its primary key); omit it to register a new student. Saving pops back to
 // the caller with the created/updated Student so the table can refresh.
 //
-// Department / Programme Track / Role are selected from the admin-managed
-// master data lists (Manage Student Depts / Manage Programme Tracks / Manage
+// Department / Track / Role are selected from the admin-managed
+// master data lists (Manage Student Depts / Manage Student Tracks / Manage
 // Roles) rather than freely typed, so the values always satisfy the
 // `students` table's foreign keys. GPA is not editable here — it defaults
 // to 0 in the database and is updated elsewhere as the student progresses.
@@ -244,8 +244,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                           ],
                           if (_studentType == StudentType.external) ...[
                             _dropdown(
-                              label: 'Programme Track',
-                              hint: 'Select a programme track',
+                              label: 'Track',
+                              hint: 'Select a track',
                               value: _selectedProgramTrack,
                               options: _programTracks,
                               onChanged: (v) => setState(() => _selectedProgramTrack = v),
@@ -346,13 +346,9 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
             prefixText: prefixText,
             prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
           validator: validator ?? (required ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null : null),
@@ -407,9 +403,6 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
           hint: Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline)),
@@ -451,9 +444,6 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
             child: InputDecorator(
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 errorText: state.errorText,
                 suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),

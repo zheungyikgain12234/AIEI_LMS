@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -254,12 +255,9 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search course by code or title...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -364,7 +362,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Institutional course catalogue. Lecturer and section assignment can be done afterward.', style: AdminTypography.bodyMd()),
+              child: Text('The list of all courses on offer. Create a course here first, then create classes for it and assign a lecturer.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -399,12 +397,8 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search course by code or title...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -476,7 +470,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -495,7 +489,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
     final selected = _selected.contains(c.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

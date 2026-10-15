@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -259,7 +260,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
-              child: Text('Institutional lecturer roster, onboarding, credentials, and departmental appointments.', style: AdminTypography.bodyMd()),
+              child: Text('Add lecturers, set their login details and department, and assign them to the courses they teach.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -384,12 +385,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
                 fillColor: AdminColors.surfaceContainerLowest,
                 hintText: 'Search by lecturer name, employee ID, email, or department...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
             ),
@@ -457,7 +455,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           const SizedBox(width: 48),
@@ -475,7 +473,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
     final selected = _selected.contains(l.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -663,12 +661,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         isDense: true,
-        filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search by lecturer name, employee ID, email, or department...',
-        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );

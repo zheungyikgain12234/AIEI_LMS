@@ -99,6 +99,15 @@ class AdminSidebar extends StatelessWidget {
                           ),
                         ),
                         _NavItem(
+                          icon: Icons.work_outline,
+                          label: 'Manage Student Roles',
+                          isSelected:
+                              selected == AdminNavDestination.manageRoles,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageRoles,
+                          ),
+                        ),
+                        _NavItem(
                           icon: Icons.workspace_premium_outlined,
                           label: 'Manage Programmes',
                           isSelected:
@@ -109,21 +118,12 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.alt_route_outlined,
-                          label: 'Manage Programme Tracks',
+                          label: 'Manage Student Tracks',
                           isSelected:
                               selected ==
                               AdminNavDestination.manageProgramTracks,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageProgramTracks,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.work_outline,
-                          label: 'Manage Roles',
-                          isSelected:
-                              selected == AdminNavDestination.manageRoles,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageRoles,
                           ),
                         ),
                         _NavItem(
@@ -138,7 +138,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.psychology_outlined,
-                          label: 'Manage Specialisation',
+                          label: 'Manage Lecturer Specialisation',
                           isSelected:
                               selected ==
                               AdminNavDestination.manageSpecializations,
@@ -171,16 +171,6 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageModuleLists,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageModuleLists,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.fact_check_outlined,
-                          label: 'Manage Syllabi',
-                          trailing: const PendingSyllabusDot(),
-                          isSelected:
-                              selected == AdminNavDestination.manageSyllabi,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageSyllabi,
                           ),
                         ),
                       ],
@@ -292,6 +282,16 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.manageStudents,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.manageStudents,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.fact_check_outlined,
+                          label: 'Manage Syllabi',
+                          trailing: const PendingSyllabusDot(),
+                          isSelected:
+                              selected == AdminNavDestination.manageSyllabi,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.manageSyllabi,
                           ),
                         ),
                         _NavItem(

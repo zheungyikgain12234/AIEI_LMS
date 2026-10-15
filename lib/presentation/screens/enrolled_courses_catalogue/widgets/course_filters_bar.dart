@@ -72,8 +72,7 @@ class CourseFiltersBar extends StatelessWidget {
                   color: AppColors.outline,
                 ),
                 hintText: 'Filter by title or tag...',
-                hintStyle: AppTypography.bodySm(color: AppColors.hint).copyWith(fontStyle: FontStyle.italic),
-                border: InputBorder.none,
+                border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, filled: false,
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 10,

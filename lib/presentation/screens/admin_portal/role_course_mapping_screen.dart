@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -162,7 +163,7 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No roles exist yet. Create one from Manage Roles first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No roles exist yet. Create one from Manage Student Roles first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(
@@ -182,9 +183,6 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
                   style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                   decoration: InputDecoration(
                     isDense: true,
-                    filled: true,
-                    fillColor: AdminColors.surfaceContainerLow,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                   ),
                   items: [for (final r in _roles) DropdownMenuItem(value: r.id, child: Text(r.name))],
@@ -222,12 +220,8 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search course by code or title...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -257,7 +251,7 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
     final allowed = _mappedCourseIds.contains(c.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Checkbox(
@@ -306,12 +300,9 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
                 style: AdminTypography.bodySm(color: AdminColors.onSurface),
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search course by code or title...',
-                  hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),

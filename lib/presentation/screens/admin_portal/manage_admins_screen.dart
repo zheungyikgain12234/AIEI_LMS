@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -272,7 +273,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
           children: [
             Text('Manage Admin', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
-            Text('People who can sign in to the Admin Portal.', style: AdminTypography.bodyMd()),
+            Text('The people who can sign in to this Admin Portal and manage the system. Add a new admin or remove someone who no longer needs access.', style: AdminTypography.bodyMd()),
           ],
         ),
         ElevatedButton.icon(
@@ -310,12 +311,8 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search admin by name, email or username...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -365,7 +362,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
     final style = AdminTypography.labelSm(color: AdminColors.onSurfaceVariant);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           const SizedBox(width: 40),
@@ -383,7 +380,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
     final you = _isYou(a);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           SizedBox(

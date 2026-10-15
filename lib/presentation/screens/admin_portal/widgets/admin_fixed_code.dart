@@ -17,7 +17,7 @@ class AdminFixedCode extends StatelessWidget {
       child: Text.rich(
         TextSpan(
           children: [
-            TextSpan(text: '$label: ', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+            TextSpan(text: '$label: ', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
             TextSpan(text: value, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
           ],
         ),

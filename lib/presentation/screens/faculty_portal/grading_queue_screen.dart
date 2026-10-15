@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -261,7 +262,7 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
       onTap: () => _openItem(item, classLabel),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainer))),
+        decoration: const BoxDecoration(border: Border(top: BorderSide(color: UiContrast.divider))),
         child: Row(
           children: [
             Icon(isExam ? Icons.quiz_outlined : Icons.assignment_outlined, size: 18, color: isExam ? FacultyColors.primary : FacultyColors.secondary),

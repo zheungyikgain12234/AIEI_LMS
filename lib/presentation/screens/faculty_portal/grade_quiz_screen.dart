@@ -671,9 +671,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                         maxLines: 2,
                         style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
                         decoration: InputDecoration(
-                          filled: true,
                           fillColor: FacultyColors.surfaceContainerLowest,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                           contentPadding: const EdgeInsets.all(10),
                         ),
                       ),
@@ -1480,9 +1478,6 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
           maxLines: 2,
           style: FacultyTypography.bodyMd(color: FacultyColors.onSurface),
           decoration: InputDecoration(
-            filled: true,
-            fillColor: FacultyColors.surfaceContainerLow,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.all(10),
           ),
         ),

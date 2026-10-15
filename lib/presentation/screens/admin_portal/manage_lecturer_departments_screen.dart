@@ -13,7 +13,7 @@ class ManageLecturerDepartmentsScreen extends StatelessWidget {
     final repository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
     return MasterDataScreen(
       title: 'Manage Lecturer Depts',
-      description: 'Departments available for lecturer onboarding and allocation.',
+      description: 'The departments that lecturers belong to. Choose one when you add a lecturer, so you can see who teaches under which department.',
       itemLabel: 'Department',
       navDestination: AdminNavDestination.manageLecturerDepartments,
       load: () async => [

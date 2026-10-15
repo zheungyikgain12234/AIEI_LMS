@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
@@ -254,7 +255,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
       onTap: () => _openItem(item),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainer))),
+        decoration: const BoxDecoration(border: Border(top: BorderSide(color: UiContrast.divider))),
         child: Row(
           children: [
             Icon(item.blockType == 'physicalExam' ? Icons.edit_note : (_isAssessment(item) ? Icons.draw_outlined : Icons.meeting_room_outlined), size: 18, color: FacultyColors.primary),

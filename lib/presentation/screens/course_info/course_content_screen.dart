@@ -1,5 +1,6 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -732,7 +733,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: FacultyColors.surfaceContainer))),
+              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

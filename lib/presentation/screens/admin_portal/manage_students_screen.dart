@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -715,7 +716,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Institutional learner registry, enrolment status, credential tracking, and cohort management across enterprise academies.', style: AdminTypography.bodyMd()),
+              child: Text('The register of all students. Add students, place them in a cohort, department or track, and enrol them into courses.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -849,12 +850,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search student by name, student ID, email, or company...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -938,7 +935,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           const SizedBox(width: 48),
@@ -963,7 +960,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: null,
-        border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
+        border: const Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1205,7 +1202,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     final axisMax = step * intervals;
     const plotHeight = 140.0;
     final axisLine = BorderSide(color: AdminColors.onSurfaceVariant, width: 1.5);
-    final gridLine = BorderSide(color: AdminColors.surfaceContainer);
+    final gridLine = BorderSide(color: UiContrast.divider);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
@@ -1393,12 +1390,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       style: AdminTypography.bodySm(color: AdminColors.onSurface),
       decoration: InputDecoration(
         isDense: true,
-        filled: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search student by name, student ID, email, or company...',
-        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
         prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );
@@ -1632,9 +1626,6 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                 isExpanded: true,
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
-                  fillColor: AdminColors.surfaceContainerLow,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 ),
                 hint: const Text('Select a cohort'),
@@ -1650,9 +1641,6 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                 isExpanded: true,
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
-                  fillColor: AdminColors.surfaceContainerLow,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 ),
                 hint: const Text('Track / Department / Role (optional)'),
@@ -1668,9 +1656,6 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                 isExpanded: true,
                 decoration: InputDecoration(
                   isDense: true,
-                  filled: true,
-                  fillColor: AdminColors.surfaceContainerLow,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 ),
                 hint: Text(_selectedCohort == null ? 'Select a cohort first' : 'Select a class'),

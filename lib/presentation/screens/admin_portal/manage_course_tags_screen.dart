@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -180,7 +181,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
           children: [
             Text('Manage Course Tags', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
-            Text('Tags courses can be labelled with — at least one is required per course.', style: AdminTypography.bodyMd()),
+            Text('Tags are short keywords, such as Python or Safety, used to group and find courses. Every course needs at least one tag.', style: AdminTypography.bodyMd()),
           ],
         ),
         ElevatedButton.icon(
@@ -214,12 +215,8 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search tags...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -264,7 +261,7 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
     final selected = _selected.contains(t.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Checkbox(

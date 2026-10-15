@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
@@ -203,7 +204,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
           children: [
             Text('Manage Module Lists', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
-            Text('Reusable module lists an admin can import when creating a class.', style: AdminTypography.bodyMd()),
+            Text('A module list is a ready-made set of modules (the chapters of a course). Import one when creating a class, so you don\'t have to type the modules again.', style: AdminTypography.bodyMd()),
           ],
         ),
         ElevatedButton.icon(
@@ -237,12 +238,8 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search module lists...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -287,7 +284,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
     final selected = _selected.contains(l.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Checkbox(

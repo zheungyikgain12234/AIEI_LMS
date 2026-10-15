@@ -36,7 +36,6 @@ class AdminSearchableDropdown extends FormField<String> {
                 decoration: InputDecoration(
                   isDense: true,
                   filled: filled,
-                  fillColor: AdminColors.surfaceContainerLow,
                   border: filled
                       ? OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)
                       : const OutlineInputBorder(),

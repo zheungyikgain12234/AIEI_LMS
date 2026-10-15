@@ -355,13 +355,9 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
             prefixText: prefixText,
             prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
           validator: validator ?? (required ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null : null),
@@ -389,9 +385,6 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
           hint: hint == null ? null : Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline)),
@@ -433,9 +426,6 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
             child: InputDecorator(
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 errorText: state.errorText,
                 suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),

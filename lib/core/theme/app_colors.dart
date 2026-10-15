@@ -30,11 +30,11 @@ class AppColors {
   static const Color surfaceContainerHighest = Color(0xFFD3E4FE);
 
   // Typography & Content Colors
-  static const Color onSurface = Color(0xFF0B1C30);
-  static const Color onSurfaceVariant = Color(0xFF45474C);
-  static const Color outline = Color(0xFF75777D);
-  /// Placeholder / hint text: >= 4.5:1 on white and on the light field fills, yet clearly lighter than entered values.
-  static const Color hint = Color(0xFF5E6272);
+  static const Color onSurface = Color(0xFF0F172A);
+  static const Color onSurfaceVariant = Color(0xFF334155);
+  static const Color outline = Color(0xFF64748B);
+  /// Placeholder / hint text: fainter than entered values (about 4.4:1 on the field fill), shown italic and light.
+  static const Color hint = Color(0xFF66768C);
   static const Color outlineVariant = Color(0xFFC5C6CD);
 
   // Tertiary Palette (Success / Complete Emerald)

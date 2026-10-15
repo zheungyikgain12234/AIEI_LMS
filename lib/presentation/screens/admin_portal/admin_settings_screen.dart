@@ -360,11 +360,8 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
         onChanged: (_) => setState(() => _error = null),
         decoration: InputDecoration(
           isDense: true,
-          filled: true,
-          fillColor: AdminColors.surfaceContainerLow,
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
-        ),
+          ),
       ),
     );
   }
@@ -522,13 +519,9 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
             onSubmitted: (_) => _save(),
             decoration: InputDecoration(
               isDense: true,
-              filled: true,
-              fillColor: AdminColors.surfaceContainerLow,
               hintText: 'No limit',
-              hintStyle: AdminTypography.labelSm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
-            ),
+              ),
           ),
         ),
         const SizedBox(width: 8),

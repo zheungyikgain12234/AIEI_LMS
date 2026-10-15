@@ -12,8 +12,8 @@ class ManageRolesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
     return MasterDataScreen(
-      title: 'Manage Roles',
-      description: 'Job roles (e.g. IT Support Specialist, HVAC / Aircon Installer) used for student registration and the Role ↔ Course Mapping screen.',
+      title: 'Manage Student Roles',
+      description: 'The job roles of internal students, such as IT Support Specialist or HVAC Installer. Each student has one role, and courses can be linked to a role so people get training that fits their job.',
       itemLabel: 'Role',
       note: 'For internal, role list are controlled externally by HRIQ system. For external customers, manage roles here.',
       navDestination: AdminNavDestination.manageRoles,

@@ -227,9 +227,6 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
             style: AdminTypography.bodyMd(color: AdminColors.onSurface),
             decoration: InputDecoration(
               isDense: true,
-              filled: true,
-              fillColor: AdminColors.surfaceContainerLow,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
             hint: Text('Search and select a lecturer', style: AdminTypography.bodySm(color: AdminColors.outline)),

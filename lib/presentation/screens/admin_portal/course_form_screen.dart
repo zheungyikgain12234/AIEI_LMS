@@ -522,13 +522,9 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
             hintText: hint,
-            hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
             prefixText: prefixText,
             prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
           validator: validator ?? (required ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null : null),
@@ -554,9 +550,6 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            filled: true,
-            fillColor: AdminColors.surfaceContainerLow,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
           items: [for (final o in options) DropdownMenuItem(value: o.$1, child: Text(o.$2, overflow: TextOverflow.ellipsis))],

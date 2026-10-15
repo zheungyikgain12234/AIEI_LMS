@@ -3,6 +3,7 @@ import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -510,9 +511,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                       hint: Text('Select year', style: AdminTypography.bodySm(color: AdminColors.outline)),
@@ -537,9 +535,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                       hint: Text('Select cohort', style: AdminTypography.bodySm(color: AdminColors.outline)),
@@ -677,7 +672,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       decoration: BoxDecoration(
         color: isSelected ? AdminColors.primaryContainer.withValues(alpha: 0.08) : null,
-        border: const Border(bottom: BorderSide(color: AdminColors.surfaceContainer)),
+        border: const Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Row(
         children: [
@@ -770,7 +765,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         : '${s.dayOfWeek} ${_trimSeconds(s.startTime!)}–${_trimSeconds(s.endTime!)}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Checkbox(
@@ -867,12 +862,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                filled: true,
-                fillColor: AdminColors.surfaceContainerLow,
                 hintText: 'Search course by code or title...',
-                hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -894,7 +885,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     final existingSlots = _assignedSchedules.where((s) => s.courseId == c.id).toList();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AdminColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Radio<String>(
@@ -997,9 +988,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                       hint: Text('Select day', style: AdminTypography.bodySm(color: AdminColors.outline)),
@@ -1028,11 +1016,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
                         hintText: 'A01',
-                        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),
@@ -1055,11 +1039,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
                         hintText: '30',
-                        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),
@@ -1080,9 +1060,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                       items: [for (final m in _deliveryModeOptions) DropdownMenuItem(value: m.$1, child: Text(m.$2))],
@@ -1108,11 +1085,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
-                        filled: true,
-                        fillColor: AdminColors.surfaceContainerLow,
                         hintText: 'Room 204',
-                        hintStyle: AdminTypography.bodySm(color: AdminColors.hint).copyWith(fontStyle: FontStyle.italic),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),

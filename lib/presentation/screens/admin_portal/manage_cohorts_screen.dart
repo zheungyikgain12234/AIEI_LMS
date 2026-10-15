@@ -13,7 +13,7 @@ class ManageCohortsScreen extends StatelessWidget {
     final repository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
     return MasterDataScreen(
       title: 'Manage Cohorts',
-      description: 'Enrolment cohorts students are grouped into for cohort-based reporting.',
+      description: 'A cohort is a batch of students who start together, such as the “January 2026 intake”. Students and classes are placed in a cohort so you can find and report on each batch.',
       itemLabel: 'Cohort',
       navDestination: AdminNavDestination.manageCohorts,
       showYear: true,

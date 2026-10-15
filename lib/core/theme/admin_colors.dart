@@ -46,11 +46,11 @@ class AdminColors {
   static const Color surfaceContainerHigh = Color(0xFFE6E8EA);
   static const Color surfaceContainerHighest = Color(0xFFE0E3E5);
 
-  static const Color onSurface = Color(0xFF191C1E);
-  static const Color onSurfaceVariant = Color(0xFF444653);
-  static const Color outline = Color(0xFF757684);
-  /// Placeholder / hint text: >= 4.5:1 on white and on the light field fills, yet clearly lighter than entered values.
-  static const Color hint = Color(0xFF5E6272);
+  static const Color onSurface = Color(0xFF0F172A);
+  static const Color onSurfaceVariant = Color(0xFF334155);
+  static const Color outline = Color(0xFF64748B);
+  /// Placeholder / hint text: fainter than entered values (about 4.4:1 on the field fill), shown italic and light.
+  static const Color hint = Color(0xFF66768C);
   static const Color outlineVariant = Color(0xFFC4C5D5);
 
   /// Background and edge shared by every portal's top bar, side bar and mobile bars.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
@@ -199,7 +200,7 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
   Widget _markingRow(RosterStudent s) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: UiContrast.divider))),
       child: RadioGroup<String>(
         groupValue: _statusOf(s),
         onChanged: (v) {
@@ -315,7 +316,7 @@ class _PhysicalClassAttendeesScreenState extends State<PhysicalClassAttendeesScr
     final at = present ? _submissions[s.studentId]?.submittedAt : null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainer))),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: UiContrast.divider))),
       child: Row(
         children: [
           Expanded(

@@ -12,6 +12,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_reposi
 import 'package:stitch_aiei_lms/data/repositories/supabase_announcements_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_app_settings_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_attendance_settings_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_badge_approvals_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_grade_distribution_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/grade_distribution.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_assignment_repository_impl.dart';
@@ -448,7 +449,18 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     final numericSettings = await numericSettingsFuture;
     final gradeScale = await gradeScaleFuture;
     final gradeRules = await rulesFuture;
-    final distributionRequest = await requestFuture;
+    var distributionRequest = await requestFuture;
+    // Marks changed since the request was sent (e.g. new grading): the admin
+    // would be judging old numbers, so it is withdrawn and must be sent again.
+    if (distributionRequest != null && distributionRequest.isPending) {
+      final counts = gradeRules.evaluate([for (final r in rosterRows) gradeScale.letterFor(r.finalTotalPct)]).counts;
+      if (!_sameCounts(counts, distributionRequest.counts)) {
+        try {
+          await _distributionRepository.withdrawPending(widget.sectionId);
+          distributionRequest = await _distributionRepository.getLatestRequest(widget.sectionId);
+        } catch (_) {}
+      }
+    }
     if (!mounted) return;
 
     setState(() {
@@ -469,6 +481,26 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       _maxModeratedScore = numericSettings[AppSettingKeys.maxModeratedScore];
       _gradeScale = gradeScale;
     });
+    _passingMark = numericSettings[AppSettingKeys.coursePassingMark] ?? AppSettingKeys.defaultCoursePassingMark;
+    _syncBadgeEligibility();
+  }
+
+  double _passingMark = AppSettingKeys.defaultCoursePassingMark;
+  final _badgeApprovalsRepository = SupabaseBadgeApprovalsRepositoryImpl(Supabase.instance.client);
+
+  /// Students whose final score is above the passing mark are put forward to
+  /// the admin for the course's badge; the admin approves it in Badge
+  /// Approvals. Nothing is granted here.
+  Future<void> _syncBadgeEligibility() async {
+    try {
+      await _badgeApprovalsRepository.syncEligibility(
+        courseId: widget.courseId,
+        finalScores: {for (final r in _rosterRows) r.studentId: r.finalTotalPct},
+        passingMark: _passingMark,
+      );
+    } catch (e) {
+      debugPrint('Badge eligibility sync failed: $e');
+    }
   }
 
   Future<void> _postAnnouncement() async {
@@ -569,6 +601,25 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     _load();
   }
 
+  static bool _sameCounts(Map<String, int> a, Map<String, int> b) =>
+      GradeBandLimit.values.every((band) => (a[band.name] ?? 0) == (b[band.name] ?? 0));
+
+  /// Changing marks while the admin is still reviewing cancels that request;
+  /// the lecturer has to send the new distribution again.
+  Future<void> _withdrawPendingRequest() async {
+    final request = _distributionRequest;
+    if (request == null || !request.isPending) return;
+    try {
+      await _distributionRepository.withdrawPending(widget.sectionId);
+      final latest = await _distributionRepository.getLatestRequest(widget.sectionId);
+      if (!mounted) return;
+      setState(() => _distributionRequest = latest);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Marks changed, so your pending approval request was removed. Send it again once you are done.')),
+      );
+    } catch (_) {}
+  }
+
   Future<void> _saveModeratedScore(RosterRow s, double value) async {
     final index = _rosterRows.indexWhere((row) => row.studentId == s.studentId);
     if (index == -1) return;
@@ -577,6 +628,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     try {
       await _rosterRepository.updateModeratedScore(s.studentId, widget.courseId, value, sectionId: widget.sectionId);
       if (mounted) showSuccessSnackBar(context, 'Moderated score saved for ${s.name}.');
+      await _withdrawPendingRequest();
+      await _syncBadgeEligibility();
     } catch (_) {
       if (!mounted) return;
       setState(() => _rosterRows[index] = previous);
@@ -751,6 +804,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
         lecturerId: DemoIdentity.lecturerId,
         justification: justification,
         check: check,
+        stats: GradeStatistics.from([for (final r in _rosterRows) r.finalTotalPct], _gradeScale.letterFor),
       );
       final request = await _distributionRepository.getLatestRequest(widget.sectionId);
       if (!mounted) return;

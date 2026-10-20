@@ -26,7 +26,8 @@ class SupabaseAppSettingsRepositoryImpl implements AppSettingsRepository {
 
   @override
   Future<void> updateNumericSetting(String key, double? value) async {
-    await _client.from('app_settings').update({'numeric_value': value}).eq('key', key);
+    // Upsert so a setting added after the table was seeded still saves.
+    await _client.from('app_settings').upsert({'key': key, 'numeric_value': value}, onConflict: 'key');
   }
 
   @override

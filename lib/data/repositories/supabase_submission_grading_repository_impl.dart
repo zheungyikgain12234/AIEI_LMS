@@ -123,9 +123,7 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
   /// Recomputes [studentId]'s real progress for the course [contentBlockId]
   /// belongs to — graded submissions ÷ every exam/assignment block in that
   /// same class (`course_sections`) — and writes it to
-  /// `student_courses.progress_percentage`. Once that hits 100%, every
-  /// badge configured on the course (`course_badges`) that this student
-  /// doesn't already hold is auto-granted via `badge_awards`.
+  /// `student_courses.progress_percentage`.
   Future<void> _syncProgressAndBadges({required String contentBlockId, required String studentId}) async {
     final blockRow = await _client.from('content_blocks').select('session_id').eq('id', contentBlockId).maybeSingle();
     final sessionId = blockRow?['session_id'] as String?;
@@ -174,24 +172,8 @@ class SupabaseSubmissionGradingRepositoryImpl implements SubmissionGradingReposi
         .eq('student_id', studentId)
         .eq('course_id', courseId)
         .eq('section_id', sectionId);
-
-    if (progress < 100) return;
-
-    final courseBadgeRows = await _client.from('course_badges').select('badge_id').eq('course_id', courseId);
-    final badgeIds = [for (final row in courseBadgeRows as List) row['badge_id'] as String];
-    if (badgeIds.isEmpty) return;
-
-    final existingAwardRows = await _client
-        .from('badge_awards')
-        .select('badge_id')
-        .eq('student_id', studentId)
-        .eq('course_id', courseId);
-    final alreadyAwarded = {for (final row in existingAwardRows as List) row['badge_id'] as String};
-    final toAward = badgeIds.where((id) => !alreadyAwarded.contains(id)).toList();
-    if (toAward.isEmpty) return;
-
-    await _client.from('badge_awards').insert([
-      for (final badgeId in toAward) {'student_id': studentId, 'course_id': courseId, 'badge_id': badgeId},
-    ]);
+    // Badges are not granted here any more: they need the student's final
+    // score to be above the passing mark and an admin's approval (see
+    // SupabaseBadgeApprovalsRepositoryImpl).
   }
 }

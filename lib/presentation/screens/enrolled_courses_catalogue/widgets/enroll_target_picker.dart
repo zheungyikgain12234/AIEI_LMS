@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/dropdown_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
@@ -49,7 +50,7 @@ class EnrollTargetPicker extends StatelessWidget {
               onChanged: (y) {
                 if (y != null) onYearChanged(y);
               },
-              items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
+              items: sortDropdownItems([for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))]),
             ),
           ),
           DropdownButtonHideUnderline(
@@ -61,7 +62,7 @@ class EnrollTargetPicker extends StatelessWidget {
               onChanged: (c) {
                 if (c != null) onCohortChanged(c);
               },
-              items: [for (final n in cohortNames) DropdownMenuItem(value: n, child: Text(n, overflow: TextOverflow.ellipsis))],
+              items: sortDropdownItems([for (final n in cohortNames) DropdownMenuItem(value: n, child: Text(n, overflow: TextOverflow.ellipsis))]),
             ),
           ),
         ],

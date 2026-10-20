@@ -373,33 +373,40 @@ class _CourseCardState extends State<CourseCard> {
 
   Widget _buildBadgeSnippet(EnrolledCourse c) {
     if (c.badgeCount == 0) return const SizedBox.shrink();
-    final earned = c.isCompleted;
     final n = c.badgeCount;
+    final earnedCount = c.badges.where((b) => b.earned).length;
+    final earned = earnedCount == n;
+    // Finished the course, but the badge only comes once an admin approves it.
+    final awaiting = !earned && c.badges.any((b) => b.pendingApproval);
     final summary = earned
         ? 'Earned $n Badge${n == 1 ? '' : 's'}'
-        : '$n Badge${n == 1 ? '' : 's'} to Unlock';
+        : awaiting
+            ? 'Finished — pending admin approval'
+            : earnedCount > 0
+                ? 'Earned $earnedCount of $n Badges'
+                : '$n Badge${n == 1 ? '' : 's'} to Unlock';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: earned ? const Color(0xFFDCFCE7) : AppColors.surfaceContainerHigh.withValues(alpha: 0.4),
+            color: earned ? const Color(0xFFDCFCE7) : awaiting ? const Color(0xFFFFE0B2) : AppColors.surfaceContainerHigh.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                earned ? Icons.verified : Icons.military_tech_outlined,
+                earned ? Icons.verified : awaiting ? Icons.hourglass_top : Icons.military_tech_outlined,
                 size: 18,
-                color: earned ? const Color(0xFF166534) : AppColors.secondary,
+                color: earned ? const Color(0xFF166534) : awaiting ? const Color(0xFF8A4B00) : AppColors.secondary,
               ),
               const SizedBox(width: 8),
               Text(
                 summary,
-                style: AppTypography.labelSm(color: earned ? const Color(0xFF166534) : AppColors.onSurface)
-                    .copyWith(fontWeight: earned ? FontWeight.w700 : FontWeight.w500),
+                style: AppTypography.labelSm(color: earned ? const Color(0xFF166534) : awaiting ? const Color(0xFF8A4B00) : AppColors.onSurface)
+                    .copyWith(fontWeight: earned || awaiting ? FontWeight.w700 : FontWeight.w500),
               ),
             ],
           ),
@@ -407,7 +414,12 @@ class _CourseCardState extends State<CourseCard> {
         if (c.badges.isNotEmpty) ...[
           const SizedBox(height: 8),
           HintScrollRow(children: [
-            for (final badge in c.badges) badge.earned ? CardPill.badgeGranted(badge.name) : CardPill.badgePending(badge.name),
+            for (final badge in c.badges)
+              badge.earned
+                  ? CardPill.badgeGranted(badge.name)
+                  : badge.pendingApproval
+                      ? CardPill.badgeAwaiting(badge.name)
+                      : CardPill.badgePending(badge.name),
           ]),
         ],
       ],

@@ -203,6 +203,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             description: 'Caps how many points a lecturer may add at once via the Student Directory\'s "MODERATED SCORE" bulk "Apply All" input. Maximum 100. Leave blank for no limit.',
             settingKey: AppSettingKeys.maxModeratedScore,
           ),
+          const Divider(height: 1, color: AdminColors.surfaceContainer),
+          _numericSettingRow(
+            title: 'Course Passing Mark',
+            description: 'A student\'s final score (%) must be above this to be put forward for the course\'s badge. '
+                'Badges are no longer granted automatically — each one still needs your approval in Badge Approvals. '
+                'Defaults to ${AppSettingKeys.defaultCoursePassingMark.toInt()} when blank.',
+            settingKey: AppSettingKeys.coursePassingMark,
+            hint: '${AppSettingKeys.defaultCoursePassingMark.toInt()}',
+          ),
         ],
       ),
     );
@@ -240,7 +249,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _numericSettingRow({required String title, required String description, required String settingKey}) {
+  Widget _numericSettingRow({required String title, required String description, required String settingKey, String hint = 'No limit'}) {
     final saving = _saving.contains(settingKey);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -266,6 +275,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               value: _numericSettings[settingKey],
               onSave: (value) => _saveNumeric(settingKey, value),
               maxValue: 100,
+              hint: hint,
             ),
         ],
       ),
@@ -467,7 +477,9 @@ class _NumericSettingInput extends StatefulWidget {
   /// Largest allowed value (inclusive); typing or saving anything above it is refused.
   final double maxValue;
 
-  const _NumericSettingInput({super.key, required this.value, required this.onSave, this.maxValue = 100});
+  final String hint;
+
+  const _NumericSettingInput({super.key, required this.value, required this.onSave, this.maxValue = 100, this.hint = 'No limit'});
 
   @override
   State<_NumericSettingInput> createState() => _NumericSettingInputState();
@@ -552,7 +564,7 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
             onSubmitted: (_) => _save(),
             decoration: InputDecoration(
               isDense: true,
-              hintText: 'No limit',
+              hintText: widget.hint,
               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               ),
           ),

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/dropdown_sort.dart';
 import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/admin_field_error.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
@@ -990,13 +991,13 @@ class _QuestionDialogState extends State<_QuestionDialog> {
                 initialValue: _type,
                 decoration: const InputDecoration(),
                 icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
-                items: const [
+                items: sortDropdownItems(const [
                   DropdownMenuItem(value: ExamQuestionType.singleChoice, child: Text('Single-select MCQ')),
                   DropdownMenuItem(value: ExamQuestionType.multiChoice, child: Text('Multi-select MCQ')),
                   DropdownMenuItem(value: ExamQuestionType.boolean, child: Text('True / False')),
                   DropdownMenuItem(value: ExamQuestionType.text, child: Text('Text input')),
                   DropdownMenuItem(value: ExamQuestionType.fileUpload, child: Text('File upload')),
-                ],
+                ]),
                 onChanged: _onTypeChanged,
               )),
               if (_type.hasOptions) ...[

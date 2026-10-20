@@ -31,6 +31,13 @@ class GradeDistributionRules {
 
   double? percentFor(GradeBandLimit band) => maxPercent[band];
 
+  /// Most students allowed in a band of [percent] for a class of [enrolled];
+  /// null = no limit. Fractions round up, so a small class still gets a place
+  /// (5% of 10 students = 0.5 -> 1). A tiny epsilon keeps 5% of 20 at exactly 1
+  /// (not 1.000...1 -> 2).
+  static int? allowedCount(double? percent, int enrolled) =>
+      percent == null ? null : (percent / 100 * enrolled - 1e-9).ceil().clamp(0, enrolled);
+
   /// Counts the students in each band and compares them with the limits.
   /// [letters] holds one final letter grade per enrolled student.
   GradeDistributionCheck evaluate(List<String> letters) {
@@ -39,8 +46,7 @@ class GradeDistributionRules {
     for (final band in GradeBandLimit.values) {
       final actual = letters.where(band.letters.contains).length;
       final percent = maxPercent[band];
-      // A tiny epsilon keeps 5% of 20 students at exactly 1 (not 0.999...).
-      final allowed = percent == null ? null : (percent / 100 * enrolled + 1e-9).floor();
+      final allowed = allowedCount(percent, enrolled);
       bands.add(GradeBandResult(band: band, actual: actual, allowed: allowed, maxPercent: percent));
     }
     return GradeDistributionCheck(enrolled: enrolled, bands: bands);
@@ -76,6 +82,63 @@ class GradeDistributionCheck {
   Map<String, int> get counts => {for (final b in bands) b.band.name: b.actual};
 }
 
+/// Average / highest / lowest final score of a class, each with its letter
+/// grade, as stored with an approval request.
+class GradeStatistics {
+  final double average;
+  final double maximum;
+  final double minimum;
+  final String averageGrade;
+  final String maximumGrade;
+  final String minimumGrade;
+
+  const GradeStatistics({
+    required this.average,
+    required this.maximum,
+    required this.minimum,
+    required this.averageGrade,
+    required this.maximumGrade,
+    required this.minimumGrade,
+  });
+
+  /// Null for an empty class. [grade] turns a final score into a letter.
+  static GradeStatistics? from(List<double> scores, String Function(double) grade) {
+    if (scores.isEmpty) return null;
+    final average = scores.reduce((a, b) => a + b) / scores.length;
+    final maximum = scores.reduce((a, b) => a > b ? a : b);
+    final minimum = scores.reduce((a, b) => a < b ? a : b);
+    return GradeStatistics(
+      average: average,
+      maximum: maximum,
+      minimum: minimum,
+      averageGrade: grade(average),
+      maximumGrade: grade(maximum),
+      minimumGrade: grade(minimum),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'average': average,
+        'maximum': maximum,
+        'minimum': minimum,
+        'average_grade': averageGrade,
+        'maximum_grade': maximumGrade,
+        'minimum_grade': minimumGrade,
+      };
+
+  static GradeStatistics? fromMap(Map? map) {
+    if (map == null || map['average'] == null) return null;
+    return GradeStatistics(
+      average: (map['average'] as num).toDouble(),
+      maximum: (map['maximum'] as num).toDouble(),
+      minimum: (map['minimum'] as num).toDouble(),
+      averageGrade: map['average_grade'] as String? ?? '',
+      maximumGrade: map['maximum_grade'] as String? ?? '',
+      minimumGrade: map['minimum_grade'] as String? ?? '',
+    );
+  }
+}
+
 class GradeDistributionRequestStatus {
   GradeDistributionRequestStatus._();
 
@@ -97,6 +160,9 @@ class GradeDistributionRequest {
   /// [GradeDistributionCheck.counts]).
   final Map<String, int> counts;
   final int enrolledCount;
+
+  /// Null for requests sent before statistics were stored.
+  final GradeStatistics? stats;
   final String? adminNote;
   final DateTime createdAt;
   final DateTime? decidedAt;
@@ -115,6 +181,7 @@ class GradeDistributionRequest {
     required this.counts,
     required this.enrolledCount,
     required this.createdAt,
+    this.stats,
     this.adminNote,
     this.decidedAt,
     this.courseTitle,
@@ -147,6 +214,7 @@ class GradeDistributionRequest {
       justification: map['justification'] as String? ?? '',
       counts: {for (final e in ((map['distribution'] as Map?) ?? const {}).entries) e.key as String: (e.value as num).toInt()},
       enrolledCount: (map['enrolled_count'] as num?)?.toInt() ?? 0,
+      stats: GradeStatistics.fromMap(map['stats'] as Map?),
       adminNote: map['admin_note'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
       decidedAt: map['decided_at'] == null ? null : DateTime.parse(map['decided_at'] as String).toLocal(),

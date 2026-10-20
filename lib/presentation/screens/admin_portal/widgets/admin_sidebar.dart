@@ -29,6 +29,7 @@ enum AdminNavDestination {
   manageModuleLists,
   manageSyllabi,
   gradeApprovals,
+  badgeApprovals,
   manageAdmins,
   settings,
 }
@@ -139,7 +140,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.psychology_outlined,
-                          label: 'Manage Lecturer Specialisation',
+                          label: 'Manage Teaching Competencies',
                           isSelected:
                               selected ==
                               AdminNavDestination.manageSpecializations,
@@ -241,7 +242,7 @@ class AdminSidebar extends StatelessWidget {
                         ),
                         _NavItem(
                           icon: Icons.psychology_alt_outlined,
-                          label: 'Specialisation ↔ Course Mapping',
+                          label: 'Teaching Competency ↔ Course Mapping',
                           isSelected:
                               selected ==
                               AdminNavDestination.specializationCourseMapping,
@@ -302,6 +303,15 @@ class AdminSidebar extends StatelessWidget {
                               selected == AdminNavDestination.gradeApprovals,
                           onTap: () => onDestinationSelected?.call(
                             AdminNavDestination.gradeApprovals,
+                          ),
+                        ),
+                        _NavItem(
+                          icon: Icons.approval_outlined,
+                          label: 'Badge Approvals',
+                          isSelected:
+                              selected == AdminNavDestination.badgeApprovals,
+                          onTap: () => onDestinationSelected?.call(
+                            AdminNavDestination.badgeApprovals,
                           ),
                         ),
                         _NavItem(

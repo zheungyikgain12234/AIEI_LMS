@@ -60,14 +60,28 @@ class SupabaseGradeDistributionRepositoryImpl {
     required String lecturerId,
     required String justification,
     required GradeDistributionCheck check,
+    GradeStatistics? stats,
   }) async {
+    // Only one request can wait per class.
+    await withdrawPending(sectionId);
     await _client.from('grade_distribution_requests').insert({
       'section_id': sectionId,
       'lecturer_id': lecturerId,
       'justification': justification,
       'distribution': check.counts,
       'enrolled_count': check.enrolled,
+      'stats': stats?.toMap(),
     });
+  }
+
+  /// Removes the class's request that is still waiting for the admin, e.g.
+  /// because the lecturer changed marks after sending it.
+  Future<void> withdrawPending(String sectionId) async {
+    await _client
+        .from('grade_distribution_requests')
+        .delete()
+        .eq('section_id', sectionId)
+        .eq('status', GradeDistributionRequestStatus.pending);
   }
 
   /// Requests for the admin to review, newest first, with the course, class

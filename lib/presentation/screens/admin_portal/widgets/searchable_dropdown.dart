@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+import 'package:stitch_aiei_lms/core/utils/dropdown_sort.dart';
 
 String _labelOf<T>(DropdownMenuItem<T> item) {
   final child = item.child;
@@ -16,7 +17,8 @@ Future<T?> _showSearchDialog<T>(BuildContext context, List<DropdownMenuItem<T>> 
       return StatefulBuilder(
         builder: (ctx, setState) {
           final q = query.trim().toLowerCase();
-          final filtered = q.isEmpty ? items : items.where((i) => _labelOf(i).toLowerCase().contains(q)).toList();
+          final sortedItems = sortDropdownItems(items);
+          final filtered = q.isEmpty ? sortedItems : sortedItems.where((i) => _labelOf(i).toLowerCase().contains(q)).toList();
           return Dialog(
             backgroundColor: AdminColors.surfaceContainerLowest,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

@@ -542,7 +542,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(l.department, style: AdminTypography.titleSm()),
-                  Text(l.specialization, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                  _CompetenciesList(competencies: l.competencies),
                 ],
               ),
             ),
@@ -713,7 +713,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                     Text(l.email, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
                     Text(l.department, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                    Text(l.specialization, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                    _CompetenciesList(competencies: l.competencies),
                   ],
                 ),
               ),
@@ -775,6 +775,51 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         textStyle: AdminTypography.labelSm(),
       ),
       child: const Text('Manage Assigned Courses', textAlign: TextAlign.center),
+    );
+  }
+}
+
+/// A lecturer's teaching competencies, one per line. Collapsed it shows just
+/// the first one on a single line (so the row keeps its usual height) with a
+/// down arrow, when there are more, that unfolds the rest.
+class _CompetenciesList extends StatefulWidget {
+  final List<String> competencies;
+
+  const _CompetenciesList({required this.competencies});
+
+  @override
+  State<_CompetenciesList> createState() => _CompetenciesListState();
+}
+
+class _CompetenciesListState extends State<_CompetenciesList> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.competencies;
+    if (items.isEmpty) return Text('—', style: AdminTypography.bodySm());
+    final style = AdminTypography.bodySm();
+    final more = items.length > 1;
+    final shown = _expanded ? items : [items.first];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < shown.length; i++)
+          Row(
+            children: [
+              Expanded(child: Text(shown[i], style: style, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              if (i == 0 && more)
+                InkWell(
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Tooltip(
+                    message: _expanded ? 'Show fewer' : 'Show all ${items.length} teaching competencies',
+                    child: Icon(_expanded ? Icons.expand_less : Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
+                  ),
+                ),
+            ],
+          ),
+      ],
     );
   }
 }

@@ -7,6 +7,10 @@ abstract class BadgeCourseMappingRepository {
   /// Badge ids currently mapped to [courseId].
   Future<Set<String>> getBadgeIdsForCourse(String courseId);
 
+  /// Every mapped badge id -> the one course it belongs to (a badge can map
+  /// to only one course).
+  Future<Map<String, String>> getCourseIdByBadge();
+
   /// Adds or removes the (course, badge) mapping depending on [allowed].
   Future<void> setCourseForBadge(String badgeId, String courseId, bool allowed);
 }

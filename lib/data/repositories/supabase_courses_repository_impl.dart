@@ -47,6 +47,16 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     for (final row in awardRows as List) {
       earnedBadgeIdsByCourse.putIfAbsent(row['course_id'] as String, () => {}).add(row['badge_id'] as String);
     }
+    // Badges the student qualified for that are still waiting for an admin.
+    final pendingRows = await _client
+        .from('badge_award_requests')
+        .select('course_id, badge_id')
+        .eq('student_id', DemoIdentity.studentId)
+        .eq('status', 'pending');
+    final pendingBadgeIdsByCourse = <String, Set<String>>{};
+    for (final row in pendingRows as List) {
+      pendingBadgeIdsByCourse.putIfAbsent(row['course_id'] as String, () => {}).add(row['badge_id'] as String);
+    }
     final enrollments = <({String courseId, String? sectionId})>[
       for (final row in enrollmentRows as List) (courseId: row['course_id'] as String, sectionId: row['section_id'] as String?),
     ];
@@ -91,6 +101,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
             classCodeBySection[e.sectionId],
             cohortNameBySection[e.sectionId],
             earnedBadgeIds: earnedBadgeIdsByCourse[e.courseId] ?? const {},
+            pendingBadgeIds: pendingBadgeIdsByCourse[e.courseId] ?? const {},
           ),
     ];
   }
@@ -163,6 +174,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     String? cohort, {
     String? ctaOverride,
     Set<String> earnedBadgeIds = const {},
+    Set<String> pendingBadgeIds = const {},
   }) {
     final id = course['id'] as String;
     final category = CourseCategory.fromKey(course['category'] as String);
@@ -184,7 +196,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     final badges = [
       for (final entry in (course['course_badges'] as List? ?? []))
         if (entry['certifications'] != null)
-          CourseBadgeInfo(name: entry['certifications']['title'] as String, earned: earnedBadgeIds.contains(entry['badge_id'] as String?)),
+          CourseBadgeInfo(name: entry['certifications']['title'] as String, earned: earnedBadgeIds.contains(entry['badge_id'] as String?), pendingApproval: pendingBadgeIds.contains(entry['badge_id'] as String?)),
     ];
     final badgeNames = [for (final b in badges) b.name];
     final programmeNames = [

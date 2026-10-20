@@ -150,7 +150,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     }
     if (_errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Specialisation ↔ Course Mapping')),
+        appBar: AppBar(title: const Text('Teaching Competency ↔ Course Mapping')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -182,12 +182,12 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Specialisation ↔ Course Mapping', style: AdminTypography.headlineLg()),
+        Text('Teaching Competency ↔ Course Mapping', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Text(
-            'Assign courses to lecturer specializations',
+            'Assign courses to lecturer teaching competencies',
             style: AdminTypography.bodyMd(),
           ),
         ),
@@ -200,7 +200,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No specializations exist yet. Create one from Manage Lecturer Specialisation first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No specializations exist yet. Create one from Manage Teaching Competencies first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(
@@ -208,7 +208,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
       child: Row(
         children: [
-          Text('Specialization', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
+          Text('Teaching Competency', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
           const SizedBox(width: 12),
           Expanded(
             child: SearchableDropdownFormField<String>(
@@ -264,7 +264,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedSpecialization?.name ?? 'this specialization'}',
+                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedSpecialization?.name ?? 'this teaching competency'}',
                 style: AdminTypography.bodySm(),
               ),
             ),
@@ -309,7 +309,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     final courses = _filteredCourses;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Specialisation ↔ Course Mapping'),
+      appBar: const AdminMobileTopBar.detail(title: 'Teaching Competency ↔ Course Mapping'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -346,7 +346,7 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
                 ),
               const SizedBox(height: 12),
               Text(
-                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedSpecialization?.name ?? 'this specialization'}',
+                '${_mappedCourseIds.length} of ${_courses.length} courses mapped to ${_selectedSpecialization?.name ?? 'this teaching competency'}',
                 style: AdminTypography.bodySm(),
               ),
             ],

@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/dropdown_sort.dart';
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/class_schedule.dart';
 import 'package:stitch_aiei_lms/presentation/screens/admin_portal/widgets/pending_syllabus_badge.dart';
@@ -1267,14 +1268,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
           ),
         );
       case ContentBlockType.image:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (b.caption != null && b.caption!.isNotEmpty) Text(b.caption!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-            const SizedBox(height: 4),
-            EmbeddedImage(url: b.url, height: 80),
-          ],
-        );
+        return ImageFileLink(url: b.url, title: b.caption, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.video:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1288,13 +1282,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
           ],
         );
       case ContentBlockType.link:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(b.label?.isNotEmpty == true ? b.label! : 'Link', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-            ClickableLink(url: b.url, style: FacultyTypography.labelXs(color: FacultyColors.primary), maxLines: 1),
-          ],
-        );
+        return ClickableLink(url: b.url, text: b.label, style: FacultyTypography.labelXs(color: FacultyColors.primary), maxLines: 1);
       case ContentBlockType.file:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1922,11 +1910,11 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
                 initialValue: _type,
                 decoration: const InputDecoration(),
                 icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
-                items: [
+                items: sortDropdownItems([
                   for (final t in ContentBlockType.values)
                     // Physical Assignment can no longer be added; an existing one keeps its type.
                     if (t != ContentBlockType.physicalAssignment || t == _type) DropdownMenuItem(value: t, child: Text(_labelFor(t))),
-                ],
+                ]),
                 onChanged: _isEditing
                     ? null
                     : (t) => setState(() {
@@ -2072,11 +2060,11 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
             initialValue: _mode,
             decoration: const InputDecoration(),
             icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.onSurfaceVariant),
-            items: const [
+            items: sortDropdownItems(const [
               DropdownMenuItem(value: 'normal', child: Text('Normal')),
               DropdownMenuItem(value: 'open_book', child: Text('Open-book')),
               DropdownMenuItem(value: 'take_home', child: Text('Take-home test')),
-            ],
+            ]),
             onChanged: (v) => setState(() => _mode = v ?? 'normal'),
           )),
           const SizedBox(height: 12),

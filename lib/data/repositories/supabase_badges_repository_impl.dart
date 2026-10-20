@@ -5,6 +5,7 @@ import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_stats.dart';
 import 'package:stitch_aiei_lms/domain/models/earned_credential.dart';
+import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/in_progress_badge.dart';
 import 'package:stitch_aiei_lms/domain/repositories/badges_repository.dart';
 import 'package:stitch_aiei_lms/domain/repositories/courses_repository.dart';
@@ -13,9 +14,8 @@ import 'package:stitch_aiei_lms/domain/repositories/courses_repository.dart';
 /// demo student's not-yet-completed enrolled courses (reuses
 /// [CoursesRepository] rather than re-deriving the same course/module/
 /// material join), while "earned" credentials come from `badge_awards` —
-/// the same table the admin "Manage Badges" screen and the auto-award-on-
-/// course-completion flow (`_syncProgressAndBadges` in
-/// SupabaseSubmissionGradingRepositoryImpl) both write to. (An older
+/// the same table the admin "Manage Badges" screen and the admin's Badge
+/// Approvals (students above the course passing mark) write to. (An older
 /// `student_certifications` table existed for this previously, but nothing
 /// in the app writes to it any more — reading from it left every course-
 /// completion badge invisible here.)
@@ -91,7 +91,9 @@ class SupabaseBadgesRepositoryImpl implements BadgesRepository {
   @override
   Future<List<InProgressBadge>> getInProgressBadges() async {
     final courses = await _coursesRepository.getEnrolledCourses();
-    final inProgress = courses.where((c) => !c.isCompleted).toList();
+    // Finished courses stay here while their badge waits for an admin's approval.
+    bool awaitingApproval(EnrolledCourse c) => c.badges.any((b) => b.pendingApproval && !b.earned);
+    final inProgress = courses.where((c) => !c.isCompleted || awaitingApproval(c)).toList();
 
     return [
       for (final course in inProgress)
@@ -100,20 +102,24 @@ class SupabaseBadgesRepositoryImpl implements BadgesRepository {
           icon: course.instructorIcon,
           iconColor: course.instructorIconColor,
           iconBackgroundColor: AppColors.surfaceContainerLow,
-          statusChipText: course.progressPercentage >= 100
-              ? 'Done'
-              : '${course.progressPercentage}% Done',
+          statusChipText: awaitingApproval(course)
+              ? 'Pending approval'
+              : course.progressPercentage >= 100
+                  ? 'Done'
+                  : '${course.progressPercentage}% Done',
           isUrgent: false,
           title: course.title,
-          description: course.badgeCount > 0 ? 'Unlocks ${course.badgeCount} badge(s) on completion' : 'In progress',
+          description: awaitingApproval(course)
+              ? 'Finished — the badge is granted once an admin approves it'
+              : course.badgeCount > 0 ? 'Unlocks ${course.badgeCount} badge(s) on completion' : 'In progress',
           progressPercent: course.progressPercentage,
           completedModules: course.progressPercentage,
           totalModules: 100,
           progressColor: course.instructorIconColor,
           checklistDoneText: course.progressPercentage > 0 ? 'Progress recorded' : 'Not started yet',
-          checklistPendingIcon: Icons.lock,
+          checklistPendingIcon: awaitingApproval(course) ? Icons.hourglass_top : Icons.lock,
           checklistPendingColor: AppColors.onSurfaceVariant,
-          checklistPendingText: '${100 - course.progressPercentage}% remaining',
+          checklistPendingText: awaitingApproval(course) ? 'Awaiting admin approval' : '${100 - course.progressPercentage}% remaining',
           ctaText: course.ctaButtonText,
         ),
     ];

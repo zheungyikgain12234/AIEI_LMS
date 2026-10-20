@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/dropdown_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
@@ -37,11 +38,11 @@ class TagsFilterRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           style: AppTypography.labelMd(color: AppColors.onSurface),
           onChanged: onSelectTag,
-          items: [
+          items: sortDropdownItems([
             DropdownMenuItem<String?>(value: null, child: Text('All Tags', style: AppTypography.labelMd(color: AppColors.onSurface))),
             for (final tag in tags)
               DropdownMenuItem<String?>(value: tag, child: Text(tag, overflow: TextOverflow.ellipsis)),
-          ],
+          ]),
         ),
       ),
     );

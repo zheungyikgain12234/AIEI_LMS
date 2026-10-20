@@ -27,6 +27,7 @@ import '../manage_module_lists_screen.dart';
 import '../manage_syllabi_screen.dart';
 import '../manage_admins_screen.dart';
 import '../grade_approvals_screen.dart';
+import '../badge_approvals_screen.dart';
 import '../admin_settings_screen.dart';
 
 /// Centralized sidebar navigation for every Admin Portal screen — pushes the
@@ -59,6 +60,7 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.manageModuleLists => const ManageModuleListsScreen(),
     AdminNavDestination.manageSyllabi => const ManageSyllabiScreen(),
     AdminNavDestination.gradeApprovals => const GradeApprovalsScreen(),
+    AdminNavDestination.badgeApprovals => const BadgeApprovalsScreen(),
     AdminNavDestination.manageAdmins => const ManageAdminsScreen(),
     AdminNavDestination.settings => const AdminSettingsScreen(),
   };

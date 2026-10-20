@@ -248,14 +248,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
       case ContentBlockType.text:
         return RichTextViewer(delta: b.delta, plainText: b.body, plainStyle: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.image:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (b.caption != null && b.caption!.isNotEmpty) Text(b.caption!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-            const SizedBox(height: 4),
-            EmbeddedImage(url: b.url, height: 140, width: double.infinity),
-          ],
-        );
+        return ImageFileLink(url: b.url, title: b.caption, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.video:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,13 +259,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
           ],
         );
       case ContentBlockType.link:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(b.label?.isNotEmpty == true ? b.label! : 'Link', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-            ClickableLink(url: b.url, style: FacultyTypography.bodySm(color: FacultyColors.primary)),
-          ],
-        );
+        return ClickableLink(url: b.url, text: b.label, style: FacultyTypography.bodySm(color: FacultyColors.primary));
       case ContentBlockType.file:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

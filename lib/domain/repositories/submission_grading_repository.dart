@@ -35,10 +35,8 @@ abstract class SubmissionGradingRepository {
   /// (contentBlockId, studentId), setting status to `graded`. Also
   /// recomputes this student's real `student_courses.progress_percentage`
   /// for the course this content block belongs to (graded / total exam+
-  /// assignment blocks in that class), and — once that reaches 100% —
-  /// auto-grants every badge configured on the course (`course_badges`)
-  /// that this student doesn't already hold, by inserting into
-  /// `badge_awards`.
+  /// assignment blocks in that class). Badges are not granted here; they go
+  /// through the admin's Badge Approvals.
   Future<void> saveGrade({
     required String contentBlockId,
     required String studentId,

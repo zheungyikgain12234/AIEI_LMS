@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/dropdown_sort.dart';
 import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
@@ -737,7 +738,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           isDense: true,
           icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.outline),
           style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-          items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
+          items: sortDropdownItems([for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))]),
           onChanged: (y) {
             if (y == null) return;
             _onYearChanged(y);
@@ -760,7 +761,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           isDense: true,
           icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.outline),
           style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-          items: [for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))],
+          items: sortDropdownItems([for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))]),
           onChanged: (c) {
             if (c == null) return;
             _onCohortChanged(c);

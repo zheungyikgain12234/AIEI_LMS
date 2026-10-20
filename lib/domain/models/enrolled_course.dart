@@ -38,7 +38,10 @@ class CourseBadgeInfo {
   final String name;
   final bool earned;
 
-  const CourseBadgeInfo({required this.name, required this.earned});
+  /// The student passed the course but an admin has not approved the badge yet.
+  final bool pendingApproval;
+
+  const CourseBadgeInfo({required this.name, required this.earned, this.pendingApproval = false});
 }
 
 class EnrolledCourse {

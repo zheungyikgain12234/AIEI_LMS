@@ -22,6 +22,13 @@ class AppSettingKeys {
   /// SCORE" bulk "Apply All" input. Unset (null) means no limit.
   static const maxModeratedScore = 'max_moderated_score';
 
+  /// Numeric setting: the course passing mark (final score %). A student must
+  /// score above it to be put forward for a course's badge.
+  static const coursePassingMark = 'course_passing_mark';
+
+  /// Used until the admin sets [coursePassingMark].
+  static const defaultCoursePassingMark = 50.0;
+
   /// When true, lecturers cannot add, rename, delete or rearrange a class's
   /// modules from the Syllabus editor (admins define them when creating the
   /// class). Sessions and content inside modules stay fully editable.

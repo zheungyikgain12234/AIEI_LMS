@@ -173,19 +173,32 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
 
   /// This student's submission status by assignment block id.
   Future<Map<String, String>> _loadSubmissionStatuses(List<_ContentModule> content) async {
-    final assignmentIds = [
+    final assignments = {
       for (final m in content)
         for (final s in m.sessions)
           for (final b in s.blocks)
-            if (b.type == ContentBlockType.assignment) b.id,
-    ];
+            if (b.type == ContentBlockType.assignment) b.id: b,
+    };
+    final assignmentIds = assignments.keys.toList();
     if (assignmentIds.isEmpty) return {};
     final rows = await _client
         .from('content_block_submissions')
-        .select('content_block_id, status')
+        .select('content_block_id, status, submitted_at')
         .eq('student_id', DemoIdentity.studentId)
         .inFilter('content_block_id', assignmentIds);
-    return {for (final r in rows as List) r['content_block_id'] as String: r['status'] as String? ?? 'submitted'};
+    return {
+      for (final r in rows as List)
+        r['content_block_id'] as String: _statusOf(r as Map<String, dynamic>, assignments[r['content_block_id']]),
+    };
+  }
+
+  /// `graded`, `late` (handed in after the due date, not graded yet) or `submitted`.
+  String _statusOf(Map<String, dynamic> row, ContentBlock? block) {
+    final status = row['status'] as String? ?? 'submitted';
+    if (status == 'graded') return status;
+    final submittedAt = DateTime.tryParse(row['submitted_at'] as String? ?? '');
+    final due = block?.dueDate;
+    return submittedAt != null && due != null && submittedAt.isAfter(due) ? 'late' : status;
   }
 
   /// Re-checks which assignments are submitted after returning from one.
@@ -861,14 +874,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
       case ContentBlockType.text:
         return RichTextViewer(delta: b.delta, plainText: b.body, plainStyle: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.image:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (b.caption != null && b.caption!.isNotEmpty) Text(b.caption!, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-            const SizedBox(height: 4),
-            EmbeddedImage(url: b.url, height: 140, width: double.infinity),
-          ],
-        );
+        return ImageFileLink(url: b.url, title: b.caption, style: FacultyTypography.bodySm(color: FacultyColors.onSurface));
       case ContentBlockType.video:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -879,13 +885,7 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
           ],
         );
       case ContentBlockType.link:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(b.label?.isNotEmpty == true ? b.label! : 'Link', style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
-            ClickableLink(url: b.url, style: FacultyTypography.bodySm(color: FacultyColors.primary)),
-          ],
-        );
+        return ClickableLink(url: b.url, text: b.label, style: FacultyTypography.bodySm(color: FacultyColors.primary));
       case ContentBlockType.file:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,8 +907,10 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
         final status = _submissionStatus[b.id];
         final pill = status == 'graded'
             ? _Pill.graded
-            : status != null
-                ? _Pill.submitted
+            : status == 'late'
+                ? _Pill.late
+                : status != null
+                    ? _Pill.submitted
                 : (b.dueDate != null && DateTime.now().isAfter(b.dueDate!) ? _Pill.overdue : null);
         return _linkRow(b.title?.isNotEmpty == true ? b.title! : 'Assignment', onTap: () => _openAssignment(b), pill: pill);
       case ContentBlockType.physicalClass:
@@ -963,10 +965,11 @@ class _CourseContentScreenState extends State<CourseContentScreen> with RefreshO
 }
 
 /// Status pill beside an assignment in the course content: exactly one of
-/// Overdue (past due, nothing submitted), Submitted, or Graded.
+/// Overdue (past due, nothing submitted — red), Late (submitted after the due date — orange), Submitted, or Graded.
 enum _Pill {
   overdue('Overdue', Color(0xFFFFDAD6), Color(0xFF93000A)),
   submitted('Submitted', Color(0xFFD8E6FF), Color(0xFF0B3D91)),
+  late('Late', Color(0xFFFFE0B2), Color(0xFF8A4B00)),
   graded('Graded', Color(0xFFC8F0D4), Color(0xFF0F5C33));
 
   final String label;

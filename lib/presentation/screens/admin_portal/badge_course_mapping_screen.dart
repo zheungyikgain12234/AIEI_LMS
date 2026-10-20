@@ -44,6 +44,10 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   List<AdminCourse> _courses = [];
   String? _selectedCourseId;
   Set<String> _mappedBadgeIds = {};
+
+  /// badge id -> the course it is mapped to, across all courses. A badge can
+  /// belong to only one course, so one mapped elsewhere can't be ticked here.
+  Map<String, String> _courseByBadge = {};
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   String _query = '';
@@ -79,9 +83,11 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   Future<void> _loadMapping(String courseId) async {
     setState(() => _isLoadingMapping = true);
     final ids = await _mappingRepository.getBadgeIdsForCourse(courseId);
+    final courseByBadge = await _mappingRepository.getCourseIdByBadge();
     if (!mounted) return;
     setState(() {
       _mappedBadgeIds = ids;
+      _courseByBadge = courseByBadge;
       _isLoadingMapping = false;
     });
   }
@@ -107,7 +113,10 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     setState(() => allowed ? _mappedBadgeIds.add(badgeId) : _mappedBadgeIds.remove(badgeId));
     try {
       await _mappingRepository.setCourseForBadge(badgeId, courseId, allowed);
-      if (mounted) showSuccessSnackBar(context, 'Mapping updated.');
+      if (mounted) {
+        setState(() => allowed ? _courseByBadge[badgeId] = courseId : _courseByBadge.remove(badgeId));
+        showSuccessSnackBar(context, 'Mapping updated.');
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => allowed ? _mappedBadgeIds.remove(badgeId) : _mappedBadgeIds.add(badgeId));
@@ -151,7 +160,7 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Text(
-            'Choose which badges each course awards when a student completes it.',
+            'Choose which badges each course can award (after admin approval). A badge can belong to only one course.',
             style: AdminTypography.bodyMd(),
           ),
         ),
@@ -243,6 +252,11 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
 
   Widget _badgeRow(BadgeCatalogItem b) {
     final allowed = _mappedBadgeIds.contains(b.id);
+    final otherCourseId = _courseByBadge[b.id];
+    final takenBy = otherCourseId != null && otherCourseId != _selectedCourseId
+        ? _courses.where((c) => c.id == otherCourseId).map((c) => '${c.courseCode} — ${c.courseTitle}').firstOrNull
+        : null;
+    final locked = otherCourseId != null && otherCourseId != _selectedCourseId;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
@@ -250,11 +264,18 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
         children: [
           Checkbox(
             value: allowed,
-            onChanged: (v) => _toggleBadge(b.id, v ?? false),
+            onChanged: locked ? null : (v) => _toggleBadge(b.id, v ?? false),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
-            child: Text(b.title, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(b.title, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                if (locked)
+                  Text('Already assigned to ${takenBy ?? 'another course'}', style: AdminTypography.bodySm()),
+              ],
+            ),
           ),
         ],
       ),

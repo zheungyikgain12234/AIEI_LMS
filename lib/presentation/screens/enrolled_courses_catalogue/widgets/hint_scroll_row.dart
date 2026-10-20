@@ -87,6 +87,12 @@ class CardPill extends StatelessWidget {
         foreground = const Color(0xFF1E3A8A),
         icon = Icons.military_tech_outlined;
 
+  /// A badge the student qualified for that is waiting for admin approval.
+  const CardPill.badgeAwaiting(this.label, {super.key})
+      : background = const Color(0xFFFFE0B2),
+        foreground = const Color(0xFF8A4B00),
+        icon = Icons.hourglass_top;
+
   /// A badge the student has already been granted.
   const CardPill.badgeGranted(this.label, {super.key})
       : background = const Color(0xFFDCFCE7),

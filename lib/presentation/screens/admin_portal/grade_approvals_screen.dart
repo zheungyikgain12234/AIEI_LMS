@@ -66,22 +66,35 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
 
   Future<void> _decide(GradeDistributionRequest r, {required bool approve}) async {
     final noteController = TextEditingController();
+    String? error;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => FacultyDialog(
-        title: approve ? 'Approve this distribution?' : 'Reject this distribution?',
-        subtitle: approve
-            ? '${r.courseTitle ?? 'This class'} keeps its grades as they are. If the lecturer later raises more grades, they will need to ask again.'
-            : 'The lecturer will be asked to moderate the grades to fit the limits.',
-        confirmLabel: approve ? 'Approve' : 'Reject',
-        destructive: !approve,
-        onConfirm: () => Navigator.of(ctx).pop(true),
-        child: FacultyFormField(
-          controller: noteController,
-          label: approve ? 'Note to the lecturer' : 'Reason',
-          required: false,
-          maxLines: 3,
-          hint: approve ? 'Optional' : 'Tell the lecturer what to change',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => FacultyDialog(
+          title: approve ? 'Approve this distribution?' : 'Reject this distribution?',
+          subtitle: approve
+              ? '${r.courseTitle ?? 'This class'} keeps its grades as they are. If the lecturer later raises more grades, they will need to ask again.'
+              : 'The lecturer will be asked to moderate the grades to fit the limits.',
+          confirmLabel: approve ? 'Approve' : 'Reject',
+          destructive: !approve,
+          onConfirm: () {
+            if (!approve && noteController.text.trim().isEmpty) {
+              setDialogState(() => error = 'Please give a reason for rejecting.');
+              return;
+            }
+            Navigator.of(ctx).pop(true);
+          },
+          child: FacultyFormField(
+            controller: noteController,
+            label: approve ? 'Remarks' : 'Reject reason',
+            required: !approve,
+            maxLines: 3,
+            errorText: error,
+            hint: approve ? 'Optional' : 'Tell the lecturer what to change',
+            onChanged: (_) {
+              if (error != null) setDialogState(() => error = null);
+            },
+          ),
         ),
       ),
     );
@@ -207,7 +220,7 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
             ],
           ),
           const SizedBox(height: 14),
-          _distributionTable(r),
+          _distributionSection(r),
           const SizedBox(height: 14),
           Text('Lecturer\'s reason', style: AdminTypography.labelMd()),
           const SizedBox(height: 4),
@@ -242,47 +255,106 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
     );
   }
 
-  /// Each band: how many students the lecturer has there, against the limit.
-  Widget _distributionTable(GradeDistributionRequest r) {
-    return Container(
-      decoration: BoxDecoration(color: UiContrast.fieldFill, borderRadius: BorderRadius.circular(10)),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Column(
+  /// Total students, the class's score statistics (when the request carries
+  /// them), then the distribution table.
+  Widget _distributionSection(GradeDistributionRequest r) {
+    final stats = r.stats;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Total students: ${r.enrolledCount}', style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+        const SizedBox(height: 12),
+        Text('Grade Statistics', style: AdminTypography.labelMd()),
+        const SizedBox(height: 6),
+        _panel(
+          Column(
+            children: [
+              _row(const ['Final', 'Marks', 'Grade'], header: true),
+              _row(['Average', stats == null ? '—' : stats.average.toStringAsFixed(2), stats?.averageGrade ?? '—']),
+              _row(['Maximum', stats == null ? '—' : _score(stats.maximum), stats?.maximumGrade ?? '—']),
+              _row(['Minimum', stats == null ? '—' : _score(stats.minimum), stats?.minimumGrade ?? '—']),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text('Grade Distribution Table', style: AdminTypography.labelMd()),
+        const SizedBox(height: 6),
+        _distributionTable(r),
+      ],
+    );
+  }
+
+  bool get _compact => MediaQuery.of(context).size.width < 700;
+
+  Widget _panel(Widget child) => Container(
+        width: double.infinity,
+        decoration: BoxDecoration(color: UiContrast.fieldFill, borderRadius: BorderRadius.circular(10)),
+        padding: EdgeInsets.symmetric(horizontal: _compact ? 10 : 14, vertical: 8),
+        child: child,
+      );
+
+  /// Cells wrap onto a second line instead of overflowing, and shrink a little
+  /// on small screens.
+  Widget _row(List<String> cells, {bool header = false, bool over = false, List<int>? flex}) {
+    var style = header
+        ? AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700)
+        : AdminTypography.bodyMd(color: over ? AdminColors.error : AdminColors.onSurface);
+    if (_compact) style = style.copyWith(fontSize: 12);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final band in GradeBandLimit.values)
+          for (var i = 0; i < cells.length; i++)
+            Expanded(
+              flex: flex?[i] ?? 1,
+              child: Padding(
+                padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
+                child: Text(cells[i], textAlign: i == 0 ? TextAlign.left : TextAlign.right, style: style),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// One row per grade (A+, A, A-, B+): its own count and percent of the class,
+  /// the running total (accum.), and the limit it is checked against.
+  Widget _distributionTable(GradeDistributionRequest r) {
+    const flex = [3, 4, 3, 2, 2];
+    final total = r.enrolledCount;
+    String pct(int n) => total == 0 ? '0%' : '${(n * 100 / total).toStringAsFixed(1)}%';
+    final bands = GradeBandLimit.values;
+    return _panel(
+      Column(
+        children: [
+          _row(const ['Grade', 'Limit', 'Student Count', 'Percent', 'Accum.'], header: true, flex: flex),
+          for (var i = 0; i < bands.length; i++)
             Builder(builder: (context) {
-              final actual = r.counts[band.name] ?? 0;
+              final band = bands[i];
+              final cumulative = r.counts[band.name] ?? 0;
+              final own = cumulative - (i == 0 ? 0 : (r.counts[bands[i - 1].name] ?? 0));
               final percent = _rules.percentFor(band);
-              final allowed = percent == null ? null : (percent / 100 * r.enrolledCount + 1e-9).floor();
-              final over = allowed != null && actual > allowed;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(
-                  children: [
-                    Expanded(flex: 3, child: Text(band.label, style: AdminTypography.bodyMd(color: AdminColors.onSurface))),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        '$actual of ${r.enrolledCount}',
-                        style: AdminTypography.titleSm(color: over ? AdminColors.error : AdminColors.onSurface),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 4,
-                      child: Text(
-                        allowed == null ? 'no limit' : 'limit $allowed (${_pct(percent!)}%)',
-                        textAlign: TextAlign.right,
-                        style: AdminTypography.bodySm(),
-                      ),
-                    ),
-                  ],
-                ),
+              final allowed = GradeDistributionRules.allowedCount(percent, total);
+              final over = allowed != null && cumulative > allowed;
+              return _row(
+                [
+                  band.label,
+                  allowed == null ? 'no limit' : '$allowed (${_pct(percent!)}%)',
+                  '$own',
+                  pct(own),
+                  pct(cumulative),
+                ],
+                over: over,
+                flex: flex,
               );
             }),
         ],
       ),
     );
   }
+
+  static String _score(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
 
   static String _pct(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString();
 }

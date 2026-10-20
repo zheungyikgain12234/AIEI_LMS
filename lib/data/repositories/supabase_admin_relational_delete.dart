@@ -58,16 +58,9 @@ const _masterRefs = <MasterKind, List<_Ref>>{
   MasterKind.lecturerDepartment: [
     _Ref('lecturers', 'department', true, 'Lecturers', 'name', 'lecturer_code'),
   ],
-  MasterKind.specialization: [
-    _Ref(
-      'lecturers',
-      'specialization',
-      true,
-      'Lecturers',
-      'name',
-      'lecturer_code',
-    ),
-  ],
+  // Lecturers hold several competencies through lecturer_competencies link
+  // rows, which cascade.
+  MasterKind.specialization: <_Ref>[],
   MasterKind.role: [
     _Ref('students', 'role', true, 'Students', 'name', 'student_code'),
   ],

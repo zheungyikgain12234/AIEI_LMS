@@ -18,6 +18,9 @@ import 'widgets/faculty_sidebar.dart';
 import 'widgets/faculty_mobile_top_bar.dart';
 import 'my_assigned_courses_screen.dart';
 
+/// Late submissions are orange; red is reserved for not submitted.
+const _lateOrange = Color(0xFFB26A00);
+
 // ---------------------------------------------------------------------------
 // GradeAssignmentScreen – Stitch "Grade Assignment: Alex Chen — Data
 // Pipelines" faithful Flutter conversion.
@@ -288,13 +291,13 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: FacultyColors.tertiaryContainer.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: onTime ? FacultyColors.tertiaryContainer.withValues(alpha: 0.15) : _lateOrange.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.task_alt, size: 15, color: FacultyColors.tertiary),
+                      Icon(onTime ? Icons.task_alt : Icons.schedule, size: 15, color: onTime ? FacultyColors.tertiary : _lateOrange),
                       const SizedBox(width: 4),
                       Text(
                         '${onTime ? 'SUBMITTED ON TIME' : 'SUBMITTED LATE'} • ${_formatSubmittedAt(submittedAt)}',
-                        style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700),
+                        style: FacultyTypography.labelXs(color: onTime ? FacultyColors.tertiary : _lateOrange).copyWith(fontWeight: FontWeight.w700),
                       ),
                     ]),
                   ),
@@ -805,18 +808,18 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: FacultyColors.tertiaryContainer.withValues(alpha: 0.15),
+                    color: (onTime ? FacultyColors.tertiaryContainer : _lateOrange).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.circle, size: 6, color: FacultyColors.tertiary),
+                      Icon(Icons.circle, size: 6, color: onTime ? FacultyColors.tertiary : _lateOrange),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
                           '${onTime ? 'Submitted on Time' : 'Submitted Late'} • ${_formatSubmittedAt(submittedAt)}',
-                          style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w700),
+                          style: FacultyTypography.labelXs(color: onTime ? FacultyColors.tertiary : _lateOrange).copyWith(fontWeight: FontWeight.w700),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

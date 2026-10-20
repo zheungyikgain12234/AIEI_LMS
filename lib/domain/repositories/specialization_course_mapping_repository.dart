@@ -1,4 +1,4 @@
-/// Backs the Specialization ↔ Course Mapping screen — which courses are
+/// Backs the Teaching Competency ↔ Course Mapping screen — which courses are
 /// relevant to a given lecturer specialization, stored in
 /// `specialization_courses`. Also used to flag courses assigned to a
 /// lecturer that don't fit their specialization (Manage Assigned Courses).

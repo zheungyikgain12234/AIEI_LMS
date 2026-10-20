@@ -306,12 +306,15 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
 
     const green = Color(0xFF1B7F4B);
     const red = Color(0xFFBA1A1A);
+    // Late submissions are orange; red is only for not submitted.
+    const orange = Color(0xFFB26A00);
+    final submittedColor = late ? orange : green;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: FacultyColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: submitted ? green : (overdue ? red : FacultyColors.surfaceContainer)),
+        border: Border.all(color: submitted ? submittedColor : (overdue ? red : FacultyColors.surfaceContainer)),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
       child: Column(
@@ -320,7 +323,7 @@ class _AssignmentSubmissionScreenState extends State<AssignmentSubmissionScreen>
           Text('Status', style: FacultyTypography.headlineMd()),
           row(
             submitted ? Icons.check_circle : (overdue ? Icons.error_outline : Icons.radio_button_unchecked),
-            submitted ? green : (overdue ? red : FacultyColors.onSurfaceVariant),
+            submitted ? submittedColor : (overdue ? red : FacultyColors.onSurfaceVariant),
             'Submission',
             submitted ? 'Submitted${late ? ' (late)' : ''}' : (overdue ? 'Not submitted — Overdue' : 'Not submitted'),
           ),

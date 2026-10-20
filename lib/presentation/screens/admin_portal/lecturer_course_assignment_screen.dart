@@ -118,14 +118,14 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     final allCourses = await _coursesRepository.getCourses();
     final cohorts = await _masterDataRepository.getCohorts();
 
-    // Courses "not related to lecturer's specialization" (Specialization ↔
-    // Course Mapping) get a warning tag below — it never blocks assignment.
+    // Courses outside all of the lecturer's teaching competencies (Teaching
+    // Competency ↔ Course Mapping) get a warning tag below — it never blocks
+    // assignment.
     final specializations = await _masterDataRepository.getSpecializations();
-    Set<String> specializationCourseIds = {};
+    final specializationCourseIds = <String>{};
     for (final s in specializations) {
-      if (s.name == lecturer.specialization) {
-        specializationCourseIds = await _specializationMappingRepository.getCourseIdsForSpecialization(s.id);
-        break;
+      if (lecturer.competencies.contains(s.name)) {
+        specializationCourseIds.addAll(await _specializationMappingRepository.getCourseIdsForSpecialization(s.id));
       }
     }
 
@@ -926,14 +926,14 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           ],
           if (specializationMismatch) ...[
             Tooltip(
-              message: "Not related to lecturer's specialisation",
+              message: "Not related to lecturer's teaching competencies",
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(9999)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.warning_amber_rounded, size: 13, color: Color(0xFF8A6D00)),
                   const SizedBox(width: 4),
-                  Text('Not specialisation', style: AdminTypography.labelSm(color: const Color(0xFF8A6D00))),
+                  Text('Not a competency', style: AdminTypography.labelSm(color: const Color(0xFF8A6D00))),
                 ]),
               ),
             ),

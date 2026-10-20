@@ -9,15 +9,17 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
 
   final SupabaseClient _client;
 
+  static const _lecturerSelect = '*, lecturer_competencies(specializations(name))';
+
   @override
   Future<List<Lecturer>> getLecturers() async {
-    final rows = await _client.from('lecturers').select().order('name');
+    final rows = await _client.from('lecturers').select(_lecturerSelect).order('name');
     return [for (final row in rows as List) Lecturer.fromMap(row as Map<String, dynamic>)];
   }
 
   @override
   Future<Lecturer> getLecturerById(String id) async {
-    final row = await _client.from('lecturers').select().eq('id', id).single();
+    final row = await _client.from('lecturers').select(_lecturerSelect).eq('id', id).single();
     return Lecturer.fromMap(row);
   }
 
@@ -245,7 +247,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     required String lecturerCode,
     required String email,
     required String department,
-    required String specialization,
+    required List<String> competencies,
     required int creditsMax,
     required String status,
     required bool accredited,
@@ -259,7 +261,6 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'lecturer_code': lecturerCode,
           'email': email,
           'department': department,
-          'specialization': specialization,
           'credits_max': creditsMax,
           'status': status,
           'accredited': accredited,
@@ -267,7 +268,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
         })
         .select()
         .single();
-    return Lecturer.fromMap(row);
+    await _setCompetencies(row['id'] as String, competencies);
+    return getLecturerById(row['id'] as String);
   }
 
   @override
@@ -278,13 +280,13 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     required String lecturerCode,
     required String email,
     required String department,
-    required String specialization,
+    required List<String> competencies,
     required int creditsMax,
     required String status,
     required bool accredited,
     required DateTime joinDate,
   }) async {
-    final row = await _client
+    await _client
         .from('lecturers')
         .update({
           'name': name,
@@ -292,7 +294,6 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'lecturer_code': lecturerCode,
           'email': email,
           'department': department,
-          'specialization': specialization,
           'credits_max': creditsMax,
           'status': status,
           'accredited': accredited,
@@ -301,7 +302,21 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
         .eq('id', id)
         .select()
         .single();
-    return Lecturer.fromMap(row);
+    await _setCompetencies(id, competencies);
+    return getLecturerById(id);
+  }
+
+  /// Replaces the lecturer's teaching competencies with exactly [names]
+  /// (names from the `specializations` lookup).
+  Future<void> _setCompetencies(String lecturerId, List<String> names) async {
+    await _client.from('lecturer_competencies').delete().eq('lecturer_id', lecturerId);
+    if (names.isEmpty) return;
+    final rows = await _client.from('specializations').select('id').inFilter('name', names);
+    final ids = [for (final row in rows as List) row['id'] as String];
+    if (ids.isEmpty) return;
+    await _client.from('lecturer_competencies').insert([
+      for (final id in ids) {'lecturer_id': lecturerId, 'specialization_id': id},
+    ]);
   }
 
   @override

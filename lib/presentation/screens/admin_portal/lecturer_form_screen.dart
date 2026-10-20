@@ -16,6 +16,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_rep
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
+import 'widgets/admin_form_dialog.dart';
 import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
@@ -53,7 +54,8 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   List<String> _departments = [];
   List<String> _specializations = [];
   String? _selectedDepartment;
-  String? _selectedSpecialization;
+  final Set<String> _selectedCompetencies = {};
+  String? _competenciesError;
   DateTime? _joinDate;
 
   bool _isLoading = true;
@@ -88,7 +90,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
       if (!mounted) return;
       setState(() {
         _departments = [for (final d in departments) d.name];
-        _specializations = [for (final s in specializations) s.name];
+        _specializations = [for (final s in specializations) s.name]..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
         if (lecturer != null) {
           _nameController.text = lecturer.name;
           _titleController.text = lecturer.title;
@@ -98,7 +100,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           _status = _statusOptions.contains(lecturer.status) ? lecturer.status : 'Active';
           _accredited = lecturer.accredited;
           _selectedDepartment = _departments.contains(lecturer.department) ? lecturer.department : null;
-          _selectedSpecialization = _specializations.contains(lecturer.specialization) ? lecturer.specialization : null;
+          _selectedCompetencies.addAll(lecturer.competencies.where(_specializations.contains));
           _joinDate = lecturer.joinDate;
         }
         _joinDate ??= DateTime.now();
@@ -124,7 +126,12 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    final valid = _formKey.currentState!.validate();
+    if (_selectedCompetencies.isEmpty) {
+      setState(() => _competenciesError = 'Select at least one teaching competency');
+      return;
+    }
+    if (!valid) return;
     setState(() {
       _isSaving = true;
       _errorMessage = null;
@@ -140,7 +147,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           lecturerCode: '${_tenantPrefix()}${_lecturerCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           department: _selectedDepartment!,
-          specialization: _selectedSpecialization!,
+          competencies: _selectedCompetencies.toList(),
           creditsMax: creditsMax,
           status: _status,
           accredited: _accredited,
@@ -153,7 +160,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           lecturerCode: '${_tenantPrefix()}${_lecturerCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           department: _selectedDepartment!,
-          specialization: _selectedSpecialization!,
+          competencies: _selectedCompetencies.toList(),
           creditsMax: creditsMax,
           status: _status,
           accredited: _accredited,
@@ -243,14 +250,7 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                             required: true,
                           ),
                           const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Specialisation',
-                            hint: 'Select a specialisation',
-                            value: _selectedSpecialization,
-                            options: _specializations,
-                            onChanged: (v) => setState(() => _selectedSpecialization = v),
-                            required: true,
-                          ),
+                          _competenciesField(),
                           const SizedBox(height: 14),
                           _field(
                             controller: _creditsMaxController,
@@ -365,6 +365,110 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
         ),
       ],
     );
+  }
+
+  /// A lecturer can have several teaching competencies: chips for the chosen
+  /// ones, tap to open the picker.
+  Widget _competenciesField() {
+    final selected = _specializations.where(_selectedCompetencies.contains).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AdminFieldLabel('Teaching Competencies', required: true),
+        const SizedBox(height: 6),
+        InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: _openCompetenciesPicker,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            child: selected.isEmpty
+                ? Row(
+                    children: [
+                      Expanded(child: Text('Select teaching competencies', style: AdminTypography.bodySm(color: AdminColors.outline))),
+                      const Icon(Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
+                    ],
+                  )
+                : Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final name in selected)
+                        Chip(
+                          label: Text(name, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+                          backgroundColor: AdminColors.surfaceContainer,
+                          deleteIcon: const Icon(Icons.close, size: 14),
+                          onDeleted: () => setState(() => _selectedCompetencies.remove(name)),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+          ),
+        ),
+        AdminFieldError(_competenciesError),
+      ],
+    );
+  }
+
+  Future<void> _openCompetenciesPicker() async {
+    final searchController = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final query = searchController.text.trim().toLowerCase();
+          final filtered = query.isEmpty ? _specializations : _specializations.where((o) => o.toLowerCase().contains(query)).toList();
+          return AdminFormDialog(
+            title: 'Select Teaching Competencies',
+            maxWidth: 480,
+            showCancel: false,
+            submitChild: const Text('Done'),
+            onSubmit: () => Navigator.of(ctx).pop(),
+            child: SizedBox(
+              height: 380,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: searchController,
+                    autofocus: true,
+                    onChanged: (_) => setDialogState(() {}),
+                    style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                    decoration: adminFormDecoration(hint: 'Search...', prefixIcon: const Icon(Icons.search, size: 18)),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(child: Text('No matches.', style: AdminTypography.bodySm()))
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final name = filtered[index];
+                              return CheckboxListTile(
+                                value: _selectedCompetencies.contains(name),
+                                dense: true,
+                                controlAffinity: ListTileControlAffinity.leading,
+                                title: Text(name),
+                                onChanged: (v) => setDialogState(() {
+                                  setState(() {
+                                    v == true ? _selectedCompetencies.add(name) : _selectedCompetencies.remove(name);
+                                    _competenciesError = null;
+                                  });
+                                }),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    searchController.dispose();
   }
 
   Widget _dropdown({

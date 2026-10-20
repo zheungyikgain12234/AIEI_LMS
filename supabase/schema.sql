@@ -13,7 +13,7 @@
 drop table if exists
   app_settings, grade_scale, section_attendance_settings, grade_distribution_requests,
   course_announcements, course_sections,
-  badge_awards, course_badges, student_certifications, student_materials, student_courses,
+  lecturer_competencies, badge_award_requests, badge_awards, course_badges, student_certifications, student_materials, student_courses,
   course_programmes, specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags, module_list_items, module_lists,
   template_content_blocks, template_sessions, template_modules, syllabus_templates,
@@ -128,7 +128,6 @@ create table lecturers (
   lecturer_code text not null unique,
   email text not null,
   department text not null references lecturer_departments(name) on update cascade,
-  specialization text not null references specializations(name) on update cascade,
   credits_used int not null default 0,
   credits_max int not null default 15,
   status text not null default 'Active',
@@ -136,6 +135,14 @@ create table lecturers (
   manageable boolean not null default true,
   join_date date not null default current_date,
   created_at timestamptz not null default now()
+);
+
+-- A lecturer's teaching competencies (the `specializations` lookup). A
+-- lecturer can have more than one.
+create table lecturer_competencies (
+  lecturer_id uuid not null references lecturers(id) on delete cascade,
+  specialization_id uuid not null references specializations(id) on delete cascade,
+  primary key (lecturer_id, specialization_id)
 );
 
 -- `student_type` drives which of (department, role) vs (program_track) is
@@ -446,7 +453,9 @@ create table certifications (
 create table course_badges (
   course_id uuid not null references courses(id) on delete cascade,
   badge_id uuid not null references certifications(id) on delete cascade,
-  primary key (course_id, badge_id)
+  primary key (course_id, badge_id),
+  -- One badge belongs to exactly one course.
+  unique (badge_id)
 );
 
 create table module_certs (
@@ -591,6 +600,23 @@ create table badge_awards (
   created_at timestamptz not null default now()
 );
 
+-- Badges are never granted automatically. When a student's final score in a
+-- course goes above the admin's passing mark (Settings > Course Passing Mark),
+-- a pending request is created here for each badge on the course; an admin
+-- approves it in Badge Approvals, which is what inserts the `badge_awards` row.
+create table badge_award_requests (
+  id uuid primary key default gen_random_uuid(),
+  student_id bigint not null references students(id) on delete cascade,
+  course_id uuid not null references courses(id) on delete cascade,
+  badge_id uuid not null references certifications(id) on delete cascade,
+  final_score numeric not null default 0,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  admin_note text,
+  created_at timestamptz not null default now(),
+  decided_at timestamptz,
+  unique (student_id, course_id, badge_id)
+);
+
 -- Posted by the lecturer assigned to a class (`course_sections.lecturer_id`)
 -- — the Faculty Portal's Course Dashboard "Course Announcements" card reads
 -- and writes these; students see them read-only in the right sidebar of
@@ -632,6 +658,9 @@ create table grade_distribution_requests (
   justification text not null default '',
   distribution jsonb not null default '{}'::jsonb,
   enrolled_count int not null default 0,
+  -- Class final-score statistics when the request was sent:
+  -- {"average": 77.1, "maximum": 98, "minimum": 38, "maximum_grade": "A+", ...}
+  stats jsonb,
   admin_note text,
   created_at timestamptz not null default now(),
   decided_at timestamptz
@@ -723,6 +752,8 @@ alter table app_settings enable row level security;
 alter table grade_scale enable row level security;
 alter table section_attendance_settings enable row level security;
 alter table grade_distribution_requests enable row level security;
+alter table badge_award_requests enable row level security;
+alter table lecturer_competencies enable row level security;
 
 do $$
 declare
@@ -739,7 +770,7 @@ begin
     'tags', 'course_tags', 'module_lists', 'module_list_items', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'course_announcements',
-    'app_settings', 'grade_scale', 'section_attendance_settings', 'grade_distribution_requests'
+    'app_settings', 'grade_scale', 'section_attendance_settings', 'grade_distribution_requests', 'badge_award_requests', 'lecturer_competencies'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);

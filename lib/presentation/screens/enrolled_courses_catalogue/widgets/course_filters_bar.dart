@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/core/utils/dropdown_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
@@ -119,7 +120,7 @@ class CourseFiltersBar extends StatelessWidget {
               onChanged: (option) {
                 if (option != null) onSortChanged(option);
               },
-              items: CourseSortOption.values.map((sort) {
+              items: sortDropdownItems(CourseSortOption.values.map((sort) {
                 return DropdownMenuItem<CourseSortOption>(
                   value: sort,
                   child: Text(
@@ -127,7 +128,7 @@ class CourseFiltersBar extends StatelessWidget {
                     style: AppTypography.labelMd(color: AppColors.onSurface),
                   ),
                 );
-              }).toList(),
+              }).toList()),
             ),
           ),
         ),
@@ -152,10 +153,10 @@ class CourseFiltersBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           style: AppTypography.labelMd(color: AppColors.onSurface),
           onChanged: (value) => onProgrammeChanged?.call(value == null || value.isEmpty ? null : value),
-          items: [
+          items: sortDropdownItems([
             DropdownMenuItem(value: '', child: Text('All programmes', style: AppTypography.labelMd(color: AppColors.onSurface))),
             for (final name in programmeNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis)),
-          ],
+          ]),
         ),
       ),
     );
@@ -180,7 +181,7 @@ class CourseFiltersBar extends StatelessWidget {
           onChanged: (year) {
             if (year != null) onYearChanged(year);
           },
-          items: [for (final y in availableYears) DropdownMenuItem(value: y, child: Text('$y'))],
+          items: sortDropdownItems([for (final y in availableYears) DropdownMenuItem(value: y, child: Text('$y'))]),
         ),
       ),
     );
@@ -205,7 +206,7 @@ class CourseFiltersBar extends StatelessWidget {
           onChanged: (cohort) {
             if (cohort != null) onCohortChanged(cohort);
           },
-          items: [for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))],
+          items: sortDropdownItems([for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))]),
         ),
       ),
     );

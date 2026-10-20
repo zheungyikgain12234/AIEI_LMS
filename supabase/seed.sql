@@ -68,16 +68,16 @@ insert into specializations (code, name) values
 -- credits_used is not seeded explicitly — it's recomputed by the
 -- `lecturer_courses_recalc_credits` trigger once the lecturer_courses rows
 -- below are inserted (see schema.sql).
-insert into lecturers (id, name, title, lecturer_code, email, department, specialization, credits_max, status, accredited, manageable, join_date) values
-  ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'TN01-EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 'Distributed ETL & Python', 15, 'Active', true, true, '2021-08-16'),
-  ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'TN01-EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 'OSHA Protocol & Site Risk Analysis', 15, 'Active', true, true, '2019-01-06'),
-  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of Machine Learning Research', 'TN01-EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2022-09-01'),
-  ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'TN01-EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 'Org Dynamics & Crisis Management', 12, 'Active', true, true, '2020-03-23'),
-  ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'TN01-EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Sabbatical', false, false, '2017-11-13'),
-  ('11111111-1111-1111-1111-111111111108', 'Marcus Webb', 'Cloud Infrastructure Lead', 'TN01-EMP-3387', 'marcus.webb@aiei.edu', 'Computer Science & Data', 'Distributed Cloud Governance', 15, 'Active', true, true, '2021-11-19'),
+insert into lecturers (id, name, title, lecturer_code, email, department, credits_max, status, accredited, manageable, join_date) values
+  ('11111111-1111-1111-1111-111111111101', 'Dr. Sarah Lin', 'Lead Data Architect', 'TN01-EMP-7721', 'sarah.lin@aiei.edu', 'Computer Science & Data', 15, 'Active', true, true, '2021-08-16'),
+  ('11111111-1111-1111-1111-111111111102', 'Prof. David Miller', 'Senior EHS Director', 'TN01-EMP-5402', 'd.miller@aiei.edu', 'Workplace Safety & EHS', 15, 'Active', true, true, '2019-01-06'),
+  ('11111111-1111-1111-1111-111111111103', 'Dr. Aris Thorne', 'Head of Machine Learning Research', 'TN01-EMP-8910', 'a.thorne@aiei.edu', 'Data Science & AI', 15, 'Active', true, true, '2022-09-01'),
+  ('11111111-1111-1111-1111-111111111104', 'Elena Rostova', 'VP Leadership Development', 'TN01-EMP-3211', 'e.rostova@aiei.edu', 'Executive Leadership', 12, 'Active', true, true, '2020-03-23'),
+  ('11111111-1111-1111-1111-111111111105', 'Prof. Kenneth Wu', 'Enterprise Systems Fellow', 'TN01-EMP-6129', 'k.wu@aiei.edu', 'Computer Science & Data', 15, 'Sabbatical', false, false, '2017-11-13'),
+  ('11111111-1111-1111-1111-111111111108', 'Marcus Webb', 'Cloud Infrastructure Lead', 'TN01-EMP-3387', 'marcus.webb@aiei.edu', 'Computer Science & Data', 15, 'Active', true, true, '2021-11-19'),
   -- Dr. Emmett Brown is this demo's active Lecturer Portal identity — see
   -- lib/core/config/demo_identity.dart's DemoIdentity.lecturerId.
-  ('11111111-1111-1111-1111-111111111106', 'Dr. Emmett Brown', 'Distinguished Research Fellow', 'TN01-EMP-1985', 'e.brown@aiei.edu', 'Data Science & AI', 'Deep Neural Architectures', 15, 'Active', true, true, '2023-02-11');
+  ('11111111-1111-1111-1111-111111111106', 'Dr. Emmett Brown', 'Distinguished Research Fellow', 'TN01-EMP-1985', 'e.brown@aiei.edu', 'Data Science & AI', 15, 'Active', true, true, '2023-02-11');
 
 -- Alternating Internal (department + role, no track) / External (track, no
 -- department/role) so both the registration form and the Role/Dept-vs-Track
@@ -752,11 +752,30 @@ insert into specializations (code, name) values
 
 -- ── More lecturers ────────────────────────────────────────────────────
 
-insert into lecturers (id, name, title, lecturer_code, email, department, specialization, credits_max, status, accredited, manageable, join_date) values
-  ('11111111-1111-1111-1111-111111111107', 'Dr. Priya Nair', 'Head of Cybersecurity & Risk', 'TN01-EMP-2201', 'priya.nair@aiei.edu', 'Cybersecurity & Risk', 'Zero Trust Security Architecture', 15, 'Active', true, true, '2022-03-04'),
-  ('11111111-1111-1111-1111-111111111109', 'Rachel Goh', 'FP&A Program Director', 'TN01-EMP-4456', 'rachel.goh@aiei.edu', 'Finance & Business Operations', 'Financial Modeling & FP&A', 12, 'Active', true, true, '2020-06-08'),
-  ('11111111-1111-1111-1111-111111111110', 'Dr. Wei Chen', 'Product & UX Research Lead', 'TN01-EMP-5514', 'wei.chen@aiei.edu', 'Product & UX Design', 'Product Strategy & UX Research', 12, 'Active', true, true, '2023-01-16'),
-  ('11111111-1111-1111-1111-111111111111', 'James Park', 'Supply Chain Analytics Lead', 'TN01-EMP-6623', 'james.park@aiei.edu', 'Supply Chain & Logistics', 'Supply Chain Analytics & Forecasting', 12, 'Active', true, true, '2021-09-27');
+insert into lecturers (id, name, title, lecturer_code, email, department, credits_max, status, accredited, manageable, join_date) values
+  ('11111111-1111-1111-1111-111111111107', 'Dr. Priya Nair', 'Head of Cybersecurity & Risk', 'TN01-EMP-2201', 'priya.nair@aiei.edu', 'Cybersecurity & Risk', 15, 'Active', true, true, '2022-03-04'),
+  ('11111111-1111-1111-1111-111111111109', 'Rachel Goh', 'FP&A Program Director', 'TN01-EMP-4456', 'rachel.goh@aiei.edu', 'Finance & Business Operations', 12, 'Active', true, true, '2020-06-08'),
+  ('11111111-1111-1111-1111-111111111110', 'Dr. Wei Chen', 'Product & UX Research Lead', 'TN01-EMP-5514', 'wei.chen@aiei.edu', 'Product & UX Design', 12, 'Active', true, true, '2023-01-16'),
+  ('11111111-1111-1111-1111-111111111111', 'James Park', 'Supply Chain Analytics Lead', 'TN01-EMP-6623', 'james.park@aiei.edu', 'Supply Chain & Logistics', 12, 'Active', true, true, '2021-09-27');
+
+-- ── Lecturer teaching competencies — a lecturer can have several. ─────────
+insert into lecturer_competencies (lecturer_id, specialization_id)
+select v.lecturer_id::uuid, s.id
+from (values
+  ('11111111-1111-1111-1111-111111111101', 'Distributed ETL & Python'),
+  ('11111111-1111-1111-1111-111111111102', 'OSHA Protocol & Site Risk Analysis'),
+  ('11111111-1111-1111-1111-111111111103', 'Deep Neural Architectures'),
+  ('11111111-1111-1111-1111-111111111104', 'Org Dynamics & Crisis Management'),
+  ('11111111-1111-1111-1111-111111111105', 'Distributed Cloud Governance'),
+  ('11111111-1111-1111-1111-111111111108', 'Distributed Cloud Governance'),
+  ('11111111-1111-1111-1111-111111111106', 'Deep Neural Architectures'),
+  ('11111111-1111-1111-1111-111111111106', 'Distributed ETL & Python'),
+  ('11111111-1111-1111-1111-111111111107', 'Zero Trust Security Architecture'),
+  ('11111111-1111-1111-1111-111111111109', 'Financial Modeling & FP&A'),
+  ('11111111-1111-1111-1111-111111111110', 'Product Strategy & UX Research'),
+  ('11111111-1111-1111-1111-111111111111', 'Supply Chain Analytics & Forecasting')
+) as v(lecturer_id, name)
+join specializations s on s.name = v.name;
 
 -- ── More students (ids 11–18) ────────────────────────────────────────
 
@@ -982,36 +1001,17 @@ insert into course_tags (course_id, tag_id) values
   ('44444444-4444-4444-4444-444444444421', '77777777-7777-7777-7777-777777777701'), -- SC-330: Career Essentials
   ('44444444-4444-4444-4444-444444444423', '77777777-7777-7777-7777-777777777701'); -- CLOUD-505: Career Essentials
 
--- ── Course Badges (`course_badges`) — the badge(s) a student unlocks on
--- completing each course, configured by an admin on the course form. Every
--- course gets at least one, reusing the 6 seeded certifications thematically
--- rather than inventing a badge per course. ─────────────────────────────
+-- ── Course Badges (`course_badges`) — the badge a student can earn on a
+-- course (approved by an admin once their final score is above the passing
+-- mark). One badge maps to exactly one course (`unique (badge_id)`), so only
+-- the first six courses get one of the 6 seeded certifications. ──────────
 insert into course_badges (course_id, badge_id) values
   ('44444444-4444-4444-4444-444444444401', '88888888-8888-8888-8888-888888888801'), -- PY-402: Python Automation Specialist
   ('44444444-4444-4444-4444-444444444402', '88888888-8888-8888-8888-888888888802'), -- OSHE-101: Certified Safety Officer 2025
   ('44444444-4444-4444-4444-444444444403', '88888888-8888-8888-8888-888888888805'), -- AI-330: Enterprise AI & Prompt Engineering
   ('44444444-4444-4444-4444-444444444404', '88888888-8888-8888-8888-888888888806'), -- FIN-410: FP&A Certified Financial Analyst
   ('44444444-4444-4444-4444-444444444405', '88888888-8888-8888-8888-888888888803'), -- SEC-410: Certified Cyber Sentinel
-  ('44444444-4444-4444-4444-444444444406', '88888888-8888-8888-8888-888888888804'), -- LEAD-400: Executive Leadership Communicator
-  ('44444444-4444-4444-4444-444444444407', '88888888-8888-8888-8888-888888888801'), -- DATA-501: Python Automation Specialist
-  ('44444444-4444-4444-4444-444444444408', '88888888-8888-8888-8888-888888888805'), -- AI-301: Enterprise AI & Prompt Engineering
-  ('44444444-4444-4444-4444-444444444409', '88888888-8888-8888-8888-888888888802'), -- SAF-204: Certified Safety Officer 2025
-  ('44444444-4444-4444-4444-444444444410', '88888888-8888-8888-8888-888888888805'), -- ML-800: Enterprise AI & Prompt Engineering
-  ('44444444-4444-4444-4444-444444444411', '88888888-8888-8888-8888-888888888805'), -- DL-901: Enterprise AI & Prompt Engineering
-  ('44444444-4444-4444-4444-444444444412', '88888888-8888-8888-8888-888888888805'), -- RL-705: Enterprise AI & Prompt Engineering
-  ('44444444-4444-4444-4444-444444444413', '88888888-8888-8888-8888-888888888805'), -- NLP-620: Enterprise AI & Prompt Engineering
-  ('44444444-4444-4444-4444-444444444414', '88888888-8888-8888-8888-888888888804'), -- COMM-102: Executive Leadership Communicator
-  ('44444444-4444-4444-4444-444444444415', '88888888-8888-8888-8888-888888888803'), -- CYBER-202: Certified Cyber Sentinel
-  ('44444444-4444-4444-4444-444444444416', '88888888-8888-8888-8888-888888888801'), -- CLOUD-410: Python Automation Specialist
-  ('44444444-4444-4444-4444-444444444417', '88888888-8888-8888-8888-888888888805'), -- AI-512: Enterprise AI & Prompt Engineering
-  ('44444444-4444-4444-4444-444444444418', '88888888-8888-8888-8888-888888888806'), -- FIN-420: FP&A Certified Financial Analyst
-  ('44444444-4444-4444-4444-444444444419', '88888888-8888-8888-8888-888888888804'), -- PROD-310: Executive Leadership Communicator
-  ('44444444-4444-4444-4444-444444444420', '88888888-8888-8888-8888-888888888804'), -- UX-215: Executive Leadership Communicator
-  ('44444444-4444-4444-4444-444444444421', '88888888-8888-8888-8888-888888888801'), -- SC-330: Python Automation Specialist
-  ('44444444-4444-4444-4444-444444444422', '88888888-8888-8888-8888-888888888803'), -- CYBER-330: Certified Cyber Sentinel
-  ('44444444-4444-4444-4444-444444444423', '88888888-8888-8888-8888-888888888801'), -- CLOUD-505: Python Automation Specialist
-  ('44444444-4444-4444-4444-444444444424', '88888888-8888-8888-8888-888888888805'), -- AI-410: Enterprise AI & Prompt Engineering
-  ('44444444-4444-4444-4444-444444444425', '88888888-8888-8888-8888-888888888801'); -- DATA-610: Python Automation Specialist
+  ('44444444-4444-4444-4444-444444444406', '88888888-8888-8888-8888-888888888804'); -- LEAD-400: Executive Leadership Communicator
 
 -- ── Real curriculum content: AI-410 (RAG Systems) and DATA-610 (dbt
 -- Modeling) get a full 3-module lesson/quiz/assignment sequence. ────────

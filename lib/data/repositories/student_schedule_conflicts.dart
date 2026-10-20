@@ -13,25 +13,35 @@ String _ymd(DateTime? d) => d == null ? '…' : d.toIso8601String().substring(0,
 /// dates — the same rule used when assigning a lecturer. Returns, per student
 /// id, a readable description of each clashing class; students with no clash
 /// are absent. A class without a day/time yet (TBD) can't clash.
+///
+/// Pass [proposed] to test a schedule that isn't saved yet (editing a class's
+/// time) instead of the one stored for [sectionId].
 Future<Map<String, List<String>>> findStudentScheduleConflicts(
   SupabaseClient client, {
   required List<String> studentIds,
   required String sectionId,
+  ({String? day, String? start, String? end, DateTime? startDate, DateTime? endDate})? proposed,
 }) async {
   if (studentIds.isEmpty) return {};
-  final target = await client
-      .from('course_sections')
-      .select('day_of_week, start_time, end_time, start_date, end_date')
-      .eq('id', sectionId)
-      .single();
-  final day = target['day_of_week'] as String?;
-  final start = target['start_time'] as String?;
-  final end = target['end_time'] as String?;
+  final String? day, start, end;
+  final DateTime? startDate, endDate;
+  if (proposed != null) {
+    (day, start, end, startDate, endDate) = (proposed.day, proposed.start, proposed.end, proposed.startDate, proposed.endDate);
+  } else {
+    final target = await client
+        .from('course_sections')
+        .select('day_of_week, start_time, end_time, start_date, end_date')
+        .eq('id', sectionId)
+        .single();
+    day = target['day_of_week'] as String?;
+    start = target['start_time'] as String?;
+    end = target['end_time'] as String?;
+    startDate = _date(target['start_date']);
+    endDate = _date(target['end_date']);
+  }
   if (day == null || start == null || end == null) return {};
   final newStart = _minutes(start);
   final newEnd = _minutes(end);
-  final startDate = _date(target['start_date']);
-  final endDate = _date(target['end_date']);
 
   final rows = await client
       .from('student_courses')

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
+import 'package:stitch_aiei_lms/data/repositories/student_schedule_conflicts.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart';
@@ -111,6 +112,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     final scheduleText = (dayOfWeek != null && startTime != null && endTime != null)
         ? '${dayOfWeek.substring(0, 3)} $startTime–$endTime • ${deliveryMode == 'online' ? 'Online' : (location ?? 'TBD')}'
         : 'TBD';
+    await _ensureEditedScheduleHasNoConflict(id,
+        dayOfWeek: dayOfWeek, startTime: startTime, endTime: endTime, startDate: startDate, endDate: endDate);
     final overrideCode = await _resolveOverrideCode(editOverrideLecturerCode);
     final row = await _client
         .from('course_sections')
@@ -134,6 +137,63 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
         .single();
     final enrolled = await _client.from('student_courses').select('student_id').eq('section_id', id);
     return CourseSection.fromMap(row, enrolledCount: (enrolled as List).length);
+  }
+
+  /// Rejects a day/time/date change that would clash with the lecturer's other
+  /// classes or with another class of any enrolled student. Unchanged
+  /// schedules aren't re-checked, so editing other fields still saves.
+  Future<void> _ensureEditedScheduleHasNoConflict(
+    String id, {
+    String? dayOfWeek,
+    String? startTime,
+    String? endTime,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    if (dayOfWeek == null || startTime == null || endTime == null) return;
+    final current = await _client
+        .from('course_sections')
+        .select('lecturer_id, day_of_week, start_time, end_time, start_date, end_date, section_code')
+        .eq('id', id)
+        .single();
+    String hm(Object? t) => t == null ? '' : (t as String).substring(0, 5);
+    String ymd(DateTime? d) => d?.toIso8601String().substring(0, 10) ?? '';
+    final unchanged = current['day_of_week'] == dayOfWeek &&
+        hm(current['start_time']) == hm(startTime) &&
+        hm(current['end_time']) == hm(endTime) &&
+        ymd(_parseDate(current['start_date'])) == ymd(startDate) &&
+        ymd(_parseDate(current['end_date'])) == ymd(endDate);
+    if (unchanged) return;
+
+    final lecturerId = current['lecturer_id'] as String?;
+    if (lecturerId != null) {
+      await _ensureNoScheduleConflict(
+        lecturerId: lecturerId,
+        dayOfWeek: dayOfWeek,
+        startTime: startTime,
+        endTime: endTime,
+        startDate: startDate,
+        endDate: endDate,
+        excludeSectionId: id,
+      );
+    }
+
+    final enrolled = await _client.from('student_courses').select('student_id, students(name, student_code)').eq('section_id', id);
+    final studentIds = [for (final r in enrolled as List) (r['student_id'] as num).toString()];
+    final clashes = await findStudentScheduleConflicts(
+      _client,
+      studentIds: studentIds,
+      sectionId: id,
+      proposed: (day: dayOfWeek, start: startTime, end: endTime, startDate: startDate, endDate: endDate),
+    );
+    if (clashes.isEmpty) return;
+    final lines = [
+      for (final r in enrolled)
+        if (clashes[(r['student_id'] as num).toString()] case final c?)
+          '${displayCode((r['students']?['student_code'] as String?) ?? '')} ${r['students']?['name'] ?? ''}: ${c.join("; ")}',
+    ];
+    throw ScheduleConflictException('This time would clash with other classes of ${clashes.length} enrolled '
+        'student${clashes.length == 1 ? '' : 's'}:\n${lines.join("\n")}\nChoose a different day, time or course dates.');
   }
 
   @override

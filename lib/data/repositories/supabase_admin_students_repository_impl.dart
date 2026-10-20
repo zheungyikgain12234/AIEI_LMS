@@ -39,6 +39,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     String? department,
     String? title,
     String? programTrack,
+    String? programme,
     String? role,
     required DateTime registrationDate,
   }) async {
@@ -52,6 +53,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'department': department,
           'title': title,
           'program_track': programTrack,
+          'programme': programme,
           'role': role,
           'registration_date': registrationDate.toIso8601String().substring(0, 10),
         })
@@ -70,6 +72,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     String? department,
     String? title,
     String? programTrack,
+    String? programme,
     String? role,
     required DateTime registrationDate,
     double? gpa,
@@ -84,6 +87,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
           'department': department,
           'title': title,
           'program_track': programTrack,
+          'programme': programme,
           'role': role,
           'registration_date': registrationDate.toIso8601String().substring(0, 10),
           if (gpa != null) 'gpa': gpa,

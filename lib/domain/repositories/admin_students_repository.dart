@@ -28,6 +28,7 @@ abstract class AdminStudentsRepository {
     String? department,
     String? title,
     String? programTrack,
+    String? programme,
     String? role,
     required DateTime registrationDate,
   });
@@ -43,6 +44,7 @@ abstract class AdminStudentsRepository {
     String? department,
     String? title,
     String? programTrack,
+    String? programme,
     String? role,
     required DateTime registrationDate,
     double? gpa,

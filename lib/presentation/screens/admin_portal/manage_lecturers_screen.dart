@@ -809,12 +809,23 @@ class _CompetenciesListState extends State<_CompetenciesList> {
             children: [
               Expanded(child: Text(shown[i], style: style, maxLines: 1, overflow: TextOverflow.ellipsis)),
               if (i == 0 && more)
-                InkWell(
-                  onTap: () => setState(() => _expanded = !_expanded),
-                  borderRadius: BorderRadius.circular(6),
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
                   child: Tooltip(
                     message: _expanded ? 'Show fewer' : 'Show all ${items.length} teaching competencies',
-                    child: Icon(_expanded ? Icons.expand_less : Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
+                    child: Material(
+                      color: const Color(0xFF0B3D91),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: () => setState(() => _expanded = !_expanded),
+                        customBorder: const CircleBorder(),
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Icon(_expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 18, color: Colors.white),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
             ],

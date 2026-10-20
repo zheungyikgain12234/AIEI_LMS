@@ -12,11 +12,11 @@ enum AdminNavDestination {
   manageBadges,
   roleCourseMapping,
   departmentCourseMapping,
+  programmeTrackMapping,
   trackCourseMapping,
   badgeCourseMapping,
   specializationCourseMapping,
   courseEnrollment,
-  programmeCourseMapping,
   manageDepartments,
   manageProgrammes,
   manageProgramTracks,
@@ -34,6 +34,73 @@ enum AdminNavDestination {
   settings,
 }
 
+/// One entry of the admin menu.
+class AdminMenuItem {
+  final IconData icon;
+  final String label;
+  final AdminNavDestination destination;
+
+  const AdminMenuItem(this.icon, this.label, this.destination);
+}
+
+/// A titled group of related menu entries.
+class AdminMenuGroup {
+  final String title;
+
+  /// A soft background tint that sets the group apart from its neighbours.
+  final Color tint;
+  final List<AdminMenuItem> items;
+
+  const AdminMenuGroup(this.title, this.tint, this.items);
+}
+
+/// The admin menu, grouped by who/what it is about. The desktop sidebar and
+/// the mobile "More" sheet both render this, so they always match: within a
+/// group the lists come first, then the mappings to courses, then the page
+/// where the records are managed day to day.
+const adminMenuGroups = <AdminMenuGroup>[
+  AdminMenuGroup('LECTURERS', Color(0xFFEAF1FB), [
+    AdminMenuItem(Icons.corporate_fare_outlined, 'Manage Lecturer Depts', AdminNavDestination.manageLecturerDepartments),
+    AdminMenuItem(Icons.psychology_outlined, 'Manage Teaching Competencies', AdminNavDestination.manageSpecializations),
+    AdminMenuItem(Icons.psychology_alt_outlined, 'Teaching Competency ↔ Course Mapping', AdminNavDestination.specializationCourseMapping),
+    AdminMenuItem(Icons.badge_outlined, 'Manage and Assign Lecturers', AdminNavDestination.manageLecturers),
+  ]),
+  AdminMenuGroup('COURSES & CLASSES', Color(0xFFEAF5EE), [
+    AdminMenuItem(Icons.sell_outlined, 'Manage Course Tags', AdminNavDestination.manageCourseTags),
+    AdminMenuItem(Icons.view_module_outlined, 'Manage Module Lists', AdminNavDestination.manageModuleLists),
+    AdminMenuItem(Icons.menu_book_outlined, 'Manage Courses', AdminNavDestination.manageCourses),
+    AdminMenuItem(Icons.event_note_outlined, 'Manage Classes', AdminNavDestination.manageClasses),
+    AdminMenuItem(Icons.fact_check_outlined, 'Manage Syllabi', AdminNavDestination.manageSyllabi),
+  ]),
+  AdminMenuGroup('STUDENTS', Color(0xFFFFF4E2), [
+    AdminMenuItem(Icons.hub_outlined, 'Manage Cohorts', AdminNavDestination.manageCohorts),
+    AdminMenuItem(Icons.groups_outlined, 'Manage and Enrol Students', AdminNavDestination.manageStudents),
+  ]),
+  AdminMenuGroup('PUBLIC STUDENTS', Color(0xFFF1ECFA), [
+    AdminMenuItem(Icons.workspace_premium_outlined, 'Manage Programmes', AdminNavDestination.manageProgrammes),
+    AdminMenuItem(Icons.alt_route_outlined, 'Manage Student Tracks', AdminNavDestination.manageProgramTracks),
+    AdminMenuItem(Icons.account_tree_outlined, 'Programme ↔ Track Mapping', AdminNavDestination.programmeTrackMapping),
+    AdminMenuItem(Icons.alt_route, 'Track ↔ Course Mapping', AdminNavDestination.trackCourseMapping),
+  ]),
+  AdminMenuGroup('STAFF STUDENTS', Color(0xFFE6F4F4), [
+    AdminMenuItem(Icons.apartment_outlined, 'Manage Student Depts', AdminNavDestination.manageDepartments),
+    AdminMenuItem(Icons.work_outline, 'Manage Student Roles', AdminNavDestination.manageRoles),
+    AdminMenuItem(Icons.account_tree_outlined, 'Staff Student Department ↔ Course Mapping', AdminNavDestination.departmentCourseMapping),
+    AdminMenuItem(Icons.swap_horiz_outlined, 'Role ↔ Course Mapping', AdminNavDestination.roleCourseMapping),
+  ]),
+  AdminMenuGroup('GRADES & BADGES', Color(0xFFFBEDEF), [
+    AdminMenuItem(Icons.rule_outlined, 'Grade Approvals', AdminNavDestination.gradeApprovals),
+    AdminMenuItem(Icons.military_tech_outlined, 'Manage Badges', AdminNavDestination.manageBadgeCatalog),
+    AdminMenuItem(Icons.military_tech_outlined, 'Badge ↔ Course Mapping', AdminNavDestination.badgeCourseMapping),
+    AdminMenuItem(Icons.approval_outlined, 'Badge Approvals', AdminNavDestination.badgeApprovals),
+    AdminMenuItem(Icons.workspace_premium, 'Manage Badge Award', AdminNavDestination.manageBadges),
+  ]),
+  AdminMenuGroup('SYSTEM', Color(0xFFF0F1F3), [
+    AdminMenuItem(Icons.admin_panel_settings_outlined, 'Manage Admin', AdminNavDestination.manageAdmins),
+    AdminMenuItem(Icons.settings_outlined, 'Settings', AdminNavDestination.settings),
+  ]),
+];
+
 class AdminSidebar extends StatelessWidget {
   final AdminNavDestination selected;
   final ValueChanged<AdminNavDestination>? onDestinationSelected;
@@ -48,327 +115,62 @@ class AdminSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return PendingSyllabusRefresher(
       child: Container(
-      width: 256,
-      decoration: const BoxDecoration(
-        color: AdminColors.navSurface,
-        border: Border(right: BorderSide(color: AdminColors.navBorder)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 8,
-            offset: Offset(1, 0),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      'MASTER DATA',
-                      style: AdminTypography.labelSm(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _NavItem(
-                          icon: Icons.hub_outlined,
-                          label: 'Manage Cohorts',
-                          isSelected:
-                              selected == AdminNavDestination.manageCohorts,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageCohorts,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.apartment_outlined,
-                          label: 'Manage Student Depts',
-                          isSelected:
-                              selected == AdminNavDestination.manageDepartments,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageDepartments,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.work_outline,
-                          label: 'Manage Student Roles',
-                          isSelected:
-                              selected == AdminNavDestination.manageRoles,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageRoles,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.workspace_premium_outlined,
-                          label: 'Manage Programmes',
-                          isSelected:
-                              selected == AdminNavDestination.manageProgrammes,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageProgrammes,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.alt_route_outlined,
-                          label: 'Manage Student Tracks',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.manageProgramTracks,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageProgramTracks,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.corporate_fare_outlined,
-                          label: 'Manage Lecturer Depts',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.manageLecturerDepartments,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageLecturerDepartments,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.psychology_outlined,
-                          label: 'Manage Teaching Competencies',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.manageSpecializations,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageSpecializations,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.sell_outlined,
-                          label: 'Manage Course Tags',
-                          isSelected:
-                              selected == AdminNavDestination.manageCourseTags,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageCourseTags,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.military_tech_outlined,
-                          label: 'Manage Badges',
-                          isSelected:
-                              selected == AdminNavDestination.manageBadgeCatalog,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageBadgeCatalog,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.view_module_outlined,
-                          label: 'Manage Module Lists',
-                          isSelected:
-                              selected == AdminNavDestination.manageModuleLists,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageModuleLists,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      'ACADEMIC OPERATIONS',
-                      style: AdminTypography.labelSm(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _NavItem(
-                          icon: Icons.menu_book_outlined,
-                          label: 'Manage Courses',
-                          isSelected:
-                              selected == AdminNavDestination.manageCourses,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageCourses,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.school_outlined,
-                          label: 'Programme ↔ Course Mapping',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.programmeCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.programmeCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.alt_route,
-                          label: 'Track ↔ Course Mapping',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.trackCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.trackCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.swap_horiz_outlined,
-                          label: 'Role ↔ Course Mapping',
-                          isSelected:
-                              selected == AdminNavDestination.roleCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.roleCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.account_tree_outlined,
-                          label: 'Staff Student Department ↔ Course Mapping',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.departmentCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.departmentCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.psychology_alt_outlined,
-                          label: 'Teaching Competency ↔ Course Mapping',
-                          isSelected:
-                              selected ==
-                              AdminNavDestination.specializationCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.specializationCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.military_tech_outlined,
-                          label: 'Badge ↔ Course Mapping',
-                          isSelected:
-                              selected == AdminNavDestination.badgeCourseMapping,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.badgeCourseMapping,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.badge_outlined,
-                          label: 'Manage and Assign Lecturers',
-                          isSelected:
-                              selected == AdminNavDestination.manageLecturers,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageLecturers,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.event_note_outlined,
-                          label: 'Manage Classes',
-                          isSelected:
-                              selected == AdminNavDestination.manageClasses,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageClasses,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.groups_outlined,
-                          label: 'Manage and Enrol Students',
-                          isSelected:
-                              selected == AdminNavDestination.manageStudents,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageStudents,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.fact_check_outlined,
-                          label: 'Manage Syllabi',
-                          trailing: const PendingSyllabusDot(),
-                          isSelected:
-                              selected == AdminNavDestination.manageSyllabi,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageSyllabi,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.rule_outlined,
-                          label: 'Grade Approvals',
-                          isSelected:
-                              selected == AdminNavDestination.gradeApprovals,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.gradeApprovals,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.approval_outlined,
-                          label: 'Badge Approvals',
-                          isSelected:
-                              selected == AdminNavDestination.badgeApprovals,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.badgeApprovals,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.military_tech_outlined,
-                          label: 'Manage Badge Award',
-                          isSelected:
-                              selected == AdminNavDestination.manageBadges,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageBadges,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      'SYSTEM',
-                      style: AdminTypography.labelSm(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _NavItem(
-                          icon: Icons.admin_panel_settings_outlined,
-                          label: 'Manage Admin',
-                          isSelected: selected == AdminNavDestination.manageAdmins,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.manageAdmins,
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.settings_outlined,
-                          label: 'Settings',
-                          isSelected: selected == AdminNavDestination.settings,
-                          onTap: () => onDestinationSelected?.call(
-                            AdminNavDestination.settings,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        width: 256,
+        decoration: const BoxDecoration(
+          color: AdminColors.navSurface,
+          border: Border(right: BorderSide(color: AdminColors.navBorder)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(1, 0),
             ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final group in adminMenuGroups)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                  padding: const EdgeInsets.fromLTRB(0, 12, 0, 6),
+                  decoration: BoxDecoration(color: group.tint, borderRadius: BorderRadius.circular(14)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: Text(group.title, style: AdminTypography.labelSm()),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final item in group.items)
+                              _NavItem(
+                                icon: item.icon,
+                                label: item.label,
+                                trailing: item.destination == AdminNavDestination.manageSyllabi ? const PendingSyllabusDot() : null,
+                                isSelected: selected == item.destination,
+                                onTap: () => onDestinationSelected?.call(item.destination),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
-        ],
-      ),
+        ),
       ),
     );
   }
 }
+
 
 class _NavItem extends StatefulWidget {
   final IconData icon;

@@ -21,6 +21,8 @@ import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/department.dart';
 import 'package:stitch_aiei_lms/domain/models/program_track.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_programme_track_mapping_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
 import 'widgets/admin_field_error.dart';
@@ -50,7 +52,7 @@ class ManageStudentsScreen extends StatefulWidget {
   State<ManageStudentsScreen> createState() => _ManageStudentsScreenState();
 }
 
-enum _SortColumn { name, code, track, department }
+enum _SortColumn { name, code, programme, department }
 
 class _ManageStudentsScreenState extends State<ManageStudentsScreen> with RefreshOnReturn<ManageStudentsScreen> {
   @override
@@ -65,7 +67,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   String? _errorMessage;
   List<Student> _students = [];
   Map<String, List<String>> _credentialTitles = {};
-  List<(String, int)> _tracks = [];
   List<(String, int)> _trend = [];
   Set<String> _courseMismatchStudentIds = {};
   _SortColumn _sortColumn = _SortColumn.name;
@@ -79,18 +80,25 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   final Set<String> _selected = {};
 
   // '' means "All" (SearchableDropdownButton ignores null picks).
-  String _trackFilter = '';
+  String _programmeFilter = '';
   String _departmentFilter = '';
   String _roleFilter = '';
-  List<String> _trackOptions = [];
+  List<String> _programmeOptions = [];
+
+  /// track name -> the programmes it sits under (Programme ↔ Track Mapping), used
+  /// to fill in a programme for CSV-imported public students.
+  Map<String, Set<String>> _programmesByTrack = {};
+
+  /// Public students are grouped by the programme they belong to.
+  String? _programmeOf(Student s) => s.programme;
   List<String> _departmentOptions = [];
   List<String> _roleOptions = [];
 
-  bool get _hasActiveFilters => _trackFilter.isNotEmpty || _departmentFilter.isNotEmpty || _roleFilter.isNotEmpty;
+  bool get _hasActiveFilters => _programmeFilter.isNotEmpty || _departmentFilter.isNotEmpty || _roleFilter.isNotEmpty;
 
   List<Student> get _filteredStudents {
     return _students.where((s) {
-      if (_trackFilter.isNotEmpty && s.programTrack != _trackFilter) return false;
+      if (_programmeFilter.isNotEmpty && _programmeOf(s) != _programmeFilter) return false;
       if (_departmentFilter.isNotEmpty && s.department != _departmentFilter) return false;
       if (_roleFilter.isNotEmpty && s.role != _roleFilter) return false;
       if (_query.isEmpty) return true;
@@ -99,12 +107,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           s.email.toLowerCase().contains(_query) ||
           (s.department ?? '').toLowerCase().contains(_query) ||
           (s.role ?? '').toLowerCase().contains(_query) ||
+          (_programmeOf(s) ?? '').toLowerCase().contains(_query) ||
           (s.programTrack ?? '').toLowerCase().contains(_query);
     }).toList();
   }
 
   void _resetFilters() => setState(() {
-        _trackFilter = '';
+        _programmeFilter = '';
         _departmentFilter = '';
         _roleFilter = '';
         _page = 1;
@@ -142,7 +151,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        _filterDropdown(label: 'Tracks', value: _trackFilter, options: _trackOptions, onChanged: (v) => _trackFilter = v),
+        _filterDropdown(label: 'Programmes', value: _programmeFilter, options: _programmeOptions, onChanged: (v) => _programmeFilter = v),
         _filterDropdown(label: 'Departments', value: _departmentFilter, options: _departmentOptions, onChanged: (v) => _departmentFilter = v),
         _filterDropdown(label: 'Roles', value: _roleFilter, options: _roleOptions, onChanged: (v) => _roleFilter = v),
         if (_hasActiveFilters)
@@ -165,8 +174,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
         case _SortColumn.code:
           cmp = a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase());
-        case _SortColumn.track:
-          cmp = (a.programTrack ?? '').toLowerCase().compareTo((b.programTrack ?? '').toLowerCase());
+        case _SortColumn.programme:
+          cmp = (_programmeOf(a) ?? '').toLowerCase().compareTo((_programmeOf(b) ?? '').toLowerCase());
         case _SortColumn.department:
           cmp = (a.department ?? a.role ?? '').toLowerCase().compareTo((b.department ?? b.role ?? '').toLowerCase());
       }
@@ -239,12 +248,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     try {
       final students = await _repository.getStudents();
       final credentials = await _repository.getEarnedCredentialTitles();
-      final tracks = await _repository.getProgramTracks();
       final trend = await _badgesRepository.getMonthlyIssueCounts();
       final enrolledCourseIds = await _repository.getEnrolledCourseIdsByStudent();
       final roles = await _masterDataRepository.getRoles();
       final programTracks = await _masterDataRepository.getProgramTracks();
       final departments = await _masterDataRepository.getDepartments();
+      final programmesByTrack = await SupabaseProgrammeTrackMappingRepositoryImpl(Supabase.instance.client).getProgrammeNamesByTrackName();
+      final programmes = await SupabaseProgrammesRepositoryImpl(Supabase.instance.client).getProgrammes();
       final mismatches = await _computeCourseMismatches(
         students: students,
         enrolledCourseIds: enrolledCourseIds,
@@ -257,10 +267,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       setState(() {
         _students = students;
         _credentialTitles = credentials;
-        _tracks = tracks;
         _trend = trend;
         _courseMismatchStudentIds = mismatches;
-        _trackOptions = programTracks.map((t) => t.name).toList()..sort();
+        _programmesByTrack = programmesByTrack;
+        _programmeOptions = programmes.map((p) => p.name).toList()..sort();
         _departmentOptions = departments.map((d) => d.name).toList()..sort();
         _roleOptions = roles.map((r) => r.name).toList()..sort();
         _isLoading = false;
@@ -370,6 +380,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       MaterialPageRoute(builder: (_) => const StudentFormScreen()),
     );
     if (saved != null) _load();
+  }
+
+  /// A track under several programmes is filed under the first by name.
+  String? _firstProgrammeOf(String track) {
+    final names = (_programmesByTrack[track] ?? const <String>{}).toList()..sort();
+    return names.isEmpty ? null : names.first;
   }
 
   static const _csvColumns = ['name', 'studentCode', 'email', 'studentType', 'department', 'title', 'programTrack', 'role', 'registrationDate'];
@@ -525,6 +541,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           department: studentType == StudentType.internal && department.isNotEmpty ? department : null,
           title: studentType == StudentType.internal && title.isNotEmpty ? title : null,
           programTrack: studentType == StudentType.external && programTrack.isNotEmpty ? programTrack : null,
+          programme: studentType == StudentType.external && programTrack.isNotEmpty ? _firstProgrammeOf(programTrack) : null,
           role: studentType == StudentType.internal && role.isNotEmpty ? role : null,
           registrationDate: registrationDate,
         );
@@ -944,7 +961,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
           Expanded(flex: 4, child: _sortHeader('Student', _SortColumn.name)),
           Expanded(flex: 2, child: Text('Student Type', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
-          Expanded(flex: 2, child: _sortHeader('Track', _SortColumn.track)),
+          Expanded(flex: 2, child: _sortHeader('Programme', _SortColumn.programme)),
           Expanded(flex: 3, child: _sortHeader('Department / Role', _SortColumn.department)),
           Expanded(flex: 3, child: Text('Badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
           const SizedBox(width: 190),
@@ -1027,7 +1044,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(s.programTrack ?? '—', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_programmeOf(s) ?? '—', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                  if (s.programTrack != null) Text(s.programTrack!, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
           ),
           Expanded(
@@ -1091,10 +1114,22 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     return [for (final e in counts.entries) (e.key, e.value)]..sort((a, b) => b.$2.compareTo(a.$2));
   }
 
+  /// Public students per programme (through their track), largest first;
+  /// a track not mapped to any programme is grouped under "Unassigned".
+  List<(String, int)> _publicCountsByProgramme() {
+    final counts = <String, int>{};
+    for (final s in _students) {
+      if (s.programTrack == null) continue;
+      final key = _programmeOf(s) ?? 'Unassigned';
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return [for (final e in counts.entries) (e.key, e.value)]..sort((a, b) => b.$2.compareTo(a.$2));
+  }
+
   Widget _buildTracksCard() => _buildDistributionCard(
-        title: 'Public Students by Track',
+        title: 'Public Students by Programme',
         subtitle: 'Total public students: $_publicStudentCount',
-        entries: _tracks,
+        entries: _publicCountsByProgramme(),
         total: _publicStudentCount,
       );
 
@@ -1461,7 +1496,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _mobileLabeled('Track', s.programTrack ?? '—')),
+              Expanded(child: _mobileLabeled('Programme', _programmeOf(s) ?? '—', second: s.programTrack)),
               const SizedBox(width: 12),
               Expanded(child: _mobileLabeled('Department / Role', s.department ?? '—', second: s.role ?? '—')),
             ],

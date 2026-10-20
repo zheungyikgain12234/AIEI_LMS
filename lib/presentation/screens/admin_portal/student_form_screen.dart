@@ -13,6 +13,8 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_programme_track_mapping_repository_impl.dart';
+import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
@@ -55,6 +57,11 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
   List<String> _departments = [];
   List<String> _programTracks = [];
+  List<String> _programmes = [];
+
+  /// programme name -> the tracks under it (Programme ↔ Track Mapping).
+  Map<String, Set<String>> _tracksByProgramme = {};
+  String? _selectedProgramme;
   List<String> _roles = [];
   StudentType _studentType = StudentType.internal;
   String? _selectedDepartment;
@@ -88,6 +95,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       final departments = await _masterDataRepository.getDepartments();
       final programTracks = await _masterDataRepository.getProgramTracks();
       final roles = await _masterDataRepository.getRoles();
+      final programmes = await SupabaseProgrammesRepositoryImpl(Supabase.instance.client).getProgrammes();
+      final tracksByProgramme = await SupabaseProgrammeTrackMappingRepositoryImpl(Supabase.instance.client).getTrackNamesByProgrammeName();
       Student? student;
       if (widget.isEditing) {
         student = await _repository.getStudentById(widget.studentId!);
@@ -96,6 +105,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       setState(() {
         _departments = [for (final d in departments) d.name];
         _programTracks = [for (final t in programTracks) t.name];
+        _programmes = [for (final p in programmes) p.name];
+        _tracksByProgramme = tracksByProgramme;
         _roles = [for (final r in roles) r.name];
         if (student != null) {
           _nameController.text = student.name;
@@ -105,6 +116,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           _studentType = student.studentType;
           _selectedDepartment = _departments.contains(student.department) ? student.department : null;
           _selectedProgramTrack = _programTracks.contains(student.programTrack) ? student.programTrack : null;
+          _selectedProgramme = _programmes.contains(student.programme) ? student.programme : null;
           _selectedRole = _roles.contains(student.role) ? student.role : null;
           _registrationDate = student.registrationDate;
         }
@@ -149,6 +161,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           department: isInternal ? _selectedDepartment : null,
           title: isInternal && title.isNotEmpty ? title : null,
           programTrack: isInternal ? null : _selectedProgramTrack,
+          programme: isInternal ? null : _selectedProgramme,
           role: isInternal ? _selectedRole : null,
           registrationDate: _registrationDate!,
         );
@@ -161,6 +174,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           department: isInternal ? _selectedDepartment : null,
           title: isInternal && title.isNotEmpty ? title : null,
           programTrack: isInternal ? null : _selectedProgramTrack,
+          programme: isInternal ? null : _selectedProgramme,
           role: isInternal ? _selectedRole : null,
           registrationDate: _registrationDate!,
         );
@@ -244,11 +258,24 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                             const SizedBox(height: 14),
                           ],
                           if (_studentType == StudentType.external) ...[
+                            // Public students belong to a programme, then a track
+                            // within it (Programme ↔ Track Mapping).
+                            _dropdown(
+                              label: 'Programme',
+                              hint: 'Select a programme',
+                              value: _selectedProgramme,
+                              options: _programmes,
+                              onChanged: (v) => setState(() {
+                                if (v != _selectedProgramme) _selectedProgramTrack = null;
+                                _selectedProgramme = v;
+                              }),
+                            ),
+                            const SizedBox(height: 14),
                             _dropdown(
                               label: 'Track',
-                              hint: 'Select a track',
+                              hint: _selectedProgramme == null ? 'Select a programme first' : 'Select a track',
                               value: _selectedProgramTrack,
-                              options: _programTracks,
+                              options: [for (final t in _programTracks) if (_tracksByProgramme[_selectedProgramme]?.contains(t) ?? false) t],
                               onChanged: (v) => setState(() => _selectedProgramTrack = v),
                             ),
                           ] else ...[
@@ -379,6 +406,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
               _selectedDepartment = null;
             } else {
               _selectedProgramTrack = null;
+              _selectedProgramme = null;
             }
           }),
         ),

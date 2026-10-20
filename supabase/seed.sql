@@ -17,7 +17,7 @@ truncate table
   module_materials, course_modules, courses,
   certifications, tags, module_list_items, module_lists,
   lecturers, students, admins,
-  departments, programmes, course_programmes, program_tracks, cohorts,
+  departments, programmes, program_tracks, cohorts,
   lecturer_departments, specializations, roles
 restart identity cascade;
 
@@ -959,17 +959,39 @@ insert into programmes (code, name, description) values
   ('TN01-PRG-DAI', 'Diploma in Applied AI', 'Hands-on machine learning and AI tooling for the workplace.'),
   ('TN01-PRG-WSH', 'Workplace Safety & Health Certificate', 'Compliance and safety training for operational staff.');
 
-insert into course_programmes (programme_id, course_id) values
-  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444401'),
-  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444407'),
-  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444416'),
-  ((select id from programmes where name = 'Diploma in Information Technology'), '44444444-4444-4444-4444-444444444408'),
-  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444408'),
-  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444410'),
-  ((select id from programmes where name = 'Diploma in Applied AI'), '44444444-4444-4444-4444-444444444411'),
-  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444402'),
-  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444409'),
-  ((select id from programmes where name = 'Workplace Safety & Health Certificate'), '44444444-4444-4444-4444-444444444422');
+-- ── Programme ↔ Track mapping: external students are grouped by programme
+-- through their track. ──────────────────────────────────────────────────
+insert into programme_tracks (programme_id, track_id)
+select p.id, t.id
+from (values
+  ('Diploma in Information Technology', 'Data Architecture Specialist'),
+  ('Diploma in Information Technology', 'Cloud & Distributed Systems'),
+  ('Diploma in Information Technology', 'DevOps & Platform Engineering'),
+  ('Diploma in Information Technology', 'General Enterprise Track'),
+  ('Diploma in Information Technology', 'Product & UX Track'),
+  ('Diploma in Applied AI', 'AI Engineering Track'),
+  ('Diploma in Applied AI', 'Machine Learning Research'),
+  ('Diploma in Applied AI', 'Data Storytelling & Insights'),
+  ('Diploma in Applied AI', 'Financial Analytics Track'),
+  ('Workplace Safety & Health Certificate', 'Workplace Safety Track'),
+  ('Workplace Safety & Health Certificate', 'Executive Operations')
+) as v(programme, track)
+join programmes p on p.name = v.programme
+join program_tracks t on t.name = v.track;
+
+-- Public students belong to a programme (the first one their track sits under).
+update students s
+set programme = (
+  select p.name
+  from programme_tracks pt
+  join programmes p on p.id = pt.programme_id
+  join program_tracks t on t.id = pt.track_id
+  where t.name = s.program_track
+  order by p.name
+  limit 1
+)
+where s.program_track is not null;
+
 
 -- ── Tags for a few of the new courses ─────────────────────────────────
 

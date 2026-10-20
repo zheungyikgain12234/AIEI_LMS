@@ -1,3 +1,4 @@
+import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
@@ -26,8 +27,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     final courseRows = await _client.from('courses').select('''
       id, course_title, course_description, category, image_url,
       course_tags(tags(label, color_hex)),
-      course_badges(badge_id, certifications(title)),
-      course_programmes(programmes(name))
+      course_badges(badge_id, certifications(title))
     ''');
 
     final enrollmentRows = await _client
@@ -89,7 +89,11 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
 
     // One card per enrollment: the same course in two different cohorts
     // shows as two classes, each with its own progress.
+    final programmeNamesByCourse = await SupabaseProgrammesRepositoryImpl(_client).getProgrammeNamesByCourse();
     final courseById = {for (final course in courseRows as List) course['id'] as String: course as Map<String, dynamic>};
+    for (final course in courseById.values) {
+      course['programme_names'] = programmeNamesByCourse[course['id']] ?? const <String>[];
+    }
     return [
       for (final e in enrollments)
         if (courseById[e.courseId] != null)
@@ -199,10 +203,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
           CourseBadgeInfo(name: entry['certifications']['title'] as String, earned: earnedBadgeIds.contains(entry['badge_id'] as String?), pendingApproval: pendingBadgeIds.contains(entry['badge_id'] as String?)),
     ];
     final badgeNames = [for (final b in badges) b.name];
-    final programmeNames = [
-      for (final entry in (course['course_programmes'] as List? ?? []))
-        if (entry['programmes'] != null) entry['programmes']['name'] as String,
-    ];
+    final programmeNames = [for (final name in (course['programme_names'] as List? ?? const [])) name as String];
 
     final categoryIcon = switch (category) {
       CourseCategory.compliance => Icons.verified_outlined,
@@ -404,11 +405,14 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     final courseRows = await _client.from('courses').select('''
       id, course_title, course_description, category, image_url,
       course_tags(tags(label, color_hex)),
-      course_badges(badge_id, certifications(title)),
-      course_programmes(programmes(name))
+      course_badges(badge_id, certifications(title))
     ''').inFilter('id', compulsoryCourseIds.toList());
 
     final progressByCourse = {for (final id in compulsoryCourseIds) id: 0};
+    final programmeNamesByCourse = await SupabaseProgrammesRepositoryImpl(_client).getProgrammeNamesByCourse();
+    for (final course in courseRows as List) {
+      (course as Map<String, dynamic>)['programme_names'] = programmeNamesByCourse[course['id']] ?? const <String>[];
+    }
     return [
       for (final course in courseRows as List)
         _mapCourse(

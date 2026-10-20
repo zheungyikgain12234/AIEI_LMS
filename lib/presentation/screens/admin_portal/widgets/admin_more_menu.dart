@@ -5,9 +5,16 @@ import 'admin_nav.dart';
 import 'admin_sidebar.dart';
 import 'pending_syllabus_badge.dart';
 
-/// The mobile "More" sheet — every entry of the desktop sidebar (same
-/// sections, same labels, same order) except the three that already have
-/// their own [AdminMobileBottomNav] tab (Lecturers / Students / Courses).
+/// Destinations that already have a tab in the bottom navigation.
+const _inBottomNav = {
+  AdminNavDestination.manageLecturers,
+  AdminNavDestination.manageStudents,
+  AdminNavDestination.manageCourses,
+};
+
+/// The mobile "More" sheet — the same groups and labels as the desktop sidebar
+/// ([adminMenuGroups]), except the three entries that already have their own
+/// [AdminMobileBottomNav] tab (Lecturers / Students / Courses).
 Future<void> showAdminMoreMenu(BuildContext context) {
   return showModalBottomSheet(
     context: context,
@@ -31,32 +38,21 @@ Future<void> showAdminMoreMenu(BuildContext context) {
                   decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(9999)),
                 ),
               ),
-              _section('MASTER DATA'),
-              _tile(context, sheetContext, Icons.hub_outlined, 'Manage Cohorts', AdminNavDestination.manageCohorts),
-              _tile(context, sheetContext, Icons.apartment_outlined, 'Manage Student Depts', AdminNavDestination.manageDepartments),
-              _tile(context, sheetContext, Icons.work_outline, 'Manage Student Roles', AdminNavDestination.manageRoles),
-              _tile(context, sheetContext, Icons.workspace_premium_outlined, 'Manage Programmes', AdminNavDestination.manageProgrammes),
-              _tile(context, sheetContext, Icons.alt_route_outlined, 'Manage Student Tracks', AdminNavDestination.manageProgramTracks),
-              _tile(context, sheetContext, Icons.corporate_fare_outlined, 'Manage Lecturer Depts', AdminNavDestination.manageLecturerDepartments),
-              _tile(context, sheetContext, Icons.psychology_outlined, 'Manage Teaching Competencies', AdminNavDestination.manageSpecializations),
-              _tile(context, sheetContext, Icons.sell_outlined, 'Manage Course Tags', AdminNavDestination.manageCourseTags),
-              _tile(context, sheetContext, Icons.military_tech_outlined, 'Manage Badges', AdminNavDestination.manageBadgeCatalog),
-              _tile(context, sheetContext, Icons.view_module_outlined, 'Manage Module Lists', AdminNavDestination.manageModuleLists),
-              _section('ACADEMIC OPERATIONS'),
-              _tile(context, sheetContext, Icons.school_outlined, 'Programme ↔ Course Mapping', AdminNavDestination.programmeCourseMapping),
-              _tile(context, sheetContext, Icons.alt_route, 'Track ↔ Course Mapping', AdminNavDestination.trackCourseMapping),
-              _tile(context, sheetContext, Icons.swap_horiz_outlined, 'Role ↔ Course Mapping', AdminNavDestination.roleCourseMapping),
-              _tile(context, sheetContext, Icons.account_tree_outlined, 'Staff Student Department ↔ Course Mapping', AdminNavDestination.departmentCourseMapping),
-              _tile(context, sheetContext, Icons.psychology_alt_outlined, 'Teaching Competency ↔ Course Mapping', AdminNavDestination.specializationCourseMapping),
-              _tile(context, sheetContext, Icons.military_tech_outlined, 'Badge ↔ Course Mapping', AdminNavDestination.badgeCourseMapping),
-              _tile(context, sheetContext, Icons.event_note_outlined, 'Manage Classes', AdminNavDestination.manageClasses),
-              _tile(context, sheetContext, Icons.fact_check_outlined, 'Manage Syllabi', AdminNavDestination.manageSyllabi),
-              _tile(context, sheetContext, Icons.rule_outlined, 'Grade Approvals', AdminNavDestination.gradeApprovals),
-              _tile(context, sheetContext, Icons.approval_outlined, 'Badge Approvals', AdminNavDestination.badgeApprovals),
-              _tile(context, sheetContext, Icons.military_tech_outlined, 'Manage Badge Award', AdminNavDestination.manageBadges),
-              _section('SYSTEM'),
-              _tile(context, sheetContext, Icons.admin_panel_settings_outlined, 'Manage Admin', AdminNavDestination.manageAdmins),
-              _tile(context, sheetContext, Icons.settings_outlined, 'Settings', AdminNavDestination.settings),
+              for (final group in adminMenuGroups)
+                if (group.items.any((i) => !_inBottomNav.contains(i.destination)))
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                    padding: const EdgeInsets.only(bottom: 4),
+                    decoration: BoxDecoration(color: group.tint, borderRadius: BorderRadius.circular(14)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _section(group.title),
+                        for (final item in group.items)
+                          if (!_inBottomNav.contains(item.destination)) _tile(context, sheetContext, item.icon, item.label, item.destination),
+                      ],
+                    ),
+                  ),
             ],
           ),
         ),
@@ -74,6 +70,7 @@ Widget _section(String label) {
 
 Widget _tile(BuildContext pageContext, BuildContext sheetContext, IconData icon, String label, AdminNavDestination dest) {
   return ListTile(
+    tileColor: Colors.transparent,
     leading: Icon(icon, color: AdminColors.onSurfaceVariant),
     title: Text(label, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
     trailing: dest == AdminNavDestination.manageSyllabi ? const PendingSyllabusDot() : null,

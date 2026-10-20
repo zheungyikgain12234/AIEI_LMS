@@ -13,8 +13,8 @@
 drop table if exists
   app_settings, grade_scale, section_attendance_settings, grade_distribution_requests,
   course_announcements, course_sections,
-  lecturer_competencies, badge_award_requests, badge_awards, course_badges, student_certifications, student_materials, student_courses,
-  course_programmes, specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
+  programme_tracks, lecturer_competencies, badge_award_requests, badge_awards, course_badges, student_certifications, student_materials, student_courses,
+  specialization_courses, track_courses, department_courses, role_courses, lecturer_courses, module_certs, certifications,
   course_tags, tags, module_list_items, module_lists,
   template_content_blocks, template_sessions, template_modules, syllabus_templates,
   content_block_submissions, assignment_criteria,
@@ -78,6 +78,16 @@ create table program_tracks (
   created_at timestamptz not null default now()
 );
 create unique index program_tracks_name_ci_idx on program_tracks (lower(name));
+
+-- Which programme each track belongs to (Programme ↔ Track Mapping). External
+-- (public) students are grouped by programme, and a track
+-- can sit under several programmes (and a programme has many tracks). Courses
+-- then come through track_courses.
+create table programme_tracks (
+  programme_id uuid not null references programmes(id) on delete cascade,
+  track_id uuid not null references program_tracks(id) on delete cascade,
+  primary key (programme_id, track_id)
+);
 
 create table cohorts (
   id uuid primary key default gen_random_uuid(),
@@ -159,6 +169,9 @@ create table students (
   department text references departments(name) on update cascade,
   title text,
   program_track text references program_tracks(name) on update cascade,
+  -- A public student belongs to a programme and, within it, a track. A track
+  -- can sit under several programmes, so the programme is stored here.
+  programme text references programmes(name) on update cascade,
   -- Not collected at registration — a student's cohort follows from the
   -- class they're later enrolled into, not a standalone choice up front.
   cohort text references cohorts(name) on update cascade,
@@ -488,13 +501,6 @@ create table department_courses (
   primary key (department_id, course_id)
 );
 
--- Which programmes a course belongs to — drives the Programme ↔ Course
--- Mapping screen. Optional: a course may map to zero, one or many programmes.
-create table course_programmes (
-  programme_id uuid not null references programmes(id) on delete cascade,
-  course_id uuid not null references courses(id) on delete cascade,
-  primary key (programme_id, course_id)
-);
 
 -- Which courses are relevant to which program track — drives the Track ↔
 -- Course Mapping screen.
@@ -707,7 +713,6 @@ insert into grade_scale (letter, min_score, sort_order) values
 
 alter table departments enable row level security;
 alter table programmes enable row level security;
-alter table course_programmes enable row level security;
 alter table program_tracks enable row level security;
 alter table cohorts enable row level security;
 alter table lecturer_departments enable row level security;
@@ -754,13 +759,14 @@ alter table section_attendance_settings enable row level security;
 alter table grade_distribution_requests enable row level security;
 alter table badge_award_requests enable row level security;
 alter table lecturer_competencies enable row level security;
+alter table programme_tracks enable row level security;
 
 do $$
 declare
   t text;
 begin
   foreach t in array array[
-    'departments', 'programmes', 'course_programmes', 'program_tracks', 'cohorts',
+    'departments', 'programmes', 'program_tracks', 'cohorts',
     'lecturer_departments', 'specializations', 'roles',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'sessions', 'content_blocks',
@@ -770,7 +776,7 @@ begin
     'tags', 'course_tags', 'module_lists', 'module_list_items', 'certifications', 'course_badges', 'module_certs',
     'lecturer_courses', 'role_courses', 'department_courses', 'track_courses', 'specialization_courses', 'student_courses', 'student_materials',
     'student_certifications', 'badge_awards', 'course_sections', 'course_announcements',
-    'app_settings', 'grade_scale', 'section_attendance_settings', 'grade_distribution_requests', 'badge_award_requests', 'lecturer_competencies'
+    'app_settings', 'grade_scale', 'section_attendance_settings', 'grade_distribution_requests', 'badge_award_requests', 'lecturer_competencies', 'programme_tracks'
   ]
   loop
     execute format('create policy "anon read" on %I for select using (true)', t);
@@ -837,7 +843,6 @@ create index if not exists module_certs_cert_id_idx on module_certs (cert_id);
 create index if not exists lecturer_courses_course_id_idx on lecturer_courses (course_id);
 create index if not exists role_courses_course_id_idx on role_courses (course_id);
 create index if not exists department_courses_course_id_idx on department_courses (course_id);
-create index if not exists course_programmes_course_id_idx on course_programmes (course_id);
 create index if not exists track_courses_course_id_idx on track_courses (course_id);
 create index if not exists specialization_courses_course_id_idx on specialization_courses (course_id);
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/class_calendar.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -27,6 +28,9 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
   String? _error;
   List<AssignedCourse> _classes = const [];
 
+  /// All of the lecturer's classes, so the calendar can be paged to any month.
+  List<AssignedCourse> _allClasses = const [];
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +42,7 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
       final all = await _repository.getAssignedCourses(DemoIdentity.lecturerId);
       if (!mounted) return;
       setState(() {
+        _allClasses = all;
         _classes = all.where((c) => c.isActive).toList();
         _isLoading = false;
       });
@@ -98,11 +103,24 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
                   ? Padding(padding: const EdgeInsets.fromLTRB(30, 12, 20, 12), child: Text(_error!, style: FacultyTypography.bodySm(color: FacultyColors.error)))
                   : _classes.isEmpty
                       ? Padding(padding: const EdgeInsets.fromLTRB(30, 12, 20, 12), child: Text('No active classes right now.', style: FacultyTypography.bodySm()))
-                      : ListView.separated(
+                      : ListView(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                          itemCount: _classes.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 10),
-                          itemBuilder: (_, i) => _classCard(_classes[i]),
+                          children: [
+                            if (_classes.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+                                child: Text('No active classes right now.', style: FacultyTypography.bodySm()),
+                              )
+                            else
+                              for (final c in _classes) ...[_classCard(c), const SizedBox(height: 10)],
+                            // Class days: each class's weekday, within its own date range.
+                            ClassCalendar(
+                              classes: [
+                                for (final c in _allClasses)
+                                  CalendarClass.fromScheduleText(title: c.title, scheduleText: c.scheduleText, startDate: c.startDate, endDate: c.endDate),
+                              ],
+                            ),
+                          ],
                         ),
         ),
       ],

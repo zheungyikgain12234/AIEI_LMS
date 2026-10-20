@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
+import 'student_schedule_sidebar.dart';
 
 class PortalSidebar extends StatelessWidget {
   final int selectedIndex;
@@ -25,10 +26,14 @@ class PortalSidebar extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
           // Enrolled Courses Item (Active)
           _SidebarNavItem(
             title: 'My Enrolled Courses',
@@ -51,6 +56,11 @@ class PortalSidebar extends StatelessWidget {
             icon: Icons.grading_outlined,
             onTap: () => onDestinationSelected?.call(2),
           ),
+              ],
+            ),
+          ),
+          // The student's active classes and a calendar of their class days.
+          const Expanded(child: StudentScheduleSidebar()),
         ],
       ),
     );

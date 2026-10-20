@@ -1,8 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/domain/models/programme.dart';
 
-/// Programme master data plus the optional Programme ↔ Course mapping
-/// (`course_programmes`).
+/// Programme master data, plus the programmes each course falls under, derived
+/// from Programme ↔ Track Mapping and Track ↔ Course Mapping.
 class SupabaseProgrammesRepositoryImpl {
   SupabaseProgrammesRepositoryImpl(this._client);
 
@@ -32,31 +32,24 @@ class SupabaseProgrammesRepositoryImpl {
     await _client.from('programmes').delete().inFilter('id', ids);
   }
 
-  Future<Set<String>> getCourseIdsForProgramme(String programmeId) async {
-    final rows = await _client.from('course_programmes').select('course_id').eq('programme_id', programmeId);
-    return {for (final row in rows as List) row['course_id'] as String};
-  }
-
-  Future<void> setCourseForProgramme(String programmeId, String courseId, bool mapped) async {
-    if (mapped) {
-      await _client.from('course_programmes').upsert(
-        {'programme_id': programmeId, 'course_id': courseId},
-        onConflict: 'programme_id,course_id',
-      );
-    } else {
-      await _client.from('course_programmes').delete().eq('programme_id', programmeId).eq('course_id', courseId);
-    }
-  }
-
-  /// Programme names per course id, sorted by name — for the lecturer
-  /// portal's class list pills. Courses with no programme are absent.
+  /// Programme names per course id, sorted by name — for the programme pills in
+  /// the student and lecturer portals. A course falls under a programme when one
+  /// of its tracks (Track ↔ Course Mapping) belongs to that programme
+  /// (Programme ↔ Track Mapping). Courses with no programme are absent.
   Future<Map<String, List<String>>> getProgrammeNamesByCourse() async {
-    final rows = await _client.from('course_programmes').select('course_id, programmes(name)');
-    final result = <String, List<String>>{};
-    for (final row in rows as List) {
+    final trackRows = await _client.from('programme_tracks').select('track_id, programmes(name)');
+    final programmesByTrack = <String, List<String>>{};
+    for (final row in trackRows as List) {
       final name = (row['programmes'] as Map<String, dynamic>?)?['name'] as String?;
-      if (name == null) continue;
-      result.putIfAbsent(row['course_id'] as String, () => []).add(name);
+      if (name != null) programmesByTrack.putIfAbsent(row['track_id'] as String, () => []).add(name);
+    }
+    final courseRows = await _client.from('track_courses').select('course_id, track_id');
+    final result = <String, List<String>>{};
+    for (final row in courseRows as List) {
+      final names = result.putIfAbsent(row['course_id'] as String, () => []);
+      for (final name in programmesByTrack[row['track_id']] ?? const <String>[]) {
+        if (!names.contains(name)) names.add(name);
+      }
     }
     for (final names in result.values) {
       names.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));

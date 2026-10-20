@@ -83,7 +83,8 @@ class EnrolledCourse {
   /// (light blue pill if not yet, green if granted).
   final List<CourseBadgeInfo> badges;
 
-  /// Programmes (`course_programmes`) this course is mapped to.
+  /// Programmes this course falls under, through its tracks (Programme ↔ Track
+  /// Mapping and Track ↔ Course Mapping).
   final List<String> programmeNames;
   final String ctaButtonText;
   final bool isCompleted;

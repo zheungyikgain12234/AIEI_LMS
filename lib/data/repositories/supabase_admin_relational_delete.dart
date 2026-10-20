@@ -53,7 +53,10 @@ const _masterRefs = <MasterKind, List<_Ref>>{
   MasterKind.programTrack: [
     _Ref('students', 'program_track', true, 'Students', 'name', 'student_code'),
   ],
-  MasterKind.programme: <_Ref>[], // only course_programmes link rows, which cascade
+  // Public students store their programme; programme_tracks link rows cascade.
+  MasterKind.programme: [
+    _Ref('students', 'programme', true, 'Students', 'name', 'student_code'),
+  ],
   MasterKind.cohort: <_Ref>[],
   MasterKind.lecturerDepartment: [
     _Ref('lecturers', 'department', true, 'Lecturers', 'name', 'lecturer_code'),

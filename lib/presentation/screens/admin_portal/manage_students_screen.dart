@@ -22,7 +22,6 @@ import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/department.dart';
 import 'package:stitch_aiei_lms/domain/models/program_track.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_programme_track_mapping_repository_impl.dart';
-import 'package:stitch_aiei_lms/data/repositories/student_schedule_conflicts.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
@@ -642,15 +641,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       context: context,
       builder: (ctx) => _BulkEnrollDialog(
         studentCount: studentIds.length,
-        checkClashes: (section) async {
-          // The same rule as assigning a lecturer: no two classes at the same day, time and dates.
-          final clashes = await findStudentScheduleConflicts(_client, studentIds: studentIds, sectionId: section.id);
-          if (clashes.isEmpty) return null;
-          String nameOf(String id) => _students.where((s) => s.id == id).map((s) => s.name).firstOrNull ?? 'Student $id';
-          return 'Schedule clash — ${clashes.length == 1 ? 'this student already attends' : 'these students already attend'} a class at the same time: '
-              '${clashes.entries.map((e) => '${nameOf(e.key)} (${e.value.join("; ")})').join('; ')}. '
-              'Choose a different class, or remove ${clashes.length == 1 ? 'them' : 'them'} from the selection.';
-        },
         sections: sections,
         programTracks: programTracks,
         departments: departments,
@@ -675,13 +665,43 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       if (outcome.inOtherClass.isNotEmpty)
         'Already enrolled in another class of this course in the same cohort (not changed — unenroll them first to move): '
             '${outcome.inOtherClass.entries.map((e) => '${nameOf(e.key)} (${e.value})').join(', ')}.',
-      if (outcome.scheduleClashes.isNotEmpty)
-        'Not enrolled — schedule clash with a class they already attend: '
-            '${outcome.scheduleClashes.entries.map((e) => '${nameOf(e.key)} (${e.value})').join('; ')}.',
     ];
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(lines.join('\n')), duration: Duration(seconds: lines.length > 1 ? 10 : 4)),
-    );
+    if (lines.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(lines.join('\n')), duration: Duration(seconds: lines.length > 1 ? 10 : 4)),
+      );
+    }
+    if (outcome.scheduleClashes.isNotEmpty) {
+      final byId = {for (final st in _students) st.id: st};
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('${outcome.scheduleClashes.length} student${outcome.scheduleClashes.length == 1 ? '' : 's'} not enrolled — schedule clash'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('These students already attend a class at the same time as ${chosen.sectionCode}. Everyone else was enrolled.'),
+                  const SizedBox(height: 12),
+                  for (final e in outcome.scheduleClashes.entries) ...[
+                    Text(
+                      byId[e.key] == null ? 'Student ${e.key}' : '${displayCode(byId[e.key]!.studentCode)} — ${byId[e.key]!.name}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    for (final c in e.value) Padding(padding: const EdgeInsets.only(left: 12, top: 2), child: Text('• $c')),
+                    const SizedBox(height: 10),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+        ),
+      );
+    }
   }
 
   @override
@@ -1571,9 +1591,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
 class _BulkEnrollDialog extends StatefulWidget {
   final int studentCount;
 
-  /// Null when [section] is fine for every selected student, otherwise why not
-  /// (a schedule clash). Shown under the class dropdown.
-  final Future<String?> Function(CourseSection section) checkClashes;
   final List<CourseSection> sections;
   final List<ProgramTrack> programTracks;
   final List<Department> departments;
@@ -1584,7 +1601,6 @@ class _BulkEnrollDialog extends StatefulWidget {
 
   const _BulkEnrollDialog({
     required this.studentCount,
-    required this.checkClashes,
     required this.sections,
     required this.programTracks,
     required this.departments,
@@ -1656,21 +1672,13 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
     return AdminFormDialog(
       title: 'Enrol $count student${count == 1 ? '' : 's'}',
       submitChild: const Text('Enrol'),
-      onSubmit: () async {
+      onSubmit: () {
         final id = _selectedSectionId;
         if (id == null) {
           setState(() => _sectionError = 'Select a class to enrol into.');
           return;
         }
-        final navigator = Navigator.of(context);
-        final section = widget.sections.firstWhere((s) => s.id == id);
-        final clash = await widget.checkClashes(section);
-        if (!mounted) return;
-        if (clash != null) {
-          setState(() => _sectionError = clash);
-          return;
-        }
-        navigator.pop(section);
+        Navigator.of(context).pop(widget.sections.firstWhere((s) => s.id == id));
       },
       child: Column(
           mainAxisSize: MainAxisSize.min,

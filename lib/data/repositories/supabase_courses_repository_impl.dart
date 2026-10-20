@@ -462,4 +462,54 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     }
     return true;
   }
+
+  @override
+  Future<List<EnrollableClass>> getEnrollableClasses(String courseId, {String? cohortId}) async {
+    var query = _client
+        .from('course_sections')
+        .select('id, section_code, cohort_id, day_of_week, start_time, end_time, start_date, end_date, location, status, cohorts(name)')
+        .eq('course_id', courseId);
+    if (cohortId != null) query = query.eq('cohort_id', cohortId);
+    final sections = (await query.order('section_code') as List).cast<Map<String, dynamic>>().where((s) => s['status'] != 'cancelled').toList();
+    if (sections.isEmpty) return [];
+
+    final existing = await _client
+        .from('student_courses')
+        .select('section_id, course_sections(cohort_id)')
+        .eq('student_id', DemoIdentity.studentId)
+        .eq('course_id', courseId);
+    final cohortsTaken = {
+      for (final row in existing as List) (row['course_sections'] as Map<String, dynamic>?)?['cohort_id'] as String?,
+    };
+
+    final result = <EnrollableClass>[];
+    for (final s in sections) {
+      if (cohortsTaken.contains(s['cohort_id'] as String?)) continue;
+      final clashes = await findStudentScheduleConflicts(_client, studentIds: [DemoIdentity.studentId], sectionId: s['id'] as String);
+      if (clashes.isNotEmpty) continue;
+      final day = s['day_of_week'] as String?;
+      final start = s['start_time'] as String?;
+      final end = s['end_time'] as String?;
+      result.add(EnrollableClass(
+        sectionId: s['id'] as String,
+        sectionCode: s['section_code'] as String,
+        cohortName: (s['cohorts'] as Map<String, dynamic>?)?['name'] as String?,
+        scheduleText: day != null && start != null && end != null
+            ? '$day ${start.substring(0, 5)}–${end.substring(0, 5)}'
+            : 'Schedule TBD',
+        location: s['location'] as String?,
+      ));
+    }
+    return result;
+  }
+
+  @override
+  Future<void> enrollInSection(String courseId, String sectionId) async {
+    final clashes = await findStudentScheduleConflicts(_client, studentIds: [DemoIdentity.studentId], sectionId: sectionId);
+    final clash = clashes[DemoIdentity.studentId];
+    if (clash != null) {
+      throw ScheduleConflictException('This class clashes with a class you already attend: ${clash.join("; ")}.');
+    }
+    await _client.from('student_courses').insert({'student_id': DemoIdentity.studentId, 'course_id': courseId, 'section_id': sectionId});
+  }
 }

@@ -222,7 +222,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
       enrolled: toEnroll,
       alreadyInThisClass: alreadyInThisClass,
       inOtherClass: inOtherClass,
-      scheduleClashes: {for (final e in clashes.entries) e.key: e.value.join("; ")},
+      scheduleClashes: clashes,
     );
   }
 

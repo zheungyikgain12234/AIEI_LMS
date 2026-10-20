@@ -168,11 +168,22 @@ class CoursesNotifier extends Notifier<CoursesState> {
   /// cohort chosen in the "Compulsory for You" filters. Returns false (nothing changed) if the course
   /// has no such class yet; on success, reloads so the course moves out of
   /// "Compulsory for You" into the enrolled list.
+  String? get _compulsoryCohortId => [
+        for (final c in state.cohorts)
+          if (c.name == state.effectiveCompulsoryCohort && c.year == state.effectiveCompulsoryYear) c.id,
+      ].firstOrNull;
+
+  /// Classes of [courseId] in the chosen cohort that don't clash with the student's schedule.
+  Future<List<EnrollableClass>> enrollableClasses(String courseId) =>
+      _repository.getEnrollableClasses(courseId, cohortId: _compulsoryCohortId);
+
+  Future<void> enrollInSection(String courseId, String sectionId) async {
+    await _repository.enrollInSection(courseId, sectionId);
+    await loadInitialData();
+  }
+
   Future<bool> enrollInCompulsoryCourse(String courseId) async {
-    final cohortId = [
-      for (final c in state.cohorts)
-        if (c.name == state.effectiveCompulsoryCohort && c.year == state.effectiveCompulsoryYear) c.id,
-    ].firstOrNull;
+    final cohortId = _compulsoryCohortId;
     final enrolled = await _repository.enrollInCompulsoryCourse(courseId, cohortId: cohortId);
     if (enrolled) await loadInitialData();
     return enrolled;

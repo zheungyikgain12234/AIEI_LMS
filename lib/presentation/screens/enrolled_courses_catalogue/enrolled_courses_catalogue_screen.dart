@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/domain/repositories/courses_repository.dart' show EnrollableClass;
 import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show ScheduleConflictException;
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -207,22 +208,60 @@ class _EnrolledCoursesCatalogueScreenState
   }
 
   Future<void> _enrollInCompulsoryCourse(BuildContext context, EnrolledCourse course) async {
-    final bool enrolled;
+    final notifier = ref.read(coursesControllerProvider.notifier);
+    final classes = await runWithBusy(context, 'Finding classes…', () => notifier.enrollableClasses(course.id));
+    if (!context.mounted) return;
+    if (classes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No class available for the selected cohort that fits your schedule, please try again later.'),
+          duration: Duration(seconds: 6),
+        ),
+      );
+      return;
+    }
+    final chosen = await showDialog<EnrollableClass>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Enroll in ${course.title}'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('These classes don\'t clash with your schedule. Pick one to enroll.', style: AppTypography.bodyMd(color: AppColors.onSurfaceVariant)),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final c in classes)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(c.sectionCode),
+                        subtitle: Text([c.scheduleText, if (c.cohortName != null) c.cohortName!, if (c.location != null && c.location!.isNotEmpty) c.location!].join(' · ')),
+                        trailing: FilledButton(onPressed: () => Navigator.of(ctx).pop(c), child: const Text('Enroll')),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel'))],
+      ),
+    );
+    if (chosen == null || !context.mounted) return;
     try {
-      enrolled = await runWithBusy(context, 'Enrolling…', () => ref.read(coursesControllerProvider.notifier).enrollInCompulsoryCourse(course.id));
+      await runWithBusy(context, 'Enrolling…', () => notifier.enrollInSection(course.id, chosen.sectionId));
     } on ScheduleConflictException catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), duration: const Duration(seconds: 8)));
       return;
     }
     if (!context.mounted) return;
-    if (enrolled) {
-      showSuccessSnackBar(context, 'Enrolled in ${course.title}.');
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No class available for the selected cohort as of now, please try again later.')),
-    );
+    showSuccessSnackBar(context, 'Enrolled in ${course.title} (${chosen.sectionCode}).');
   }
 
   void _openCourse(BuildContext context, EnrolledCourse course) {

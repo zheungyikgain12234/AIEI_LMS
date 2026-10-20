@@ -3,6 +3,23 @@ import '../models/course_stats.dart';
 import '../models/critical_action_item.dart';
 import '../models/module_material.dart';
 
+/// A class of a course the student can join without clashing with their schedule.
+class EnrollableClass {
+  final String sectionId;
+  final String sectionCode;
+  final String? cohortName;
+  final String scheduleText;
+  final String? location;
+
+  const EnrollableClass({
+    required this.sectionId,
+    required this.sectionCode,
+    required this.scheduleText,
+    this.cohortName,
+    this.location,
+  });
+}
+
 abstract class CoursesRepository {
   Future<List<EnrolledCourse>> getEnrolledCourses();
   /// Pass [courses] (already loaded) to skip fetching them a second time.
@@ -27,4 +44,13 @@ abstract class CoursesRepository {
   /// compulsory-but-not-enrolled course. Returns false (no write performed)
   /// if the course has no class yet (in [cohortId], when given).
   Future<bool> enrollInCompulsoryCourse(String courseId, {String? cohortId});
+
+  /// Classes of [courseId] (in [cohortId], when given) the demo student can
+  /// join: none of them clash with a class they already attend. Empty when
+  /// they already have a class of the course in that cohort.
+  Future<List<EnrollableClass>> getEnrollableClasses(String courseId, {String? cohortId});
+
+  /// Enrolls the demo student into the chosen class of [courseId]. Throws
+  /// [ScheduleConflictException] if it now clashes with one they attend.
+  Future<void> enrollInSection(String courseId, String sectionId);
 }

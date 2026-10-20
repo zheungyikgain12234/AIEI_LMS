@@ -112,5 +112,5 @@ typedef EnrollOutcome = ({
 
   /// Students not enrolled because the class overlaps one they already attend
   /// (same day, time and course dates), with a description of that class.
-  Map<String, String> scheduleClashes,
+  Map<String, List<String>> scheduleClashes,
 });

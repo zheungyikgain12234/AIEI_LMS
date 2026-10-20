@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:stitch_aiei_lms/data/repositories/student_schedule_conflicts.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
@@ -208,13 +209,21 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
       }
     }
     final skipped = {...alreadyInThisClass, ...inOtherClass.keys};
-    final toEnroll = [for (final id in studentIds) if (!skipped.contains(id)) id];
+    final candidates = [for (final id in studentIds) if (!skipped.contains(id)) id];
+    // A student already in a class at the same day, time and dates is not enrolled.
+    final clashes = await findStudentScheduleConflicts(_client, studentIds: candidates, sectionId: sectionId);
+    final toEnroll = [for (final id in candidates) if (!clashes.containsKey(id)) id];
     if (toEnroll.isNotEmpty) {
       await _client.from('student_courses').insert([
         for (final studentId in toEnroll) {'student_id': studentId, 'course_id': courseId, 'section_id': sectionId},
       ]);
     }
-    return (enrolled: toEnroll, alreadyInThisClass: alreadyInThisClass, inOtherClass: inOtherClass);
+    return (
+      enrolled: toEnroll,
+      alreadyInThisClass: alreadyInThisClass,
+      inOtherClass: inOtherClass,
+      scheduleClashes: {for (final e in clashes.entries) e.key: e.value.join("; ")},
+    );
   }
 
   @override

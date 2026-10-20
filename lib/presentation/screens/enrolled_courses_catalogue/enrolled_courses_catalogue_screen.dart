@@ -1,6 +1,7 @@
 import 'package:stitch_aiei_lms/core/utils/busy_overlay.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show ScheduleConflictException;
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
@@ -206,7 +207,14 @@ class _EnrolledCoursesCatalogueScreenState
   }
 
   Future<void> _enrollInCompulsoryCourse(BuildContext context, EnrolledCourse course) async {
-    final enrolled = await runWithBusy(context, 'Enrolling…', () => ref.read(coursesControllerProvider.notifier).enrollInCompulsoryCourse(course.id));
+    final bool enrolled;
+    try {
+      enrolled = await runWithBusy(context, 'Enrolling…', () => ref.read(coursesControllerProvider.notifier).enrollInCompulsoryCourse(course.id));
+    } on ScheduleConflictException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), duration: const Duration(seconds: 8)));
+      return;
+    }
     if (!context.mounted) return;
     if (enrolled) {
       showSuccessSnackBar(context, 'Enrolled in ${course.title}.');

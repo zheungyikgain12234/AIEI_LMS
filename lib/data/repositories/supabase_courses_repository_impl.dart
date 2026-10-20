@@ -1,5 +1,7 @@
 import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/data/repositories/student_schedule_conflicts.dart';
+import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show ScheduleConflictException;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/core/config/demo_identity.dart';
 import 'package:stitch_aiei_lms/core/session/app_session.dart';
@@ -449,6 +451,13 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       return row['section_id'] == sectionId || other == null || other['cohort_id'] == targetCohort;
     });
     if (!alreadyInCohort) {
+      // Refuse a class that overlaps one the student already attends.
+      final clashes = await findStudentScheduleConflicts(_client, studentIds: [DemoIdentity.studentId], sectionId: sectionId);
+      final clash = clashes[DemoIdentity.studentId];
+      if (clash != null) {
+        throw ScheduleConflictException('This class clashes with a class you already attend: ${clash.join("; ")}. '
+            'You can\x27t enrol in two classes at the same time.');
+      }
       await _client.from('student_courses').insert({'student_id': DemoIdentity.studentId, 'course_id': courseId, 'section_id': sectionId});
     }
     return true;

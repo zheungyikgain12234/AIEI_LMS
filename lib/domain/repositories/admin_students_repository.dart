@@ -105,4 +105,12 @@ abstract class AdminStudentsRepository {
 /// Result of [AdminStudentsRepository.enrollStudentsInSection], as student ids.
 /// [inOtherClass] maps a student already in a different class of the course to
 /// that class's code (same cohort only).
-typedef EnrollOutcome = ({List<String> enrolled, List<String> alreadyInThisClass, Map<String, String> inOtherClass});
+typedef EnrollOutcome = ({
+  List<String> enrolled,
+  List<String> alreadyInThisClass,
+  Map<String, String> inOtherClass,
+
+  /// Students not enrolled because the class overlaps one they already attend
+  /// (same day, time and course dates), with a description of that class.
+  Map<String, String> scheduleClashes,
+});

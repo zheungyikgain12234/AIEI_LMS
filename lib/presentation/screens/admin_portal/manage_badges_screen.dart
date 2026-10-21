@@ -279,13 +279,13 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageBadges, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageBadges, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     // Only rows still visible (after a search) can stay selected, so the count
     // and Delete never include hidden records.
     final visibleIds = {for (final r in _filtered) r.id};
     _selected.retainWhere(visibleIds.contains);
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return AdminScaffold(
@@ -303,7 +303,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (<700px) layout — a drill-in screen (back-arrow top bar, no
+  // Mobile (≤ 900px) layout — a drill-in screen (back-arrow top bar, no
   // bottom nav; reached from the "More" menu), card list instead of the
   // desktop table's fixed-width columns.
   // ---------------------------------------------------------------------

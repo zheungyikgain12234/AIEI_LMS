@@ -117,7 +117,7 @@ class _MainTelemetryCard extends StatelessWidget {
 
           // Main Foreground Content
           Padding(
-            padding: EdgeInsets.all(MediaQuery.of(context).size.width < 700 ? 20 : 32),
+            padding: EdgeInsets.all(MediaQuery.of(context).size.width <= 900 ? 20 : 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,

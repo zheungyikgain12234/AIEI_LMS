@@ -90,7 +90,7 @@ class _CourseSyllabusPreviewScreenState extends State<CourseSyllabusPreviewScree
 
   @override
   Widget build(BuildContext context) {
-    final mobile = MediaQuery.of(context).size.width < 700;
+    final mobile = MediaQuery.of(context).size.width <= 900;
     return Scaffold(
       backgroundColor: FacultyColors.background,
       appBar: mobile

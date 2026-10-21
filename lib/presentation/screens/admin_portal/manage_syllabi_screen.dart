@@ -104,9 +104,9 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageSyllabi, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageSyllabi, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return Scaffold(
         backgroundColor: AdminColors.background,
         appBar: const AdminMobileTopBar.detail(title: 'Manage Syllabi'),

@@ -126,13 +126,13 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.courseEnrollment, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.courseEnrollment, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
     final visibleIds = {for (final r in _filteredRoster) r.studentCode};
     _selected.retainWhere(visibleIds.contains);
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return AdminScaffold(
@@ -433,7 +433,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   }
 
   // -------------------------------------------------------------------------
-  // Mobile (< 700px) layout — separate Scaffold, reuses the same _roster data.
+  // Mobile (≤ 900px) layout — separate Scaffold, reuses the same _roster data.
   // -------------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {

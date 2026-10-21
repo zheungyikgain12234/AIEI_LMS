@@ -114,7 +114,7 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
 
   @override
   Widget build(BuildContext context) {
-    final mobile = MediaQuery.of(context).size.width < 700;
+    final mobile = MediaQuery.of(context).size.width <= 900;
     if (mobile) {
       return Scaffold(
         backgroundColor: AdminColors.background,
@@ -284,7 +284,7 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
     );
   }
 
-  bool get _compact => MediaQuery.of(context).size.width < 700;
+  bool get _compact => MediaQuery.of(context).size.width <= 900;
 
   Widget _panel(Widget child) => Container(
         width: double.infinity,

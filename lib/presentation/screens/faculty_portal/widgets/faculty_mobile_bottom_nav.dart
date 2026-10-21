@@ -4,7 +4,7 @@ import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'faculty_sidebar.dart' show FacultyNavDestination;
 
-/// Shared mobile (< 700px) bottom tab bar for the Faculty Portal's root
+/// Shared mobile (≤ 900px) bottom tab bar for the Faculty Portal's root
 /// screens (My Courses / Grading / Students) — mirrors [FacultySidebar] but
 /// as a bottom nav, matching the Stitch mobile mockups.
 class FacultyMobileBottomNav extends StatelessWidget {

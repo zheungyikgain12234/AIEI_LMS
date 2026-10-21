@@ -137,13 +137,13 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageBadgeCatalog, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageBadgeCatalog, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
     final visibleIds = {for (final r in _filtered) r.id};
     _selected.retainWhere(visibleIds.contains);
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return AdminScaffold(

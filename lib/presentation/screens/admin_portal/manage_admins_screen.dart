@@ -233,11 +233,11 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageAdmins, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageAdmins, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     final visibleIds = {for (final r in _filtered) r.id};
     _selected.retainWhere(visibleIds.contains);
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return Scaffold(
         backgroundColor: AdminColors.background,
         appBar: const AdminMobileTopBar.detail(title: 'Manage Admin'),

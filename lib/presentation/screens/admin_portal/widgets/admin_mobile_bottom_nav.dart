@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 
-/// The root mobile (< 700px) bottom-nav destinations for the Admin Portal —
+/// The root mobile (≤ 900px) bottom-nav destinations for the Admin Portal —
 /// mirrors the top of the desktop sidebar. Everything else in the sidebar
 /// (Manage Classes, Manage Badges, Course Enrollment, Enroll Students, and
 /// the Master Data lookup screens) is reached via the "More" button, which
@@ -10,7 +10,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 /// there isn't room in a 4-icon bar for all of it.
 enum AdminMobileTab { lecturers, students, courses }
 
-/// Shared mobile (< 700px) bottom tab bar for the Admin Portal's root
+/// Shared mobile (≤ 900px) bottom tab bar for the Admin Portal's root
 /// screens (Lecturers / Students / Courses), plus a "More" launcher.
 class AdminMobileBottomNav extends StatelessWidget {
   final AdminMobileTab selected;

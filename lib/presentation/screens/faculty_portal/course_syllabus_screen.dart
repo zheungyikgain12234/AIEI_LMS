@@ -553,7 +553,7 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
   /// The read-only template preview: the same Modules and Sessions layout as
   /// the real syllabus page, minus every edit / mark / manage control.
   Widget _buildTemplatePreviewScaffold(BuildContext context) {
-    final mobile = MediaQuery.of(context).size.width < 700;
+    final mobile = MediaQuery.of(context).size.width <= 900;
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -622,10 +622,10 @@ await runWithBusy(context, 'Importing syllabus…', () async {      await _repos
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.myCourses, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.myCourses, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
     if (_isTemplatePreview) return _buildTemplatePreviewScaffold(context);
-    if (widget.isAdmin || MediaQuery.of(context).size.width < 700) {
+    if (widget.isAdmin || MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return FacultyScaffold(

@@ -196,9 +196,9 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.courseEnrollment, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.courseEnrollment, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     final postCapacity = _baseEnrolled + _staged.length;
@@ -621,7 +621,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (<700px) layout — a drill-in Scaffold (back-arrow top bar, no
+  // Mobile (≤ 900px) layout — a drill-in Scaffold (back-arrow top bar, no
   // bottom nav). Reuses the existing `_candidates` data list and `_staged`
   // toggle state so staging behavior stays identical.
   // ---------------------------------------------------------------------

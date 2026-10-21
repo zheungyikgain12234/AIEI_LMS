@@ -19,7 +19,7 @@ class CertificationsBadgesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(badgesControllerProvider);
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = MediaQuery.of(context).size.width <= 900;
 
     if (isMobile) {
       return Scaffold(

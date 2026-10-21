@@ -651,7 +651,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return FacultyScaffold(
@@ -1353,7 +1353,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (<700px) layout — the same content as desktop (class header, KPI
+  // Mobile (≤ 900px) layout — the same content as desktop (class header, KPI
   // cards, course contents, announcements and the Student Directory table).
   // Every desktop section is already responsive (KPIs and announcement cards
   // stack, the directory scrolls horizontally with the student column pinned),

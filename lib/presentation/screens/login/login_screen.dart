@@ -18,10 +18,8 @@ class _LoginColors {
   static const Color brandBlue = Color(0xFF1E40AF);
   static const Color indigo = Color(0xFF4F46E5);
   static const Color amber = Color(0xFFD97706);
-  static const Color emerald = Color(0xFF059669);
 
   static const Color slate900 = Color(0xFF0F172A);
-  static const Color slate800 = Color(0xFF1E293B);
   static const Color slate700 = Color(0xFF334155);
   static const Color slate600 = Color(0xFF475569);
   static const Color slate500 = Color(0xFF64748B);
@@ -35,16 +33,12 @@ class _LoginColors {
 class _RoleOption {
   final IconData icon;
   final String label;
-  final String portalTitle;
-  final String portalDescription;
   final Color accent;
   final Color accentBg;
 
   const _RoleOption({
     required this.icon,
     required this.label,
-    required this.portalTitle,
-    required this.portalDescription,
     required this.accent,
     required this.accentBg,
   });
@@ -54,24 +48,18 @@ const List<_RoleOption> _kRoles = [
   _RoleOption(
     icon: Icons.school_outlined,
     label: 'Student',
-    portalTitle: 'Student Portal',
-    portalDescription: 'Curricula, assessments, lab submissions & verified skill badges.',
     accent: _LoginColors.brandBlue,
     accentBg: Color(0xFFDBEAFE),
   ),
   _RoleOption(
     icon: Icons.badge_outlined,
     label: 'Lecturer',
-    portalTitle: 'Lecturer Portal',
-    portalDescription: 'Course cohorts, rapid grading, syllabus orchestration & evaluations.',
     accent: _LoginColors.indigo,
     accentBg: Color(0xFFE0E7FF),
   ),
   _RoleOption(
     icon: Icons.shield_outlined,
     label: 'Admin',
-    portalTitle: 'Administrative Console',
-    portalDescription: 'Lecturer allocations, student registrar & compliance certification.',
     accent: _LoginColors.amber,
     accentBg: Color(0xFFFEF3C7),
   ),
@@ -141,49 +129,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobile(context);
     }
     return _buildDesktop(context);
   }
 
   // ── Shared bits ─────────────────────────────────────────────────────────
-
-  Widget _statusPill() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFECFDF5),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFA7F3D0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 8, height: 8, decoration: const BoxDecoration(color: _LoginColors.emerald, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'All Systems Operational',
-              overflow: TextOverflow.ellipsis,
-              style: _text(size: 11, weight: FontWeight.w500, color: _LoginColors.emerald),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _helpLink() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.help_outline, size: 16, color: _LoginColors.slate400),
-        const SizedBox(width: 4),
-        Text('Help & Support', style: _text(size: 12, weight: FontWeight.w500, color: _LoginColors.slate500)),
-      ],
-    );
-  }
 
   Widget _logoBadge({double height = 24}) {
     return Container(
@@ -324,40 +276,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _roleGuidanceCard(_RoleOption role, {required bool dense}) {
-    return Container(
-      padding: EdgeInsets.all(dense ? 14 : 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _LoginColors.slate200),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(color: role.accentBg, borderRadius: BorderRadius.circular(9)),
-            alignment: Alignment.center,
-            child: Icon(role.icon, size: 17, color: role.accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(role.portalTitle, style: _text(size: 13, weight: FontWeight.w700, color: _LoginColors.slate800)),
-                const SizedBox(height: 3),
-                Text(role.portalDescription, style: _text(size: 11.5, color: _LoginColors.slate500, height: 1.35)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Mobile layout ─────────────────────────────────────────────────────
 
   Widget _buildMobile(BuildContext context) {
@@ -368,18 +286,6 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(child: _statusPill()),
-                    const SizedBox(width: 8),
-                    _helpLink(),
-                  ],
-                ),
-              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 child: Column(
@@ -466,13 +372,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    Text('PORTAL DIRECTORY & FEATURES', style: _text(size: 11, weight: FontWeight.w700, color: _LoginColors.slate500, letterSpacing: 0.6)),
-                    const SizedBox(height: 10),
-                    for (var i = 0; i < _kRoles.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 10),
-                      _roleGuidanceCard(_kRoles[i], dense: true),
-                    ],
                   ],
                 ),
               ),
@@ -504,14 +403,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(width: 1, height: 18, color: _LoginColors.slate200),
                     const SizedBox(width: 12),
                     Text('LEARNING MANAGEMENT SYSTEM', style: _text(size: 11, weight: FontWeight.w700, color: _LoginColors.slate500, letterSpacing: 0.8)),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _statusPill(),
-                    const SizedBox(width: 20),
-                    _helpLink(),
                   ],
                 ),
               ],
@@ -579,45 +470,6 @@ class _LoginScreenState extends State<LoginScreen> {
           Text(
             'Unified access portal for corporate learners, lecturers, and academic administrators.',
             style: _text(size: 14, color: const Color(0xFFCBD5E1), height: 1.5),
-          ),
-          const SizedBox(height: 32),
-          for (var i = 0; i < _kRoles.length; i++) ...[
-            if (i > 0) const SizedBox(height: 12),
-            _desktopRoleHighlight(_kRoles[i]),
-          ],
-          const SizedBox(height: 32),
-          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-          const SizedBox(height: 14),
-          
-        ],
-      ),
-    );
-  }
-
-  Widget _desktopRoleHighlight(_RoleOption role) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(color: role.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-            alignment: Alignment.center,
-            child: Icon(role.icon, size: 16, color: role.accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(role.portalTitle, style: _text(size: 12, weight: FontWeight.w700, color: Colors.white)),
-                const SizedBox(height: 2),
-                Text(role.portalDescription, style: _text(size: 11, color: const Color(0xFFCBD5E1), height: 1.3)),
-              ],
-            ),
           ),
         ],
       ),

@@ -104,7 +104,7 @@ class _ProgrammeTrackMappingScreenState extends State<ProgrammeTrackMappingScree
 
   @override
   Widget build(BuildContext context) {
-    final mobile = MediaQuery.of(context).size.width < 700;
+    final mobile = MediaQuery.of(context).size.width <= 900;
     if (_isLoading) {
       return mobile ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.programmeTrackMapping, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }

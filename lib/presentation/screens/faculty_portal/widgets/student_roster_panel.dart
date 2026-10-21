@@ -426,6 +426,9 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
 
   @override
   Widget build(BuildContext context) {
+    // On mobile (≤ 900px) the STUDENT / STUDENT CODE columns scroll with the
+    // rest instead of being frozen on the left.
+    final frozen = MediaQuery.of(context).size.width > 900;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -435,13 +438,13 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _stickyHeaderRow(),
+            if (frozen) _stickyHeaderRow(),
             Expanded(
               child: SingleChildScrollView(
                 controller: _headerHScroll,
                 scrollDirection: Axis.horizontal,
                 physics: const NeverScrollableScrollPhysics(),
-                child: _scrollableHeaderRow(),
+                child: frozen ? _scrollableHeaderRow() : Row(children: [_stickyHeaderRow(), _scrollableHeaderRow()]),
               ),
             ),
           ],
@@ -452,7 +455,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _stickyRowsColumn(),
+                if (frozen) _stickyRowsColumn(),
                 Expanded(
                   child: Scrollbar(
                     controller: _bodyHScroll,
@@ -461,7 +464,10 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
                     child: SingleChildScrollView(
                       controller: _bodyHScroll,
                       scrollDirection: Axis.horizontal,
-                      child: Column(children: [for (final s in _sortedRows) _scrollableDataRow(s)]),
+                      child: Column(children: [
+                        for (final s in _sortedRows)
+                          frozen ? _scrollableDataRow(s) : Row(children: [_stickyDataRow(s), _scrollableDataRow(s)]),
+                      ]),
                     ),
                   ),
                 ),

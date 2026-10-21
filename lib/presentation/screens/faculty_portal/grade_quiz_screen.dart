@@ -127,9 +127,9 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.gradingAndSubmissions, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.gradingAndSubmissions, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return FacultyScaffold(
@@ -850,7 +850,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (<700px) layout
+  // Mobile (≤ 900px) layout
   // ---------------------------------------------------------------------
 
   BoxDecoration _mobileCardDecoration() {

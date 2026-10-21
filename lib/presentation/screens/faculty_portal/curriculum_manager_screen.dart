@@ -224,9 +224,9 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.myCourses, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.myCourses, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return FacultyScaffold(
@@ -904,7 +904,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // MOBILE (<700px) LAYOUT
+  // MOBILE (≤ 900px) LAYOUT
   // ---------------------------------------------------------------------------
 
   Widget _buildMobileScaffold(BuildContext context) {

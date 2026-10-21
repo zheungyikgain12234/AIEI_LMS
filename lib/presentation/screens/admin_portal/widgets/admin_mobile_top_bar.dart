@@ -3,7 +3,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 
-/// Compact mobile (< 700px) app bar for the Admin Portal.
+/// Compact mobile (≤ 900px) app bar for the Admin Portal.
 ///
 /// Two variants mirror the Stitch mobile mockups:
 /// - `AdminMobileTopBar.root(title: ...)`: logo + ADMIN badge + "/" + section

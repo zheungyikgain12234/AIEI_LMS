@@ -3,7 +3,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 
-/// Shared bottom navigation bar for the mobile (< 700px) student layout —
+/// Shared bottom navigation bar for the mobile (≤ 900px) student layout —
 /// replaces the desktop `PortalSidebar` on narrow screens.
 class MobileBottomNav extends StatelessWidget {
   final int selectedIndex; // 0 = My Courses, 1 = My Badges, 2 = My Grades

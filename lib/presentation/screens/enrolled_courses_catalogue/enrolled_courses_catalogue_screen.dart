@@ -23,7 +23,7 @@ import 'package:stitch_aiei_lms/presentation/widgets/mobile_bottom_nav.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/mobile_top_bar.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/student_navigation.dart';
 
-const double _kMobileBreakpoint = 700;
+const double _kMobileBreakpoint = 900;
 
 class EnrolledCoursesCatalogueScreen extends ConsumerStatefulWidget {
   const EnrolledCoursesCatalogueScreen({super.key});
@@ -63,7 +63,7 @@ class _EnrolledCoursesCatalogueScreenState
     final state = ref.watch(coursesControllerProvider);
     final notifier = ref.read(coursesControllerProvider.notifier);
 
-    final isMobile = MediaQuery.of(context).size.width < _kMobileBreakpoint;
+    final isMobile = MediaQuery.of(context).size.width <= _kMobileBreakpoint;
     if (isMobile) {
       return _buildMobileScaffold(context, state, notifier);
     }
@@ -279,7 +279,7 @@ class _EnrolledCoursesCatalogueScreenState
     _pushAndReload(CourseContentScreen(sectionId: action.sectionId, courseTitle: action.courseTitle));
   }
 
-  // Mobile (< 700px) layout — the same sections as desktop (telemetry banner +
+  // Mobile (≤ 900px) layout — the same sections as desktop (telemetry banner +
   // critical actions, tag/search/sort/year/cohort filters, the course grid and
   // the "Compulsory for You" block). Each desktop widget is already
   // responsive, so they are reused as-is; only the shell (compact top bar and

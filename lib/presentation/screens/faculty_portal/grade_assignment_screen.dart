@@ -153,9 +153,9 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width < 700 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.gradingAndSubmissions, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : FacultyScaffold(selected: FacultyNavDestination.gradingAndSubmissions, onDestinationSelected: _handleNav, body: const SkeletonPage());
     }
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return FacultyScaffold(
@@ -604,7 +604,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (<700px) layout — separate Scaffold, drill-in top bar, sticky
+  // Mobile (≤ 900px) layout — separate Scaffold, drill-in top bar, sticky
   // bottom action bar. Reuses _scoreController / _feedbackController.
   // ---------------------------------------------------------------------
 

@@ -178,7 +178,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = MediaQuery.of(context).size.width <= 900;
     final content = _isLoading
         ? const SkeletonBody()
         : SingleChildScrollView(

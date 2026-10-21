@@ -115,7 +115,7 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
 
   @override
   Widget build(BuildContext context) {
-    final mobile = MediaQuery.of(context).size.width < 700;
+    final mobile = MediaQuery.of(context).size.width <= 900;
     if (mobile) {
       return Scaffold(
         backgroundColor: AdminColors.background,

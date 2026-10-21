@@ -531,7 +531,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.of(context).size.width < 700) {
+    if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
     }
     return FacultyScaffold(
@@ -958,7 +958,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
   }
 
   // ---------------------------------------------------------------------
-  // Mobile (< 700px) layout — the same content as desktop (header, critical
+  // Mobile (≤ 900px) layout — the same content as desktop (header, critical
   // actions, stats, filter toolbar and course list). The desktop widgets are
   // already responsive (stats go one-per-row; each course row stacks), so
   // they are reused as-is.

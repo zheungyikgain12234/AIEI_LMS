@@ -3,8 +3,10 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/faculty_typography.dart';
 import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
+import 'package:stitch_aiei_lms/presentation/widgets/my_classes_page.dart';
+import 'faculty_schedule_sidebar.dart';
 
-/// Compact mobile (< 700px) app bar for the Faculty Portal.
+/// Compact mobile (≤ 900px) app bar for the Faculty Portal.
 ///
 /// Two variants mirror the Stitch mobile mockups:
 /// - `FacultyMobileTopBar(title: ...)`: back arrow + page title + avatar,
@@ -82,6 +84,11 @@ class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget
           child: Text('FACULTY', style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
         ),
         const Spacer(),
+        IconButton(
+          tooltip: 'My classes & calendar',
+          onPressed: () => MyClassesPage.open(context, const FacultyScheduleSidebar()),
+          icon: const Icon(Icons.calendar_month_outlined, color: FacultyColors.onSurfaceVariant),
+        ),
         GestureDetector(
           onTap: () => _goToLogin(context),
           child: Container(

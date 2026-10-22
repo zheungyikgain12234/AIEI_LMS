@@ -10,6 +10,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_users_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_user.dart';
+
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_form_dialog.dart';
@@ -31,11 +32,14 @@ class ManageAdminsScreen extends StatefulWidget {
   State<ManageAdminsScreen> createState() => _ManageAdminsScreenState();
 }
 
-class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnReturn<ManageAdminsScreen> {
+class _ManageAdminsScreenState extends State<ManageAdminsScreen>
+    with RefreshOnReturn<ManageAdminsScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseAdminUsersRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminUsersRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   List<AdminUser> _admins = [];
   final Set<String> _selected = {};
@@ -46,7 +50,10 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -68,17 +75,28 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
 
   List<AdminUser> get _filtered {
     if (_query.isEmpty) return _admins;
-    return _admins.where((a) => [a.name, a.email, a.username].any((v) => v.toLowerCase().contains(_query))).toList();
+    return _admins
+        .where(
+          (a) => [
+            a.name,
+            a.email,
+            a.username,
+          ].any((v) => v.toLowerCase().contains(_query)),
+        )
+        .toList();
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageAdmins, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageAdmins, dest);
 
   bool _isYou(AdminUser a) => a.id == DemoIdentity.adminId;
 
   Future<void> _openForm({AdminUser? admin}) async {
     final nameController = TextEditingController(text: admin?.name ?? '');
     final emailController = TextEditingController(text: admin?.email ?? '');
-    final usernameController = TextEditingController(text: admin?.username ?? '');
+    final usernameController = TextEditingController(
+      text: admin?.username ?? '',
+    );
     final errors = <String, String>{};
     String? serverError;
     var saving = false;
@@ -87,7 +105,13 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          Widget field(String key, String label, TextEditingController c, String hint, {TextInputType? keyboardType}) {
+          Widget field(
+            String key,
+            String label,
+            TextEditingController c,
+            String hint, {
+            TextInputType? keyboardType,
+          }) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -111,7 +135,14 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
             maxWidth: 480,
             onCancel: saving ? null : () => Navigator.of(ctx).pop(false),
             submitChild: saving
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : Text(admin == null ? 'Add Admin' : 'Save Changes'),
             onSubmit: saving
                 ? null
@@ -123,7 +154,8 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
                     if (name.isEmpty) found['name'] = 'Name is required.';
                     if (email.isEmpty) {
                       found['email'] = 'Email is required.';
-                    } else if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+                    } else if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                        .hasMatch(email)) {
                       found['email'] = 'Enter a valid email address.';
                     }
                     if (username.isEmpty) {
@@ -141,19 +173,32 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
                     setDialogState(() => saving = true);
                     try {
                       if (admin == null) {
-                        await _repository.createAdmin(name: name, email: email, username: username);
+                        await _repository.createAdmin(
+                          name: name,
+                          email: email,
+                          username: username,
+                        );
                       } else {
-                        await _repository.updateAdmin(admin.id, name: name, email: email, username: username);
+                        await _repository.updateAdmin(
+                          admin.id,
+                          name: name,
+                          email: email,
+                          username: username,
+                        );
                       }
                       if (!mounted) return;
-                      showSuccessSnackBar(context, admin == null ? 'Admin added.' : 'Admin updated.');
+                      showSuccessSnackBar(
+                        context,
+                        admin == null ? 'Admin added.' : 'Admin updated.',
+                      );
                       if (ctx.mounted) Navigator.of(ctx).pop(true);
                     } on PostgrestException catch (e) {
                       final msg = e.message.toLowerCase();
                       setDialogState(() {
                         saving = false;
                         if (e.code == '23505' && msg.contains('username')) {
-                          errors['username'] = 'This username is already in use.';
+                          errors['username'] =
+                              'This username is already in use.';
                         } else if (e.code == '23505' && msg.contains('email')) {
                           errors['email'] = 'This email is already in use.';
                         } else {
@@ -172,13 +217,32 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 field('name', 'Name', nameController, 'Marcus Vance'),
-                field('email', 'Email', emailController, 'name@aiei.edu', keyboardType: TextInputType.emailAddress),
-                field('username', 'Username', usernameController, 'marcus.vance'),
+                field(
+                  'email',
+                  'Email',
+                  emailController,
+                  'name@aiei.edu',
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                field(
+                  'username',
+                  'Username',
+                  usernameController,
+                  'marcus.vance',
+                ),
                 if (serverError != null)
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-                    child: Text(serverError!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+                    decoration: BoxDecoration(
+                      color: AdminColors.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      serverError!,
+                      style: AdminTypography.bodySm(
+                        color: AdminColors.onErrorContainer,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -201,14 +265,22 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Delete admin${targets.length == 1 ? '' : 's'}?'),
-        content: Text(targets.length == 1
-            ? 'Delete ${targets.first.name}? This cannot be undone.'
-            : 'Delete ${targets.length} admins? This cannot be undone.'),
+        content: Text(
+          targets.length == 1
+              ? 'Delete ${targets.first.name}? This cannot be undone.'
+              : 'Delete ${targets.length} admins? This cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', textAlign: TextAlign.center),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AdminColors.error, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminColors.error,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Delete', textAlign: TextAlign.center),
           ),
         ],
@@ -224,7 +296,10 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(friendlyErrorMessage(e)), backgroundColor: AdminColors.error),
+        SnackBar(
+          content: Text(friendlyErrorMessage(e)),
+          backgroundColor: AdminColors.error,
+        ),
       );
     }
   }
@@ -233,7 +308,13 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageAdmins, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageAdmins,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     final visibleIds = {for (final r in _filtered) r.id};
     _selected.retainWhere(visibleIds.contains);
@@ -247,7 +328,11 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [_buildTopBar(), const SizedBox(height: 16), _buildListCard()],
+              children: [
+                _buildTopBar(),
+                const SizedBox(height: 16),
+                _buildListCard(),
+              ],
             ),
           ),
         ),
@@ -258,7 +343,11 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
       onDestinationSelected: _handleNav,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [_buildTopBar(), const SizedBox(height: 20), _buildListCard()],
+        children: [
+          _buildTopBar(),
+          const SizedBox(height: 20),
+          _buildListCard(),
+        ],
       ),
     );
   }
@@ -275,7 +364,10 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
           children: [
             Text('Manage Admin', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
-            Text('The people who can sign in to this Admin Portal and manage the system. Add a new admin or remove someone who no longer needs access.', style: AdminTypography.bodyMd()),
+            Text(
+              'The people who can sign in to this Admin Portal and manage the system. Add a new admin or remove someone who no longer needs access.',
+              style: AdminTypography.bodyMd(),
+            ),
           ],
         ),
         ElevatedButton.icon(
@@ -287,7 +379,9 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
       ],
@@ -314,7 +408,11 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Search admin by name, email or username...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -323,14 +421,20 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
+                  adminSelectionSummary(
+                    count: _selected.length,
+                    onDeselectAll: () => setState(_selected.clear),
+                  ),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -339,8 +443,13 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,
                       side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
@@ -349,7 +458,10 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
           if (admins.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
             )
           else ...[
             _headerRow(),
@@ -362,11 +474,14 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
 
   Widget _headerRow() {
     // Each row is a stacked card on a phone, so there are no columns to label.
-    if (MediaQuery.of(context).size.width <= 900) return const SizedBox.shrink();
+    if (MediaQuery.of(context).size.width <= 900)
+      return const SizedBox.shrink();
     final style = AdminTypography.labelSm(color: AdminColors.onSurfaceVariant);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           const SizedBox(width: 40),
@@ -385,13 +500,21 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
     if (MediaQuery.of(context).size.width <= 900) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: UiContrast.divider)),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Checkbox(
               value: selected,
-              onChanged: you ? null : (v) => setState(() => v == true ? _selected.add(a.id) : _selected.remove(a.id)),
+              onChanged: you
+                  ? null
+                  : (v) => setState(
+                      () => v == true
+                          ? _selected.add(a.id)
+                          : _selected.remove(a.id),
+                    ),
               activeColor: AdminColors.primaryContainer,
             ),
             Expanded(
@@ -400,8 +523,16 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(you ? '${a.name} (You)' : a.name, style: AdminTypography.titleSm()),
-                    Text(a.email, style: AdminTypography.bodySm(color: AdminColors.onSurface)),
+                    Text(
+                      you ? '${a.name} (You)' : a.name,
+                      style: AdminTypography.titleSm(),
+                    ),
+                    Text(
+                      a.email,
+                      style: AdminTypography.bodySm(
+                        color: AdminColors.onSurface,
+                      ),
+                    ),
                     Text('@${a.username}', style: AdminTypography.labelSm()),
                   ],
                 ),
@@ -410,7 +541,11 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
             IconButton(
               onPressed: () => _openForm(admin: a),
               tooltip: 'Edit',
-              icon: const Icon(Icons.edit_outlined, size: 20, color: AdminColors.onSurface),
+              icon: const Icon(
+                Icons.edit_outlined,
+                size: 20,
+                color: AdminColors.onSurface,
+              ),
             ),
           ],
         ),
@@ -418,16 +553,26 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           SizedBox(
             width: 40,
             child: Tooltip(
-              message: you ? 'You are signed in as this admin, so it cannot be deleted.' : '',
+              message: you
+                  ? 'You are signed in as this admin, so it cannot be deleted.'
+                  : '',
               child: Checkbox(
                 value: selected,
-                onChanged: you ? null : (v) => setState(() => v == true ? _selected.add(a.id) : _selected.remove(a.id)),
+                onChanged: you
+                    ? null
+                    : (v) => setState(
+                        () => v == true
+                            ? _selected.add(a.id)
+                            : _selected.remove(a.id),
+                      ),
                 activeColor: AdminColors.primaryContainer,
               ),
             ),
@@ -436,21 +581,30 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(you ? '${a.name} (You)' : a.name, style: AdminTypography.titleSm()),
+              child: Text(
+                you ? '${a.name} (You)' : a.name,
+                style: AdminTypography.titleSm(),
+              ),
             ),
           ),
           Expanded(
             flex: 4,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(a.email, style: AdminTypography.bodySm(color: AdminColors.onSurface)),
+              child: Text(
+                a.email,
+                style: AdminTypography.bodySm(color: AdminColors.onSurface),
+              ),
             ),
           ),
           Expanded(
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(a.username, style: AdminTypography.bodySm(color: AdminColors.onSurface)),
+              child: Text(
+                a.username,
+                style: AdminTypography.bodySm(color: AdminColors.onSurface),
+              ),
             ),
           ),
           adminEditAction(() => _openForm(admin: a)),

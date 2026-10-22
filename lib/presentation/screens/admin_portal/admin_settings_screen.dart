@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/domain/models/grade_distribution.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_grade_distribution_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/grade_scale.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
+
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
 import 'widgets/admin_mobile_top_bar.dart';
@@ -29,12 +30,16 @@ class AdminSettingsScreen extends StatefulWidget {
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
-  final _repository = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAppSettingsRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   Map<String, bool> _settings = {};
   Map<String, double?> _numericSettings = {};
   GradeScale _gradeScale = GradeScale.defaultScale;
-  final _distributionRepository = SupabaseGradeDistributionRepositoryImpl(Supabase.instance.client);
+  final _distributionRepository = SupabaseGradeDistributionRepositoryImpl(
+    Supabase.instance.client,
+  );
   GradeDistributionRules _gradeRules = GradeDistributionRules.defaults;
   final Set<String> _saving = {};
 
@@ -68,7 +73,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       showSuccessSnackBar(context, 'Grade scale saved.');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save grade scale: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not save grade scale: $e')));
     }
   }
 
@@ -80,11 +87,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       showSuccessSnackBar(context, 'Grade distribution limits saved.');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save the limits: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not save the limits: $e')));
     }
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.settings, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.settings, dest);
 
   Future<void> _toggle(String key, bool value) async {
     setState(() {
@@ -116,7 +126,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.settings, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.settings,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
@@ -145,7 +161,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       children: [
         Text('Settings', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
-        Text('Global feature flags applied across every course and portal.', style: AdminTypography.bodyMd()),
+        Text(
+          'Global feature flags applied across every course and portal.',
+          style: AdminTypography.bodyMd(),
+        ),
       ],
     );
   }
@@ -153,16 +172,27 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   Widget _gradeDistributionCard() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       padding: const EdgeInsets.all(16),
-      child: _GradeDistributionEditor(rules: _gradeRules, onSave: _saveGradeRules),
+      child: _GradeDistributionEditor(
+        rules: _gradeRules,
+        onSave: _saveGradeRules,
+      ),
     );
   }
 
   Widget _gradeScaleCard() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       padding: const EdgeInsets.all(16),
       child: _GradeScaleEditor(scale: _gradeScale, onSave: _saveGradeScale),
     );
@@ -170,7 +200,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   Widget _settingsCard() {
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       padding: const EdgeInsets.all(4),
       child: Column(
         children: [
@@ -206,7 +240,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           const Divider(height: 1, color: AdminColors.surfaceContainer),
           _numericSettingRow(
             title: 'Course Passing Mark',
-            description: 'A student\'s final score (%) must be above this to be put forward for the course\'s badge. '
+            description:
+                'A student\'s final score (%) must be above this to be put forward for the course\'s badge. '
                 'Badges are no longer granted automatically — each one still needs your approval in Badge Approvals. '
                 'Defaults to ${AppSettingKeys.defaultCoursePassingMark.toInt()} when blank.',
             settingKey: AppSettingKeys.coursePassingMark,
@@ -217,7 +252,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _settingRow({required String title, required String description, required String settingKey}) {
+  Widget _settingRow({
+    required String title,
+    required String description,
+    required String settingKey,
+  }) {
     final value = _settings[settingKey] ?? false;
     final saving = _saving.contains(settingKey);
     return Padding(
@@ -229,15 +268,27 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+                Text(
+                  title,
+                  style: AdminTypography.titleSm(color: AdminColors.onSurface),
+                ),
                 const SizedBox(height: 4),
-                Text(description, style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+                Text(
+                  description,
+                  style: AdminTypography.bodySm(
+                    color: AdminColors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 16),
           if (saving)
-            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           else
             Switch(
               value: value,
@@ -249,34 +300,63 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _numericSettingRow({required String title, required String description, required String settingKey, String hint = 'No limit'}) {
+  Widget _numericSettingRow({
+    required String title,
+    required String description,
+    required String settingKey,
+    String hint = 'No limit',
+  }) {
     final saving = _saving.contains(settingKey);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: LayoutBuilder(builder: (context, constraints) {
-        final texts = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
-            const SizedBox(height: 4),
-            Text(description, style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
-          ],
-        );
-        final Widget control = saving
-            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-            : _NumericSettingInput(
-              key: ValueKey(settingKey),
-              value: _numericSettings[settingKey],
-              onSave: (value) => _saveNumeric(settingKey, value),
-              maxValue: 100,
-              hint: hint,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final texts = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: AdminTypography.titleSm(color: AdminColors.onSurface),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: AdminTypography.bodySm(
+                  color: AdminColors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          );
+          final Widget control = saving
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : _NumericSettingInput(
+                  key: ValueKey(settingKey),
+                  value: _numericSettings[settingKey],
+                  onSave: (value) => _saveNumeric(settingKey, value),
+                  maxValue: 100,
+                  hint: hint,
+                );
+          // On a phone the input drops under the description instead of squeezing it.
+          if (constraints.maxWidth < 520) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [texts, const SizedBox(height: 10), control],
             );
-        // On a phone the input drops under the description instead of squeezing it.
-        if (constraints.maxWidth < 520) {
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [texts, const SizedBox(height: 10), control]);
-        }
-        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: texts), const SizedBox(width: 16), control]);
-      }),
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: texts),
+              const SizedBox(width: 16),
+              control,
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -296,8 +376,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               _settingsCard(),
               const SizedBox(height: 16),
               _gradeDistributionCard(),
-          const SizedBox(height: 20),
-          _gradeScaleCard(),
+              const SizedBox(height: 20),
+              _gradeScaleCard(),
             ],
           ),
         ),
@@ -327,10 +407,12 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
   String? _error;
   bool _saving = false;
 
-  List<TextEditingController> _controllersFor(List<GradeBand> bands) =>
-      [for (final b in bands) TextEditingController(text: _fmt(b.minScore))];
+  List<TextEditingController> _controllersFor(List<GradeBand> bands) => [
+    for (final b in bands) TextEditingController(text: _fmt(b.minScore)),
+  ];
 
-  static String _fmt(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString();
+  static String _fmt(double v) =>
+      v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString();
 
   @override
   void dispose() {
@@ -372,7 +454,10 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
         return;
       }
       if (i > 0 && value <= edited.last.minScore) {
-        setState(() => _error = '${_bands[i].letter} must start higher than ${_bands[i - 1].letter}.');
+        setState(
+          () => _error =
+              '${_bands[i].letter} must start higher than ${_bands[i - 1].letter}.',
+        );
         return;
       }
       if (value > 100) {
@@ -401,8 +486,11 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
         onChanged: (_) => setState(() => _error = null),
         decoration: InputDecoration(
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 8,
           ),
+        ),
       ),
     );
   }
@@ -412,7 +500,10 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Grade Scale', style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+        Text(
+          'Grade Scale',
+          style: AdminTypography.titleSm(color: AdminColors.onSurface),
+        ),
         const SizedBox(height: 4),
         Text(
           'Letter grades shown in the Student Directory. Set the lowest score each grade starts at — it runs until the next grade begins.',
@@ -424,22 +515,54 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
-                SizedBox(width: 40, child: Text(_bands[i].letter, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    _bands[i].letter,
+                    style: AdminTypography.titleSm(
+                      color: AdminColors.onSurface,
+                    ),
+                  ),
+                ),
                 if (i == 0)
-                  SizedBox(width: 64, child: Text('0', textAlign: TextAlign.center, style: AdminTypography.bodySm(color: AdminColors.onSurface)))
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      '0',
+                      textAlign: TextAlign.center,
+                      style: AdminTypography.bodySm(
+                        color: AdminColors.onSurface,
+                      ),
+                    ),
+                  )
                 else
                   _scoreInput(i),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('to', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+                  child: Text(
+                    'to',
+                    style: AdminTypography.bodySm(
+                      color: AdminColors.onSurfaceVariant,
+                    ),
+                  ),
                 ),
-                SizedBox(width: 40, child: Text(_endLabel(i), textAlign: TextAlign.center, style: AdminTypography.bodySm(color: AdminColors.onSurface))),
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    _endLabel(i),
+                    textAlign: TextAlign.center,
+                    style: AdminTypography.bodySm(color: AdminColors.onSurface),
+                  ),
+                ),
               ],
             ),
           ),
         if (_error != null) ...[
           const SizedBox(height: 8),
-          Text(_error!, style: AdminTypography.bodySm(color: AdminColors.error)),
+          Text(
+            _error!,
+            style: AdminTypography.bodySm(color: AdminColors.error),
+          ),
         ],
         const SizedBox(height: 12),
         Row(
@@ -450,14 +573,29 @@ class _GradeScaleEditorState extends State<_GradeScaleEditor> {
                 backgroundColor: AdminColors.primaryContainer,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               child: _saving
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Save Grade Scale'),
             ),
             const SizedBox(width: 8),
-            TextButton(onPressed: _saving ? null : _reset, child: const Text('Reset to Default', textAlign: TextAlign.center)),
+            TextButton(
+              onPressed: _saving ? null : _reset,
+              child: const Text(
+                'Reset to Default',
+                textAlign: TextAlign.center,
+              ),
+            ),
           ],
         ),
       ],
@@ -477,14 +615,22 @@ class _NumericSettingInput extends StatefulWidget {
 
   final String hint;
 
-  const _NumericSettingInput({super.key, required this.value, required this.onSave, this.maxValue = 100, this.hint = 'No limit'});
+  const _NumericSettingInput({
+    super.key,
+    required this.value,
+    required this.onSave,
+    this.maxValue = 100,
+    this.hint = 'No limit',
+  });
 
   @override
   State<_NumericSettingInput> createState() => _NumericSettingInputState();
 }
 
 class _NumericSettingInputState extends State<_NumericSettingInput> {
-  late final TextEditingController _controller = TextEditingController(text: widget.value?.toString() ?? '');
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.value?.toString() ?? '',
+  );
   bool _dirty = false;
   String? _error;
 
@@ -530,7 +676,10 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
         if (_error != null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: Text(_error!, style: AdminTypography.labelSm(color: AdminColors.error)),
+            child: Text(
+              _error!,
+              style: AdminTypography.labelSm(color: AdminColors.error),
+            ),
           ),
       ],
     );
@@ -563,8 +712,11 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
             decoration: InputDecoration(
               isDense: true,
               hintText: widget.hint,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 8,
               ),
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -576,10 +728,16 @@ class _NumericSettingInputState extends State<_NumericSettingInput> {
             height: 30,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: _dirty ? AdminColors.primaryContainer : AdminColors.surfaceContainerLow,
+              color: _dirty
+                  ? AdminColors.primaryContainer
+                  : AdminColors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(Icons.check, size: 18, color: _dirty ? Colors.white : AdminColors.onSurfaceVariant),
+            child: Icon(
+              Icons.check,
+              size: 18,
+              color: _dirty ? Colors.white : AdminColors.onSurfaceVariant,
+            ),
           ),
         ),
       ],
@@ -598,7 +756,8 @@ class _GradeDistributionEditor extends StatefulWidget {
   const _GradeDistributionEditor({required this.rules, required this.onSave});
 
   @override
-  State<_GradeDistributionEditor> createState() => _GradeDistributionEditorState();
+  State<_GradeDistributionEditor> createState() =>
+      _GradeDistributionEditorState();
 }
 
 class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
@@ -609,7 +768,9 @@ class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
   String? _error;
   bool _saving = false;
 
-  static String _fmt(double? v) => v == null ? '' : (v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString());
+  static String _fmt(double? v) => v == null
+      ? ''
+      : (v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString());
 
   @override
   void dispose() {
@@ -629,7 +790,10 @@ class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
       }
       final v = double.tryParse(text);
       if (v == null || v < 0 || v > 100) {
-        setState(() => _error = '${band.label}: enter a percentage from 0 to 100, or leave it blank for no limit.');
+        setState(
+          () => _error =
+              '${band.label}: enter a percentage from 0 to 100, or leave it blank for no limit.',
+        );
         return;
       }
       values[band] = v;
@@ -642,7 +806,10 @@ class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
       final v = values[band];
       if (v == null) continue;
       if (previous != null && v < previous) {
-        setState(() => _error = '${band.label} (${_fmt(v)}%) cannot be lower than ${previousBand!.label} (${_fmt(previous)}%), because it includes those students.');
+        setState(
+          () => _error =
+              '${band.label} (${_fmt(v)}%) cannot be lower than ${previousBand!.label} (${_fmt(previous)}%), because it includes those students.',
+        );
         return;
       }
       previous = v;
@@ -678,17 +845,25 @@ class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
               spacing: 12,
               runSpacing: 6,
               children: [
-                SizedBox(width: 150, child: Text(band.label, style: AdminTypography.titleSm())),
+                SizedBox(
+                  width: 150,
+                  child: Text(band.label, style: AdminTypography.titleSm()),
+                ),
                 SizedBox(
                   width: 110,
                   child: TextField(
                     controller: _controllers[band],
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: decimalOnly,
                     textAlign: TextAlign.right,
                     style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                     onChanged: (_) => setState(() => _error = null),
-                    decoration: const InputDecoration(hintText: 'No limit', suffixText: '%'),
+                    decoration: const InputDecoration(
+                      hintText: 'No limit',
+                      suffixText: '%',
+                    ),
                   ),
                 ),
                 Text('of enrolled students', style: AdminTypography.bodySm()),
@@ -697,7 +872,10 @@ class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
           ),
         if (_error != null) ...[
           const SizedBox(height: 4),
-          Text(_error!, style: AdminTypography.bodySm(color: AdminColors.error)),
+          Text(
+            _error!,
+            style: AdminTypography.bodySm(color: AdminColors.error),
+          ),
         ],
         const SizedBox(height: 8),
         Align(
@@ -709,9 +887,14 @@ class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: Text(_saving ? 'Saving…' : 'Save Limits', textAlign: TextAlign.center),
+            child: Text(
+              _saving ? 'Saving…' : 'Save Limits',
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ],

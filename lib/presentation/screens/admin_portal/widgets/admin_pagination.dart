@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+
 import 'searchable_dropdown.dart';
 
 /// Page-size choices offered by every paginated admin table.
@@ -47,7 +48,9 @@ class AdminPagination extends StatelessWidget {
           spacing: 8,
           children: [
             Text(
-              totalItems == 0 ? 'Showing 0 of 0 $itemLabel${totalItems == 1 ? '' : 's'}' : 'Showing $start–$end of $totalItems $itemLabel${totalItems == 1 ? '' : 's'}',
+              totalItems == 0
+                  ? 'Showing 0 of 0 $itemLabel${totalItems == 1 ? '' : 's'}'
+                  : 'Showing $start–$end of $totalItems $itemLabel${totalItems == 1 ? '' : 's'}',
               style: AdminTypography.bodySm(),
             ),
             _pageSizeDropdown(),
@@ -61,13 +64,19 @@ class AdminPagination extends StatelessWidget {
   Widget _pageSizeDropdown() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: DropdownButtonHideUnderline(
         child: SearchableDropdownButton<int>(
           value: pageSize,
           isDense: true,
           style: AdminTypography.labelSm(color: AdminColors.onSurface),
-          items: [for (final s in adminPageSizeOptions) DropdownMenuItem(value: s, child: Text('$s / page'))],
+          items: [
+            for (final s in adminPageSizeOptions)
+              DropdownMenuItem(value: s, child: Text('$s / page')),
+          ],
           onChanged: (v) {
             if (v != null) onPageSizeChanged(v);
           },
@@ -85,14 +94,26 @@ class AdminPagination extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _navButton(Icons.chevron_left, enabled: page > 1, onTap: () => onPageChanged(page - 1)),
+        _navButton(
+          Icons.chevron_left,
+          enabled: page > 1,
+          onTap: () => onPageChanged(page - 1),
+        ),
         for (var p = lo; p <= hi; p++) _pageButton(p),
-        _navButton(Icons.chevron_right, enabled: page < pageCount, onTap: () => onPageChanged(page + 1)),
+        _navButton(
+          Icons.chevron_right,
+          enabled: page < pageCount,
+          onTap: () => onPageChanged(page + 1),
+        ),
       ],
     );
   }
 
-  Widget _navButton(IconData icon, {required bool enabled, required VoidCallback onTap}) {
+  Widget _navButton(
+    IconData icon, {
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
     return IconButton(
       onPressed: enabled ? onTap : null,
       icon: Icon(icon, size: 18),
@@ -114,12 +135,16 @@ class AdminPagination extends StatelessWidget {
         height: 28,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? AdminColors.primaryContainer : AdminColors.surfaceContainerLow,
+          color: active
+              ? AdminColors.primaryContainer
+              : AdminColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           '$p',
-          style: AdminTypography.labelSm(color: active ? Colors.white : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+          style: AdminTypography.labelSm(
+            color: active ? Colors.white : AdminColors.onSurface,
+          ).copyWith(fontWeight: FontWeight.w700),
         ),
       ),
     );

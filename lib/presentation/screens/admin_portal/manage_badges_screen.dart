@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badges_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
+
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_row_action.dart';
@@ -33,11 +34,14 @@ enum _SortColumn { student, course, badge, date }
 
 String _formatDate(DateTime d) => formatDate(d);
 
-class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnReturn<ManageBadgesScreen> {
+class _ManageBadgesScreenState extends State<ManageBadgesScreen>
+    with RefreshOnReturn<ManageBadgesScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminBadgesRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   List<BadgeAward> _awards = [];
   final Set<String> _selected = {};
@@ -67,10 +71,19 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          Text(
+            label,
+            style: AdminTypography.labelSm(
+              color: active
+                  ? AdminColors.onSurface
+                  : AdminColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(width: 2),
           Icon(
-            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            active && !_sortAscending
+                ? Icons.arrow_downward
+                : Icons.arrow_upward,
             size: 12,
             color: active ? AdminColors.onSurface : AdminColors.outline,
           ),
@@ -82,7 +95,10 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -106,21 +122,31 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   List<BadgeAward> get _filtered {
     final awards = _query.isEmpty
         ? _awards
-        : _awards.where((a) =>
-            a.studentName.toLowerCase().contains(_query) ||
-            a.courseCode.toLowerCase().contains(_query) ||
-            a.courseTitle.toLowerCase().contains(_query) ||
-            a.badgeTitle.toLowerCase().contains(_query)).toList();
+        : _awards
+              .where(
+                (a) =>
+                    a.studentName.toLowerCase().contains(_query) ||
+                    a.courseCode.toLowerCase().contains(_query) ||
+                    a.courseTitle.toLowerCase().contains(_query) ||
+                    a.badgeTitle.toLowerCase().contains(_query),
+              )
+              .toList();
     final sorted = [...awards];
     sorted.sort((a, b) {
       final int cmp;
       switch (_sortColumn) {
         case _SortColumn.student:
-          cmp = a.studentName.toLowerCase().compareTo(b.studentName.toLowerCase());
+          cmp = a.studentName.toLowerCase().compareTo(
+            b.studentName.toLowerCase(),
+          );
         case _SortColumn.course:
-          cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
+          cmp = a.courseTitle.toLowerCase().compareTo(
+            b.courseTitle.toLowerCase(),
+          );
         case _SortColumn.badge:
-          cmp = a.badgeTitle.toLowerCase().compareTo(b.badgeTitle.toLowerCase());
+          cmp = a.badgeTitle.toLowerCase().compareTo(
+            b.badgeTitle.toLowerCase(),
+          );
         case _SortColumn.date:
           cmp = a.issueDate.compareTo(b.issueDate);
       }
@@ -137,7 +163,8 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     return items.sublist(start, end);
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageBadges, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageBadges, dest);
 
   Future<void> _setRevoked(BadgeAward award, bool revoke) async {
     final reasonController = TextEditingController();
@@ -152,9 +179,11 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(revoke
-                  ? 'Revoke "${award.badgeTitle}" from ${award.studentName}?'
-                  : 'Restore "${award.badgeTitle}" for ${award.studentName}?'),
+              Text(
+                revoke
+                    ? 'Revoke "${award.badgeTitle}" from ${award.studentName}?'
+                    : 'Restore "${award.badgeTitle}" for ${award.studentName}?',
+              ),
               if (revoke) ...[
                 const SizedBox(height: 12),
                 const AdminFieldLabel('Reason for Revoking'),
@@ -163,21 +192,34 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
                   controller: reasonController,
                   autofocus: true,
                   maxLines: 3,
-                  decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. Safety infraction found during site audit'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'A reason is required to revoke a badge.' : null,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'e.g. Safety infraction found during site audit',
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'A reason is required to revoke a badge.'
+                      : null,
                 ),
               ],
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', textAlign: TextAlign.center),
+          ),
           FilledButton(
             onPressed: () {
               if (formKey.currentState!.validate()) Navigator.of(ctx).pop(true);
             },
-            style: revoke ? FilledButton.styleFrom(backgroundColor: AdminColors.error) : null,
-            child: Text(revoke ? 'Revoke' : 'Unrevoke', textAlign: TextAlign.center),
+            style: revoke
+                ? FilledButton.styleFrom(backgroundColor: AdminColors.error)
+                : null,
+            child: Text(
+              revoke ? 'Revoke' : 'Unrevoke',
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
@@ -185,9 +227,16 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     final reason = reasonController.text.trim();
     reasonController.dispose();
     if (confirmed != true || !mounted) return;
-    await _repository.setBadgeAwardRevoked(award.id, revoked: revoke, reason: reason);
+    await _repository.setBadgeAwardRevoked(
+      award.id,
+      revoked: revoke,
+      reason: reason,
+    );
     if (!mounted) return;
-    showSuccessSnackBar(context, revoke ? 'Badge revoked.' : 'Badge unrevoked.');
+    showSuccessSnackBar(
+      context,
+      revoke ? 'Badge revoked.' : 'Badge unrevoked.',
+    );
     await _load();
   }
 
@@ -203,7 +252,10 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
           'If you only want to take a badge back, use Revoke instead. This cannot be undone.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', textAlign: TextAlign.center),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
@@ -226,14 +278,21 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: UiContrast.selectedRow, borderRadius: BorderRadius.circular(12), border: Border.all(color: UiContrast.divider)),
+      decoration: BoxDecoration(
+        color: UiContrast.selectedRow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: UiContrast.divider),
+      ),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 10,
         runSpacing: 8,
         children: [
-          adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
+          adminSelectionSummary(
+            count: _selected.length,
+            onDeselectAll: () => setState(_selected.clear),
+          ),
           OutlinedButton.icon(
             onPressed: _deleteSelected,
             icon: const Icon(Icons.delete_outline, size: 16),
@@ -243,7 +302,9 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
               backgroundColor: AdminColors.errorContainer,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ],
@@ -252,26 +313,33 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   }
 
   Widget _checkbox(BadgeAward a) => SizedBox(
-        width: 40,
-        child: Checkbox(
-          value: _selected.contains(a.id),
-          onChanged: (v) => setState(() => v == true ? _selected.add(a.id) : _selected.remove(a.id)),
-          activeColor: AdminColors.primaryContainer,
-        ),
-      );
+    width: 40,
+    child: Checkbox(
+      value: _selected.contains(a.id),
+      onChanged: (v) => setState(
+        () => v == true ? _selected.add(a.id) : _selected.remove(a.id),
+      ),
+      activeColor: AdminColors.primaryContainer,
+    ),
+  );
 
   Widget _revokeButton(BadgeAward a) {
     return ElevatedButton(
       onPressed: () => _setRevoked(a, !a.isRevoked),
       style: ElevatedButton.styleFrom(
-        backgroundColor: a.isRevoked ? AdminColors.primaryContainer : AdminColors.error,
+        backgroundColor: a.isRevoked
+            ? AdminColors.primaryContainer
+            : AdminColors.error,
         foregroundColor: Colors.white,
         elevation: 0,
         visualDensity: VisualDensity.compact,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      child: Text(a.isRevoked ? 'Unrevoke' : 'Revoke', textAlign: TextAlign.center),
+      child: Text(
+        a.isRevoked ? 'Unrevoke' : 'Revoke',
+        textAlign: TextAlign.center,
+      ),
     );
   }
 
@@ -279,7 +347,13 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageBadges, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageBadges,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search) can stay selected, so the count
     // and Delete never include hidden records.
@@ -330,14 +404,28 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
                   isDense: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search by student, course, or badge...',
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
               const SizedBox(height: 16),
-              if (_selected.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 4), child: _selectionBar()),
+              if (_selected.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: _selectionBar(),
+                ),
               if (awards.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
+                )
               else ...[
                 for (final a in _paged(awards)) ...[
                   _mobileAwardCard(a),
@@ -366,7 +454,9 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: a.isRevoked ? AdminColors.errorContainer.withValues(alpha: 0.12) : AdminColors.surfaceContainerLowest,
+        color: a.isRevoked
+            ? AdminColors.errorContainer.withValues(alpha: 0.12)
+            : AdminColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
@@ -378,22 +468,44 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
-                  Expanded(child: Text(a.studentName, style: AdminTypography.titleSm())),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: a.isRevoked ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(9999),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        a.studentName,
+                        style: AdminTypography.titleSm(),
+                      ),
                     ),
-                    child: Text(
-                      a.isRevoked ? 'Revoked' : 'Active',
-                      style: AdminTypography.labelSm(color: a.isRevoked ? AdminColors.error : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: a.isRevoked
+                            ? AdminColors.errorContainer
+                            : AdminColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(9999),
+                      ),
+                      child: Text(
+                        a.isRevoked ? 'Revoked' : 'Active',
+                        style: AdminTypography.labelSm(
+                          color: a.isRevoked
+                              ? AdminColors.error
+                              : AdminColors.onSurface,
+                        ).copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  ),
-                ]),
-                Text('${a.courseTitle} (${a.courseCode})', style: AdminTypography.bodySm()),
-                Text('${a.badgeTitle} • ${_formatDate(a.issueDate)}', style: AdminTypography.labelSm()),
+                  ],
+                ),
+                Text(
+                  '${a.courseTitle} (${a.courseCode})',
+                  style: AdminTypography.bodySm(),
+                ),
+                Text(
+                  '${a.badgeTitle} • ${_formatDate(a.issueDate)}',
+                  style: AdminTypography.labelSm(),
+                ),
               ],
             ),
           ),
@@ -417,7 +529,10 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('A record of which student earned which badge in which course. Use it to check awards, or to take one back if it was given by mistake.', style: AdminTypography.bodyMd()),
+              child: Text(
+                'A record of which student earned which badge in which course. Use it to check awards, or to take one back if it was given by mistake.',
+                style: AdminTypography.bodyMd(),
+              ),
             ),
           ],
         ),
@@ -428,7 +543,11 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   Widget _buildListCard() {
     final awards = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -441,7 +560,11 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Search by student, course, or badge...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -450,11 +573,14 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
           if (awards.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
             )
           else
             _headerRow(),
-            Column(children: [for (final a in _paged(awards)) _row(a)]),
+          Column(children: [for (final a in _paged(awards)) _row(a)]),
           Padding(
             padding: const EdgeInsets.all(16),
             child: AdminPagination(
@@ -482,7 +608,9 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           SizedBox(
@@ -500,10 +628,24 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
           Expanded(flex: 3, child: _sortHeader('Course', _SortColumn.course)),
           Expanded(flex: 3, child: _sortHeader('Badge', _SortColumn.badge)),
           Expanded(flex: 2, child: _sortHeader('Issue Date', _SortColumn.date)),
-          SizedBox(width: 90, child: Text('Status', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          SizedBox(
+            width: 90,
+            child: Text(
+              'Status',
+              style: AdminTypography.labelSm(
+                color: AdminColors.onSurfaceVariant,
+              ),
+            ),
+          ),
           SizedBox(
             width: 100,
-            child: Text('Action', textAlign: TextAlign.right, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+            child: Text(
+              'Action',
+              textAlign: TextAlign.right,
+              style: AdminTypography.labelSm(
+                color: AdminColors.onSurfaceVariant,
+              ),
+            ),
           ),
         ],
       ),
@@ -514,7 +656,9 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: a.isRevoked ? AdminColors.errorContainer.withValues(alpha: 0.12) : null,
+        color: a.isRevoked
+            ? AdminColors.errorContainer.withValues(alpha: 0.12)
+            : null,
         border: const Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Row(
@@ -550,7 +694,10 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
           ),
           Expanded(
             flex: 2,
-            child: Text(_formatDate(a.issueDate), style: AdminTypography.labelSm()),
+            child: Text(
+              _formatDate(a.issueDate),
+              style: AdminTypography.labelSm(),
+            ),
           ),
           SizedBox(
             width: 90,
@@ -559,19 +706,28 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: a.isRevoked ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
+                  color: a.isRevoked
+                      ? AdminColors.errorContainer
+                      : AdminColors.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(9999),
                 ),
                 child: Text(
                   a.isRevoked ? 'Revoked' : 'Active',
-                  style: AdminTypography.labelSm(color: a.isRevoked ? AdminColors.error : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                  style: AdminTypography.labelSm(
+                    color: a.isRevoked
+                        ? AdminColors.error
+                        : AdminColors.onSurface,
+                  ).copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
             ),
           ),
           SizedBox(
             width: 100,
-            child: Align(alignment: Alignment.centerRight, child: _revokeButton(a)),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _revokeButton(a),
+            ),
           ),
         ],
       ),

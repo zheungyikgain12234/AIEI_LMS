@@ -150,7 +150,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         _startTime = _parseTime(section.startTime);
         _endTime = _parseTime(section.endTime);
         // An online class has no location, so nothing is pre-filled for it.
-        _locationController.text = section.deliveryMode == 'online' ? '' : (section.location ?? '');
+        _locationController.text = section.deliveryMode == 'online'
+            ? ''
+            : (section.location ?? '');
         _capacityController.text = section.capacity.toString();
         _editStartAt = section.editStartAt;
         _editEndAt = section.editEndAt;
@@ -200,7 +202,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     final errors = <String, String>{};
     if (_startDate == null) errors['startDate'] = 'Start Date is required.';
     if (_endDate == null) errors['endDate'] = 'End Date is required.';
-    if (_startDate != null && _endDate != null && !_endDate!.isAfter(_startDate!)) {
+    if (_startDate != null &&
+        _endDate != null &&
+        !_endDate!.isAfter(_startDate!)) {
       errors['endDate'] = 'End Date must be after Start Date.';
     }
     if (_dayOfWeek == null) errors['dayOfWeek'] = 'Day of Week is required.';
@@ -208,7 +212,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
     if (_endTime == null) errors['endTime'] = 'End Time is required.';
     if (_startTime != null &&
         _endTime != null &&
-        _endTime!.hour * 60 + _endTime!.minute <= _startTime!.hour * 60 + _startTime!.minute) {
+        _endTime!.hour * 60 + _endTime!.minute <=
+            _startTime!.hour * 60 + _startTime!.minute) {
       errors['endTime'] = 'End Time must be after Start Time.';
     }
     if (_deliveryMode != 'online' && _locationController.text.trim().isEmpty) {
@@ -221,7 +226,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       errors['capacity'] = 'Capacity cannot exceed $maxClassCapacity.';
     }
     if (_editStartAt == null || _editEndAt == null) {
-      errors['editPeriod'] = 'Set a syllabus edit period — both start and end are required.';
+      errors['editPeriod'] =
+          'Set a syllabus edit period — both start and end are required.';
     } else if (!_editEndAt!.isAfter(_editStartAt!)) {
       errors['editPeriod'] = 'Edit end must be after edit start.';
     }
@@ -247,7 +253,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         dayOfWeek: _dayOfWeek,
         startTime: _startTime == null ? null : _formatTime(_startTime!),
         endTime: _endTime == null ? null : _formatTime(_endTime!),
-        location: _deliveryMode == 'online' || _locationController.text.trim().isEmpty
+        location:
+            _deliveryMode == 'online' || _locationController.text.trim().isEmpty
             ? null
             : _locationController.text.trim(),
         capacity: capacity!,
@@ -396,42 +403,54 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           style: AdminTypography.headlineSm(),
         ),
       ),
-      body: _isLoading
-          ? const SkeletonBody()
-          : section == null
-          ? Center(
-              child: Text(
-                _errorMessage ?? 'Class not found.',
-                style: AdminTypography.bodyMd(),
-              ),
-            )
-          : Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 640),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _infoCard(section),
-                      const SizedBox(height: 16),
-                      _editCard(),
-                      const SizedBox(height: 16),
-                      _rosterCard(),
-                    ],
+      body: SafeArea(
+        top: false,
+        child: _isLoading
+            ? const SkeletonBody()
+            : section == null
+            ? Center(
+                child: Text(
+                  _errorMessage ?? 'Class not found.',
+                  style: AdminTypography.bodyMd(),
+                ),
+              )
+            : Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 640),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _infoCard(section),
+                        const SizedBox(height: 16),
+                        _editCard(),
+                        const SizedBox(height: 16),
+                        _rosterCard(),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
   Widget _codeLabel(String label, String value) => Text.rich(
-        TextSpan(children: [
-          TextSpan(text: '$label: ', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
-          TextSpan(text: value, style: AdminTypography.labelMd(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-        ]),
-      );
+    TextSpan(
+      children: [
+        TextSpan(
+          text: '$label: ',
+          style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+        ),
+        TextSpan(
+          text: value,
+          style: AdminTypography.labelMd(color: AdminColors.onSurface)
+              .copyWith(fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
+  );
 
   Widget _infoCard(CourseSection section) {
     return Container(
@@ -468,8 +487,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   }
 
   /// Appends the red validation box for [key] directly beneath [field].
-  Widget _err(String key, Widget field) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [field, AdminFieldError(_fieldErrors[key])]);
+  Widget _err(String key, Widget field) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [field, AdminFieldError(_fieldErrors[key])],
+  );
 
   Widget _editCard() {
     return Container(
@@ -503,47 +524,62 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           Row(
             children: [
               Expanded(
-                child: _err('startDate', _dateField(
-                  label: 'Start Date',
-                  value: _startDate,
-                  onTap: () => _pickDate(isStart: true),
-                )),
+                child: _err(
+                  'startDate',
+                  _dateField(
+                    label: 'Start Date',
+                    value: _startDate,
+                    onTap: () => _pickDate(isStart: true),
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _err('endDate', _dateField(
-                  label: 'End Date',
-                  value: _endDate,
-                  onTap: () => _pickDate(isStart: false),
-                )),
+                child: _err(
+                  'endDate',
+                  _dateField(
+                    label: 'End Date',
+                    value: _endDate,
+                    onTap: () => _pickDate(isStart: false),
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          _err('dayOfWeek', _dropdown(
-            label: 'Day of Week',
-            hint: 'Select a day',
-            value: _dayOfWeek,
-            options: _dayOptions,
-            onChanged: (v) => setState(() => _dayOfWeek = v),
-          )),
+          _err(
+            'dayOfWeek',
+            _dropdown(
+              label: 'Day of Week',
+              hint: 'Select a day',
+              value: _dayOfWeek,
+              options: _dayOptions,
+              onChanged: (v) => setState(() => _dayOfWeek = v),
+            ),
+          ),
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
-                child: _err('startTime', _timeField(
-                  label: 'Start Time',
-                  value: _startTime,
-                  onTap: () => _pickTime(isStart: true),
-                )),
+                child: _err(
+                  'startTime',
+                  _timeField(
+                    label: 'Start Time',
+                    value: _startTime,
+                    onTap: () => _pickTime(isStart: true),
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _err('endTime', _timeField(
-                  label: 'End Time',
-                  value: _endTime,
-                  onTap: () => _pickTime(isStart: false),
-                )),
+                child: _err(
+                  'endTime',
+                  _timeField(
+                    label: 'End Time',
+                    value: _endTime,
+                    onTap: () => _pickTime(isStart: false),
+                  ),
+                ),
               ),
             ],
           ),
@@ -559,11 +595,14 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           ),
           if (_deliveryMode != 'online') ...[
             const SizedBox(height: 14),
-            _err('location', _textField(
-              label: 'Location',
-              controller: _locationController,
-              hint: 'Innovation Hall 204',
-            )),
+            _err(
+              'location',
+              _textField(
+                label: 'Location',
+                controller: _locationController,
+                hint: 'Innovation Hall 204',
+              ),
+            ),
           ],
           const SizedBox(height: 20),
           const Divider(height: 1),
@@ -577,26 +616,35 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           const SizedBox(height: 12),
           // Each field holds a date box and a time box side by side, so on a phone
           // the two fields stack instead of being squeezed to half width.
-          Builder(builder: (context) {
-            final start = AdminDateTimeField(
-              label: 'Edit Start',
-              value: _editStartAt,
-              onChanged: (v) => setState(() => _editStartAt = v),
-            );
-            final end = AdminDateTimeField(
-              label: 'Edit End',
-              value: _editEndAt,
-              defaultHour: 23,
-              onChanged: (v) => setState(() => _editEndAt = v),
-            );
-            if (MediaQuery.of(context).size.width <= 600) {
-              return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [start, const SizedBox(height: 12), end]);
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [Expanded(child: start), const SizedBox(width: 12), Expanded(child: end)],
-            );
-          }),
+          Builder(
+            builder: (context) {
+              final start = AdminDateTimeField(
+                label: 'Edit Start',
+                value: _editStartAt,
+                onChanged: (v) => setState(() => _editStartAt = v),
+              );
+              final end = AdminDateTimeField(
+                label: 'Edit End',
+                value: _editEndAt,
+                defaultHour: 23,
+                onChanged: (v) => setState(() => _editEndAt = v),
+              );
+              if (MediaQuery.of(context).size.width <= 600) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [start, const SizedBox(height: 12), end],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: start),
+                  const SizedBox(width: 12),
+                  Expanded(child: end),
+                ],
+              );
+            },
+          ),
           AdminFieldError(_fieldErrors['editPeriod']),
           const SizedBox(height: 14),
           _textField(
@@ -616,13 +664,16 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
           Row(
             children: [
               Expanded(
-                child: _err('capacity', _textField(
-                  label: 'Capacity',
-                  controller: _capacityController,
-                  hint: '50',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: digitsOnly,
-                )),
+                child: _err(
+                  'capacity',
+                  _textField(
+                    label: 'Capacity',
+                    controller: _capacityController,
+                    hint: '50',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: digitsOnly,
+                  ),
+                ),
               ),
             ],
           ),
@@ -702,7 +753,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                       label: Text(
                         _selected.isEmpty
                             ? 'Unenroll Selected'
-                            : 'Unenroll Selected (${_selected.length})', textAlign: TextAlign.center),
+                            : 'Unenroll Selected (${_selected.length})',
+                        textAlign: TextAlign.center,
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AdminColors.error,
                         foregroundColor: Colors.white,
@@ -752,9 +805,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
               decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: UiContrast.divider),
-                ),
+                border: Border(bottom: BorderSide(color: UiContrast.divider)),
               ),
               child: Row(
                 children: [
@@ -879,17 +930,11 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
                 ),
           Expanded(
             flex: 2,
-            child: Text(
-              s.studentCode,
-              style: AdminTypography.labelSm(),
-            ),
+            child: Text(s.studentCode, style: AdminTypography.labelSm()),
           ),
           Expanded(
             flex: 4,
-            child: Text(
-              s.name,
-              style: AdminTypography.titleSm(),
-            ),
+            child: Text(s.name, style: AdminTypography.titleSm()),
           ),
         ],
       ),
@@ -962,9 +1007,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
               ),
             ),
             child: Text(
-              value == null
-                  ? 'Select a date'
-                  : formatDate(value),
+              value == null ? 'Select a date' : formatDate(value),
               style: AdminTypography.bodyMd(
                 color: value == null
                     ? AdminColors.outline

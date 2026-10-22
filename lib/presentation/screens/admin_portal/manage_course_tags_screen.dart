@@ -10,6 +10,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+
 import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_row_action.dart';
@@ -33,11 +34,14 @@ class ManageCourseTagsScreen extends StatefulWidget {
   State<ManageCourseTagsScreen> createState() => _ManageCourseTagsScreenState();
 }
 
-class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with RefreshOnReturn<ManageCourseTagsScreen> {
+class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen>
+    with RefreshOnReturn<ManageCourseTagsScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseAdminCourseTagsRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminCourseTagsRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   List<CourseTagOption> _tags = [];
   final Set<String> _selected = {};
@@ -48,7 +52,10 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -74,7 +81,8 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
     return _tags.where((t) => t.label.toLowerCase().contains(_query)).toList();
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageCourseTags, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageCourseTags, dest);
 
   Future<void> _openForm({CourseTagOption? tag}) async {
     final controller = TextEditingController(text: tag?.label ?? '');
@@ -115,7 +123,10 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
                 await _repository.updateTag(tag.id, label);
               }
               if (!mounted) return;
-              showSuccessSnackBar(context, tag == null ? 'Tag added.' : 'Tag updated.');
+              showSuccessSnackBar(
+                context,
+                tag == null ? 'Tag added.' : 'Tag updated.',
+              );
               if (ctx.mounted) Navigator.of(ctx).pop(true);
             } catch (e) {
               setDialogState(() => errorMessage = friendlyErrorMessage(e));
@@ -148,7 +159,13 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageCourseTags, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageCourseTags,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
@@ -183,7 +200,10 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
           children: [
             Text('Manage Course Tags', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
-            Text('Tags are short keywords, such as Python or Safety, used to group and find courses. Every course needs at least one tag.', style: AdminTypography.bodyMd()),
+            Text(
+              'Tags are short keywords, such as Python or Safety, used to group and find courses. Every course needs at least one tag.',
+              style: AdminTypography.bodyMd(),
+            ),
           ],
         ),
         ElevatedButton.icon(
@@ -195,7 +215,9 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
       ],
@@ -205,7 +227,11 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
   Widget _buildListCard() {
     final tags = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -218,7 +244,11 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Search tags...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -227,14 +257,20 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
+                  adminSelectionSummary(
+                    count: _selected.length,
+                    onDeselectAll: () => setState(_selected.clear),
+                  ),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -243,15 +279,26 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,
                       side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           if (tags.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            )
           else
             Column(children: [for (final t in tags) _row(t)]),
         ],
@@ -263,15 +310,24 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
     final selected = _selected.contains(t.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(t.id) : _selected.remove(t.id)),
+            onChanged: (v) => setState(
+              () => v == true ? _selected.add(t.id) : _selected.remove(t.id),
+            ),
             activeColor: AdminColors.primaryContainer,
           ),
-          Expanded(child: Text(t.label, style: AdminTypography.bodyMd(color: AdminColors.onSurface))),
+          Expanded(
+            child: Text(
+              t.label,
+              style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+            ),
+          ),
           adminEditAction(() => _openForm(tag: t)),
         ],
       ),
@@ -290,7 +346,11 @@ class _ManageCourseTagsScreenState extends State<ManageCourseTagsScreen> with Re
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [_buildTopBar(), const SizedBox(height: 16), _buildListCard()],
+            children: [
+              _buildTopBar(),
+              const SizedBox(height: 16),
+              _buildListCard(),
+            ],
           ),
         ),
       ),

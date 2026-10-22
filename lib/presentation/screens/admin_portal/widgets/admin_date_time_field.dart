@@ -2,6 +2,7 @@ import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+
 import 'admin_field_label.dart';
 
 /// A labelled date + time picker pair that edits one [DateTime]. Picking a
@@ -45,7 +46,15 @@ class AdminDateTimeField extends StatelessWidget {
                     lastDate: DateTime(2100),
                   );
                   if (picked == null) return;
-                  onChanged(DateTime(picked.year, picked.month, picked.day, v?.hour ?? defaultHour, v?.minute ?? 0));
+                  onChanged(
+                    DateTime(
+                      picked.year,
+                      picked.month,
+                      picked.day,
+                      v?.hour ?? defaultHour,
+                      v?.minute ?? 0,
+                    ),
+                  );
                 },
               ),
             ),
@@ -53,14 +62,30 @@ class AdminDateTimeField extends StatelessWidget {
             Expanded(
               child: _box(
                 icon: Icons.schedule,
-                text: v == null ? 'Select time' : '${_two(v.hour)}:${_two(v.minute)}',
+                text: v == null
+                    ? 'Select time'
+                    : '${_two(v.hour)}:${_two(v.minute)}',
                 placeholder: v == null,
                 onTap: v == null
                     ? null
                     : () async {
-                        final picked = await showTimePicker(context: context, initialTime: TimeOfDay(hour: v.hour, minute: v.minute));
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay(
+                            hour: v.hour,
+                            minute: v.minute,
+                          ),
+                        );
                         if (picked == null) return;
-                        onChanged(DateTime(v.year, v.month, v.day, picked.hour, picked.minute));
+                        onChanged(
+                          DateTime(
+                            v.year,
+                            v.month,
+                            v.day,
+                            picked.hour,
+                            picked.minute,
+                          ),
+                        );
                       },
               ),
             ),
@@ -70,13 +95,21 @@ class AdminDateTimeField extends StatelessWidget {
     );
   }
 
-  Widget _box({required IconData icon, required String text, required bool placeholder, required VoidCallback? onTap}) {
+  Widget _box({
+    required IconData icon,
+    required String text,
+    required bool placeholder,
+    required VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: AdminColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: Row(
           children: [
             Icon(icon, size: 16, color: AdminColors.onSurfaceVariant),
@@ -84,7 +117,11 @@ class AdminDateTimeField extends StatelessWidget {
             Flexible(
               child: Text(
                 text,
-                style: AdminTypography.bodyMd(color: placeholder ? AdminColors.outline : AdminColors.onSurface),
+                style: AdminTypography.bodyMd(
+                  color: placeholder
+                      ? AdminColors.outline
+                      : AdminColors.onSurface,
+                ),
               ),
             ),
           ],

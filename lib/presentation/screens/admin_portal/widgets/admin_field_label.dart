@@ -12,12 +12,20 @@ class AdminFieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AdminTypography.bodySm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700);
+    final style = AdminTypography.bodySm(color: AdminColors.onSurface)
+        .copyWith(fontWeight: FontWeight.w700);
     if (!required) return Text(label, style: style);
     return Text.rich(
-      TextSpan(text: label, style: style, children: [
-        TextSpan(text: ' *', style: style.copyWith(color: AdminColors.error)),
-      ]),
+      TextSpan(
+        text: label,
+        style: style,
+        children: [
+          TextSpan(
+            text: ' *',
+            style: style.copyWith(color: AdminColors.error),
+          ),
+        ],
+      ),
     );
   }
 }

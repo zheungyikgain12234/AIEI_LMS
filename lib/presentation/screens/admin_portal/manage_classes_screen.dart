@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
 import 'widgets/admin_scaffold.dart';
@@ -36,7 +37,8 @@ class ManageClassesScreen extends StatefulWidget {
 
 enum _SortColumn { section, course, lecturer, semester, year, enrolled }
 
-class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshOnReturn<ManageClassesScreen> {
+class _ManageClassesScreenState extends State<ManageClassesScreen>
+    with RefreshOnReturn<ManageClassesScreen> {
   @override
   void onReturnedTo() => _load();
 
@@ -70,10 +72,19 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant).copyWith(fontSize: 18)),
+          Text(
+            label,
+            style: AdminTypography.labelSm(
+              color: active
+                  ? AdminColors.onSurface
+                  : AdminColors.onSurfaceVariant,
+            ).copyWith(fontSize: 18),
+          ),
           const SizedBox(width: 2),
           Icon(
-            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            active && !_sortAscending
+                ? Icons.arrow_downward
+                : Icons.arrow_upward,
             size: 12,
             color: active ? AdminColors.onSurface : AdminColors.outline,
           ),
@@ -85,7 +96,10 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -109,24 +123,36 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
   List<CourseSection> get _filtered {
     final sections = _query.isEmpty
         ? _sections
-        : _sections.where((s) =>
-            s.sectionCode.toLowerCase().contains(_query) ||
-            s.courseCode.toLowerCase().contains(_query) ||
-            s.courseTitle.toLowerCase().contains(_query) ||
-            (s.lecturerName ?? '').toLowerCase().contains(_query) ||
-            (s.semester ?? '').toLowerCase().contains(_query)).toList();
+        : _sections
+              .where(
+                (s) =>
+                    s.sectionCode.toLowerCase().contains(_query) ||
+                    s.courseCode.toLowerCase().contains(_query) ||
+                    s.courseTitle.toLowerCase().contains(_query) ||
+                    (s.lecturerName ?? '').toLowerCase().contains(_query) ||
+                    (s.semester ?? '').toLowerCase().contains(_query),
+              )
+              .toList();
     final sorted = [...sections];
     sorted.sort((a, b) {
       final int cmp;
       switch (_sortColumn) {
         case _SortColumn.section:
-          cmp = a.sectionCode.toLowerCase().compareTo(b.sectionCode.toLowerCase());
+          cmp = a.sectionCode.toLowerCase().compareTo(
+            b.sectionCode.toLowerCase(),
+          );
         case _SortColumn.course:
-          cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
+          cmp = a.courseTitle.toLowerCase().compareTo(
+            b.courseTitle.toLowerCase(),
+          );
         case _SortColumn.lecturer:
-          cmp = (a.lecturerName ?? '').toLowerCase().compareTo((b.lecturerName ?? '').toLowerCase());
+          cmp = (a.lecturerName ?? '').toLowerCase().compareTo(
+            (b.lecturerName ?? '').toLowerCase(),
+          );
         case _SortColumn.semester:
-          cmp = (a.semester ?? '').toLowerCase().compareTo((b.semester ?? '').toLowerCase());
+          cmp = (a.semester ?? '').toLowerCase().compareTo(
+            (b.semester ?? '').toLowerCase(),
+          );
         case _SortColumn.year:
           cmp = (a.semesterYear ?? 0).compareTo(b.semesterYear ?? 0);
         case _SortColumn.enrolled:
@@ -145,11 +171,14 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
     return items.sublist(start, end);
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageClasses, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageClasses, dest);
 
   Future<void> _openManageClass(CourseSection s) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ManageClassDetailScreen(sectionId: s.id)),
+      MaterialPageRoute(
+        builder: (_) => ManageClassDetailScreen(sectionId: s.id),
+      ),
     );
     _load();
   }
@@ -176,7 +205,13 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageClasses, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageClasses,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
@@ -226,8 +261,13 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                 decoration: InputDecoration(
                   isDense: true,
                   fillColor: AdminColors.surfaceContainerLowest,
-                  hintText: 'Search class by section code, course, or lecturer...',
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  hintText:
+                      'Search class by section code, course, or lecturer...',
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -242,7 +282,13 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
               ],
               const SizedBox(height: 16),
               if (sections.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
+                )
               else ...[
                 for (final s in _paged(sections)) ...[
                   _mobileSectionCard(s),
@@ -282,7 +328,9 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
+            onChanged: (v) => setState(
+              () => v == true ? _selected.add(s.id) : _selected.remove(s.id),
+            ),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
@@ -299,12 +347,22 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                   children: [
                     Text(
                       unassigned ? 'Unassigned' : (s.lecturerName ?? '—'),
-                      style: AdminTypography.labelSm(color: unassigned ? AdminColors.onSurfaceVariant : AdminColors.onSurface),
+                      style: AdminTypography.labelSm(
+                        color: unassigned
+                            ? AdminColors.onSurfaceVariant
+                            : AdminColors.onSurface,
+                      ),
                     ),
                     Text(s.scheduleText, style: AdminTypography.labelSm()),
                     if (s.semester != null)
-                      Text('${s.semesterCode ?? '—'} - ${s.semester}${s.semesterYear == null ? '' : ' (${s.semesterYear})'}', style: AdminTypography.labelSm()),
-                    Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm()),
+                      Text(
+                        '${s.semesterCode ?? '—'} - ${s.semester}${s.semesterYear == null ? '' : ' (${s.semesterYear})'}',
+                        style: AdminTypography.labelSm(),
+                      ),
+                    Text(
+                      '${s.enrolledCount} / ${s.capacity}',
+                      style: AdminTypography.labelSm(),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -316,8 +374,13 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                       foregroundColor: Colors.white,
                       backgroundColor: AdminColors.primaryContainer,
                       side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       textStyle: AdminTypography.labelSm(),
                     ),
                     child: const Text('Manage', textAlign: TextAlign.center),
@@ -351,7 +414,11 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
   Widget _buildClassesCard() {
     final sections = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -363,8 +430,13 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Search class by section code, course, or lecturer...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                hintText:
+                    'Search class by section code, course, or lecturer...',
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -373,23 +445,41 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.check_box, size: 18, color: AdminColors.secondary),
-                    const SizedBox(width: 6),
-                    Text('${_selected.length} class${_selected.length == 1 ? '' : 'es'} selected', style: AdminTypography.titleSm()),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => setState(_selected.clear),
-                      child: Text('Deselect all', style: AdminTypography.labelMd(color: AdminColors.secondary)),
-                    ),
-                  ]),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_box,
+                        size: 18,
+                        color: AdminColors.secondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_selected.length} class${_selected.length == 1 ? '' : 'es'} selected',
+                        style: AdminTypography.titleSm(),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => setState(_selected.clear),
+                        child: Text(
+                          'Deselect all',
+                          style: AdminTypography.labelMd(
+                            color: AdminColors.secondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -398,8 +488,13 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,
                       side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       textStyle: AdminTypography.labelSm(),
                     ),
                   ),
@@ -410,10 +505,15 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
           if (sections.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
             )
           else
-            Column(children: [for (final s in _paged(sections)) _sectionRow(s)]),
+            Column(
+              children: [for (final s in _paged(sections)) _sectionRow(s)],
+            ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: AdminPagination(
@@ -436,15 +536,37 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           const SizedBox(width: 48),
-          Expanded(flex: 5, child: _sortHeader('Course / Class', _SortColumn.course)),
-          Expanded(flex: 3, child: _sortHeader('Lecturer', _SortColumn.lecturer)),
-          Expanded(flex: 4, child: Text('Schedule', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(fontSize: 18))),
-          Expanded(flex: 3, child: _sortHeader('Semester / Year', _SortColumn.semester)),
-          Expanded(flex: 2, child: _sortHeader('Enrolled', _SortColumn.enrolled)),
+          Expanded(
+            flex: 5,
+            child: _sortHeader('Course / Class', _SortColumn.course),
+          ),
+          Expanded(
+            flex: 3,
+            child: _sortHeader('Lecturer', _SortColumn.lecturer),
+          ),
+          Expanded(
+            flex: 4,
+            child: Text(
+              'Schedule',
+              style: AdminTypography.labelSm(
+                color: AdminColors.onSurfaceVariant,
+              ).copyWith(fontSize: 18),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: _sortHeader('Semester / Year', _SortColumn.semester),
+          ),
+          Expanded(
+            flex: 2,
+            child: _sortHeader('Enrolled', _SortColumn.enrolled),
+          ),
           const SizedBox(width: 110),
         ],
       ),
@@ -460,7 +582,10 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
       flex: flex,
       child: Padding(
         padding: const EdgeInsets.only(right: 12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
       ),
     );
   }
@@ -468,50 +593,94 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
   Widget _sectionRow(CourseSection s) {
     final selected = _selected.contains(s.id);
     final unassigned = s.lecturerId == null;
-    final hasTime = s.dayOfWeek != null && s.startTime != null && s.endTime != null;
+    final hasTime =
+        s.dayOfWeek != null && s.startTime != null && s.endTime != null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
+            onChanged: (v) => setState(
+              () => v == true ? _selected.add(s.id) : _selected.remove(s.id),
+            ),
             activeColor: AdminColors.primaryContainer,
           ),
-          _cell(flex: 5, children: [
-            Text(s.courseTitle, style: AdminTypography.titleSm().copyWith(fontSize: 18)),
-            Text('${s.courseCode} • ${s.sectionCode}', style: AdminTypography.labelSm().copyWith(fontSize: 18)),
-          ]),
-          _cell(flex: 3, children: [
-            Text(
-              unassigned ? 'Unassigned' : (s.lecturerName ?? '—'),
-              style: unassigned ? AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(fontSize: 18) : AdminTypography.bodySm().copyWith(fontSize: 18),
-            ),
-          ]),
-          _cell(flex: 4, children: [
-            Text(
-              hasTime ? '${s.dayOfWeek!.substring(0, 3)} ${_hm(s.startTime!)}–${_hm(s.endTime!)}' : 'Schedule TBD',
-              style: AdminTypography.bodySm().copyWith(fontSize: 18),
-            ),
-            if (s.startDate != null || s.endDate != null)
-              Text('${_ymd(s.startDate)} to ${_ymd(s.endDate)}', style: AdminTypography.labelSm().copyWith(fontSize: 18)),
-            if (s.deliveryMode != 'online' && (s.location ?? '').isNotEmpty)
-              Text(s.location!, style: AdminTypography.labelSm().copyWith(fontSize: 18)),
-          ]),
-          _cell(flex: 3, children: [
-            Text(
-              s.semester == null ? '—' : '${s.semesterCode ?? '—'} - ${s.semester}',
-              style: AdminTypography.bodySm().copyWith(fontSize: 18),
-            ),
-            if (s.semesterYear != null) Text('${s.semesterYear}', style: AdminTypography.labelSm().copyWith(fontSize: 18)),
-          ]),
+          _cell(
+            flex: 5,
+            children: [
+              Text(
+                s.courseTitle,
+                style: AdminTypography.titleSm().copyWith(fontSize: 18),
+              ),
+              Text(
+                '${s.courseCode} • ${s.sectionCode}',
+                style: AdminTypography.labelSm().copyWith(fontSize: 18),
+              ),
+            ],
+          ),
+          _cell(
+            flex: 3,
+            children: [
+              Text(
+                unassigned ? 'Unassigned' : (s.lecturerName ?? '—'),
+                style: unassigned
+                    ? AdminTypography.labelSm(
+                        color: AdminColors.onSurfaceVariant,
+                      ).copyWith(fontSize: 18)
+                    : AdminTypography.bodySm().copyWith(fontSize: 18),
+              ),
+            ],
+          ),
+          _cell(
+            flex: 4,
+            children: [
+              Text(
+                hasTime
+                    ? '${s.dayOfWeek!.substring(0, 3)} ${_hm(s.startTime!)}–${_hm(s.endTime!)}'
+                    : 'Schedule TBD',
+                style: AdminTypography.bodySm().copyWith(fontSize: 18),
+              ),
+              if (s.startDate != null || s.endDate != null)
+                Text(
+                  '${_ymd(s.startDate)} to ${_ymd(s.endDate)}',
+                  style: AdminTypography.labelSm().copyWith(fontSize: 18),
+                ),
+              if (s.deliveryMode != 'online' && (s.location ?? '').isNotEmpty)
+                Text(
+                  s.location!,
+                  style: AdminTypography.labelSm().copyWith(fontSize: 18),
+                ),
+            ],
+          ),
+          _cell(
+            flex: 3,
+            children: [
+              Text(
+                s.semester == null
+                    ? '—'
+                    : '${s.semesterCode ?? '—'} - ${s.semester}',
+                style: AdminTypography.bodySm().copyWith(fontSize: 18),
+              ),
+              if (s.semesterYear != null)
+                Text(
+                  '${s.semesterYear}',
+                  style: AdminTypography.labelSm().copyWith(fontSize: 18),
+                ),
+            ],
+          ),
           Expanded(
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm().copyWith(fontSize: 18)),
+              child: Text(
+                '${s.enrolledCount} / ${s.capacity}',
+                style: AdminTypography.labelSm().copyWith(fontSize: 18),
+              ),
             ),
           ),
           SizedBox(
@@ -524,8 +693,13 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                   foregroundColor: Colors.white,
                   backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   textStyle: AdminTypography.labelSm().copyWith(fontSize: 18),
                 ),
                 child: const Text('Manage', textAlign: TextAlign.center),

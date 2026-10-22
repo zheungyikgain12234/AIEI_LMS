@@ -10,7 +10,10 @@ final ValueNotifier<int> pendingSyllabusCount = ValueNotifier<int>(0);
 /// sidebar appears and after a syllabus is approved / its status changes.
 Future<void> refreshPendingSyllabusCount() async {
   try {
-    final rows = await Supabase.instance.client.from('course_sections').select('id').eq('syllabus_status', 'submitted');
+    final rows = await Supabase.instance.client
+        .from('course_sections')
+        .select('id')
+        .eq('syllabus_status', 'submitted');
     pendingSyllabusCount.value = (rows as List).length;
   } catch (_) {
     // The dot is a convenience — never let a failed count break navigation.
@@ -27,11 +30,15 @@ class PendingSyllabusDot extends StatelessWidget {
       valueListenable: pendingSyllabusCount,
       builder: (_, count, _) => count > 0
           ? Tooltip(
-              message: '$count syllabus${count == 1 ? '' : 'es'} awaiting approval',
+              message:
+                  '$count syllabus${count == 1 ? '' : 'es'} awaiting approval',
               child: Container(
                 width: 9,
                 height: 9,
-                decoration: const BoxDecoration(color: AdminColors.error, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: AdminColors.error,
+                  shape: BoxShape.circle,
+                ),
               ),
             )
           : const SizedBox.shrink(),
@@ -47,7 +54,8 @@ class PendingSyllabusRefresher extends StatefulWidget {
   const PendingSyllabusRefresher({super.key, required this.child});
 
   @override
-  State<PendingSyllabusRefresher> createState() => _PendingSyllabusRefresherState();
+  State<PendingSyllabusRefresher> createState() =>
+      _PendingSyllabusRefresherState();
 }
 
 class _PendingSyllabusRefresherState extends State<PendingSyllabusRefresher> {

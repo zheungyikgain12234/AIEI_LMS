@@ -5,11 +5,16 @@ import 'package:stitch_aiei_lms/core/utils/dropdown_sort.dart';
 
 String _labelOf<T>(DropdownMenuItem<T> item) {
   final child = item.child;
-  if (child is Text) return child.data ?? child.textSpan?.toPlainText() ?? '${item.value}';
+  if (child is Text)
+    return child.data ?? child.textSpan?.toPlainText() ?? '${item.value}';
   return '${item.value}';
 }
 
-Future<T?> _showSearchDialog<T>(BuildContext context, List<DropdownMenuItem<T>> items, T? current) {
+Future<T?> _showSearchDialog<T>(
+  BuildContext context,
+  List<DropdownMenuItem<T>> items,
+  T? current,
+) {
   return showDialog<T>(
     context: context,
     builder: (ctx) {
@@ -18,10 +23,16 @@ Future<T?> _showSearchDialog<T>(BuildContext context, List<DropdownMenuItem<T>> 
         builder: (ctx, setState) {
           final q = query.trim().toLowerCase();
           final sortedItems = sortDropdownItems(items);
-          final filtered = q.isEmpty ? sortedItems : sortedItems.where((i) => _labelOf(i).toLowerCase().contains(q)).toList();
+          final filtered = q.isEmpty
+              ? sortedItems
+              : sortedItems
+                    .where((i) => _labelOf(i).toLowerCase().contains(q))
+                    .toList();
           return Dialog(
             backgroundColor: AdminColors.surfaceContainerLowest,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420, maxHeight: 460),
               child: Column(
@@ -32,12 +43,17 @@ Future<T?> _showSearchDialog<T>(BuildContext context, List<DropdownMenuItem<T>> 
                     child: TextField(
                       autofocus: true,
                       onChanged: (v) => setState(() => query = v),
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: 'Search...',
                         prefixIcon: const Icon(Icons.search, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -45,7 +61,12 @@ Future<T?> _showSearchDialog<T>(BuildContext context, List<DropdownMenuItem<T>> 
                     child: filtered.isEmpty
                         ? Padding(
                             padding: const EdgeInsets.all(24),
-                            child: Text('No matches', style: AdminTypography.bodySm(color: AdminColors.outline)),
+                            child: Text(
+                              'No matches',
+                              style: AdminTypography.bodySm(
+                                color: AdminColors.outline,
+                              ),
+                            ),
                           )
                         : ListView.builder(
                             shrinkWrap: true,
@@ -54,13 +75,22 @@ Future<T?> _showSearchDialog<T>(BuildContext context, List<DropdownMenuItem<T>> 
                               final item = filtered[i];
                               final selected = item.value == current;
                               return InkWell(
-                                onTap: item.enabled ? () => Navigator.of(ctx).pop(item.value) : null,
+                                onTap: item.enabled
+                                    ? () => Navigator.of(ctx).pop(item.value)
+                                    : null,
                                 child: Container(
-                                  color: selected ? AdminColors.surfaceContainerHigh : null,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  color: selected
+                                      ? AdminColors.surfaceContainerHigh
+                                      : null,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
                                   alignment: Alignment.centerLeft,
                                   child: DefaultTextStyle(
-                                    style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                                    style: AdminTypography.bodyMd(
+                                      color: AdminColors.onSurface,
+                                    ),
                                     child: item.child,
                                   ),
                                 ),
@@ -106,13 +136,19 @@ class SearchableDropdownButton<T> extends StatelessWidget {
     final enabled = onChanged != null && items.isNotEmpty;
     final selected = items.where((i) => i.value == value).firstOrNull;
     final display = selected?.child ?? hint ?? const SizedBox.shrink();
-    final textStyle = style ?? Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    final textStyle =
+        style ?? Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
     final row = Row(
       mainAxisSize: isExpanded ? MainAxisSize.max : MainAxisSize.min,
       children: [
         if (isExpanded) Expanded(child: display) else Flexible(child: display),
         const SizedBox(width: 8),
-        icon ?? const Icon(Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
+        icon ??
+            const Icon(
+              Icons.expand_more,
+              size: 18,
+              color: AdminColors.onSurfaceVariant,
+            ),
       ],
     );
     return Opacity(
@@ -120,7 +156,11 @@ class SearchableDropdownButton<T> extends StatelessWidget {
       child: InkWell(
         onTap: enabled
             ? () async {
-                final picked = await _showSearchDialog<T>(context, items, value);
+                final picked = await _showSearchDialog<T>(
+                  context,
+                  items,
+                  value,
+                );
                 if (picked != null) onChanged!(picked);
               }
             : null,
@@ -148,30 +188,30 @@ class SearchableDropdownFormField<T> extends FormField<T> {
     InputDecoration decoration = const InputDecoration(),
     super.validator,
   }) : super(
-          initialValue: initialValue,
-          builder: (field) {
-            final state = field as _SearchableDropdownFormFieldState<T>;
-            return InputDecorator(
-              decoration: decoration.copyWith(errorText: field.errorText),
-              isEmpty: false,
-              child: SearchableDropdownButton<T>(
-                items: items,
-                value: state.value,
-                hint: hint,
-                style: style,
-                icon: icon,
-                isDense: true,
-                isExpanded: isExpanded,
-                onChanged: onChanged == null
-                    ? null
-                    : (v) {
-                        state.didChange(v);
-                        onChanged(v);
-                      },
-              ),
-            );
-          },
-        );
+         initialValue: initialValue,
+         builder: (field) {
+           final state = field as _SearchableDropdownFormFieldState<T>;
+           return InputDecorator(
+             decoration: decoration.copyWith(errorText: field.errorText),
+             isEmpty: false,
+             child: SearchableDropdownButton<T>(
+               items: items,
+               value: state.value,
+               hint: hint,
+               style: style,
+               icon: icon,
+               isDense: true,
+               isExpanded: isExpanded,
+               onChanged: onChanged == null
+                   ? null
+                   : (v) {
+                       state.didChange(v);
+                       onChanged(v);
+                     },
+             ),
+           );
+         },
+       );
 
   @override
   FormFieldState<T> createState() => _SearchableDropdownFormFieldState<T>();

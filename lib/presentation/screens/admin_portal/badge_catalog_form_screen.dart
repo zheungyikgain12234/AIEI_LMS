@@ -10,7 +10,9 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
+
 import 'widgets/admin_field_error.dart';
+
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
 
 // ---------------------------------------------------------------------------
@@ -26,11 +28,15 @@ class BadgeCatalogFormScreen extends ConsumerStatefulWidget {
   bool get isEditing => badgeId != null;
 
   @override
-  ConsumerState<BadgeCatalogFormScreen> createState() => _BadgeCatalogFormScreenState();
+  ConsumerState<BadgeCatalogFormScreen> createState() =>
+      _BadgeCatalogFormScreenState();
 }
 
-class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen> {
-  final _repository = SupabaseAdminBadgeCatalogRepositoryImpl(Supabase.instance.client);
+class _BadgeCatalogFormScreenState
+    extends ConsumerState<BadgeCatalogFormScreen> {
+  final _repository = SupabaseAdminBadgeCatalogRepositoryImpl(
+    Supabase.instance.client,
+  );
   final _formKey = GlobalKey<FormState>();
 
   final _codeController = TextEditingController();
@@ -41,8 +47,10 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
-  String? get _codeConflict => _errorMessage == codeConflictMessage ? _errorMessage : null;
-  String? get _nameConflict => _errorMessage == nameConflictMessage ? _errorMessage : null;
+  String? get _codeConflict =>
+      _errorMessage == codeConflictMessage ? _errorMessage : null;
+  String? get _nameConflict =>
+      _errorMessage == nameConflictMessage ? _errorMessage : null;
 
   /// Every code is stored tenant-prefixed (`TN01-CERT-PYAUTO`) to keep it
   /// unique across tenants, but the admin only ever types/sees the suffix.
@@ -94,7 +102,8 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
       _errorMessage = null;
     });
     try {
-      final code = '${_tenantPrefix()}${_codeController.text.trim().toUpperCase()}';
+      final code =
+          '${_tenantPrefix()}${_codeController.text.trim().toUpperCase()}';
       final BadgeCatalogItem saved;
       if (widget.isEditing) {
         saved = await _repository.updateBadge(
@@ -113,7 +122,10 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
         );
       }
       if (!mounted) return;
-      showSuccessSnackBar(context, widget.isEditing ? 'Badge updated.' : 'Badge created.');
+      showSuccessSnackBar(
+        context,
+        widget.isEditing ? 'Badge updated.' : 'Badge created.',
+      );
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;
@@ -134,7 +146,10 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: _isLoading
-            ? const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()))
+            ? const SizedBox(
+                height: 200,
+                child: Center(child: CircularProgressIndicator()),
+              )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Form(
@@ -143,83 +158,166 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(children: [
-                        Expanded(child: Text(title, style: AdminTypography.headlineSm(color: UiContrast.text))),
-                        IconButton(
-                          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close, color: UiContrast.textSecondary),
-                          tooltip: 'Close',
-                        ),
-                      ]),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: AdminTypography.headlineSm(
+                                color: UiContrast.text,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _isSaving
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            icon: const Icon(
+                              Icons.close,
+                              color: UiContrast.textSecondary,
+                            ),
+                            tooltip: 'Close',
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 4),
-                          Text(
-                            widget.isEditing
-                                ? 'Update this badge\'s catalogue information.'
-                                : 'Add a new badge to the catalogue. Courses can then be configured to award it on completion.',
-                            style: AdminTypography.bodyMd(color: UiContrast.textSecondary),
+                      Text(
+                        widget.isEditing
+                            ? 'Update this badge\'s catalogue information.'
+                            : 'Add a new badge to the catalogue. Courses can then be configured to award it on completion.',
+                        style: AdminTypography.bodyMd(
+                          color: UiContrast.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      if (_errorMessage != null &&
+                          !isFieldConflictMessage(_errorMessage!)) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AdminColors.errorContainer,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          const SizedBox(height: 20),
-                          if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-                              child: Text(_errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+                          child: Text(
+                            _errorMessage!,
+                            style: AdminTypography.bodySm(
+                              color: AdminColors.onErrorContainer,
                             ),
-                            const SizedBox(height: 16),
-                          ],
-                          if (widget.isEditing)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: Text.rich(TextSpan(children: [
-                                TextSpan(text: 'Badge Code: ', style: AdminTypography.bodySm(color: UiContrast.textSecondary).copyWith(fontWeight: FontWeight.w700)),
-                                TextSpan(text: _codeController.text.trim().toUpperCase(), style: AdminTypography.titleSm(color: UiContrast.text)),
-                              ])),
-                            ),
-                          if (!widget.isEditing) ...[
-                            _field(controller: _codeController, label: 'Badge Code', hint: 'PYAUTO', inputFormatters: const [UpperCaseTextFormatter()]),
-                            AdminFieldError(_codeConflict),
-                            const SizedBox(height: 14),
-                          ],
-                          _field(controller: _titleController, label: 'Badge Name', hint: 'Python Automation Specialist'),
-                          AdminFieldError(_nameConflict),
-                          const SizedBox(height: 14),
-                          _field(controller: _descriptionController, label: 'Description', hint: 'What this badge recognises...', maxLines: 4),
-                          const SizedBox(height: 14),
-                          _field(controller: _issuingBodyController, label: 'Issuing Party', hint: 'AIEI Enterprise Learning'),
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: AdminColors.primaryContainer,
-                                    side: BorderSide.none,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (widget.isEditing)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Badge Code: ',
+                                  style: AdminTypography.bodySm(
+                                    color: UiContrast.textSecondary,
+                                  ).copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                TextSpan(
+                                  text: _codeController.text
+                                      .trim()
+                                      .toUpperCase(),
+                                  style: AdminTypography.titleSm(
+                                    color: UiContrast.text,
                                   ),
-                                  child: const Text('Cancel', textAlign: TextAlign.center),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (!widget.isEditing) ...[
+                        _field(
+                          controller: _codeController,
+                          label: 'Badge Code',
+                          hint: 'PYAUTO',
+                          inputFormatters: const [UpperCaseTextFormatter()],
+                        ),
+                        AdminFieldError(_codeConflict),
+                        const SizedBox(height: 14),
+                      ],
+                      _field(
+                        controller: _titleController,
+                        label: 'Badge Name',
+                        hint: 'Python Automation Specialist',
+                      ),
+                      AdminFieldError(_nameConflict),
+                      const SizedBox(height: 14),
+                      _field(
+                        controller: _descriptionController,
+                        label: 'Description',
+                        hint: 'What this badge recognises...',
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: 14),
+                      _field(
+                        controller: _issuingBodyController,
+                        label: 'Issuing Party',
+                        hint: 'AIEI Enterprise Learning',
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: _isSaving
+                                  ? null
+                                  : () => Navigator.of(context).pop(),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: AdminColors.primaryContainer,
+                                side: BorderSide.none,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _isSaving ? null : _save,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AdminColors.primaryContainer,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: _isSaving
-                                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                      : Text(widget.isEditing ? 'Save Changes' : 'Add Badge'),
+                              child: const Text(
+                                'Cancel',
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isSaving ? null : _save,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AdminColors.primaryContainer,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                            ],
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      widget.isEditing
+                                          ? 'Save Changes'
+                                          : 'Add Badge',
+                                    ),
+                            ),
                           ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -249,7 +347,9 @@ class _BadgeCatalogFormScreenState extends ConsumerState<BadgeCatalogFormScreen>
           enabled: !readOnly,
           style: AdminTypography.bodyMd(color: UiContrast.text),
           decoration: UiContrast.fieldDecoration(hint: hint),
-          validator: (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null,
+          validator: (value) => (value == null || value.trim().isEmpty)
+              ? '$label is required'
+              : null,
         ),
       ],
     );

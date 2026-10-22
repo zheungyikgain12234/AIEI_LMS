@@ -12,6 +12,7 @@ import 'package:stitch_aiei_lms/domain/models/badge_award_request.dart';
 import 'package:stitch_aiei_lms/domain/repositories/app_settings_repository.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/faculty_dialog.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
+
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_scaffold.dart';
@@ -29,11 +30,14 @@ class BadgeApprovalsScreen extends StatefulWidget {
   State<BadgeApprovalsScreen> createState() => _BadgeApprovalsScreenState();
 }
 
-class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with RefreshOnReturn<BadgeApprovalsScreen> {
+class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen>
+    with RefreshOnReturn<BadgeApprovalsScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseBadgeApprovalsRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseBadgeApprovalsRepositoryImpl(
+    Supabase.instance.client,
+  );
   final _settings = SupabaseAppSettingsRepositoryImpl(Supabase.instance.client);
   bool _isLoading = true;
   bool _pendingOnly = true;
@@ -53,7 +57,9 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
       if (!mounted) return;
       setState(() {
         _requests = requests;
-        _passingMark = numeric[AppSettingKeys.coursePassingMark] ?? AppSettingKeys.defaultCoursePassingMark;
+        _passingMark =
+            numeric[AppSettingKeys.coursePassingMark] ??
+            AppSettingKeys.defaultCoursePassingMark;
       });
     } catch (e) {
       debugPrint('Badge approvals failed to load: $e');
@@ -61,9 +67,11 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
     if (mounted) setState(() => _isLoading = false);
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.badgeApprovals, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.badgeApprovals, dest);
 
-  List<BadgeAwardRequest> get _visible => _pendingOnly ? _requests.where((r) => r.isPending).toList() : _requests;
+  List<BadgeAwardRequest> get _visible =>
+      _pendingOnly ? _requests.where((r) => r.isPending).toList() : _requests;
 
   Future<void> _decide(BadgeAwardRequest r, {required bool approve}) async {
     final noteController = TextEditingController();
@@ -80,7 +88,9 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
           destructive: !approve,
           onConfirm: () {
             if (!approve && noteController.text.trim().isEmpty) {
-              setDialogState(() => error = 'Please give a reason for rejecting.');
+              setDialogState(
+                () => error = 'Please give a reason for rejecting.',
+              );
               return;
             }
             Navigator.of(ctx).pop(true);
@@ -105,11 +115,16 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
     try {
       await _repository.decide(r, approved: approve, note: note);
       if (!mounted) return;
-      showSuccessSnackBar(context, approve ? 'Badge approved.' : 'Badge rejected.');
+      showSuccessSnackBar(
+        context,
+        approve ? 'Badge approved.' : 'Badge rejected.',
+      );
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save the decision: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save the decision: $e')),
+      );
     }
   }
 
@@ -121,7 +136,8 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
       context: context,
       builder: (ctx) => FacultyDialog(
         title: 'Delete this rejection?',
-        subtitle: '${r.studentName} will be able to earn "${r.badgeTitle}" for ${r.courseTitle} again.',
+        subtitle:
+            '${r.studentName} will be able to earn "${r.badgeTitle}" for ${r.courseTitle} again.',
         confirmLabel: 'Delete',
         destructive: true,
         onConfirm: () => Navigator.of(ctx).pop(true),
@@ -140,7 +156,9 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not delete the rejection: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete the rejection: $e')),
+      );
     }
   }
 
@@ -151,13 +169,24 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
       return Scaffold(
         backgroundColor: AdminColors.background,
         appBar: const AdminMobileTopBar.detail(title: 'Badge Approvals'),
-        body: SafeArea(top: false, child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: _content())),
+        body: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: _content(),
+          ),
+        ),
       );
     }
-    return AdminScaffold(selected: AdminNavDestination.badgeApprovals, onDestinationSelected: _handleNav, body: _content());
+    return AdminScaffold(
+      selected: AdminNavDestination.badgeApprovals,
+      onDestinationSelected: _handleNav,
+      body: _content(),
+    );
   }
 
-  String _mark(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+  String _mark(double v) =>
+      v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
   Widget _content() {
     return Column(
@@ -178,7 +207,9 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
           spacing: 8,
           children: [
             ChoiceChip(
-              label: Text('Waiting (${_requests.where((r) => r.isPending).length})'),
+              label: Text(
+                'Waiting (${_requests.where((r) => r.isPending).length})',
+              ),
               selected: _pendingOnly,
               onSelected: (_) => setState(() => _pendingOnly = true),
             ),
@@ -196,15 +227,24 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), border: Border.all(color: UiContrast.divider)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: UiContrast.divider),
+            ),
             child: Text(
-              _pendingOnly ? 'No badges are waiting for approval.' : 'No badge requests yet.',
+              _pendingOnly
+                  ? 'No badges are waiting for approval.'
+                  : 'No badge requests yet.',
               textAlign: TextAlign.center,
               style: AdminTypography.bodyMd(),
             ),
           )
         else
-          for (final r in _visible) ...[_requestCard(r), const SizedBox(height: 14)],
+          for (final r in _visible) ...[
+            _requestCard(r),
+            const SizedBox(height: 14),
+          ],
       ],
     );
   }
@@ -213,12 +253,23 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
     final (label, bg, fg) = r.isPending
         ? ('Waiting', const Color(0xFFFEF3C7), const Color(0xFF92400E))
         : r.isApproved
-            ? ('Approved', const Color(0xFFDCFCE7), const Color(0xFF166534))
-            : ('Rejected', AdminColors.errorContainer, AdminColors.onErrorContainer);
+        ? ('Approved', const Color(0xFFDCFCE7), const Color(0xFF166534))
+        : (
+            'Rejected',
+            AdminColors.errorContainer,
+            AdminColors.onErrorContainer,
+          );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(9999)),
-      child: Text(label, style: AdminTypography.labelMd(color: fg).copyWith(fontWeight: FontWeight.w700)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(9999),
+      ),
+      child: Text(
+        label,
+        style: AdminTypography.labelMd(color: fg)
+            .copyWith(fontWeight: FontWeight.w700),
+      ),
     );
   }
 
@@ -243,7 +294,10 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(r.studentName, style: AdminTypography.titleMd()),
-                    Text('${r.courseCode} • ${r.courseTitle}', style: AdminTypography.bodySm()),
+                    Text(
+                      '${r.courseCode} • ${r.courseTitle}',
+                      style: AdminTypography.bodySm(),
+                    ),
                   ],
                 ),
               ),
@@ -251,7 +305,10 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
             ],
           ),
           const SizedBox(height: 12),
-          Text('Badge: ${r.badgeTitle}', style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
+          Text(
+            'Badge: ${r.badgeTitle}',
+            style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+          ),
           const SizedBox(height: 2),
           Text(
             'Final score ${_mark(r.finalScore)}% (passing mark ${_mark(_passingMark)}%) • raised ${formatDate(r.createdAt)}',
@@ -259,9 +316,15 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
           ),
           if (!r.isPending && (r.adminNote ?? '').isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(r.isApproved ? 'Remarks' : 'Reject reason', style: AdminTypography.labelMd()),
+            Text(
+              r.isApproved ? 'Remarks' : 'Reject reason',
+              style: AdminTypography.labelMd(),
+            ),
             const SizedBox(height: 4),
-            Text(r.adminNote!, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
+            Text(
+              r.adminNote!,
+              style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+            ),
           ],
           if (r.isRejected) ...[
             const SizedBox(height: 16),
@@ -269,8 +332,14 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
               alignment: Alignment.centerRight,
               child: OutlinedButton(
                 onPressed: () => _deleteRejected(r),
-                style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: const BorderSide(color: AdminColors.error)),
-                child: const Text('Delete rejection', textAlign: TextAlign.center),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AdminColors.error,
+                  side: const BorderSide(color: AdminColors.error),
+                ),
+                child: const Text(
+                  'Delete rejection',
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ],
@@ -281,13 +350,20 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
               children: [
                 OutlinedButton(
                   onPressed: () => _decide(r, approve: false),
-                  style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: const BorderSide(color: AdminColors.error)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AdminColors.error,
+                    side: const BorderSide(color: AdminColors.error),
+                  ),
                   child: const Text('Reject', textAlign: TextAlign.center),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () => _decide(r, approve: true),
-                  style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AdminColors.primaryContainer,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                  ),
                   child: const Text('Approve', textAlign: TextAlign.center),
                 ),
               ],

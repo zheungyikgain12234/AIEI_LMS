@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -34,7 +35,8 @@ class ManageLecturersScreen extends StatefulWidget {
 
 enum _SortColumn { code, name, department, status }
 
-class _ManageLecturersScreenState extends State<ManageLecturersScreen> with RefreshOnReturn<ManageLecturersScreen> {
+class _ManageLecturersScreenState extends State<ManageLecturersScreen>
+    with RefreshOnReturn<ManageLecturersScreen> {
   @override
   void onReturnedTo() => _load();
 
@@ -53,11 +55,15 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
 
   List<Lecturer> get _filteredLecturers {
     if (_query.isEmpty) return _lecturers;
-    return _lecturers.where((l) =>
-        l.name.toLowerCase().contains(_query) ||
-        l.lecturerCode.toLowerCase().contains(_query) ||
-        l.email.toLowerCase().contains(_query) ||
-        l.department.toLowerCase().contains(_query)).toList();
+    return _lecturers
+        .where(
+          (l) =>
+              l.name.toLowerCase().contains(_query) ||
+              l.lecturerCode.toLowerCase().contains(_query) ||
+              l.email.toLowerCase().contains(_query) ||
+              l.department.toLowerCase().contains(_query),
+        )
+        .toList();
   }
 
   List<Lecturer> get _sortedLecturers {
@@ -66,11 +72,15 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
       final int cmp;
       switch (_sortColumn) {
         case _SortColumn.code:
-          cmp = a.lecturerCode.toLowerCase().compareTo(b.lecturerCode.toLowerCase());
+          cmp = a.lecturerCode.toLowerCase().compareTo(
+            b.lecturerCode.toLowerCase(),
+          );
         case _SortColumn.name:
           cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
         case _SortColumn.department:
-          cmp = a.department.toLowerCase().compareTo(b.department.toLowerCase());
+          cmp = a.department.toLowerCase().compareTo(
+            b.department.toLowerCase(),
+          );
         case _SortColumn.status:
           cmp = a.status.toLowerCase().compareTo(b.status.toLowerCase());
       }
@@ -106,10 +116,19 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          Text(
+            label,
+            style: AdminTypography.labelSm(
+              color: active
+                  ? AdminColors.onSurface
+                  : AdminColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(width: 2),
           Icon(
-            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            active && !_sortAscending
+                ? Icons.arrow_downward
+                : Icons.arrow_upward,
             size: 12,
             color: active ? AdminColors.onSurface : AdminColors.outline,
           ),
@@ -121,10 +140,12 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() {
-          _query = _searchController.text.trim().toLowerCase();
-          _page = 1;
-        }));
+    _searchController.addListener(
+      () => setState(() {
+        _query = _searchController.text.trim().toLowerCase();
+        _page = 1;
+      }),
+    );
     _load();
   }
 
@@ -151,7 +172,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
 
   Future<void> _openAssignedCourses(Lecturer l) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => LecturerCourseAssignmentScreen(lecturerId: l.id)),
+      MaterialPageRoute(
+        builder: (_) => LecturerCourseAssignmentScreen(lecturerId: l.id),
+      ),
     );
     _load();
   }
@@ -172,7 +195,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
 
   Future<void> _deleteSelected() async {
     final count = _selected.length;
-    final orphaned = await _repository.getSectionsForLecturers(_selected.toList());
+    final orphaned = await _repository.getSectionsForLecturers(
+      _selected.toList(),
+    );
     if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -181,16 +206,24 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         content: Text(
           'This will permanently delete $count lecturer${count == 1 ? '' : 's'}. This cannot be undone.'
           '${orphaned.isEmpty ? '' : '\n\nThey still teach ${orphaned.length} class${orphaned.length == 1 ? '' : 'es'}, '
-              'which you will be asked to reassign first. Nobody is deleted until every class has a new lecturer.'}',
+                    'which you will be asked to reassign first. Nobody is deleted until every class has a new lecturer.'}',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', textAlign: TextAlign.center),
+          ),
           // With classes to reassign, nothing is deleted yet: this only opens the
           // reassignment review. With none, this is the final confirmation.
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: orphaned.isEmpty ? FilledButton.styleFrom(backgroundColor: AdminColors.error) : null,
-            child: Text(orphaned.isEmpty ? 'Delete' : 'Review', textAlign: TextAlign.center),
+            style: orphaned.isEmpty
+                ? FilledButton.styleFrom(backgroundColor: AdminColors.error)
+                : null,
+            child: Text(
+              orphaned.isEmpty ? 'Delete' : 'Review',
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
@@ -200,7 +233,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
       final deleted = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => ReassignOrphanedClassesScreen(
-            lecturersToDelete: _lecturers.where((l) => _selected.contains(l.id)).toList(),
+            lecturersToDelete: _lecturers
+                .where((l) => _selected.contains(l.id))
+                .toList(),
           ),
         ),
       );
@@ -223,7 +258,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageLecturers, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageLecturers,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
@@ -260,11 +301,17 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Manage and Assign Lecturers', style: AdminTypography.headlineLg()),
+            Text(
+              'Manage and Assign Lecturers',
+              style: AdminTypography.headlineLg(),
+            ),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
-              child: Text('Add lecturers, set their login details and department, and assign them to the courses they teach.', style: AdminTypography.bodyMd()),
+              child: Text(
+                'Add lecturers, set their login details and department, and assign them to the courses they teach.',
+                style: AdminTypography.bodyMd(),
+              ),
             ),
           ],
         ),
@@ -277,7 +324,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
       ],
@@ -300,11 +349,25 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
           Expanded(
             child: Text.rich(
               TextSpan(
-                style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed),
+                style: AdminTypography.bodySm(
+                  color: AdminColors.onPrimaryFixed,
+                ),
                 children: [
-                  TextSpan(text: 'Tip: ', style: AdminTypography.titleSm(color: AdminColors.onPrimaryFixed)),
-                  const TextSpan(text: 'Check the boxes next to lecturer rows to select them for bulk actions. To assign courses to a lecturer, click '),
-                  TextSpan(text: 'Manage Assigned Courses', style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
+                  TextSpan(
+                    text: 'Tip: ',
+                    style: AdminTypography.titleSm(
+                      color: AdminColors.onPrimaryFixed,
+                    ),
+                  ),
+                  const TextSpan(
+                    text: 'Check the boxes next to lecturer rows to select them for bulk actions. To assign courses to a lecturer, click ',
+                  ),
+                  TextSpan(
+                    text: 'Manage Assigned Courses',
+                    style: AdminTypography.bodySm(
+                      color: AdminColors.onPrimaryFixed,
+                    ).copyWith(fontWeight: FontWeight.w700),
+                  ),
                   const TextSpan(text: ' on that lecturer\'s row.'),
                 ],
               ),
@@ -315,27 +378,57 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
     );
   }
 
-  int get _activeFacultyCount => _lecturers.where((l) => l.status == 'Active').length;
+  int get _activeFacultyCount =>
+      _lecturers.where((l) => l.status == 'Active').length;
 
-  int get _totalAssignedCourses => _courseCodesByLecturer.values.fold(0, (sum, courses) => sum + courses.length);
+  int get _totalAssignedCourses => _courseCodesByLecturer.values.fold(
+    0,
+    (sum, courses) => sum + courses.length,
+  );
 
   Widget _buildMetrics() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth >= 700 ? 2 : 1;
-      final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
-      final total = _lecturers.length;
-      final activeProgress = total == 0 ? 0.0 : _activeFacultyCount / total;
-      final assignedProgress = total == 0 ? 0.0 : (_courseCodesByLecturer.values.where((c) => c.isNotEmpty).length / total);
-      final cards = [
-        _metricCard('TOTAL LECTURERS', '$_activeFacultyCount Active', Icons.groups_outlined, 'of $total total lecturers', activeProgress),
-        _metricCard('ASSIGNED COURSES', '$_totalAssignedCourses Assigned', Icons.menu_book_outlined,
-            '${(assignedProgress * 100).round()}% of lecturers have an assignment', assignedProgress),
-      ];
-      return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth >= 700 ? 2 : 1;
+        final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
+        final total = _lecturers.length;
+        final activeProgress = total == 0 ? 0.0 : _activeFacultyCount / total;
+        final assignedProgress = total == 0
+            ? 0.0
+            : (_courseCodesByLecturer.values.where((c) => c.isNotEmpty).length /
+                  total);
+        final cards = [
+          _metricCard(
+            'TOTAL LECTURERS',
+            '$_activeFacultyCount Active',
+            Icons.groups_outlined,
+            'of $total total lecturers',
+            activeProgress,
+          ),
+          _metricCard(
+            'ASSIGNED COURSES',
+            '$_totalAssignedCourses Assigned',
+            Icons.menu_book_outlined,
+            '${(assignedProgress * 100).round()}% of lecturers have an assignment',
+            assignedProgress,
+          ),
+        ];
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: cards.map((c) => SizedBox(width: width, child: c)).toList(),
+        );
+      },
+    );
   }
 
-  Widget _metricCard(String label, String value, IconData icon, String footer, double progress) {
+  Widget _metricCard(
+    String label,
+    String value,
+    IconData icon,
+    String footer,
+    double progress,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -346,24 +439,45 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Expanded(child: Text(label, style: AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w600))),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
-              child: Icon(icon, color: AdminColors.primary, size: 18),
-            ),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: AdminTypography.labelMd().copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AdminColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: AdminColors.primary, size: 18),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Text(value, style: AdminTypography.dataMetric()),
           const SizedBox(height: 4),
-          Row(children: [
-            Expanded(child: Text(footer, style: AdminTypography.labelSm())),
-          ]),
+          Row(
+            children: [
+              Expanded(child: Text(footer, style: AdminTypography.labelSm())),
+            ],
+          ),
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(9999),
-            child: LinearProgressIndicator(value: progress, minHeight: 4, backgroundColor: AdminColors.surfaceContainerLow, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.primary)),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 4,
+              backgroundColor: AdminColors.surfaceContainerLow,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AdminColors.primary,
+              ),
+            ),
           ),
         ],
       ),
@@ -391,7 +505,11 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                 isDense: true,
                 fillColor: AdminColors.surfaceContainerLowest,
                 hintText: 'Search by lecturer name, employee ID, email, or department...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
             ),
@@ -400,23 +518,41 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.check_box, size: 18, color: AdminColors.secondary),
-                    const SizedBox(width: 6),
-                    Text('${_selected.length} lecturer${_selected.length == 1 ? '' : 's'} selected', style: AdminTypography.titleSm()),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => setState(_selected.clear),
-                      child: Text('Deselect all', style: AdminTypography.labelMd(color: AdminColors.secondary)),
-                    ),
-                  ]),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_box,
+                        size: 18,
+                        color: AdminColors.secondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_selected.length} lecturer${_selected.length == 1 ? '' : 's'} selected',
+                        style: AdminTypography.titleSm(),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => setState(_selected.clear),
+                        child: Text(
+                          'Deselect all',
+                          style: AdminTypography.labelMd(
+                            color: AdminColors.secondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -425,8 +561,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,
                       side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       textStyle: AdminTypography.labelSm(),
                     ),
                   ),
@@ -435,7 +576,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
             ),
           if (_filteredLecturers.isNotEmpty) _headerRow(),
           if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            ),
           Column(children: [for (final l in _pagedLecturers) _lecturerRow(l)]),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -459,13 +606,18 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           const SizedBox(width: 48),
           Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
           Expanded(flex: 4, child: _sortHeader('Lecturer', _SortColumn.name)),
-          Expanded(flex: 3, child: _sortHeader('Department', _SortColumn.department)),
+          Expanded(
+            flex: 3,
+            child: _sortHeader('Department', _SortColumn.department),
+          ),
           Expanded(flex: 2, child: _sortHeader('Status', _SortColumn.status)),
           const SizedBox(width: 170),
         ],
@@ -477,13 +629,17 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
     final selected = _selected.contains(l.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(l.id) : _selected.remove(l.id)),
+            onChanged: (v) => setState(
+              () => v == true ? _selected.add(l.id) : _selected.remove(l.id),
+            ),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
@@ -502,8 +658,15 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                   Container(
                     width: 36,
                     height: 36,
-                    decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-                    child: const Icon(Icons.person, color: AdminColors.primary, size: 18),
+                    decoration: const BoxDecoration(
+                      color: AdminColors.surfaceContainerHigh,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      color: AdminColors.primary,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -512,15 +675,32 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                       children: [
                         Row(
                           children: [
-                            Flexible(child: Text(l.name, style: AdminTypography.titleSm())),
-                            if (l.accredited) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AdminColors.secondary)),
+                            Flexible(
+                              child: Text(
+                                l.name,
+                                style: AdminTypography.titleSm(),
+                              ),
+                            ),
+                            if (l.accredited)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 4),
+                                child: Icon(
+                                  Icons.verified,
+                                  size: 14,
+                                  color: AdminColors.secondary,
+                                ),
+                              ),
                             const SizedBox(width: 2),
                             InkWell(
                               onTap: () => _openEditLecturer(l),
                               borderRadius: BorderRadius.circular(6),
                               child: Padding(
                                 padding: const EdgeInsets.all(2),
-                                child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
+                                child: Icon(
+                                  Icons.edit_outlined,
+                                  size: 14,
+                                  color: AdminColors.onSurfaceVariant,
+                                ),
                               ),
                             ),
                           ],
@@ -554,19 +734,37 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: l.status == 'Active' ? AdminColors.surfaceContainerLow : AdminColors.surfaceContainer,
+                  color: l.status == 'Active'
+                      ? AdminColors.surfaceContainerLow
+                      : AdminColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(9999),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Container(width: 6, height: 6, decoration: BoxDecoration(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant, shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      l.status,
-                      style: AdminTypography.labelSm(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: l.status == 'Active'
+                            ? AdminColors.primary
+                            : AdminColors.onSurfaceVariant,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                ]),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        l.status,
+                        style: AdminTypography.labelSm(
+                          color: l.status == 'Active'
+                              ? AdminColors.primary
+                              : AdminColors.onSurfaceVariant,
+                        ).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -580,11 +778,19 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                   foregroundColor: Colors.white,
                   backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: const Text('Manage Assigned Courses', textAlign: TextAlign.center),
+                child: const Text(
+                  'Manage Assigned Courses',
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),
@@ -602,7 +808,9 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.root(title: 'Manage and Assign Lecturers'),
+      appBar: const AdminMobileTopBar.root(
+        title: 'Manage and Assign Lecturers',
+      ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -628,7 +836,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
               ],
               const SizedBox(height: 16),
               if (_lecturers.isNotEmpty && _filteredLecturers.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
+                ),
               for (final l in _pagedLecturers) ...[
                 _mobileLecturerCard(l),
                 const SizedBox(height: 12),
@@ -651,7 +865,8 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
       ),
       bottomNavigationBar: AdminMobileBottomNav(
         selected: AdminMobileTab.lecturers,
-        onTap: (tab) => handleAdminMobileTab(context, AdminMobileTab.lecturers, tab),
+        onTap: (tab) =>
+            handleAdminMobileTab(context, AdminMobileTab.lecturers, tab),
         onMore: () => showAdminMoreMenu(context),
       ),
     );
@@ -665,8 +880,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
       decoration: InputDecoration(
         isDense: true,
         fillColor: AdminColors.surfaceContainerLowest,
-        hintText: 'Search by lecturer name, employee ID, email, or department...',
-        prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
+        hintText:
+            'Search by lecturer name, employee ID, email, or department...',
+        prefixIcon: const Icon(
+          Icons.search,
+          size: 20,
+          color: AdminColors.outline,
+        ),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );
@@ -689,14 +909,24 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
             children: [
               Checkbox(
                 value: selected,
-                onChanged: (v) => setState(() => v == true ? _selected.add(l.id) : _selected.remove(l.id)),
+                onChanged: (v) => setState(
+                  () =>
+                      v == true ? _selected.add(l.id) : _selected.remove(l.id),
+                ),
                 activeColor: AdminColors.primaryContainer,
               ),
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-                child: const Icon(Icons.person, color: AdminColors.primary, size: 20),
+                decoration: const BoxDecoration(
+                  color: AdminColors.surfaceContainerHigh,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: AdminColors.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -704,10 +934,22 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(l.lecturerCode, style: AdminTypography.labelSm()),
-                    Row(children: [
-                      Flexible(child: Text(l.name, style: AdminTypography.titleSm())),
-                      if (l.accredited) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AdminColors.secondary)),
-                    ]),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(l.name, style: AdminTypography.titleSm()),
+                        ),
+                        if (l.accredited)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4),
+                            child: Icon(
+                              Icons.verified,
+                              size: 14,
+                              color: AdminColors.secondary,
+                            ),
+                          ),
+                      ],
+                    ),
                     Text(l.title, style: AdminTypography.bodySm()),
                     Text(l.email, style: AdminTypography.labelSm()),
                     const SizedBox(height: 6),
@@ -721,7 +963,11 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                 borderRadius: BorderRadius.circular(6),
                 child: const Padding(
                   padding: EdgeInsets.all(6),
-                  child: Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+                  child: Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
@@ -745,19 +991,37 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: active ? AdminColors.surfaceContainerLow : AdminColors.surfaceContainer,
+        color: active
+            ? AdminColors.surfaceContainerLow
+            : AdminColors.surfaceContainer,
         borderRadius: BorderRadius.circular(9999),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 6, height: 6, decoration: BoxDecoration(color: active ? AdminColors.primary : AdminColors.onSurfaceVariant, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            l.status,
-            style: AdminTypography.labelSm(color: active ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: active
+                  ? AdminColors.primary
+                  : AdminColors.onSurfaceVariant,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
-      ]),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              l.status,
+              style: AdminTypography.labelSm(
+                color: active
+                    ? AdminColors.primary
+                    : AdminColors.onSurfaceVariant,
+              ).copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -810,7 +1074,9 @@ class _CompetenciesListState extends State<_CompetenciesList> {
                 Padding(
                   padding: const EdgeInsets.only(left: 6),
                   child: Tooltip(
-                    message: _expanded ? 'Show fewer' : 'Show all ${items.length} teaching competencies',
+                    message: _expanded
+                        ? 'Show fewer'
+                        : 'Show all ${items.length} teaching competencies',
                     child: Material(
                       color: const Color(0xFF0B3D91),
                       shape: const CircleBorder(),
@@ -820,7 +1086,13 @@ class _CompetenciesListState extends State<_CompetenciesList> {
                         child: SizedBox(
                           width: 24,
                           height: 24,
-                          child: Icon(_expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 18, color: Colors.white),
+                          child: Icon(
+                            _expanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            size: 18,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),

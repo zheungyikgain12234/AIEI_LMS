@@ -17,7 +17,12 @@ class AdminMobileBottomNav extends StatelessWidget {
   final ValueChanged<AdminMobileTab> onTap;
   final VoidCallback onMore;
 
-  const AdminMobileBottomNav({super.key, required this.selected, required this.onTap, required this.onMore});
+  const AdminMobileBottomNav({
+    super.key,
+    required this.selected,
+    required this.onTap,
+    required this.onMore,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +32,38 @@ class AdminMobileBottomNav extends StatelessWidget {
         height: 64,
         decoration: const BoxDecoration(
           color: AdminColors.navSurface,
-        border: Border(top: BorderSide(color: AdminColors.navBorder)),
-          boxShadow: [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, -1))],
+          border: Border(top: BorderSide(color: AdminColors.navBorder)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x08000000),
+              blurRadius: 8,
+              offset: Offset(0, -1),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Expanded(child: _item(Icons.badge_outlined, 'Lecturers', AdminMobileTab.lecturers)),
-            Expanded(child: _item(Icons.groups_outlined, 'Students', AdminMobileTab.students)),
-            Expanded(child: _item(Icons.menu_book_outlined, 'Courses', AdminMobileTab.courses)),
+            Expanded(
+              child: _item(
+                Icons.badge_outlined,
+                'Lecturers',
+                AdminMobileTab.lecturers,
+              ),
+            ),
+            Expanded(
+              child: _item(
+                Icons.groups_outlined,
+                'Students',
+                AdminMobileTab.students,
+              ),
+            ),
+            Expanded(
+              child: _item(
+                Icons.menu_book_outlined,
+                'Courses',
+                AdminMobileTab.courses,
+              ),
+            ),
             Expanded(child: _moreItem()),
           ],
         ),
@@ -54,7 +83,9 @@ class AdminMobileBottomNav extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: AdminTypography.labelSm(color: color).copyWith(fontWeight: active ? FontWeight.w700 : FontWeight.w400),
+            style: AdminTypography.labelSm(
+              color: color,
+            ).copyWith(fontWeight: active ? FontWeight.w700 : FontWeight.w400),
           ),
         ],
       ),
@@ -67,7 +98,11 @@ class AdminMobileBottomNav extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.more_horiz, size: 22, color: AdminColors.onSurfaceVariant),
+          const Icon(
+            Icons.more_horiz,
+            size: 22,
+            color: AdminColors.onSurfaceVariant,
+          ),
           const SizedBox(height: 2),
           Text(
             'More',

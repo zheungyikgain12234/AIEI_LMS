@@ -12,7 +12,8 @@ class MyClassesPage extends StatelessWidget {
   const MyClassesPage({super.key, required this.panel});
 
   static void open(BuildContext context, Widget panel) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MyClassesPage(panel: panel)));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => MyClassesPage(panel: panel)));
   }
 
   @override
@@ -25,7 +26,7 @@ class MyClassesPage extends StatelessWidget {
         foregroundColor: AppColors.onSurface,
         title: Text('My Classes & Calendar', style: AppTypography.labelLg()),
       ),
-      body: panel,
+      body: SafeArea(top: false, child: panel),
     );
   }
 }

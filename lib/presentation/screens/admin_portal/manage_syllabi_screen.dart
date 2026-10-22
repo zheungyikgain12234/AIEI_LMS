@@ -8,6 +8,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/course_syllabus_screen.dart';
+
 import 'widgets/admin_no_results.dart';
 import 'widgets/pending_syllabus_badge.dart';
 import 'widgets/admin_scaffold.dart';
@@ -28,7 +29,8 @@ class ManageSyllabiScreen extends StatefulWidget {
   State<ManageSyllabiScreen> createState() => _ManageSyllabiScreenState();
 }
 
-class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshOnReturn<ManageSyllabiScreen> {
+class _ManageSyllabiScreenState extends State<ManageSyllabiScreen>
+    with RefreshOnReturn<ManageSyllabiScreen> {
   @override
   void onReturnedTo() => _load();
 
@@ -43,7 +45,10 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -72,30 +77,46 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
   ];
 
   int _rank(String status) => switch (status) {
-        SyllabusStatus.submitted => 0,
-        SyllabusStatus.draft => 1,
-        _ => 2,
-      };
+    SyllabusStatus.submitted => 0,
+    SyllabusStatus.draft => 1,
+    _ => 2,
+  };
 
   List<CourseSection> get _filtered {
     final rows = _sections.where((s) {
-      if (_statusFilter != null && s.syllabusStatus != _statusFilter) return false;
+      if (_statusFilter != null && s.syllabusStatus != _statusFilter)
+        return false;
       if (_query.isEmpty) return true;
-      return [s.courseCode, s.courseTitle, s.sectionCode, s.semester ?? '', s.lecturerName ?? '']
-          .any((v) => v.toLowerCase().contains(_query));
+      return [
+        s.courseCode,
+        s.courseTitle,
+        s.sectionCode,
+        s.semester ?? '',
+        s.lecturerName ?? '',
+      ].any((v) => v.toLowerCase().contains(_query));
     }).toList();
     rows.sort((a, b) {
-      final byStatus = _rank(a.syllabusStatus).compareTo(_rank(b.syllabusStatus));
-      return byStatus != 0 ? byStatus : a.sectionCode.toLowerCase().compareTo(b.sectionCode.toLowerCase());
+      final byStatus = _rank(a.syllabusStatus)
+          .compareTo(_rank(b.syllabusStatus));
+      return byStatus != 0
+          ? byStatus
+          : a.sectionCode.toLowerCase().compareTo(b.sectionCode.toLowerCase());
     });
     return rows;
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageSyllabi, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageSyllabi, dest);
 
   Future<void> _open(CourseSection s) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => CourseSyllabusScreen(sectionId: s.id, courseTitle: s.courseTitle, isAdmin: true)),
+      MaterialPageRoute(
+        builder: (_) => CourseSyllabusScreen(
+          sectionId: s.id,
+          courseTitle: s.courseTitle,
+          isAdmin: true,
+        ),
+      ),
     );
     if (mounted) _load();
   }
@@ -104,7 +125,13 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageSyllabi, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageSyllabi,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     if (MediaQuery.of(context).size.width <= 900) {
       return Scaffold(
@@ -114,7 +141,14 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
           top: false,
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [_buildHeader(), const SizedBox(height: 16), _buildListCard()]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 16),
+                _buildListCard(),
+              ],
+            ),
           ),
         ),
       );
@@ -122,12 +156,21 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
     return AdminScaffold(
       selected: AdminNavDestination.manageSyllabi,
       onDestinationSelected: _handleNav,
-      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildHeader(), const SizedBox(height: 20), _buildListCard()]),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 20),
+          _buildListCard(),
+        ],
+      ),
     );
   }
 
   Widget _buildHeader() {
-    final pending = _sections.where((s) => s.syllabusStatus == SyllabusStatus.submitted).length;
+    final pending = _sections
+        .where((s) => s.syllabusStatus == SyllabusStatus.submitted)
+        .length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,7 +188,11 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
   Widget _buildListCard() {
     final rows = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -160,8 +207,13 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
                   style: AdminTypography.bodySm(color: AdminColors.onSurface),
                   decoration: InputDecoration(
                     isDense: true,
-                    hintText: 'Search by course, class, semester or lecturer...',
-                    prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                    hintText:
+                        'Search by course, class, semester or lecturer...',
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      size: 18,
+                      color: AdminColors.onSurfaceVariant,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -182,7 +234,13 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
             ),
           ),
           if (rows.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            )
           else
             Column(children: [for (final s in rows) _row(s)]),
         ],
@@ -195,17 +253,26 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
       onTap: () => _open(s),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: UiContrast.divider))),
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: UiContrast.divider)),
+        ),
         child: Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${s.courseCode} • ${s.sectionCode} — ${s.courseTitle}', style: AdminTypography.bodyMd(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    '${s.courseCode} • ${s.sectionCode} — ${s.courseTitle}',
+                    style: AdminTypography.bodyMd(color: AdminColors.onSurface)
+                        .copyWith(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 2),
                   Text(
-                    [if (s.semester != null) s.semester!, if (s.lecturerName != null) s.lecturerName!].join(' • '),
+                    [
+                      if (s.semester != null) s.semester!,
+                      if (s.lecturerName != null) s.lecturerName!,
+                    ].join(' • '),
                     style: AdminTypography.bodySm(),
                   ),
                 ],
@@ -214,7 +281,10 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
             const SizedBox(width: 12),
             _statusChip(s.syllabusStatus),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, color: AdminColors.onSurfaceVariant),
+            const Icon(
+              Icons.chevron_right,
+              color: AdminColors.onSurfaceVariant,
+            ),
           ],
         ),
       ),
@@ -223,14 +293,33 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
 
   Widget _statusChip(String status) {
     final (label, bg, fg) = switch (status) {
-      SyllabusStatus.approved => ('Approved', const Color(0xFFE3F4E5), const Color(0xFF2E7D32)),
-      SyllabusStatus.submitted => ('Pending approval', const Color(0xFFFFF3CD), const Color(0xFF8A6D00)),
-      _ => ('Draft', AdminColors.surfaceContainerLow, AdminColors.onSurfaceVariant),
+      SyllabusStatus.approved => (
+        'Approved',
+        const Color(0xFFE3F4E5),
+        const Color(0xFF2E7D32),
+      ),
+      SyllabusStatus.submitted => (
+        'Pending approval',
+        const Color(0xFFFFF3CD),
+        const Color(0xFF8A6D00),
+      ),
+      _ => (
+        'Draft',
+        AdminColors.surfaceContainerLow,
+        AdminColors.onSurfaceVariant,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(9999)),
-      child: Text(label, style: AdminTypography.labelSm(color: fg).copyWith(fontWeight: FontWeight.w700)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(9999),
+      ),
+      child: Text(
+        label,
+        style: AdminTypography.labelSm(color: fg)
+            .copyWith(fontWeight: FontWeight.w700),
+      ),
     );
   }
 }

@@ -18,13 +18,27 @@ class AdminFieldError extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(
+          color: AdminColors.errorContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.error_outline, size: 16, color: AdminColors.onErrorContainer),
+            const Icon(
+              Icons.error_outline,
+              size: 16,
+              color: AdminColors.onErrorContainer,
+            ),
             const SizedBox(width: 6),
-            Expanded(child: Text(message!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer))),
+            Expanded(
+              child: Text(
+                message!,
+                style: AdminTypography.bodySm(
+                  color: AdminColors.onErrorContainer,
+                ),
+              ),
+            ),
           ],
         ),
       ),

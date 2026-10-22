@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+
 import 'widgets/admin_row_action.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_relational_delete.dart';
@@ -36,11 +37,14 @@ class ManageCoursesScreen extends StatefulWidget {
 
 enum _SortColumn { code, title, tags, credits }
 
-class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshOnReturn<ManageCoursesScreen> {
+class _ManageCoursesScreenState extends State<ManageCoursesScreen>
+    with RefreshOnReturn<ManageCoursesScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminCoursesRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   List<AdminCourse> _courses = [];
   final Set<String> _selected = {};
@@ -52,11 +56,16 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
   int _page = 1;
   int _pageSize = adminPageSizeOptions.first;
 
-  final _tagsRepository = SupabaseAdminCourseTagsRepositoryImpl(Supabase.instance.client);
+  final _tagsRepository = SupabaseAdminCourseTagsRepositoryImpl(
+    Supabase.instance.client,
+  );
   Map<String, String> _tagLabels = {};
 
   List<String> _tagLabelsOf(AdminCourse c) {
-    final labels = [for (final id in c.tagIds) if (_tagLabels[id] != null) _tagLabels[id]!];
+    final labels = [
+      for (final id in c.tagIds)
+        if (_tagLabels[id] != null) _tagLabels[id]!,
+    ];
     labels.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return labels;
   }
@@ -71,8 +80,14 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
         for (final label in labels)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-            child: Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+            child: Text(
+              label,
+              style: AdminTypography.labelSm(color: AdminColors.onSurface),
+            ),
           ),
       ],
     );
@@ -81,7 +96,10 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -107,17 +125,30 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
   List<AdminCourse> get _filtered {
     final courses = _query.isEmpty
         ? _courses
-        : _courses.where((c) => c.courseCode.toLowerCase().contains(_query) || c.courseTitle.toLowerCase().contains(_query)).toList();
+        : _courses
+              .where(
+                (c) =>
+                    c.courseCode.toLowerCase().contains(_query) ||
+                    c.courseTitle.toLowerCase().contains(_query),
+              )
+              .toList();
     final sorted = [...courses];
     sorted.sort((a, b) {
       final int cmp;
       switch (_sortColumn) {
         case _SortColumn.code:
-          cmp = a.courseCode.toLowerCase().compareTo(b.courseCode.toLowerCase());
+          cmp = a.courseCode.toLowerCase().compareTo(
+            b.courseCode.toLowerCase(),
+          );
         case _SortColumn.title:
-          cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
+          cmp = a.courseTitle.toLowerCase().compareTo(
+            b.courseTitle.toLowerCase(),
+          );
         case _SortColumn.tags:
-          cmp = _tagLabelsOf(a).join(', ').toLowerCase().compareTo(_tagLabelsOf(b).join(', ').toLowerCase());
+          cmp = _tagLabelsOf(a)
+              .join(', ')
+              .toLowerCase()
+              .compareTo(_tagLabelsOf(b).join(', ').toLowerCase());
         case _SortColumn.credits:
           cmp = a.credits.compareTo(b.credits);
       }
@@ -152,10 +183,19 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          Text(
+            label,
+            style: AdminTypography.labelSm(
+              color: active
+                  ? AdminColors.onSurface
+                  : AdminColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(width: 2),
           Icon(
-            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            active && !_sortAscending
+                ? Icons.arrow_downward
+                : Icons.arrow_upward,
             size: 12,
             color: active ? AdminColors.onSurface : AdminColors.outline,
           ),
@@ -164,7 +204,8 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
     );
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageCourses, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageCourses, dest);
 
   Future<void> _openAddCourse() async {
     final saved = await Navigator.of(context).push<AdminCourse>(
@@ -203,7 +244,13 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageCourses, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageCourses,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
@@ -238,7 +285,8 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
       appBar: const AdminMobileTopBar.root(title: 'Manage Courses'),
       bottomNavigationBar: AdminMobileBottomNav(
         selected: AdminMobileTab.courses,
-        onTap: (tab) => handleAdminMobileTab(context, AdminMobileTab.courses, tab),
+        onTap: (tab) =>
+            handleAdminMobileTab(context, AdminMobileTab.courses, tab),
         onMore: () => showAdminMoreMenu(context),
       ),
       body: SafeArea(
@@ -259,7 +307,11 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
                   isDense: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search course by code or title...',
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -274,7 +326,13 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
               ],
               const SizedBox(height: 16),
               if (courses.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
+                )
               else ...[
                 for (final c in _paged(courses)) ...[
                   _mobileCourseCard(c),
@@ -316,7 +374,10 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
             children: [
               Checkbox(
                 value: selected,
-                onChanged: (v) => setState(() => v == true ? _selected.add(c.id) : _selected.remove(c.id)),
+                onChanged: (v) => setState(
+                  () =>
+                      v == true ? _selected.add(c.id) : _selected.remove(c.id),
+                ),
                 activeColor: AdminColors.primaryContainer,
               ),
               Expanded(
@@ -330,7 +391,11 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
               ),
               IconButton(
                 onPressed: () => _openEditCourse(c),
-                icon: const Icon(Icons.edit_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 visualDensity: VisualDensity.compact,
               ),
             ],
@@ -364,7 +429,10 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Create a course here, so that classes can create and assigned with lecturer', style: AdminTypography.bodyMd()),
+              child: Text(
+                'Create a course here, so that classes can create and assigned with lecturer',
+                style: AdminTypography.bodyMd(),
+              ),
             ),
           ],
         ),
@@ -377,7 +445,9 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
       ],
@@ -387,7 +457,11 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
   Widget _buildCatalogueCard() {
     final courses = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -400,7 +474,11 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Search course by code or title...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -409,23 +487,41 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.check_box, size: 18, color: AdminColors.secondary),
-                    const SizedBox(width: 6),
-                    Text('${_selected.length} course${_selected.length == 1 ? '' : 's'} selected', style: AdminTypography.titleSm()),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => setState(_selected.clear),
-                      child: Text('Deselect all', style: AdminTypography.labelMd(color: AdminColors.secondary)),
-                    ),
-                  ]),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_box,
+                        size: 18,
+                        color: AdminColors.secondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_selected.length} course${_selected.length == 1 ? '' : 's'} selected',
+                        style: AdminTypography.titleSm(),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => setState(_selected.clear),
+                        child: Text(
+                          'Deselect all',
+                          style: AdminTypography.labelMd(
+                            color: AdminColors.secondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -434,8 +530,13 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,
                       side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       textStyle: AdminTypography.labelSm(),
                     ),
                   ),
@@ -446,7 +547,10 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
           if (courses.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
             )
           else
             Column(children: [for (final c in _paged(courses)) _courseRow(c)]),
@@ -472,7 +576,9 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -491,13 +597,17 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
     final selected = _selected.contains(c.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(c.id) : _selected.remove(c.id)),
+            onChanged: (v) => setState(
+              () => v == true ? _selected.add(c.id) : _selected.remove(c.id),
+            ),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
@@ -513,7 +623,12 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
               padding: const EdgeInsets.only(right: 12),
               child: Row(
                 children: [
-                  Flexible(child: Text(c.courseTitle, style: AdminTypography.titleSm())),
+                  Flexible(
+                    child: Text(
+                      c.courseTitle,
+                      style: AdminTypography.titleSm(),
+                    ),
+                  ),
                 ],
               ),
             ),

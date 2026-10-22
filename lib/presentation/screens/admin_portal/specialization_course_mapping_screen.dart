@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_reposit
 import 'package:stitch_aiei_lms/data/repositories/supabase_specialization_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/specialization.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+
 import 'widgets/admin_inline_label.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
@@ -30,16 +31,25 @@ class SpecializationCourseMappingScreen extends StatefulWidget {
   const SpecializationCourseMappingScreen({super.key});
 
   @override
-  State<SpecializationCourseMappingScreen> createState() => _SpecializationCourseMappingScreenState();
+  State<SpecializationCourseMappingScreen> createState() =>
+      _SpecializationCourseMappingScreenState();
 }
 
-class _SpecializationCourseMappingScreenState extends State<SpecializationCourseMappingScreen> with RefreshOnReturn<SpecializationCourseMappingScreen> {
+class _SpecializationCourseMappingScreenState
+    extends State<SpecializationCourseMappingScreen>
+    with RefreshOnReturn<SpecializationCourseMappingScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
-  final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
-  final _mappingRepository = SupabaseSpecializationCourseMappingRepositoryImpl(Supabase.instance.client);
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _mappingRepository = SupabaseSpecializationCourseMappingRepositoryImpl(
+    Supabase.instance.client,
+  );
 
   bool _isLoading = true;
   bool _isLoadingMapping = false;
@@ -55,7 +65,10 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -78,10 +91,13 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
       setState(() {
         _specializations = specializations;
         _courses = courses;
-        _selectedSpecializationId ??= specializations.isEmpty ? null : specializations.first.id;
+        _selectedSpecializationId ??= specializations.isEmpty
+            ? null
+            : specializations.first.id;
         _isLoading = false;
       });
-      if (_selectedSpecializationId != null) await _loadMapping(_selectedSpecializationId!);
+      if (_selectedSpecializationId != null)
+        await _loadMapping(_selectedSpecializationId!);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -95,7 +111,9 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
   Future<void> _loadMapping(String specializationId) async {
     setState(() => _isLoadingMapping = true);
     try {
-      final ids = await _mappingRepository.getCourseIdsForSpecialization(specializationId);
+      final ids = await _mappingRepository.getCourseIdsForSpecialization(
+        specializationId,
+      );
       if (!mounted) return;
       setState(() {
         _mappedCourseIds = ids;
@@ -113,8 +131,13 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
 
   List<AdminCourse> get _filteredCourses {
     if (_query.isEmpty) return _courses;
-    return _courses.where((c) =>
-        c.courseCode.toLowerCase().contains(_query) || c.courseTitle.toLowerCase().contains(_query)).toList();
+    return _courses
+        .where(
+          (c) =>
+              c.courseCode.toLowerCase().contains(_query) ||
+              c.courseTitle.toLowerCase().contains(_query),
+        )
+        .toList();
   }
 
   Specialization? get _selectedSpecialization {
@@ -124,21 +147,39 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     return null;
   }
 
-  void _handleNav(AdminNavDestination dest) =>
-      handleAdminNav(context, AdminNavDestination.specializationCourseMapping, dest);
+  void _handleNav(AdminNavDestination dest) => handleAdminNav(
+    context,
+    AdminNavDestination.specializationCourseMapping,
+    dest,
+  );
 
   Future<void> _toggleCourse(String courseId, bool allowed) async {
     final specializationId = _selectedSpecializationId;
     if (specializationId == null) return;
-    setState(() => allowed ? _mappedCourseIds.add(courseId) : _mappedCourseIds.remove(courseId));
+    setState(
+      () => allowed
+          ? _mappedCourseIds.add(courseId)
+          : _mappedCourseIds.remove(courseId),
+    );
     try {
-      await _mappingRepository.setCourseForSpecialization(specializationId, courseId, allowed);
+      await _mappingRepository.setCourseForSpecialization(
+        specializationId,
+        courseId,
+        allowed,
+      );
       if (mounted) showSuccessSnackBar(context, 'Mapping updated.');
     } catch (e) {
       if (!mounted) return;
-      setState(() => allowed ? _mappedCourseIds.remove(courseId) : _mappedCourseIds.add(courseId));
+      setState(
+        () => allowed
+            ? _mappedCourseIds.remove(courseId)
+            : _mappedCourseIds.add(courseId),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update mapping: $e'), backgroundColor: AdminColors.error),
+        SnackBar(
+          content: Text('Failed to update mapping: $e'),
+          backgroundColor: AdminColors.error,
+        ),
       );
     }
   }
@@ -147,15 +188,27 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.specializationCourseMapping, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.specializationCourseMapping,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     if (_errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Teaching Competency ↔ Course Mapping')),
+        appBar: AppBar(
+          title: const Text('Teaching Competency ↔ Course Mapping'),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(_errorMessage!, style: AdminTypography.bodyMd(color: AdminColors.error), textAlign: TextAlign.center),
+            child: Text(
+              _errorMessage!,
+              style: AdminTypography.bodyMd(color: AdminColors.error),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       );
@@ -183,7 +236,10 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Teaching Competency ↔ Course Mapping', style: AdminTypography.headlineLg()),
+        Text(
+          'Teaching Competency ↔ Course Mapping',
+          style: AdminTypography.headlineLg(),
+        ),
         const SizedBox(height: 2),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
@@ -200,30 +256,47 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     if (_specializations.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No specializations exist yet. Create one from Manage Teaching Competencies first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        decoration: BoxDecoration(
+          color: AdminColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+        ),
+        child: Text(
+          'No specializations exist yet. Create one from Manage Teaching Competencies first.',
+          style: AdminTypography.bodyMd(color: AdminColors.error),
+        ),
       );
     }
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: AdminInlineLabel(
         label: 'Teaching Competency',
         field: SearchableDropdownFormField<String>(
-              initialValue: _selectedSpecializationId,
-              isExpanded: true,
-              style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-              decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              ),
-              items: [for (final s in _specializations) DropdownMenuItem(value: s.id, child: Text(s.name))],
-              onChanged: (v) {
-                if (v == null) return;
-                setState(() => _selectedSpecializationId = v);
-                _loadMapping(v);
-              },
+          initialValue: _selectedSpecializationId,
+          isExpanded: true,
+          style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
             ),
+          ),
+          items: [
+            for (final s in _specializations)
+              DropdownMenuItem(value: s.id, child: Text(s.name)),
+          ],
+          onChanged: (v) {
+            if (v == null) return;
+            setState(() => _selectedSpecializationId = v);
+            _loadMapping(v);
+          },
+        ),
       ),
     );
   }
@@ -231,7 +304,11 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
   Widget _buildCoursesCard() {
     final courses = _filteredCourses;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -244,15 +321,28 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Search course by code or title...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),
           if (_isLoadingMapping)
-            const Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            )
           else if (courses.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            )
           else
             Column(children: [for (final c in courses) _courseRow(c)]),
           Padding(
@@ -274,7 +364,9 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     final allowed = _mappedCourseIds.contains(c.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           Checkbox(
@@ -305,7 +397,9 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     final courses = _filteredCourses;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Teaching Competency ↔ Course Mapping'),
+      appBar: const AdminMobileTopBar.detail(
+        title: 'Teaching Competency ↔ Course Mapping',
+      ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -325,20 +419,41 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
                   isDense: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search course by code or title...',
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
               const SizedBox(height: 12),
               if (_isLoadingMapping)
-                const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
               else if (courses.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
+                )
               else
                 Container(
-                  decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+                  decoration: BoxDecoration(
+                    color: AdminColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x0D000000), blurRadius: 6),
+                    ],
+                  ),
                   clipBehavior: Clip.antiAlias,
-                  child: Column(children: [for (final c in courses) _courseRow(c)]),
+                  child: Column(
+                    children: [for (final c in courses) _courseRow(c)],
+                  ),
                 ),
               const SizedBox(height: 12),
               Text(

@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_grade_distribution_re
 import 'package:stitch_aiei_lms/domain/models/grade_distribution.dart';
 import 'package:stitch_aiei_lms/presentation/screens/faculty_portal/widgets/faculty_dialog.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
+
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_scaffold.dart';
@@ -29,11 +30,14 @@ class GradeApprovalsScreen extends StatefulWidget {
   State<GradeApprovalsScreen> createState() => _GradeApprovalsScreenState();
 }
 
-class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with RefreshOnReturn<GradeApprovalsScreen> {
+class _GradeApprovalsScreenState extends State<GradeApprovalsScreen>
+    with RefreshOnReturn<GradeApprovalsScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseGradeDistributionRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseGradeDistributionRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   bool _pendingOnly = true;
   List<GradeDistributionRequest> _requests = const [];
@@ -60,18 +64,25 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
     if (mounted) setState(() => _isLoading = false);
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.gradeApprovals, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.gradeApprovals, dest);
 
-  List<GradeDistributionRequest> get _visible => _pendingOnly ? _requests.where((r) => r.isPending).toList() : _requests;
+  List<GradeDistributionRequest> get _visible =>
+      _pendingOnly ? _requests.where((r) => r.isPending).toList() : _requests;
 
-  Future<void> _decide(GradeDistributionRequest r, {required bool approve}) async {
+  Future<void> _decide(
+    GradeDistributionRequest r, {
+    required bool approve,
+  }) async {
     final noteController = TextEditingController();
     String? error;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => FacultyDialog(
-          title: approve ? 'Approve this distribution?' : 'Reject this distribution?',
+          title: approve
+              ? 'Approve this distribution?'
+              : 'Reject this distribution?',
           subtitle: approve
               ? '${r.courseTitle ?? 'This class'} keeps its grades as they are. If the lecturer later raises more grades, they will need to ask again.'
               : 'The lecturer will be asked to moderate the grades to fit the limits.',
@@ -79,7 +90,9 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
           destructive: !approve,
           onConfirm: () {
             if (!approve && noteController.text.trim().isEmpty) {
-              setDialogState(() => error = 'Please give a reason for rejecting.');
+              setDialogState(
+                () => error = 'Please give a reason for rejecting.',
+              );
               return;
             }
             Navigator.of(ctx).pop(true);
@@ -104,11 +117,16 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
     try {
       await _repository.decide(r.id, approved: approve, note: note);
       if (!mounted) return;
-      showSuccessSnackBar(context, approve ? 'Distribution approved.' : 'Distribution rejected.');
+      showSuccessSnackBar(
+        context,
+        approve ? 'Distribution approved.' : 'Distribution rejected.',
+      );
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save the decision: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save the decision: $e')),
+      );
     }
   }
 
@@ -119,10 +137,20 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
       return Scaffold(
         backgroundColor: AdminColors.background,
         appBar: const AdminMobileTopBar.detail(title: 'Grade Approvals'),
-        body: SafeArea(top: false, child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: _content())),
+        body: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: _content(),
+          ),
+        ),
       );
     }
-    return AdminScaffold(selected: AdminNavDestination.gradeApprovals, onDestinationSelected: _handleNav, body: _content());
+    return AdminScaffold(
+      selected: AdminNavDestination.gradeApprovals,
+      onDestinationSelected: _handleNav,
+      body: _content(),
+    );
   }
 
   Widget _content() {
@@ -144,7 +172,9 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
           spacing: 8,
           children: [
             ChoiceChip(
-              label: Text('Waiting (${_requests.where((r) => r.isPending).length})'),
+              label: Text(
+                'Waiting (${_requests.where((r) => r.isPending).length})',
+              ),
               selected: _pendingOnly,
               onSelected: (_) => setState(() => _pendingOnly = true),
             ),
@@ -162,15 +192,24 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), border: Border.all(color: UiContrast.divider)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: UiContrast.divider),
+            ),
             child: Text(
-              _pendingOnly ? 'No distributions are waiting for approval.' : 'No approval requests yet.',
+              _pendingOnly
+                  ? 'No distributions are waiting for approval.'
+                  : 'No approval requests yet.',
               textAlign: TextAlign.center,
               style: AdminTypography.bodyMd(),
             ),
           )
         else
-          for (final r in _visible) ...[_requestCard(r), const SizedBox(height: 14)],
+          for (final r in _visible) ...[
+            _requestCard(r),
+            const SizedBox(height: 14),
+          ],
       ],
     );
   }
@@ -179,12 +218,23 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
     final (label, bg, fg) = r.isPending
         ? ('Waiting', const Color(0xFFFEF3C7), const Color(0xFF92400E))
         : r.isApproved
-            ? ('Approved', const Color(0xFFDCFCE7), const Color(0xFF166534))
-            : ('Rejected', AdminColors.errorContainer, AdminColors.onErrorContainer);
+        ? ('Approved', const Color(0xFFDCFCE7), const Color(0xFF166534))
+        : (
+            'Rejected',
+            AdminColors.errorContainer,
+            AdminColors.onErrorContainer,
+          );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(9999)),
-      child: Text(label, style: AdminTypography.labelMd(color: fg).copyWith(fontWeight: FontWeight.w700)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(9999),
+      ),
+      child: Text(
+        label,
+        style: AdminTypography.labelMd(color: fg)
+            .copyWith(fontWeight: FontWeight.w700),
+      ),
     );
   }
 
@@ -208,7 +258,10 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(r.courseTitle ?? 'Course', style: AdminTypography.titleMd()),
+                    Text(
+                      r.courseTitle ?? 'Course',
+                      style: AdminTypography.titleMd(),
+                    ),
                     Text(
                       '${r.classCode == null ? '' : '${displayCode(r.classCode!)} • '}${r.lecturerName ?? 'Lecturer'} • sent ${formatDate(r.createdAt)}',
                       style: AdminTypography.bodySm(),
@@ -224,12 +277,18 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
           const SizedBox(height: 14),
           Text('Lecturer\'s reason', style: AdminTypography.labelMd()),
           const SizedBox(height: 4),
-          Text(r.justification.isEmpty ? '—' : r.justification, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
+          Text(
+            r.justification.isEmpty ? '—' : r.justification,
+            style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+          ),
           if (!r.isPending && (r.adminNote ?? '').isNotEmpty) ...[
             const SizedBox(height: 12),
             Text('Your note', style: AdminTypography.labelMd()),
             const SizedBox(height: 4),
-            Text(r.adminNote!, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
+            Text(
+              r.adminNote!,
+              style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+            ),
           ],
           if (r.isPending) ...[
             const SizedBox(height: 16),
@@ -238,13 +297,20 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
               children: [
                 OutlinedButton(
                   onPressed: () => _decide(r, approve: false),
-                  style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: const BorderSide(color: AdminColors.error)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AdminColors.error,
+                    side: const BorderSide(color: AdminColors.error),
+                  ),
                   child: const Text('Reject', textAlign: TextAlign.center),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () => _decide(r, approve: true),
-                  style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AdminColors.primaryContainer,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                  ),
                   child: const Text('Approve', textAlign: TextAlign.center),
                 ),
               ],
@@ -262,7 +328,10 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Total students: ${r.enrolledCount}', style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+        Text(
+          'Total students: ${r.enrolledCount}',
+          style: AdminTypography.titleSm(color: AdminColors.onSurface),
+        ),
         const SizedBox(height: 12),
         Text('Grade Statistics', style: AdminTypography.labelMd()),
         const SizedBox(height: 6),
@@ -270,9 +339,21 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
           Column(
             children: [
               _row(const ['Final', 'Marks', 'Grade'], header: true),
-              _row(['Average', stats == null ? '—' : stats.average.toStringAsFixed(2), stats?.averageGrade ?? '—']),
-              _row(['Maximum', stats == null ? '—' : _score(stats.maximum), stats?.maximumGrade ?? '—']),
-              _row(['Minimum', stats == null ? '—' : _score(stats.minimum), stats?.minimumGrade ?? '—']),
+              _row([
+                'Average',
+                stats == null ? '—' : stats.average.toStringAsFixed(2),
+                stats?.averageGrade ?? '—',
+              ]),
+              _row([
+                'Maximum',
+                stats == null ? '—' : _score(stats.maximum),
+                stats?.maximumGrade ?? '—',
+              ]),
+              _row([
+                'Minimum',
+                stats == null ? '—' : _score(stats.minimum),
+                stats?.minimumGrade ?? '—',
+              ]),
             ],
           ),
         ),
@@ -287,18 +368,28 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
   bool get _compact => MediaQuery.of(context).size.width <= 900;
 
   Widget _panel(Widget child) => Container(
-        width: double.infinity,
-        decoration: BoxDecoration(color: UiContrast.fieldFill, borderRadius: BorderRadius.circular(10)),
-        padding: EdgeInsets.symmetric(horizontal: _compact ? 10 : 14, vertical: 8),
-        child: child,
-      );
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: UiContrast.fieldFill,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    padding: EdgeInsets.symmetric(horizontal: _compact ? 10 : 14, vertical: 8),
+    child: child,
+  );
 
   /// Cells wrap onto a second line instead of overflowing, and shrink a little
   /// on small screens.
-  Widget _row(List<String> cells, {bool header = false, bool over = false, List<int>? flex}) {
+  Widget _row(
+    List<String> cells, {
+    bool header = false,
+    bool over = false,
+    List<int>? flex,
+  }) {
     var style = header
         ? AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700)
-        : AdminTypography.bodyMd(color: over ? AdminColors.error : AdminColors.onSurface);
+        : AdminTypography.bodyMd(
+            color: over ? AdminColors.error : AdminColors.onSurface,
+          );
     if (_compact) style = style.copyWith(fontSize: 16);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -310,7 +401,11 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
               flex: flex?[i] ?? 1,
               child: Padding(
                 padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
-                child: Text(cells[i], textAlign: i == 0 ? TextAlign.left : TextAlign.right, style: style),
+                child: Text(
+                  cells[i],
+                  textAlign: i == 0 ? TextAlign.left : TextAlign.right,
+                  style: style,
+                ),
               ),
             ),
         ],
@@ -323,38 +418,54 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
   Widget _distributionTable(GradeDistributionRequest r) {
     const flex = [3, 4, 3, 2, 2];
     final total = r.enrolledCount;
-    String pct(int n) => total == 0 ? '0%' : '${(n * 100 / total).toStringAsFixed(1)}%';
+    String pct(int n) =>
+        total == 0 ? '0%' : '${(n * 100 / total).toStringAsFixed(1)}%';
     final bands = GradeBandLimit.values;
     return _panel(
       Column(
         children: [
-          _row(const ['Grade', 'Limit', 'Student Count', 'Percent', 'Accum.'], header: true, flex: flex),
+          _row(
+            const ['Grade', 'Limit', 'Student Count', 'Percent', 'Accum.'],
+            header: true,
+            flex: flex,
+          ),
           for (var i = 0; i < bands.length; i++)
-            Builder(builder: (context) {
-              final band = bands[i];
-              final cumulative = r.counts[band.name] ?? 0;
-              final own = cumulative - (i == 0 ? 0 : (r.counts[bands[i - 1].name] ?? 0));
-              final percent = _rules.percentFor(band);
-              final allowed = GradeDistributionRules.allowedCount(percent, total);
-              final over = allowed != null && cumulative > allowed;
-              return _row(
-                [
-                  band.label,
-                  allowed == null ? 'no limit' : '$allowed (${_pct(percent!)}%)',
-                  '$own',
-                  pct(own),
-                  pct(cumulative),
-                ],
-                over: over,
-                flex: flex,
-              );
-            }),
+            Builder(
+              builder: (context) {
+                final band = bands[i];
+                final cumulative = r.counts[band.name] ?? 0;
+                final own =
+                    cumulative -
+                    (i == 0 ? 0 : (r.counts[bands[i - 1].name] ?? 0));
+                final percent = _rules.percentFor(band);
+                final allowed = GradeDistributionRules.allowedCount(
+                  percent,
+                  total,
+                );
+                final over = allowed != null && cumulative > allowed;
+                return _row(
+                  [
+                    band.label,
+                    allowed == null
+                        ? 'no limit'
+                        : '$allowed (${_pct(percent!)}%)',
+                    '$own',
+                    pct(own),
+                    pct(cumulative),
+                  ],
+                  over: over,
+                  flex: flex,
+                );
+              },
+            ),
         ],
       ),
     );
   }
 
-  static String _score(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+  static String _score(double v) =>
+      v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
 
-  static String _pct(double v) => v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString();
+  static String _pct(double v) =>
+      v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString();
 }

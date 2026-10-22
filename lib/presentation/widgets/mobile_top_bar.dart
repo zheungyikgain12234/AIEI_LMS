@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stitch_aiei_lms/core/utils/top_bar_height.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
@@ -13,12 +14,12 @@ class MobileTopBar extends StatelessWidget implements PreferredSizeWidget {
   const MobileTopBar({super.key});
 
   @override
-  Size get preferredSize => const Size.fromHeight(64);
+  Size get preferredSize => Size.fromHeight(mobileTopBarHeight());
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
+      height: mobileTopBarHeight(),
       decoration: const BoxDecoration(
         color: AdminColors.navSurface,
         border: Border(bottom: BorderSide(color: AdminColors.navBorder)),

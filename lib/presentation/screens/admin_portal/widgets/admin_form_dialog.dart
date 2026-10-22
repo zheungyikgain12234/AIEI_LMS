@@ -40,48 +40,62 @@ class AdminFormDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(children: [
-                Expanded(child: Text(title, style: AdminTypography.headlineSm())),
-                IconButton(
-                  onPressed: onCancel ?? () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                  tooltip: 'Close',
-                ),
-              ]),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(title, style: AdminTypography.headlineSm()),
+                  ),
+                  IconButton(
+                    onPressed: onCancel ?? () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Close',
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
               child,
               const SizedBox(height: 24),
-              Row(children: [
-                if (showCancel) ...[
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onCancel ?? () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: AdminColors.primaryContainer,
-                        side: BorderSide.none,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              Row(
+                children: [
+                  if (showCancel) ...[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed:
+                            onCancel ?? () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: AdminColors.primaryContainer,
+                          side: BorderSide.none,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Cancel',
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      child: const Text('Cancel', textAlign: TextAlign.center),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onSubmit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AdminColors.primaryContainer,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: submitChild,
                     ),
                   ),
-                  const SizedBox(width: 12),
                 ],
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onSubmit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AdminColors.primaryContainer,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: submitChild,
-                  ),
-                ),
-              ]),
+              ),
             ],
           ),
         ),
@@ -91,7 +105,8 @@ class AdminFormDialog extends StatelessWidget {
 }
 
 /// The filled, borderless text-field look used inside every admin popup form.
-InputDecoration adminFormDecoration({String? hint, Widget? prefixIcon}) => InputDecoration(
+InputDecoration adminFormDecoration({String? hint, Widget? prefixIcon}) =>
+    InputDecoration(
       isDense: true,
       hintText: hint,
       prefixIcon: prefixIcon,

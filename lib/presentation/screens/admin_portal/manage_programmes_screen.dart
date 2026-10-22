@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+
 import 'master_data_screen.dart';
 import 'widgets/admin_sidebar.dart';
 
@@ -10,7 +11,9 @@ class ManageProgrammesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repository = SupabaseProgrammesRepositoryImpl(Supabase.instance.client);
+    final repository = SupabaseProgrammesRepositoryImpl(
+      Supabase.instance.client,
+    );
     return MasterDataScreen(
       title: 'Manage Programmes',
       description: 'A programme is a full study path or qualification that students sign up for. Courses are linked to a programme, so students on it see the right courses.',
@@ -22,10 +25,17 @@ class ManageProgrammesScreen extends StatelessWidget {
       navDestination: AdminNavDestination.manageProgrammes,
       load: () async => [
         for (final p in await repository.getProgrammes())
-          MasterDataRow(id: p.id, code: p.code, name: p.name, remarks: p.description),
+          MasterDataRow(
+            id: p.id,
+            code: p.code,
+            name: p.name,
+            remarks: p.description,
+          ),
       ],
-      create: (code, name, description, year) => repository.createProgramme(code, name, description),
-      update: (id, code, name, description, year) => repository.updateProgramme(id, code, name, description),
+      create: (code, name, description, year) =>
+          repository.createProgramme(code, name, description),
+      update: (id, code, name, description, year) =>
+          repository.updateProgramme(id, code, name, description),
       masterKind: MasterKind.programme,
     );
   }

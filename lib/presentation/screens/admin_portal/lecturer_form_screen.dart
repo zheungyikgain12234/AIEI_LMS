@@ -3,7 +3,9 @@ import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
+
 import 'widgets/admin_fixed_code.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -14,6 +16,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_form_dialog.dart';
@@ -38,7 +41,9 @@ class LecturerFormScreen extends ConsumerStatefulWidget {
 
 class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   final _repository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
-  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(
+    Supabase.instance.client,
+  );
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
@@ -61,7 +66,8 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
-  String? get _codeConflict => _errorMessage == codeConflictMessage ? _errorMessage : null;
+  String? get _codeConflict =>
+      _errorMessage == codeConflictMessage ? _errorMessage : null;
 
   /// Every code is stored tenant-prefixed (`TN01-EMP-7721`) to keep it
   /// unique across tenants, but the admin only ever types/sees the suffix.
@@ -90,17 +96,26 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
       if (!mounted) return;
       setState(() {
         _departments = [for (final d in departments) d.name];
-        _specializations = [for (final s in specializations) s.name]..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+        _specializations = [for (final s in specializations) s.name]
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
         if (lecturer != null) {
           _nameController.text = lecturer.name;
           _titleController.text = lecturer.title;
-          _lecturerCodeController.text = _stripTenantPrefix(lecturer.lecturerCode);
+          _lecturerCodeController.text = _stripTenantPrefix(
+            lecturer.lecturerCode,
+          );
           _emailController.text = lecturer.email;
           _creditsMaxController.text = lecturer.creditsMax.toString();
-          _status = _statusOptions.contains(lecturer.status) ? lecturer.status : 'Active';
+          _status = _statusOptions.contains(lecturer.status)
+              ? lecturer.status
+              : 'Active';
           _accredited = lecturer.accredited;
-          _selectedDepartment = _departments.contains(lecturer.department) ? lecturer.department : null;
-          _selectedCompetencies.addAll(lecturer.competencies.where(_specializations.contains));
+          _selectedDepartment = _departments.contains(lecturer.department)
+              ? lecturer.department
+              : null;
+          _selectedCompetencies.addAll(
+            lecturer.competencies.where(_specializations.contains),
+          );
           _joinDate = lecturer.joinDate;
         }
         _joinDate ??= DateTime.now();
@@ -128,7 +143,9 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   Future<void> _save() async {
     final valid = _formKey.currentState!.validate();
     if (_selectedCompetencies.isEmpty) {
-      setState(() => _competenciesError = 'Select at least one teaching competency');
+      setState(
+        () => _competenciesError = 'Select at least one teaching competency',
+      );
       return;
     }
     if (!valid) return;
@@ -144,7 +161,8 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           widget.lecturerId!,
           name: _nameController.text.trim(),
           title: _titleController.text.trim(),
-          lecturerCode: '${_tenantPrefix()}${_lecturerCodeController.text.trim().toUpperCase()}',
+          lecturerCode:
+              '${_tenantPrefix()}${_lecturerCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           department: _selectedDepartment!,
           competencies: _selectedCompetencies.toList(),
@@ -157,7 +175,8 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
         saved = await _repository.createLecturer(
           name: _nameController.text.trim(),
           title: _titleController.text.trim(),
-          lecturerCode: '${_tenantPrefix()}${_lecturerCodeController.text.trim().toUpperCase()}',
+          lecturerCode:
+              '${_tenantPrefix()}${_lecturerCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           department: _selectedDepartment!,
           competencies: _selectedCompetencies.toList(),
@@ -168,7 +187,10 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
         );
       }
       if (!mounted) return;
-      showSuccessSnackBar(context, widget.isEditing ? 'Lecturer updated.' : 'Lecturer created.');
+      showSuccessSnackBar(
+        context,
+        widget.isEditing ? 'Lecturer updated.' : 'Lecturer created.',
+      );
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;
@@ -191,143 +213,209 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
         foregroundColor: AdminColors.onSurface,
         title: Text(title, style: AdminTypography.headlineSm()),
       ),
-      body: _isLoading
-          ? const SkeletonBody()
-          : Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AdminColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            widget.isEditing
-                                ? 'Update this lecturer\'s directory information.'
-                                : 'Onboard a new lecturer.',
-                            style: AdminTypography.bodyMd(),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AdminColors.errorContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(_errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                          if (widget.isEditing)
-                            AdminFixedCode(label: 'Lecturer Code', value: _lecturerCodeController.text.trim().toUpperCase()),
-                          _field(controller: _nameController, label: 'Full Name', hint: 'Dr. Sarah Lin'),
-                          const SizedBox(height: 14),
-                          _field(controller: _titleController, label: 'Title', hint: 'Lead Data Architect'),
-                          const SizedBox(height: 14),
-                          if (!widget.isEditing) ...[
-                            _field(controller: _lecturerCodeController, label: 'Lecturer Code', hint: 'EMP-7721', inputFormatters: const [UpperCaseTextFormatter()]),
-                            AdminFieldError(_codeConflict),
-                            const SizedBox(height: 14),
-                          ],
-                          _field(controller: _emailController, label: 'Email', hint: 'sarah.lin@aiei.edu', keyboardType: TextInputType.emailAddress),
-                          const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Department',
-                            hint: 'Select a department',
-                            value: _selectedDepartment,
-                            options: _departments,
-                            onChanged: (v) => setState(() => _selectedDepartment = v),
-                            required: true,
-                          ),
-                          const SizedBox(height: 14),
-                          _competenciesField(),
-                          const SizedBox(height: 14),
-                          _field(
-                            controller: _creditsMaxController,
-                            label: 'Credits Max',
-                            hint: '15',
-                            keyboardType: TextInputType.number,
-                            inputFormatters: digitsOnly,
-                            validator: (value) {
-                              final trimmed = value?.trim() ?? '';
-                              if (trimmed.isEmpty) return 'Credits Max is required';
-                              final parsed = int.tryParse(trimmed);
-                              if (parsed == null || parsed < 0) return 'Enter a valid whole number';
-                              if (parsed > maxLecturerCredits) return 'Credits Max cannot exceed $maxLecturerCredits';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Status',
-                            value: _status,
-                            options: _statusOptions,
-                            onChanged: (v) => setState(() => _status = v!),
-                            required: true,
-                          ),
-                          const SizedBox(height: 14),
-                          _datePicker(
-                            label: 'Join Date',
-                            value: _joinDate,
-                            onChanged: (v) => setState(() => _joinDate = v),
-                          ),
-                          const SizedBox(height: 14),
-                          _checkbox(label: 'Accredited', value: _accredited, onChanged: (v) => setState(() => _accredited = v)),
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: AdminColors.primaryContainer,
-                                    side: BorderSide.none,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: const Text('Cancel', textAlign: TextAlign.center),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _isSaving ? null : _save,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AdminColors.primaryContainer,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: _isSaving
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                        )
-                                      : Text(widget.isEditing ? 'Save Changes' : 'Add Lecturer'),
-                                ),
-                              ),
-                            ],
-                          ),
+      body: SafeArea(
+        top: false,
+        child: _isLoading
+            ? const SkeletonBody()
+            : Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AdminColors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x0D000000), blurRadius: 6),
                         ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              widget.isEditing
+                                  ? 'Update this lecturer\'s directory information.'
+                                  : 'Onboard a new lecturer.',
+                              style: AdminTypography.bodyMd(),
+                            ),
+                            const SizedBox(height: 20),
+                            if (_errorMessage != null &&
+                                !isFieldConflictMessage(_errorMessage!)) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AdminColors.errorContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _errorMessage!,
+                                  style: AdminTypography.bodySm(
+                                    color: AdminColors.onErrorContainer,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            if (widget.isEditing)
+                              AdminFixedCode(
+                                label: 'Lecturer Code',
+                                value: _lecturerCodeController.text
+                                    .trim()
+                                    .toUpperCase(),
+                              ),
+                            _field(
+                              controller: _nameController,
+                              label: 'Full Name',
+                              hint: 'Dr. Sarah Lin',
+                            ),
+                            const SizedBox(height: 14),
+                            _field(
+                              controller: _titleController,
+                              label: 'Title',
+                              hint: 'Lead Data Architect',
+                            ),
+                            const SizedBox(height: 14),
+                            if (!widget.isEditing) ...[
+                              _field(
+                                controller: _lecturerCodeController,
+                                label: 'Lecturer Code',
+                                hint: 'EMP-7721',
+                                inputFormatters: const [
+                                  UpperCaseTextFormatter(),
+                                ],
+                              ),
+                              AdminFieldError(_codeConflict),
+                              const SizedBox(height: 14),
+                            ],
+                            _field(
+                              controller: _emailController,
+                              label: 'Email',
+                              hint: 'sarah.lin@aiei.edu',
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: 14),
+                            _dropdown(
+                              label: 'Department',
+                              hint: 'Select a department',
+                              value: _selectedDepartment,
+                              options: _departments,
+                              onChanged: (v) =>
+                                  setState(() => _selectedDepartment = v),
+                              required: true,
+                            ),
+                            const SizedBox(height: 14),
+                            _competenciesField(),
+                            const SizedBox(height: 14),
+                            _field(
+                              controller: _creditsMaxController,
+                              label: 'Credits Max',
+                              hint: '15',
+                              keyboardType: TextInputType.number,
+                              inputFormatters: digitsOnly,
+                              validator: (value) {
+                                final trimmed = value?.trim() ?? '';
+                                if (trimmed.isEmpty)
+                                  return 'Credits Max is required';
+                                final parsed = int.tryParse(trimmed);
+                                if (parsed == null || parsed < 0)
+                                  return 'Enter a valid whole number';
+                                if (parsed > maxLecturerCredits)
+                                  return 'Credits Max cannot exceed $maxLecturerCredits';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            _dropdown(
+                              label: 'Status',
+                              value: _status,
+                              options: _statusOptions,
+                              onChanged: (v) => setState(() => _status = v!),
+                              required: true,
+                            ),
+                            const SizedBox(height: 14),
+                            _datePicker(
+                              label: 'Join Date',
+                              value: _joinDate,
+                              onChanged: (v) => setState(() => _joinDate = v),
+                            ),
+                            const SizedBox(height: 14),
+                            _checkbox(
+                              label: 'Accredited',
+                              value: _accredited,
+                              onChanged: (v) => setState(() => _accredited = v),
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: _isSaving
+                                        ? null
+                                        : () => Navigator.of(context).pop(),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor:
+                                          AdminColors.primaryContainer,
+                                      side: BorderSide.none,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Cancel',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _isSaving ? null : _save,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          AdminColors.primaryContainer,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: _isSaving
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            widget.isEditing
+                                                ? 'Save Changes'
+                                                : 'Add Lecturer',
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -358,10 +446,21 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
             isDense: true,
             hintText: hint,
             prefixText: prefixText,
-            prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            prefixStyle: AdminTypography.bodyMd(
+              color: AdminColors.onSurfaceVariant,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
-          validator: validator ?? (required ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null : null),
+          validator:
+              validator ??
+              (required
+                  ? (value) => (value == null || value.trim().isEmpty)
+                        ? '$label is required'
+                        : null
+                  : null),
         ),
       ],
     );
@@ -370,7 +469,9 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
   /// A lecturer can have several teaching competencies: chips for the chosen
   /// ones, tap to open the picker.
   Widget _competenciesField() {
-    final selected = _specializations.where(_selectedCompetencies.contains).toList();
+    final selected = _specializations
+        .where(_selectedCompetencies.contains)
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -383,12 +484,26 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
             width: double.infinity,
             constraints: const BoxConstraints(minHeight: 48),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: selected.isEmpty
                 ? Row(
                     children: [
-                      Expanded(child: Text('Select teaching competencies', style: AdminTypography.bodySm(color: AdminColors.outline))),
-                      const Icon(Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
+                      Expanded(
+                        child: Text(
+                          'Select teaching competencies',
+                          style: AdminTypography.bodySm(
+                            color: AdminColors.outline,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.expand_more,
+                        size: 18,
+                        color: AdminColors.onSurfaceVariant,
+                      ),
                     ],
                   )
                 : Wrap(
@@ -397,11 +512,19 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                     children: [
                       for (final name in selected)
                         Chip(
-                          label: Text(name, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+                          label: Text(
+                            name,
+                            style: AdminTypography.labelSm(
+                              color: AdminColors.onSurface,
+                            ),
+                          ),
                           backgroundColor: AdminColors.surfaceContainer,
                           deleteIcon: const Icon(Icons.close, size: 14),
-                          onDeleted: () => setState(() => _selectedCompetencies.remove(name)),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          onDeleted: () => setState(
+                            () => _selectedCompetencies.remove(name),
+                          ),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                           visualDensity: VisualDensity.compact,
                         ),
                     ],
@@ -420,7 +543,11 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           final query = searchController.text.trim().toLowerCase();
-          final filtered = query.isEmpty ? _specializations : _specializations.where((o) => o.toLowerCase().contains(query)).toList();
+          final filtered = query.isEmpty
+              ? _specializations
+              : _specializations
+                    .where((o) => o.toLowerCase().contains(query))
+                    .toList();
           return AdminFormDialog(
             title: 'Select Teaching Competencies',
             maxWidth: 480,
@@ -436,12 +563,20 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                     autofocus: true,
                     onChanged: (_) => setDialogState(() {}),
                     style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-                    decoration: adminFormDecoration(hint: 'Search...', prefixIcon: const Icon(Icons.search, size: 18)),
+                    decoration: adminFormDecoration(
+                      hint: 'Search...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Expanded(
                     child: filtered.isEmpty
-                        ? Center(child: Text('No matches.', style: AdminTypography.bodySm()))
+                        ? Center(
+                            child: Text(
+                              'No matches.',
+                              style: AdminTypography.bodySm(),
+                            ),
+                          )
                         : ListView.builder(
                             itemCount: filtered.length,
                             itemBuilder: (context, index) {
@@ -449,11 +584,14 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
                               return CheckboxListTile(
                                 value: _selectedCompetencies.contains(name),
                                 dense: true,
-                                controlAffinity: ListTileControlAffinity.leading,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
                                 title: Text(name),
                                 onChanged: (v) => setDialogState(() {
                                   setState(() {
-                                    v == true ? _selectedCompetencies.add(name) : _selectedCompetencies.remove(name);
+                                    v == true
+                                        ? _selectedCompetencies.add(name)
+                                        : _selectedCompetencies.remove(name);
                                     _competenciesError = null;
                                   });
                                 }),
@@ -490,12 +628,28 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
-          hint: hint == null ? null : Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline)),
-          items: [for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis))],
+          hint: hint == null
+              ? null
+              : Text(
+                  hint,
+                  style: AdminTypography.bodySm(color: AdminColors.outline),
+                ),
+          items: [
+            for (final o in options)
+              DropdownMenuItem(
+                value: o,
+                child: Text(o, overflow: TextOverflow.ellipsis),
+              ),
+          ],
           onChanged: onChanged,
-          validator: required ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
+          validator: required
+              ? (v) => v == null || v.isEmpty ? '$label is required' : null
+              : null,
         ),
       ],
     );
@@ -531,13 +685,24 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
             child: InputDecorator(
               decoration: InputDecoration(
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
                 errorText: state.errorText,
-                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+                suffixIcon: const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
               ),
               child: Text(
                 value == null ? 'Select a date' : formatDate(value),
-                style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+                style: AdminTypography.bodyMd(
+                  color: value == null
+                      ? AdminColors.outline
+                      : AdminColors.onSurface,
+                ),
               ),
             ),
           ),
@@ -546,7 +711,11 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
     );
   }
 
-  Widget _checkbox({required String label, required bool value, required ValueChanged<bool> onChanged}) {
+  Widget _checkbox({
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
     return InkWell(
       onTap: () => onChanged(!value),
       borderRadius: BorderRadius.circular(10),
@@ -554,8 +723,15 @@ class _LecturerFormScreenState extends ConsumerState<LecturerFormScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
           children: [
-            Checkbox(value: value, onChanged: (v) => onChanged(v ?? false), activeColor: AdminColors.primaryContainer),
-            Text(label, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
+            Checkbox(
+              value: value,
+              onChanged: (v) => onChanged(v ?? false),
+              activeColor: AdminColors.primaryContainer,
+            ),
+            Text(
+              label,
+              style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+            ),
           ],
         ),
       ),

@@ -10,6 +10,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_students_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/roster_student.dart';
+
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -28,11 +29,14 @@ class CourseEnrollmentScreen extends StatefulWidget {
   State<CourseEnrollmentScreen> createState() => _CourseEnrollmentScreenState();
 }
 
-class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with RefreshOnReturn<CourseEnrollmentScreen> {
+class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen>
+    with RefreshOnReturn<CourseEnrollmentScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminStudentsRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   Map<String, dynamic>? _course;
   List<RosterStudent> _roster = [];
@@ -44,13 +48,18 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
 
   List<RosterStudent> get _filteredRoster {
     if (_query.isEmpty) return _roster;
-    return _roster.where((s) =>
-        s.name.toLowerCase().contains(_query) ||
-        s.studentCode.toLowerCase().contains(_query) ||
-        s.email.toLowerCase().contains(_query)).toList();
+    return _roster
+        .where(
+          (s) =>
+              s.name.toLowerCase().contains(_query) ||
+              s.studentCode.toLowerCase().contains(_query) ||
+              s.email.toLowerCase().contains(_query),
+        )
+        .toList();
   }
 
-  String get _courseCode => displayCode((_course?['course_code'] as String?) ?? '');
+  String get _courseCode =>
+      displayCode((_course?['course_code'] as String?) ?? '');
   String get _courseTitle => (_course?['course_title'] as String?) ?? '';
   int get _capacity => (_course?['capacity'] as int?) ?? 0;
   int get _enrolledCount => _roster.length;
@@ -58,7 +67,10 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   int get _passingCount => _roster.length - _atRiskCount;
 
   double? get _averageScore {
-    final scores = _roster.map((s) => s.overallScore).whereType<double>().toList();
+    final scores = _roster
+        .map((s) => s.overallScore)
+        .whereType<double>()
+        .toList();
     if (scores.isEmpty) return null;
     return scores.reduce((a, b) => a + b) / scores.length;
   }
@@ -66,7 +78,10 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -78,7 +93,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   }
 
   Future<void> _load() async {
-    final course = await Supabase.instance.client.from('courses').select().eq('id', DemoIdentity.courseSecId).single();
+    final course = await Supabase.instance.client
+        .from('courses')
+        .select()
+        .eq('id', DemoIdentity.courseSecId)
+        .single();
     final roster = await _repository.getCourseRoster(DemoIdentity.courseSecId);
     if (!mounted) return;
     setState(() {
@@ -100,7 +119,6 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   }
 
   bool _isAtRisk(String risk) => risk != 'on_track';
-
 
   String _formatDate(DateTime d) => formatDate(d);
 
@@ -126,7 +144,13 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.courseEnrollment, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.courseEnrollment,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
@@ -165,42 +189,94 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('ACADEMIC REGISTRATIONS', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(width: 6),
-              Text('•', style: AdminTypography.labelSm()),
-              const SizedBox(width: 6),
-              Text('Course: $_courseCode', style: AdminTypography.labelSm()),
-            ]),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'ACADEMIC REGISTRATIONS',
+                  style: AdminTypography.labelSm(color: AdminColors.secondary)
+                      .copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(width: 6),
+                Text('•', style: AdminTypography.labelSm()),
+                const SizedBox(width: 6),
+                Text('Course: $_courseCode', style: AdminTypography.labelSm()),
+              ],
+            ),
             const SizedBox(height: 4),
-            Text('Manage Students of Courses', style: AdminTypography.headlineLg()),
+            Text(
+              'Manage Students of Courses',
+              style: AdminTypography.headlineLg(),
+            ),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Pick a course to see its classes. You can set how many students each class can hold, enrol students into a class, and check how they are doing.', style: AdminTypography.bodyMd()),
+              child: Text(
+                'Pick a course to see its classes. You can set how many students each class can hold, enrol students into a class, and check how they are doing.',
+                style: AdminTypography.bodyMd(),
+              ),
             ),
           ],
         ),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          OutlinedButton.icon(
-            onPressed: _notAvailable,
-            icon: const Icon(Icons.file_download_outlined, size: 16),
-            label: const Text('Export Roster', textAlign: TextAlign.center),
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-          ),
-          OutlinedButton.icon(
-            onPressed: _notAvailable,
-            icon: const Icon(Icons.move_up_outlined, size: 16),
-            label: const Text('Drop / Transfer', textAlign: TextAlign.center),
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen())),
-            icon: const Icon(Icons.person_add_outlined, size: 16),
-            label: const Text('Enrol Students', textAlign: TextAlign.center),
-            style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-          ),
-        ]),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _notAvailable,
+              icon: const Icon(Icons.file_download_outlined, size: 16),
+              label: const Text('Export Roster', textAlign: TextAlign.center),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: AdminColors.primaryContainer,
+                side: BorderSide.none,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: _notAvailable,
+              icon: const Icon(Icons.move_up_outlined, size: 16),
+              label: const Text('Drop / Transfer', textAlign: TextAlign.center),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: AdminColors.primaryContainer,
+                side: BorderSide.none,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const EnrollStudentsScreen()),
+              ),
+              icon: const Icon(Icons.person_add_outlined, size: 16),
+              label: const Text('Enrol Students', textAlign: TextAlign.center),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminColors.primaryContainer,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -208,30 +284,86 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   Widget _buildCourseHeaderCard() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 16,
         runSpacing: 12,
         children: [
-          Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(width: 48, height: 48, decoration: BoxDecoration(color: AdminColors.secondaryFixed, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.terminal, color: AdminColors.primary, size: 26)),
-            const SizedBox(width: 14),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Wrap(spacing: 6, children: [
-                _tag('Active Semester', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
-                _tag('$_enrolledCount / $_capacity Enrolled', AdminColors.secondaryFixed, AdminColors.onSecondaryFixedVariant),
-              ]),
-              const SizedBox(height: 4),
-              Text('$_courseCode: $_courseTitle', style: AdminTypography.headlineSm()),
-            ]),
-          ]),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AdminColors.secondaryFixed,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.terminal,
+                  color: AdminColors.primary,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 6,
+                    children: [
+                      _tag(
+                        'Active Semester',
+                        AdminColors.surfaceContainer,
+                        AdminColors.onSurfaceVariant,
+                      ),
+                      _tag(
+                        '$_enrolledCount / $_capacity Enrolled',
+                        AdminColors.secondaryFixed,
+                        AdminColors.onSecondaryFixedVariant,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$_courseCode: $_courseTitle',
+                    style: AdminTypography.headlineSm(),
+                  ),
+                ],
+              ),
+            ],
+          ),
           OutlinedButton.icon(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Only PY-402 is available in this preview.'))),
-            icon: const Icon(Icons.swap_horiz, size: 16, color: AdminColors.onSurfaceVariant),
-            label: const Text('Switch Course Section', textAlign: TextAlign.center),
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Only PY-402 is available in this preview.'),
+              ),
+            ),
+            icon: const Icon(
+              Icons.swap_horiz,
+              size: 16,
+              color: AdminColors.onSurfaceVariant,
+            ),
+            label: const Text(
+              'Switch Course Section',
+              textAlign: TextAlign.center,
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: AdminColors.primaryContainer,
+              side: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
         ],
       ),
@@ -239,57 +371,167 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   }
 
   Widget _tag(String text, Color bg, Color fg) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
-        child: Text(text, style: AdminTypography.labelSm(color: fg).copyWith(fontWeight: FontWeight.w600)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Text(
+      text,
+      style: AdminTypography.labelSm(color: fg)
+          .copyWith(fontWeight: FontWeight.w600),
+    ),
+  );
 
   Widget _buildMetrics() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth >= 900 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
-      final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
-      final fillPct = _capacity == 0 ? 0.0 : _enrolledCount / _capacity;
-      final cards = <Widget>[
-        _metricCard('Enrolled Capacity', '$_enrolledCount / $_capacity', Icons.group_outlined,
-            progress: fillPct, footer: '${(fillPct * 100).round()}% filled', footerRight: '${_capacity - _enrolledCount} Seats Available'),
-        _metricCard('Passing (On Track)', '$_passingCount Students', Icons.verified_outlined, footer: 'Risk status: on track'),
-        _metricCard('At Risk / Critical', '$_atRiskCount Students', Icons.warning_amber_outlined, footer: 'Risk status: at risk or critical'),
-        _metricCard('Aggregated Average Grade', _averageScore == null ? '—' : '${_averageScore!.toStringAsFixed(1)}%', Icons.analytics_outlined, footer: 'Across graded students'),
-      ];
-      return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth >= 900
+            ? 4
+            : (constraints.maxWidth >= 500 ? 2 : 1);
+        final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
+        final fillPct = _capacity == 0 ? 0.0 : _enrolledCount / _capacity;
+        final cards = <Widget>[
+          _metricCard(
+            'Enrolled Capacity',
+            '$_enrolledCount / $_capacity',
+            Icons.group_outlined,
+            progress: fillPct,
+            footer: '${(fillPct * 100).round()}% filled',
+            footerRight: '${_capacity - _enrolledCount} Seats Available',
+          ),
+          _metricCard(
+            'Passing (On Track)',
+            '$_passingCount Students',
+            Icons.verified_outlined,
+            footer: 'Risk status: on track',
+          ),
+          _metricCard(
+            'At Risk / Critical',
+            '$_atRiskCount Students',
+            Icons.warning_amber_outlined,
+            footer: 'Risk status: at risk or critical',
+          ),
+          _metricCard(
+            'Aggregated Average Grade',
+            _averageScore == null
+                ? '—'
+                : '${_averageScore!.toStringAsFixed(1)}%',
+            Icons.analytics_outlined,
+            footer: 'Across graded students',
+          ),
+        ];
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: cards.map((c) => SizedBox(width: width, child: c)).toList(),
+        );
+      },
+    );
   }
 
-  Widget _metricCard(String label, String value, IconData icon, {double? progress, String? footer, String? footerRight, String? action, String? tag, String? trend}) {
+  Widget _metricCard(
+    String label,
+    String value,
+    IconData icon, {
+    double? progress,
+    String? footer,
+    String? footerRight,
+    String? action,
+    String? tag,
+    String? trend,
+  }) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Expanded(child: Text(label, style: AdminTypography.labelMd())),
-            Container(padding: const EdgeInsets.all(7), decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(10)), child: Icon(icon, size: 18, color: AdminColors.primary)),
-          ]),
+          Row(
+            children: [
+              Expanded(child: Text(label, style: AdminTypography.labelMd())),
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: AdminColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: AdminColors.primary),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Text(value, style: AdminTypography.dataMetric()),
           const SizedBox(height: 10),
           if (progress != null) ...[
-            ClipRRect(borderRadius: BorderRadius.circular(9999), child: LinearProgressIndicator(value: progress, minHeight: 6, backgroundColor: AdminColors.surfaceContainerHigh, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.primaryContainer))),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9999),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: AdminColors.surfaceContainerHigh,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AdminColors.primaryContainer,
+                ),
+              ),
+            ),
             const SizedBox(height: 6),
           ],
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            if (footer != null) Expanded(child: Text(footer, style: AdminTypography.bodySm())),
-            if (footerRight != null) Text(footerRight, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-            if (action != null)
-              GestureDetector(onTap: _notAvailable, child: Text(action, style: AdminTypography.labelSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w700))),
-            if (tag != null) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(4)), child: Text(tag, style: AdminTypography.labelSm())),
-            if (trend != null)
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.trending_up, size: 14, color: AdminColors.secondary),
-                Text(trend, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-              ]),
-          ]),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (footer != null)
+                Expanded(child: Text(footer, style: AdminTypography.bodySm())),
+              if (footerRight != null)
+                Text(
+                  footerRight,
+                  style: AdminTypography.labelSm(color: AdminColors.secondary)
+                      .copyWith(fontWeight: FontWeight.w700),
+                ),
+              if (action != null)
+                GestureDetector(
+                  onTap: _notAvailable,
+                  child: Text(
+                    action,
+                    style: AdminTypography.labelSm(color: AdminColors.primary)
+                        .copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              if (tag != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AdminColors.surfaceContainer,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(tag, style: AdminTypography.labelSm()),
+                ),
+              if (trend != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.trending_up,
+                      size: 14,
+                      color: AdminColors.secondary,
+                    ),
+                    Text(
+                      trend,
+                      style: AdminTypography.labelSm(
+                        color: AdminColors.secondary,
+                      ).copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -298,7 +540,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   Widget _buildToolbar() {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -311,17 +557,32 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               controller: _searchController,
               focusNode: _searchFocus,
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
-              decoration: InputDecoration(isDense: true, hintText: 'Search enrolled students in $_courseCode...', prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Search enrolled students in $_courseCode...',
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
             ),
           ),
           Container(
             padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              _filterPill('All ($_enrolledCount)', true),
-              _filterPill('Passing ($_passingCount)', false),
-              _filterPill('At Risk ($_atRiskCount)', false),
-            ]),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _filterPill('All ($_enrolledCount)', true),
+                _filterPill('Passing ($_passingCount)', false),
+                _filterPill('At Risk ($_atRiskCount)', false),
+              ],
+            ),
           ),
         ],
       ),
@@ -329,26 +590,49 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   }
 
   Widget _filterPill(String label, bool active) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: active ? AdminColors.surfaceContainerLowest : Colors.transparent, borderRadius: BorderRadius.circular(8), boxShadow: active ? const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)] : null),
-        child: Text(label, style: AdminTypography.titleSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: active ? AdminColors.surfaceContainerLowest : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: active
+          ? const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)]
+          : null,
+    ),
+    child: Text(
+      label,
+      style: AdminTypography.titleSm(
+        color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant,
+      ),
+    ),
+  );
 
   Widget _buildTableCard() {
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SizedBox(width: 1180, child: Column(children: [for (final s in _filteredRoster) _rosterRow(s)])),
+            child: SizedBox(
+              width: 1180,
+              child: Column(
+                children: [for (final s in _filteredRoster) _rosterRow(s)],
+              ),
+            ),
           ),
           if (_filteredRoster.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
-          ),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Wrap(
@@ -357,8 +641,14 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               spacing: 12,
               runSpacing: 8,
               children: [
-                Text('${_selected.length} of $_enrolledCount students selected', style: AdminTypography.bodySm()),
-                Text('Showing ${_filteredRoster.isEmpty ? 0 : 1}–${_filteredRoster.length} of ${_filteredRoster.length}', style: AdminTypography.bodySm()),
+                Text(
+                  '${_selected.length} of $_enrolledCount students selected',
+                  style: AdminTypography.bodySm(),
+                ),
+                Text(
+                  'Showing ${_filteredRoster.isEmpty ? 0 : 1}–${_filteredRoster.length} of ${_filteredRoster.length}',
+                  style: AdminTypography.bodySm(),
+                ),
               ],
             ),
           ),
@@ -370,47 +660,146 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   Widget _rosterRow(RosterStudent s) {
     final selected = _selected.contains(s.studentCode);
     final atRisk = _isAtRisk(s.riskStatus);
-    final gradeLabel = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(1)}% (${s.grade ?? '—'})' : 'No grade yet';
+    final gradeLabel = s.overallScore != null
+        ? '${s.overallScore!.toStringAsFixed(1)}% (${s.grade ?? '—'})'
+        : 'No grade yet';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(border: const Border(bottom: BorderSide(color: UiContrast.divider)), color: atRisk ? AdminColors.errorContainer.withValues(alpha: 0.1) : null),
+      decoration: BoxDecoration(
+        border: const Border(bottom: BorderSide(color: UiContrast.divider)),
+        color: atRisk
+            ? AdminColors.errorContainer.withValues(alpha: 0.1)
+            : null,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Checkbox(value: selected, onChanged: (v) => setState(() => v == true ? _selected.add(s.studentCode) : _selected.remove(s.studentCode)), activeColor: AdminColors.primaryContainer),
+          Checkbox(
+            value: selected,
+            onChanged: (v) => setState(
+              () => v == true
+                  ? _selected.add(s.studentCode)
+                  : _selected.remove(s.studentCode),
+            ),
+            activeColor: AdminColors.primaryContainer,
+          ),
           SizedBox(
             width: 220,
-            child: Row(children: [
-              Container(width: 36, height: 36, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle), child: const Icon(Icons.person, color: AdminColors.primary, size: 18)),
-              const SizedBox(width: 10),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.name, style: AdminTypography.titleSm()),
-                Text(s.studentCode, style: AdminTypography.labelSm()),
-                Text(s.email, style: AdminTypography.bodySm()),
-              ])),
-            ]),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: AdminColors.surfaceContainerHigh,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: AdminColors.primary,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(s.name, style: AdminTypography.titleSm()),
+                      Text(s.studentCode, style: AdminTypography.labelSm()),
+                      Text(s.email, style: AdminTypography.bodySm()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          SizedBox(width: 150, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(_formatDate(s.enrolledAt), style: AdminTypography.titleSm()),
-            Text(s.sponsorship, style: AdminTypography.labelSm()),
-          ])),
-          SizedBox(width: 170, child: _progressCell('${s.progressPercentage}% Course Progress', s.progressPercentage, s.progressPercentage >= 80)),
-          SizedBox(width: 170, child: _progressCell('${s.attendancePercentage}% Attendance', s.attendancePercentage, s.attendancePercentage >= 80)),
-          SizedBox(width: 130, child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: atRisk ? AdminColors.errorContainer : AdminColors.secondaryFixed, borderRadius: BorderRadius.circular(9999)),
-            child: Text(gradeLabel, style: AdminTypography.labelMd(color: atRisk ? AdminColors.onErrorContainer : AdminColors.onSecondaryFixedVariant)),
-          )),
-          SizedBox(width: 120, child: Text(_timeAgo(s.lastActivityAt), style: AdminTypography.bodySm(color: s.isOnlineNow ? AdminColors.onSurface : AdminColors.onSurfaceVariant))),
+          SizedBox(
+            width: 150,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _formatDate(s.enrolledAt),
+                  style: AdminTypography.titleSm(),
+                ),
+                Text(s.sponsorship, style: AdminTypography.labelSm()),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 170,
+            child: _progressCell(
+              '${s.progressPercentage}% Course Progress',
+              s.progressPercentage,
+              s.progressPercentage >= 80,
+            ),
+          ),
+          SizedBox(
+            width: 170,
+            child: _progressCell(
+              '${s.attendancePercentage}% Attendance',
+              s.attendancePercentage,
+              s.attendancePercentage >= 80,
+            ),
+          ),
+          SizedBox(
+            width: 130,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: atRisk
+                    ? AdminColors.errorContainer
+                    : AdminColors.secondaryFixed,
+                borderRadius: BorderRadius.circular(9999),
+              ),
+              child: Text(
+                gradeLabel,
+                style: AdminTypography.labelMd(
+                  color: atRisk
+                      ? AdminColors.onErrorContainer
+                      : AdminColors.onSecondaryFixedVariant,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 120,
+            child: Text(
+              _timeAgo(s.lastActivityAt),
+              style: AdminTypography.bodySm(
+                color: s.isOnlineNow
+                    ? AdminColors.onSurface
+                    : AdminColors.onSurfaceVariant,
+              ),
+            ),
+          ),
           SizedBox(
             width: 110,
             child: Align(
               alignment: Alignment.centerRight,
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                IconButton(onPressed: _notAvailable, icon: const Icon(Icons.bar_chart, size: 18), tooltip: 'View Grades', color: AdminColors.onSurfaceVariant, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-                const SizedBox(width: 8),
-                IconButton(onPressed: _notAvailable, icon: const Icon(Icons.person_remove_outlined, size: 18), tooltip: 'Drop', color: AdminColors.error, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-              ]),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: _notAvailable,
+                    icon: const Icon(Icons.bar_chart, size: 18),
+                    tooltip: 'View Grades',
+                    color: AdminColors.onSurfaceVariant,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _notAvailable,
+                    icon: const Icon(Icons.person_remove_outlined, size: 18),
+                    tooltip: 'Drop',
+                    color: AdminColors.error,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -422,12 +811,37 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Expanded(child: Text(label, style: AdminTypography.labelSm(color: good ? AdminColors.onSurface : AdminColors.error).copyWith(fontWeight: FontWeight.w700))),
-          Text('$pct%', style: AdminTypography.labelSm(color: good ? AdminColors.secondary : AdminColors.error).copyWith(fontWeight: FontWeight.w700)),
-        ]),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: AdminTypography.labelSm(
+                  color: good ? AdminColors.onSurface : AdminColors.error,
+                ).copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            Text(
+              '$pct%',
+              style: AdminTypography.labelSm(
+                color: good ? AdminColors.secondary : AdminColors.error,
+              ).copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
         const SizedBox(height: 3),
-        ClipRRect(borderRadius: BorderRadius.circular(9999), child: LinearProgressIndicator(value: pct / 100, minHeight: 5, backgroundColor: AdminColors.surfaceContainerHigh, valueColor: AlwaysStoppedAnimation<Color>(good ? AdminColors.primaryContainer : AdminColors.error))),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9999),
+          child: LinearProgressIndicator(
+            value: pct / 100,
+            minHeight: 5,
+            backgroundColor: AdminColors.surfaceContainerHigh,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              good ? AdminColors.primaryContainer : AdminColors.error,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -462,7 +876,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                   const SizedBox(height: 10),
                   _mobileFilterChips(),
                   const SizedBox(height: 16),
-                  if (_filteredRoster.isEmpty) AdminNoResults(controller: _searchController, focusNode: _searchFocus),
+                  if (_filteredRoster.isEmpty)
+                    AdminNoResults(
+                      controller: _searchController,
+                      focusNode: _searchFocus,
+                    ),
                   for (final s in _filteredRoster) ...[
                     _mobileStudentCard(s),
                     const SizedBox(height: 12),
@@ -485,21 +903,48 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
           Expanded(
             child: Row(
               children: [
-                Container(width: 8, height: 8, decoration: const BoxDecoration(color: AdminColors.tertiaryContainer, shape: BoxShape.circle)),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AdminColors.tertiaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                ),
                 const SizedBox(width: 6),
-                Flexible(child: Text('Academic Registrations', style: AdminTypography.labelSm())),
+                Flexible(
+                  child: Text(
+                    'Academic Registrations',
+                    style: AdminTypography.labelSm(),
+                  ),
+                ),
                 const SizedBox(width: 6),
-                Text('•', style: AdminTypography.labelSm(color: AdminColors.outlineVariant)),
+                Text(
+                  '•',
+                  style: AdminTypography.labelSm(
+                    color: AdminColors.outlineVariant,
+                  ),
+                ),
                 const SizedBox(width: 6),
-                Text(_courseCode, style: AdminTypography.labelSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  _courseCode,
+                  style: AdminTypography.labelSm(color: AdminColors.primary)
+                      .copyWith(fontWeight: FontWeight.w700),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
-            child: Text('Live Sync', style: AdminTypography.labelSm(color: AdminColors.secondary)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Live Sync',
+              style: AdminTypography.labelSm(color: AdminColors.secondary),
+            ),
           ),
         ],
       ),
@@ -513,12 +958,19 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('ROSTER CONTROL', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.0)),
+            Text(
+              'ROSTER CONTROL',
+              style: AdminTypography.labelSm(color: AdminColors.secondary)
+                  .copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.0),
+            ),
             Text('Fall 2025', style: AdminTypography.labelSm()),
           ],
         ),
         const SizedBox(height: 4),
-        Text('Manage Students', style: AdminTypography.headlineLg(color: AdminColors.primary)),
+        Text(
+          'Manage Students',
+          style: AdminTypography.headlineLg(color: AdminColors.primary),
+        ),
         const SizedBox(height: 4),
       ],
     );
@@ -531,7 +983,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         scrollDirection: Axis.horizontal,
         children: [
           ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EnrollStudentsScreen())),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const EnrollStudentsScreen()),
+            ),
             icon: const Icon(Icons.person_add, size: 18),
             label: const Text('Enrol Students', textAlign: TextAlign.center),
             style: ElevatedButton.styleFrom(
@@ -539,7 +993,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               foregroundColor: AdminColors.onSecondary,
               elevation: 1,
               padding: const EdgeInsets.symmetric(horizontal: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -552,7 +1008,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               backgroundColor: AdminColors.primaryContainer,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -565,7 +1023,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               backgroundColor: AdminColors.primaryContainer,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -578,7 +1038,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               backgroundColor: AdminColors.primaryContainer,
               side: BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
         ],
@@ -589,7 +1051,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   Widget _mobileSemesterCard() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -600,12 +1066,29 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(spacing: 6, runSpacing: 4, children: [
-                      _tag(_courseCode, AdminColors.primary, AdminColors.onPrimary),
-                      _tag('$_enrolledCount / $_capacity Enrolled', AdminColors.surfaceContainerHigh, AdminColors.onSurfaceVariant),
-                    ]),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        _tag(
+                          _courseCode,
+                          AdminColors.primary,
+                          AdminColors.onPrimary,
+                        ),
+                        _tag(
+                          '$_enrolledCount / $_capacity Enrolled',
+                          AdminColors.surfaceContainerHigh,
+                          AdminColors.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 6),
-                    Text(_courseTitle, style: AdminTypography.headlineSm(color: AdminColors.primary)),
+                    Text(
+                      _courseTitle,
+                      style: AdminTypography.headlineSm(
+                        color: AdminColors.primary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -613,28 +1096,52 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(color: AdminColors.secondaryFixed.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.terminal, color: AdminColors.secondary, size: 22),
+                decoration: BoxDecoration(
+                  color: AdminColors.secondaryFixed.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.terminal,
+                  color: AdminColors.secondary,
+                  size: 22,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(radius: 14, backgroundColor: AdminColors.surfaceContainerHigh, child: Icon(Icons.person, size: 16, color: AdminColors.primary)),
+                    const CircleAvatar(
+                      radius: 14,
+                      backgroundColor: AdminColors.surfaceContainerHigh,
+                      child: Icon(
+                        Icons.person,
+                        size: 16,
+                        color: AdminColors.primary,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Dr. Sarah Lin', style: AdminTypography.titleSm()),
-                          Text('Lead Data Architect & Research Fellow', style: AdminTypography.bodySm()),
+                          Text(
+                            'Dr. Sarah Lin',
+                            style: AdminTypography.titleSm(),
+                          ),
+                          Text(
+                            'Lead Data Architect & Research Fellow',
+                            style: AdminTypography.bodySm(),
+                          ),
                         ],
                       ),
                     ),
@@ -643,9 +1150,18 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.schedule, size: 16, color: AdminColors.outline),
+                    const Icon(
+                      Icons.schedule,
+                      size: 16,
+                      color: AdminColors.outline,
+                    ),
                     const SizedBox(width: 6),
-                    Expanded(child: Text('Mon / Wed 18:00 – 20:30 UTC • Virtual Lab', style: AdminTypography.bodySm())),
+                    Expanded(
+                      child: Text(
+                        'Mon / Wed 18:00 – 20:30 UTC • Virtual Lab',
+                        style: AdminTypography.bodySm(),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -703,7 +1219,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               Expanded(
                 child: _mobileMetricTile(
                   label: 'Avg Grade',
-                  value: _averageScore == null ? '—' : '${_averageScore!.toStringAsFixed(1)}%',
+                  value: _averageScore == null
+                      ? '—'
+                      : '${_averageScore!.toStringAsFixed(1)}%',
                   icon: Icons.analytics_outlined,
                 ),
               ),
@@ -726,7 +1244,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -738,35 +1260,73 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             ],
           ),
           const SizedBox(height: 6),
-          Text(value, style: AdminTypography.headlineSm(color: AdminColors.primary)),
+          Text(
+            value,
+            style: AdminTypography.headlineSm(color: AdminColors.primary),
+          ),
           const SizedBox(height: 8),
           if (progress != null) ...[
-            ClipRRect(borderRadius: BorderRadius.circular(9999), child: LinearProgressIndicator(value: progress, minHeight: 5, backgroundColor: AdminColors.surfaceContainerHigh, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.primaryContainer))),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9999),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 5,
+                backgroundColor: AdminColors.surfaceContainerHigh,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AdminColors.primaryContainer,
+                ),
+              ),
+            ),
             const SizedBox(height: 6),
           ],
-          if (footerLeft != null) Text(footerLeft, style: AdminTypography.bodySm()),
+          if (footerLeft != null)
+            Text(footerLeft, style: AdminTypography.bodySm()),
           if (footerRight != null)
-            Text(footerRight, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              footerRight,
+              style: AdminTypography.labelSm(color: AdminColors.secondary)
+                  .copyWith(fontWeight: FontWeight.w700),
+            ),
           if (footerAction != null)
             GestureDetector(
               onTap: _notAvailable,
-              child: Row(children: [
-                Flexible(
-                  child: Text(
-                    footerAction,
-                    style: AdminTypography.labelSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w700),
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      footerAction,
+                      style: AdminTypography.labelSm(color: AdminColors.primary)
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 2),
-                const Icon(Icons.arrow_forward, size: 12, color: AdminColors.primary),
-              ]),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.arrow_forward,
+                    size: 12,
+                    color: AdminColors.primary,
+                  ),
+                ],
+              ),
             ),
           if (trend != null)
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.trending_up, size: 12, color: AdminColors.secondary),
-              const SizedBox(width: 2),
-              Flexible(child: Text(trend, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700))),
-            ]),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.trending_up,
+                  size: 12,
+                  color: AdminColors.secondary,
+                ),
+                const SizedBox(width: 2),
+                Flexible(
+                  child: Text(
+                    trend,
+                    style: AdminTypography.labelSm(color: AdminColors.secondary)
+                        .copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -781,7 +1341,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         isDense: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search by name, ID or email...',
-        prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
+        prefixIcon: const Icon(
+          Icons.search,
+          size: 20,
+          color: AdminColors.outline,
+        ),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );
@@ -797,37 +1361,81 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
           const SizedBox(width: 8),
           _mobileFilterChip('Passing', '$_passingCount', false),
           const SizedBox(width: 8),
-          _mobileFilterChip('At Risk', '$_atRiskCount', false, badgeColor: AdminColors.errorContainer, badgeTextColor: AdminColors.onErrorContainer),
+          _mobileFilterChip(
+            'At Risk',
+            '$_atRiskCount',
+            false,
+            badgeColor: AdminColors.errorContainer,
+            badgeTextColor: AdminColors.onErrorContainer,
+          ),
         ],
       ),
     );
   }
 
-  Widget _mobileFilterChip(String label, String count, bool active, {Color? badgeColor, Color? badgeTextColor}) {
+  Widget _mobileFilterChip(
+    String label,
+    String count,
+    bool active, {
+    Color? badgeColor,
+    Color? badgeTextColor,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(color: active ? AdminColors.secondary : AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)]),
+      decoration: BoxDecoration(
+        color: active
+            ? AdminColors.secondary
+            : AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
+      ),
       alignment: Alignment.center,
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text(label, style: AdminTypography.labelMd(color: active ? AdminColors.onSecondary : AdminColors.onSurfaceVariant)),
-        const SizedBox(width: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          decoration: BoxDecoration(color: active ? Colors.white.withValues(alpha: 0.2) : (badgeColor ?? AdminColors.surfaceContainer), borderRadius: BorderRadius.circular(8)),
-          child: Text(count, style: AdminTypography.labelSm(color: active ? AdminColors.onSecondary : (badgeTextColor ?? AdminColors.onSurfaceVariant)).copyWith(fontWeight: FontWeight.w700)),
-        ),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: AdminTypography.labelMd(
+              color: active
+                  ? AdminColors.onSecondary
+                  : AdminColors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: active
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : (badgeColor ?? AdminColors.surfaceContainer),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              count,
+              style: AdminTypography.labelSm(
+                color: active
+                    ? AdminColors.onSecondary
+                    : (badgeTextColor ?? AdminColors.onSurfaceVariant),
+              ).copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _mobileStudentCard(RosterStudent s) {
     final selected = _selected.contains(s.studentCode);
     final atRisk = _isAtRisk(s.riskStatus);
-    final gradeLabel = s.overallScore != null ? '${s.overallScore!.toStringAsFixed(0)}%' : '—';
+    final gradeLabel = s.overallScore != null
+        ? '${s.overallScore!.toStringAsFixed(0)}%'
+        : '—';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: atRisk ? AdminColors.errorContainer.withValues(alpha: 0.12) : AdminColors.surfaceContainerLowest,
+        color: atRisk
+            ? AdminColors.errorContainer.withValues(alpha: 0.12)
+            : AdminColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
@@ -839,7 +1447,11 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             children: [
               Checkbox(
                 value: selected,
-                onChanged: (v) => setState(() => v == true ? _selected.add(s.studentCode) : _selected.remove(s.studentCode)),
+                onChanged: (v) => setState(
+                  () => v == true
+                      ? _selected.add(s.studentCode)
+                      : _selected.remove(s.studentCode),
+                ),
                 activeColor: AdminColors.primaryContainer,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -848,8 +1460,15 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                 width: 40,
                 height: 40,
                 margin: const EdgeInsets.only(top: 4),
-                decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-                child: const Icon(Icons.person, color: AdminColors.primary, size: 20),
+                decoration: const BoxDecoration(
+                  color: AdminColors.surfaceContainerHigh,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: AdminColors.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -858,66 +1477,136 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                   children: [
                     Text(s.name, style: AdminTypography.headlineSm()),
                     const SizedBox(height: 2),
-                    Row(children: [
-                      Flexible(
-                        child: Text(s.studentCode, style: AdminTypography.labelSm()),
-                      ),
-                      const SizedBox(width: 6),
-                      Text('•', style: AdminTypography.bodySm()),
-                      const SizedBox(width: 6),
-                      Expanded(flex: 2, child: Text(s.email, style: AdminTypography.bodySm())),
-                    ]),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            s.studentCode,
+                            style: AdminTypography.labelSm(),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text('•', style: AdminTypography.bodySm()),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          flex: 2,
+                          child: Text(s.email, style: AdminTypography.bodySm()),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 4),
-                    Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(6)),
-                        child: Text(s.sponsorship, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-                      ),
-                      Text(_formatDate(s.enrolledAt), style: AdminTypography.bodySm(color: AdminColors.outline)),
-                    ]),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AdminColors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            s.sponsorship,
+                            style: AdminTypography.labelSm(
+                              color: AdminColors.secondary,
+                            ).copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        Text(
+                          _formatDate(s.enrolledAt),
+                          style: AdminTypography.bodySm(
+                            color: AdminColors.outline,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(gradeLabel, style: AdminTypography.headlineSm(color: atRisk ? AdminColors.error : AdminColors.primary)),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: atRisk ? AdminColors.errorContainer : AdminColors.tertiaryFixed, borderRadius: BorderRadius.circular(8)),
-                  child: Text(
-                    _riskLabel(s.riskStatus),
-                    style: AdminTypography.labelSm(color: atRisk ? AdminColors.onErrorContainer : AdminColors.onTertiaryFixedVariant).copyWith(fontWeight: FontWeight.w700),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    gradeLabel,
+                    style: AdminTypography.headlineSm(
+                      color: atRisk ? AdminColors.error : AdminColors.primary,
+                    ),
                   ),
-                ),
-              ]),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: atRisk
+                          ? AdminColors.errorContainer
+                          : AdminColors.tertiaryFixed,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _riskLabel(s.riskStatus),
+                      style: AdminTypography.labelSm(
+                        color: atRisk
+                            ? AdminColors.onErrorContainer
+                            : AdminColors.onTertiaryFixedVariant,
+                      ).copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 12),
           if (atRisk) _mobileAtRiskPanel(s) else _mobileBreakdownPanel(s),
           const SizedBox(height: 8),
           if (atRisk)
-            Row(children: [
-              const Icon(Icons.notification_important, size: 16, color: AdminColors.error),
-              const SizedBox(width: 6),
-              Expanded(child: Text('Academic Warning — Intervention Suggested', style: AdminTypography.labelSm(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700))),
-            ])
+            Row(
+              children: [
+                const Icon(
+                  Icons.notification_important,
+                  size: 16,
+                  color: AdminColors.error,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Academic Warning — Intervention Suggested',
+                    style: AdminTypography.labelSm(color: AdminColors.error)
+                        .copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            )
           else
-            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-              TextButton.icon(
-                onPressed: _notAvailable,
-                icon: const Icon(Icons.visibility, size: 16),
-                label: const Text('Transcript', textAlign: TextAlign.center),
-                style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, padding: const EdgeInsets.symmetric(horizontal: 8)),
-              ),
-              TextButton.icon(
-                onPressed: _notAvailable,
-                icon: const Icon(Icons.mail, size: 16),
-                label: const Text('Message', textAlign: TextAlign.center),
-                style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer, padding: const EdgeInsets.symmetric(horizontal: 8)),
-              ),
-            ]),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: _notAvailable,
+                  icon: const Icon(Icons.visibility, size: 16),
+                  label: const Text('Transcript', textAlign: TextAlign.center),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AdminColors.primaryContainer,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _notAvailable,
+                  icon: const Icon(Icons.mail, size: 16),
+                  label: const Text('Message', textAlign: TextAlign.center),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AdminColors.primaryContainer,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -926,30 +1615,59 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   Widget _mobileBreakdownPanel(RosterStudent s) {
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-      child: Column(children: [
-        _mobileProgressRow('Course Progress (${s.progressPercentage}%)', s.progressPercentage),
-        const SizedBox(height: 8),
-        _mobileProgressRow('Attendance (${s.attendancePercentage}%)', s.attendancePercentage),
-      ]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          _mobileProgressRow(
+            'Course Progress (${s.progressPercentage}%)',
+            s.progressPercentage,
+          ),
+          const SizedBox(height: 8),
+          _mobileProgressRow(
+            'Attendance (${s.attendancePercentage}%)',
+            s.attendancePercentage,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _mobileAtRiskPanel(RosterStudent s) {
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-      child: Column(children: [
-        _mobileProgressRow('Course Progress (${s.progressPercentage}%)', s.progressPercentage),
-        const SizedBox(height: 8),
-        _mobileProgressRow('Attendance (${s.attendancePercentage}%)', s.attendancePercentage),
-        const SizedBox(height: 8),
-        Row(children: [
-          const Icon(Icons.warning, size: 14, color: AdminColors.error),
-          const SizedBox(width: 4),
-          Expanded(child: Text('Below passing threshold', style: AdminTypography.labelSm(color: AdminColors.error))),
-        ]),
-      ]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          _mobileProgressRow(
+            'Course Progress (${s.progressPercentage}%)',
+            s.progressPercentage,
+          ),
+          const SizedBox(height: 8),
+          _mobileProgressRow(
+            'Attendance (${s.attendancePercentage}%)',
+            s.attendancePercentage,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.warning, size: 14, color: AdminColors.error),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'Below passing threshold',
+                  style: AdminTypography.labelSm(color: AdminColors.error),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -958,11 +1676,22 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: AdminTypography.labelSm(color: AdminColors.onSurface)
+              .copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(9999),
-          child: LinearProgressIndicator(value: pct / 100, minHeight: 5, backgroundColor: AdminColors.surfaceContainerHighest, valueColor: AlwaysStoppedAnimation<Color>(good ? AdminColors.secondary : AdminColors.error)),
+          child: LinearProgressIndicator(
+            value: pct / 100,
+            minHeight: 5,
+            backgroundColor: AdminColors.surfaceContainerHighest,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              good ? AdminColors.secondary : AdminColors.error,
+            ),
+          ),
         ),
       ],
     );

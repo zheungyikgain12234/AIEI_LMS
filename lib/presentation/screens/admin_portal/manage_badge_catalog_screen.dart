@@ -8,8 +8,11 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_badge_catalog_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_award.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
+
 import 'widgets/admin_row_action.dart';
+
 import 'package:stitch_aiei_lms/core/theme/ui_contrast.dart';
+
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_searchable_dropdown.dart';
@@ -27,14 +30,18 @@ class ManageBadgeCatalogScreen extends StatefulWidget {
   const ManageBadgeCatalogScreen({super.key});
 
   @override
-  State<ManageBadgeCatalogScreen> createState() => _ManageBadgeCatalogScreenState();
+  State<ManageBadgeCatalogScreen> createState() =>
+      _ManageBadgeCatalogScreenState();
 }
 
-class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> with RefreshOnReturn<ManageBadgeCatalogScreen> {
+class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen>
+    with RefreshOnReturn<ManageBadgeCatalogScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseAdminBadgeCatalogRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminBadgeCatalogRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   List<BadgeCatalogItem> _badges = [];
   final Set<String> _selected = {};
@@ -45,7 +52,10 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -68,10 +78,17 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
 
   List<BadgeCatalogItem> get _filtered {
     if (_query.isEmpty) return _badges;
-    return _badges.where((b) => b.code.toLowerCase().contains(_query) || b.title.toLowerCase().contains(_query)).toList();
+    return _badges
+        .where(
+          (b) =>
+              b.code.toLowerCase().contains(_query) ||
+              b.title.toLowerCase().contains(_query),
+        )
+        .toList();
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageBadgeCatalog, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageBadgeCatalog, dest);
 
   Future<void> _openAdd() async {
     final saved = await showDialog<BadgeCatalogItem>(
@@ -95,10 +112,16 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
     final ids = _selected.toList();
     final awards = await _repository.getAwardsForBadges(ids);
     if (!mounted) return;
-    final replacements = _badges.where((b) => !_selected.contains(b.id)).toList();
+    final replacements = _badges
+        .where((b) => !_selected.contains(b.id))
+        .toList();
     final reassignments = await showDialog<Map<String, String>>(
       context: context,
-      builder: (ctx) => _DeleteBadgesDialog(badgeCount: ids.length, awards: awards, replacements: replacements),
+      builder: (ctx) => _DeleteBadgesDialog(
+        badgeCount: ids.length,
+        awards: awards,
+        replacements: replacements,
+      ),
     );
     if (reassignments == null || !mounted) return;
     if (awards.isNotEmpty) {
@@ -115,11 +138,17 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             'This cannot be undone.',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Back', textAlign: TextAlign.center)),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Back', textAlign: TextAlign.center),
+            ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-              child: const Text('Confirm & delete', textAlign: TextAlign.center),
+              child: const Text(
+                'Confirm & delete',
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),
@@ -129,7 +158,10 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
     await _repository.deleteBadges(ids, reassignments: reassignments);
     if (!mounted) return;
     setState(_selected.clear);
-    showSuccessSnackBar(context, '${ids.length} badge${ids.length == 1 ? '' : 's'} deleted');
+    showSuccessSnackBar(
+      context,
+      '${ids.length} badge${ids.length == 1 ? '' : 's'} deleted',
+    );
     await _load();
   }
 
@@ -137,7 +169,13 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageBadgeCatalog, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageBadgeCatalog,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
@@ -170,11 +208,17 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Manage Badges', style: AdminTypography.headlineLg(color: UiContrast.text)),
+            Text(
+              'Manage Badges',
+              style: AdminTypography.headlineLg(color: UiContrast.text),
+            ),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('Badges are rewards students earn when they complete a course. Create the badges here, then choose which badges each course gives out.', style: AdminTypography.bodyMd(color: UiContrast.textSecondary)),
+              child: Text(
+                'Badges are rewards students earn when they complete a course. Create the badges here, then choose which badges each course gives out.',
+                style: AdminTypography.bodyMd(color: UiContrast.textSecondary),
+              ),
             ),
           ],
         ),
@@ -187,7 +231,9 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
       ],
@@ -197,7 +243,12 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
   Widget _buildListCard() {
     final badges = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), border: Border.all(color: UiContrast.divider), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: UiContrast.divider),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -209,7 +260,11 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
               style: AdminTypography.bodyMd(color: UiContrast.text),
               decoration: UiContrast.fieldDecoration(
                 hint: 'Search badge by code or name...',
-                prefixIcon: const Icon(Icons.search, size: 20, color: UiContrast.textSecondary),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 20,
+                  color: UiContrast.textSecondary,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -218,14 +273,21 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: UiContrast.selectedRow, borderRadius: BorderRadius.circular(12), border: Border.all(color: UiContrast.divider)),
+              decoration: BoxDecoration(
+                color: UiContrast.selectedRow,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: UiContrast.divider),
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
+                  adminSelectionSummary(
+                    count: _selected.length,
+                    onDeselectAll: () => setState(_selected.clear),
+                  ),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -234,15 +296,26 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
                       foregroundColor: AdminColors.onErrorContainer,
                       backgroundColor: AdminColors.errorContainer,
                       side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           if (badges.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            )
           else
             Column(children: [for (final b in badges) _row(b)]),
         ],
@@ -263,7 +336,9 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(b.id) : _selected.remove(b.id)),
+            onChanged: (v) => setState(
+              () => v == true ? _selected.add(b.id) : _selected.remove(b.id),
+            ),
             activeColor: AdminColors.primaryContainer,
             side: const BorderSide(color: UiContrast.border, width: 2),
           ),
@@ -271,9 +346,17 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(b.title, style: AdminTypography.titleMd(color: UiContrast.text)),
+                Text(
+                  b.title,
+                  style: AdminTypography.titleMd(color: UiContrast.text),
+                ),
                 const SizedBox(height: 2),
-                Text('${b.code} • ${b.issuingBody}', style: AdminTypography.bodySm(color: UiContrast.textSecondary)),
+                Text(
+                  '${b.code} • ${b.issuingBody}',
+                  style: AdminTypography.bodySm(
+                    color: UiContrast.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -285,7 +368,11 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
                 onPressed: () => _openEdit(b),
                 tooltip: 'Edit',
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.edit_outlined, size: 20, color: UiContrast.text),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 20,
+                  color: UiContrast.text,
+                ),
               ),
             ),
           ),
@@ -306,7 +393,11 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [_buildTopBar(), const SizedBox(height: 16), _buildListCard()],
+            children: [
+              _buildTopBar(),
+              const SizedBox(height: 16),
+              _buildListCard(),
+            ],
           ),
         ),
       ),
@@ -318,7 +409,11 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
 // each needs its own decision: move to another badge, or delete the award.
 // Pops a map of award id -> new badge id (awards left out are deleted).
 class _DeleteBadgesDialog extends StatefulWidget {
-  const _DeleteBadgesDialog({required this.badgeCount, required this.awards, required this.replacements});
+  const _DeleteBadgesDialog({
+    required this.badgeCount,
+    required this.awards,
+    required this.replacements,
+  });
 
   final int badgeCount;
   final List<BadgeAward> awards;
@@ -348,13 +443,21 @@ class _DeleteBadgesDialogState extends State<_DeleteBadgesDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(awards.isEmpty
-                  ? 'This will permanently delete ${widget.badgeCount} $noun from the catalogue. Courses that give out this $noun will simply stop giving it out — the courses themselves are not deleted. This cannot be undone.'
-                  : '${awards.length} award${awards.length == 1 ? ' is' : 's are'} still linked to the selected $noun. Choose what happens to each one. Courses that give out the $noun will stop giving it out — the courses themselves are not deleted.'),
+              Text(
+                awards.isEmpty
+                    ? 'This will permanently delete ${widget.badgeCount} $noun from the catalogue. Courses that give out this $noun will simply stop giving it out — the courses themselves are not deleted. This cannot be undone.'
+                    : '${awards.length} award${awards.length == 1 ? ' is' : 's are'} still linked to the selected $noun. Choose what happens to each one. Courses that give out the $noun will stop giving it out — the courses themselves are not deleted.',
+              ),
               for (final a in awards) ...[
                 const SizedBox(height: 12),
-                Text('${a.studentName} • ${a.courseCode}', style: AdminTypography.titleSm()),
-                Text('Currently: ${a.badgeCode} ${a.badgeTitle}', style: AdminTypography.labelSm()),
+                Text(
+                  '${a.studentName} • ${a.courseCode}',
+                  style: AdminTypography.titleSm(),
+                ),
+                Text(
+                  'Currently: ${a.badgeCode} ${a.badgeTitle}',
+                  style: AdminTypography.labelSm(),
+                ),
                 const SizedBox(height: 4),
                 AdminSearchableDropdown(
                   key: ValueKey(a.id),
@@ -363,7 +466,8 @@ class _DeleteBadgesDialogState extends State<_DeleteBadgesDialog> {
                   filled: false,
                   options: [
                     (_deleteAward, 'Delete this award'),
-                    for (final b in widget.replacements) (b.id, 'Reassign to ${b.code} • ${b.title}'),
+                    for (final b in widget.replacements)
+                      (b.id, 'Reassign to ${b.code} • ${b.title}'),
                   ],
                   onChanged: (v) => setState(() => _choices[a.id] = v!),
                 ),
@@ -373,16 +477,22 @@ class _DeleteBadgesDialogState extends State<_DeleteBadgesDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel', textAlign: TextAlign.center)),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel', textAlign: TextAlign.center),
+        ),
         FilledButton(
           onPressed: undecided == 0
               ? () => Navigator.of(context).pop({
-                    for (final e in _choices.entries)
-                      if (e.value != _deleteAward) e.key: e.value,
-                  })
+                  for (final e in _choices.entries)
+                    if (e.value != _deleteAward) e.key: e.value,
+                })
               : null,
           style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-          child: Text(undecided == 0 ? 'Delete $noun' : '$undecided left to decide', textAlign: TextAlign.center),
+          child: Text(
+            undecided == 0 ? 'Delete $noun' : '$undecided left to decide',
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     );

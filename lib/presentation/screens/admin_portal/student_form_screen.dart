@@ -2,7 +2,9 @@ import 'package:stitch_aiei_lms/core/utils/date_format.dart';
 import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
+
 import 'widgets/admin_fixed_code.dart';
+
 import 'package:stitch_aiei_lms/core/utils/input_formatters.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +18,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_programme_track_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/student.dart';
+
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
@@ -46,8 +49,12 @@ class StudentFormScreen extends ConsumerStatefulWidget {
 }
 
 class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
-  final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
-  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminStudentsRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(
+    Supabase.instance.client,
+  );
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
@@ -72,7 +79,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
-  String? get _codeConflict => _errorMessage == codeConflictMessage ? _errorMessage : null;
+  String? get _codeConflict =>
+      _errorMessage == codeConflictMessage ? _errorMessage : null;
 
   /// Every code is stored tenant-prefixed (`TN01-EMP-88219`) to keep it
   /// unique across tenants, but the admin only ever types/sees the suffix.
@@ -95,8 +103,13 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       final departments = await _masterDataRepository.getDepartments();
       final programTracks = await _masterDataRepository.getProgramTracks();
       final roles = await _masterDataRepository.getRoles();
-      final programmes = await SupabaseProgrammesRepositoryImpl(Supabase.instance.client).getProgrammes();
-      final tracksByProgramme = await SupabaseProgrammeTrackMappingRepositoryImpl(Supabase.instance.client).getTrackNamesByProgrammeName();
+      final programmes = await SupabaseProgrammesRepositoryImpl(
+        Supabase.instance.client,
+      ).getProgrammes();
+      final tracksByProgramme =
+          await SupabaseProgrammeTrackMappingRepositoryImpl(
+            Supabase.instance.client,
+          ).getTrackNamesByProgrammeName();
       Student? student;
       if (widget.isEditing) {
         student = await _repository.getStudentById(widget.studentId!);
@@ -114,9 +127,15 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           _emailController.text = student.email;
           _titleController.text = student.title ?? '';
           _studentType = student.studentType;
-          _selectedDepartment = _departments.contains(student.department) ? student.department : null;
-          _selectedProgramTrack = _programTracks.contains(student.programTrack) ? student.programTrack : null;
-          _selectedProgramme = _programmes.contains(student.programme) ? student.programme : null;
+          _selectedDepartment = _departments.contains(student.department)
+              ? student.department
+              : null;
+          _selectedProgramTrack = _programTracks.contains(student.programTrack)
+              ? student.programTrack
+              : null;
+          _selectedProgramme = _programmes.contains(student.programme)
+              ? student.programme
+              : null;
           _selectedRole = _roles.contains(student.role) ? student.role : null;
           _registrationDate = student.registrationDate;
         }
@@ -155,7 +174,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         saved = await _repository.updateStudent(
           widget.studentId!,
           name: _nameController.text.trim(),
-          studentCode: '${_tenantPrefix()}${_studentCodeController.text.trim().toUpperCase()}',
+          studentCode:
+              '${_tenantPrefix()}${_studentCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           studentType: _studentType,
           department: isInternal ? _selectedDepartment : null,
@@ -168,7 +188,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       } else {
         saved = await _repository.createStudent(
           name: _nameController.text.trim(),
-          studentCode: '${_tenantPrefix()}${_studentCodeController.text.trim().toUpperCase()}',
+          studentCode:
+              '${_tenantPrefix()}${_studentCodeController.text.trim().toUpperCase()}',
           email: _emailController.text.trim(),
           studentType: _studentType,
           department: isInternal ? _selectedDepartment : null,
@@ -180,7 +201,10 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         );
       }
       if (!mounted) return;
-      showSuccessSnackBar(context, widget.isEditing ? 'Student updated.' : 'Student created.');
+      showSuccessSnackBar(
+        context,
+        widget.isEditing ? 'Student updated.' : 'Student created.',
+      );
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;
@@ -203,149 +227,221 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         foregroundColor: AdminColors.onSurface,
         title: Text(title, style: AdminTypography.headlineSm()),
       ),
-      body: _isLoading
-          ? const SkeletonBody()
-          : Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AdminColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            widget.isEditing
-                                ? 'Update this learner\'s registry information.'
-                                : 'Add a new student.',
-                            style: AdminTypography.bodyMd(),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AdminColors.errorContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(_errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+      body: SafeArea(
+        top: false,
+        child: _isLoading
+            ? const SkeletonBody()
+            : Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AdminColors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x0D000000), blurRadius: 6),
+                        ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              widget.isEditing
+                                  ? 'Update this learner\'s registry information.'
+                                  : 'Add a new student.',
+                              style: AdminTypography.bodyMd(),
                             ),
-                            const SizedBox(height: 16),
-                          ],
-                          if (widget.isEditing)
-                            AdminFixedCode(label: 'Student Code', value: _studentCodeController.text.trim().toUpperCase()),
-                          _field(controller: _nameController, label: 'Full Name', hint: 'Alex Chen'),
-                          const SizedBox(height: 14),
-                          if (!widget.isEditing) ...[
-                            _field(controller: _studentCodeController, label: 'Student Code', hint: 'EMP-88219', inputFormatters: const [UpperCaseTextFormatter()]),
-                            AdminFieldError(_codeConflict),
-                            const SizedBox(height: 14),
-                          ],
-                          _studentTypeToggle(),
-                          const SizedBox(height: 14),
-                          _field(controller: _emailController, label: 'Email', hint: 'alex.chen@enterprise.com', keyboardType: TextInputType.emailAddress),
-                          const SizedBox(height: 14),
-                          if (_studentType == StudentType.internal) ...[
-                            _field(controller: _titleController, label: 'Title (optional)', hint: 'Product Analyst • Operations', required: false),
-                            const SizedBox(height: 14),
-                          ],
-                          if (_studentType == StudentType.external) ...[
-                            // Public students belong to a programme, then a track
-                            // within it (Programme ↔ Track Mapping).
-                            _dropdown(
-                              label: 'Programme',
-                              hint: 'Select a programme',
-                              value: _selectedProgramme,
-                              options: _programmes,
-                              onChanged: (v) => setState(() {
-                                if (v != _selectedProgramme) _selectedProgramTrack = null;
-                                _selectedProgramme = v;
-                              }),
-                            ),
-                            const SizedBox(height: 14),
-                            _dropdown(
-                              label: 'Track',
-                              hint: _selectedProgramme == null ? 'Select a programme first' : 'Select a track',
-                              value: _selectedProgramTrack,
-                              options: [for (final t in _programTracks) if (_tracksByProgramme[_selectedProgramme]?.contains(t) ?? false) t],
-                              onChanged: (v) => setState(() => _selectedProgramTrack = v),
-                            ),
-                          ] else ...[
-                            _dropdown(
-                              label: 'Role',
-                              hint: 'Select a role',
-                              value: _selectedRole,
-                              options: _roles,
-                              onChanged: (v) => setState(() => _selectedRole = v),
-                            ),
-                            const SizedBox(height: 14),
-                            _dropdown(
-                              label: 'Department',
-                              hint: 'Select a department',
-                              value: _selectedDepartment,
-                              options: _departments,
-                              onChanged: (v) => setState(() => _selectedDepartment = v),
-                            ),
-                          ],
-                          const SizedBox(height: 14),
-                          _datePicker(
-                            label: 'Registration Date',
-                            value: _registrationDate,
-                            onChanged: (v) => setState(() => _registrationDate = v),
-                          ),
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: AdminColors.primaryContainer,
-                                    side: BorderSide.none,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            const SizedBox(height: 20),
+                            if (_errorMessage != null &&
+                                !isFieldConflictMessage(_errorMessage!)) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AdminColors.errorContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _errorMessage!,
+                                  style: AdminTypography.bodySm(
+                                    color: AdminColors.onErrorContainer,
                                   ),
-                                  child: const Text('Cancel', textAlign: TextAlign.center),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _isSaving ? null : _save,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AdminColors.primaryContainer,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: _isSaving
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                        )
-                                      : Text(widget.isEditing ? 'Save Changes' : 'Register Student'),
-                                ),
+                              const SizedBox(height: 16),
+                            ],
+                            if (widget.isEditing)
+                              AdminFixedCode(
+                                label: 'Student Code',
+                                value: _studentCodeController.text
+                                    .trim()
+                                    .toUpperCase(),
+                              ),
+                            _field(
+                              controller: _nameController,
+                              label: 'Full Name',
+                              hint: 'Alex Chen',
+                            ),
+                            const SizedBox(height: 14),
+                            if (!widget.isEditing) ...[
+                              _field(
+                                controller: _studentCodeController,
+                                label: 'Student Code',
+                                hint: 'EMP-88219',
+                                inputFormatters: const [
+                                  UpperCaseTextFormatter(),
+                                ],
+                              ),
+                              AdminFieldError(_codeConflict),
+                              const SizedBox(height: 14),
+                            ],
+                            _studentTypeToggle(),
+                            const SizedBox(height: 14),
+                            _field(
+                              controller: _emailController,
+                              label: 'Email',
+                              hint: 'alex.chen@enterprise.com',
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: 14),
+                            if (_studentType == StudentType.internal) ...[
+                              _field(
+                                controller: _titleController,
+                                label: 'Title (optional)',
+                                hint: 'Product Analyst • Operations',
+                                required: false,
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+                            if (_studentType == StudentType.external) ...[
+                              // Public students belong to a programme, then a track
+                              // within it (Programme ↔ Track Mapping).
+                              _dropdown(
+                                label: 'Programme',
+                                hint: 'Select a programme',
+                                value: _selectedProgramme,
+                                options: _programmes,
+                                onChanged: (v) => setState(() {
+                                  if (v != _selectedProgramme)
+                                    _selectedProgramTrack = null;
+                                  _selectedProgramme = v;
+                                }),
+                              ),
+                              const SizedBox(height: 14),
+                              _dropdown(
+                                label: 'Track',
+                                hint: _selectedProgramme == null
+                                    ? 'Select a programme first'
+                                    : 'Select a track',
+                                value: _selectedProgramTrack,
+                                options: [
+                                  for (final t in _programTracks)
+                                    if (_tracksByProgramme[_selectedProgramme]
+                                            ?.contains(t) ??
+                                        false)
+                                      t,
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => _selectedProgramTrack = v),
+                              ),
+                            ] else ...[
+                              _dropdown(
+                                label: 'Role',
+                                hint: 'Select a role',
+                                value: _selectedRole,
+                                options: _roles,
+                                onChanged: (v) =>
+                                    setState(() => _selectedRole = v),
+                              ),
+                              const SizedBox(height: 14),
+                              _dropdown(
+                                label: 'Department',
+                                hint: 'Select a department',
+                                value: _selectedDepartment,
+                                options: _departments,
+                                onChanged: (v) =>
+                                    setState(() => _selectedDepartment = v),
                               ),
                             ],
-                          ),
-                        ],
+                            const SizedBox(height: 14),
+                            _datePicker(
+                              label: 'Registration Date',
+                              value: _registrationDate,
+                              onChanged: (v) =>
+                                  setState(() => _registrationDate = v),
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: _isSaving
+                                        ? null
+                                        : () => Navigator.of(context).pop(),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor:
+                                          AdminColors.primaryContainer,
+                                      side: BorderSide.none,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Cancel',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _isSaving ? null : _save,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          AdminColors.primaryContainer,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: _isSaving
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            widget.isEditing
+                                                ? 'Save Changes'
+                                                : 'Register Student',
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -376,10 +472,21 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
             isDense: true,
             hintText: hint,
             prefixText: prefixText,
-            prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            prefixStyle: AdminTypography.bodyMd(
+              color: AdminColors.onSurfaceVariant,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
-          validator: validator ?? (required ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null : null),
+          validator:
+              validator ??
+              (required
+                  ? (value) => (value == null || value.trim().isEmpty)
+                        ? '$label is required'
+                        : null
+                  : null),
         ),
       ],
     );
@@ -432,12 +539,25 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
-          hint: Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline)),
-          items: [for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis))],
+          hint: Text(
+            hint,
+            style: AdminTypography.bodySm(color: AdminColors.outline),
+          ),
+          items: [
+            for (final o in options)
+              DropdownMenuItem(
+                value: o,
+                child: Text(o, overflow: TextOverflow.ellipsis),
+              ),
+          ],
           onChanged: onChanged,
-          validator: (v) => v == null || v.isEmpty ? '$label is required' : null,
+          validator: (v) =>
+              v == null || v.isEmpty ? '$label is required' : null,
         ),
       ],
     );
@@ -473,13 +593,24 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
             child: InputDecorator(
               decoration: InputDecoration(
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
                 errorText: state.errorText,
-                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: AdminColors.onSurfaceVariant),
+                suffixIcon: const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
               ),
               child: Text(
                 value == null ? 'Select a date' : formatDate(value),
-                style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+                style: AdminTypography.bodyMd(
+                  color: value == null
+                      ? AdminColors.outline
+                      : AdminColors.onSurface,
+                ),
               ),
             ),
           ),

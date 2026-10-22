@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'admin_sidebar.dart';
 import 'admin_mobile_bottom_nav.dart';
 import '../manage_lecturers_screen.dart';
@@ -32,7 +33,11 @@ import '../admin_settings_screen.dart';
 
 /// Centralized sidebar navigation for every Admin Portal screen — pushes the
 /// screen for [dest], or does nothing if it's already the [current] screen.
-void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavDestination dest) {
+void handleAdminNav(
+  BuildContext context,
+  AdminNavDestination current,
+  AdminNavDestination dest,
+) {
   if (dest == current) return;
   final Widget screen = switch (dest) {
     AdminNavDestination.manageLecturers => const ManageLecturersScreen(),
@@ -42,18 +47,24 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.manageClasses => const ManageClassesScreen(),
     AdminNavDestination.manageBadges => const ManageBadgesScreen(),
     AdminNavDestination.roleCourseMapping => const RoleCourseMappingScreen(),
-    AdminNavDestination.departmentCourseMapping => const DepartmentCourseMappingScreen(),
-    AdminNavDestination.programmeTrackMapping => const ProgrammeTrackMappingScreen(),
+    AdminNavDestination.departmentCourseMapping =>
+      const DepartmentCourseMappingScreen(),
+    AdminNavDestination.programmeTrackMapping =>
+      const ProgrammeTrackMappingScreen(),
     AdminNavDestination.trackCourseMapping => const TrackCourseMappingScreen(),
     AdminNavDestination.badgeCourseMapping => const BadgeCourseMappingScreen(),
-    AdminNavDestination.specializationCourseMapping => const SpecializationCourseMappingScreen(),
+    AdminNavDestination.specializationCourseMapping =>
+      const SpecializationCourseMappingScreen(),
     AdminNavDestination.courseEnrollment => const CourseEnrollmentScreen(),
     AdminNavDestination.manageDepartments => const ManageDepartmentsScreen(),
     AdminNavDestination.manageProgrammes => const ManageProgrammesScreen(),
-    AdminNavDestination.manageProgramTracks => const ManageProgramTracksScreen(),
+    AdminNavDestination.manageProgramTracks =>
+      const ManageProgramTracksScreen(),
     AdminNavDestination.manageSemesters => const ManageSemestersScreen(),
-    AdminNavDestination.manageLecturerDepartments => const ManageLecturerDepartmentsScreen(),
-    AdminNavDestination.manageSpecializations => const ManageSpecializationsScreen(),
+    AdminNavDestination.manageLecturerDepartments =>
+      const ManageLecturerDepartmentsScreen(),
+    AdminNavDestination.manageSpecializations =>
+      const ManageSpecializationsScreen(),
     AdminNavDestination.manageRoles => const ManageRolesScreen(),
     AdminNavDestination.manageBadgeCatalog => const ManageBadgeCatalogScreen(),
     AdminNavDestination.manageCourseTags => const ManageCourseTagsScreen(),
@@ -70,7 +81,11 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
 /// Root mobile bottom-nav tap handling — pushes the screen for [tab], or
 /// does nothing if it's already the [current] screen. Mirrors
 /// [handleAdminNav] but for the 3-tab [AdminMobileBottomNav].
-void handleAdminMobileTab(BuildContext context, AdminMobileTab current, AdminMobileTab tab) {
+void handleAdminMobileTab(
+  BuildContext context,
+  AdminMobileTab current,
+  AdminMobileTab tab,
+) {
   if (tab == current) return;
   final Widget screen = switch (tab) {
     AdminMobileTab.lecturers => const ManageLecturersScreen(),

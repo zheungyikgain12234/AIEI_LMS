@@ -10,7 +10,10 @@ class ModuleNamesController extends ChangeNotifier {
   List<TextEditingController> get rows => List.unmodifiable(_rows);
 
   /// Trimmed, non-blank module names in order.
-  List<String> get names => [for (final c in _rows) if (c.text.trim().isNotEmpty) c.text.trim()];
+  List<String> get names => [
+    for (final c in _rows)
+      if (c.text.trim().isNotEmpty) c.text.trim(),
+  ];
 
   void add() {
     _rows.add(TextEditingController());
@@ -59,7 +62,11 @@ class ModuleNamesEditor extends StatelessWidget {
   final ModuleNamesController controller;
   final VoidCallback? onChanged;
 
-  const ModuleNamesEditor({super.key, required this.controller, this.onChanged});
+  const ModuleNamesEditor({
+    super.key,
+    required this.controller,
+    this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -75,16 +82,27 @@ class ModuleNamesEditor extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
-                    SizedBox(width: 28, child: Text('${i + 1}.', style: AdminTypography.labelSm())),
+                    SizedBox(
+                      width: 28,
+                      child: Text(
+                        '${i + 1}.',
+                        style: AdminTypography.labelSm(),
+                      ),
+                    ),
                     Expanded(
                       child: TextField(
                         controller: rows[i],
                         onChanged: (_) => onChanged?.call(),
-                        style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                        style: AdminTypography.bodyMd(
+                          color: AdminColors.onSurface,
+                        ),
                         decoration: InputDecoration(
                           isDense: true,
                           hintText: 'Module name',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
+                          ),
                         ),
                       ),
                     ),
@@ -93,7 +111,11 @@ class ModuleNamesEditor extends StatelessWidget {
                         controller.remove(i);
                         onChanged?.call();
                       },
-                      icon: const Icon(Icons.close, size: 18, color: AdminColors.onSurfaceVariant),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: AdminColors.onSurfaceVariant,
+                      ),
                       tooltip: 'Remove module',
                     ),
                   ],

@@ -9,6 +9,7 @@ import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
 import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
+
 import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/admin_row_action.dart';
@@ -29,14 +30,18 @@ class ManageModuleListsScreen extends StatefulWidget {
   const ManageModuleListsScreen({super.key});
 
   @override
-  State<ManageModuleListsScreen> createState() => _ManageModuleListsScreenState();
+  State<ManageModuleListsScreen> createState() =>
+      _ManageModuleListsScreenState();
 }
 
-class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with RefreshOnReturn<ManageModuleListsScreen> {
+class _ManageModuleListsScreenState extends State<ManageModuleListsScreen>
+    with RefreshOnReturn<ManageModuleListsScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _repository = SupabaseAdminModuleListsRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminModuleListsRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   List<ModuleList> _lists = [];
   final Set<String> _selected = {};
@@ -47,7 +52,10 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -70,10 +78,17 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
 
   List<ModuleList> get _filtered {
     if (_query.isEmpty) return _lists;
-    return _lists.where((l) => l.name.toLowerCase().contains(_query) || l.moduleNames.any((m) => m.toLowerCase().contains(_query))).toList();
+    return _lists
+        .where(
+          (l) =>
+              l.name.toLowerCase().contains(_query) ||
+              l.moduleNames.any((m) => m.toLowerCase().contains(_query)),
+        )
+        .toList();
   }
 
-  void _handleNav(AdminNavDestination dest) => handleAdminNav(context, AdminNavDestination.manageModuleLists, dest);
+  void _handleNav(AdminNavDestination dest) =>
+      handleAdminNav(context, AdminNavDestination.manageModuleLists, dest);
 
   Future<void> _openForm({ModuleList? list}) async {
     final nameController = TextEditingController(text: list?.name ?? '');
@@ -97,7 +112,9 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
                 autofocus: true,
                 onChanged: (_) => setDialogState(() => errorMessage = null),
                 style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-                decoration: adminFormDecoration(hint: 'e.g. Standard 4-Module Course'),
+                decoration: adminFormDecoration(
+                  hint: 'e.g. Standard 4-Module Course',
+                ),
               ),
               const SizedBox(height: 16),
               const AdminFieldLabel('Modules'),
@@ -125,7 +142,10 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
                 await _repository.updateModuleList(list.id, name, names);
               }
               if (!mounted) return;
-              showSuccessSnackBar(context, list == null ? 'Module list added.' : 'Module list updated.');
+              showSuccessSnackBar(
+                context,
+                list == null ? 'Module list added.' : 'Module list updated.',
+              );
               if (ctx.mounted) Navigator.of(ctx).pop(true);
             } catch (e) {
               setDialogState(() => errorMessage = friendlyErrorMessage(e));
@@ -145,9 +165,14 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete module lists?'),
-        content: Text('This will permanently delete $count module list${count == 1 ? '' : 's'}. Classes already created from them keep their modules. This cannot be undone.'),
+        content: Text(
+          'This will permanently delete $count module list${count == 1 ? '' : 's'}. Classes already created from them keep their modules. This cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', textAlign: TextAlign.center),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
@@ -168,7 +193,13 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageModuleLists, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageModuleLists,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
@@ -182,7 +213,14 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
           top: false,
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [_buildHeader(), const SizedBox(height: 16), _buildListCard()]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 16),
+                _buildListCard(),
+              ],
+            ),
           ),
         ),
       );
@@ -190,7 +228,14 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
     return AdminScaffold(
       selected: AdminNavDestination.manageModuleLists,
       onDestinationSelected: _handleNav,
-      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildHeader(), const SizedBox(height: 20), _buildListCard()]),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 20),
+          _buildListCard(),
+        ],
+      ),
     );
   }
 
@@ -206,7 +251,10 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
           children: [
             Text('Manage Module Lists', style: AdminTypography.headlineLg()),
             const SizedBox(height: 2),
-            Text('A module list is a ready-made set of modules (the chapters of a course). Import one when creating a class, so you don\'t have to type the modules again.', style: AdminTypography.bodyMd()),
+            Text(
+              'A module list is a ready-made set of modules (the chapters of a course). Import one when creating a class, so you don\'t have to type the modules again.',
+              style: AdminTypography.bodyMd(),
+            ),
           ],
         ),
         ElevatedButton.icon(
@@ -218,7 +266,9 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
       ],
@@ -228,7 +278,11 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
   Widget _buildListCard() {
     final lists = _filtered;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -241,7 +295,11 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Search module lists...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -250,14 +308,20 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  adminSelectionSummary(count: _selected.length, onDeselectAll: () => setState(_selected.clear)),
+                  adminSelectionSummary(
+                    count: _selected.length,
+                    onDeselectAll: () => setState(_selected.clear),
+                  ),
                   OutlinedButton.icon(
                     onPressed: _deleteSelected,
                     icon: const Icon(Icons.delete_outline, size: 16),
@@ -266,15 +330,26 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
                       foregroundColor: AdminColors.error,
                       backgroundColor: AdminColors.errorContainer,
                       side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           if (lists.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            )
           else
             Column(children: [for (final l in lists) _row(l)]),
         ],
@@ -286,21 +361,32 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
     final selected = _selected.contains(l.id);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(l.id) : _selected.remove(l.id)),
+            onChanged: (v) => setState(
+              () => v == true ? _selected.add(l.id) : _selected.remove(l.id),
+            ),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${l.name} (${l.moduleNames.length})', style: AdminTypography.bodyMd(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  '${l.name} (${l.moduleNames.length})',
+                  style: AdminTypography.bodyMd(color: AdminColors.onSurface)
+                      .copyWith(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 2),
-                Text(l.moduleNames.join(' • '), style: AdminTypography.bodySm()),
+                Text(
+                  l.moduleNames.join(' • '),
+                  style: AdminTypography.bodySm(),
+                ),
               ],
             ),
           ),

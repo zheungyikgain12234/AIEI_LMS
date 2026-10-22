@@ -1,7 +1,9 @@
 import 'package:stitch_aiei_lms/core/utils/refresh_on_return.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -25,6 +27,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_programme_track_mappi
 import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_delete.dart';
+
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_no_results.dart';
@@ -54,15 +57,24 @@ class ManageStudentsScreen extends StatefulWidget {
 
 enum _SortColumn { name, code, programme, department }
 
-class _ManageStudentsScreenState extends State<ManageStudentsScreen> with RefreshOnReturn<ManageStudentsScreen> {
+class _ManageStudentsScreenState extends State<ManageStudentsScreen>
+    with RefreshOnReturn<ManageStudentsScreen> {
   @override
   void onReturnedTo() => _load();
 
   final _client = Supabase.instance.client;
-  final _repository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
-  final _badgesRepository = SupabaseAdminBadgesRepositoryImpl(Supabase.instance.client);
-  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
-  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminStudentsRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _badgesRepository = SupabaseAdminBadgesRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(
+    Supabase.instance.client,
+  );
   bool _isLoading = true;
   String? _errorMessage;
   List<Student> _students = [];
@@ -94,12 +106,17 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   List<String> _departmentOptions = [];
   List<String> _roleOptions = [];
 
-  bool get _hasActiveFilters => _programmeFilter.isNotEmpty || _departmentFilter.isNotEmpty || _roleFilter.isNotEmpty;
+  bool get _hasActiveFilters =>
+      _programmeFilter.isNotEmpty ||
+      _departmentFilter.isNotEmpty ||
+      _roleFilter.isNotEmpty;
 
   List<Student> get _filteredStudents {
     return _students.where((s) {
-      if (_programmeFilter.isNotEmpty && _programmeOf(s) != _programmeFilter) return false;
-      if (_departmentFilter.isNotEmpty && s.department != _departmentFilter) return false;
+      if (_programmeFilter.isNotEmpty && _programmeOf(s) != _programmeFilter)
+        return false;
+      if (_departmentFilter.isNotEmpty && s.department != _departmentFilter)
+        return false;
       if (_roleFilter.isNotEmpty && s.role != _roleFilter) return false;
       if (_query.isEmpty) return true;
       return s.name.toLowerCase().contains(_query) ||
@@ -113,11 +130,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   }
 
   void _resetFilters() => setState(() {
-        _programmeFilter = '';
-        _departmentFilter = '';
-        _roleFilter = '';
-        _page = 1;
-      });
+    _programmeFilter = '';
+    _departmentFilter = '';
+    _roleFilter = '';
+    _page = 1;
+  });
 
   Widget _filterDropdown({
     required String label,
@@ -128,14 +145,24 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     return Container(
       constraints: const BoxConstraints(minWidth: 170, maxWidth: 240),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: SearchableDropdownButton<String>(
         isDense: true,
         value: value,
         style: AdminTypography.bodySm(color: AdminColors.onSurface),
         items: [
-          DropdownMenuItem(value: '', child: Text('All $label', overflow: TextOverflow.ellipsis)),
-          for (final o in options) DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis)),
+          DropdownMenuItem(
+            value: '',
+            child: Text('All $label', overflow: TextOverflow.ellipsis),
+          ),
+          for (final o in options)
+            DropdownMenuItem(
+              value: o,
+              child: Text(o, overflow: TextOverflow.ellipsis),
+            ),
         ],
         onChanged: (v) => setState(() {
           onChanged(v ?? '');
@@ -151,15 +178,32 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        _filterDropdown(label: 'Programmes', value: _programmeFilter, options: _programmeOptions, onChanged: (v) => _programmeFilter = v),
-        _filterDropdown(label: 'Departments', value: _departmentFilter, options: _departmentOptions, onChanged: (v) => _departmentFilter = v),
-        _filterDropdown(label: 'Roles', value: _roleFilter, options: _roleOptions, onChanged: (v) => _roleFilter = v),
+        _filterDropdown(
+          label: 'Programmes',
+          value: _programmeFilter,
+          options: _programmeOptions,
+          onChanged: (v) => _programmeFilter = v,
+        ),
+        _filterDropdown(
+          label: 'Departments',
+          value: _departmentFilter,
+          options: _departmentOptions,
+          onChanged: (v) => _departmentFilter = v,
+        ),
+        _filterDropdown(
+          label: 'Roles',
+          value: _roleFilter,
+          options: _roleOptions,
+          onChanged: (v) => _roleFilter = v,
+        ),
         if (_hasActiveFilters)
           TextButton.icon(
             onPressed: _resetFilters,
             icon: const Icon(Icons.restart_alt, size: 16),
             label: const Text('Reset', textAlign: TextAlign.center),
-            style: TextButton.styleFrom(foregroundColor: AdminColors.primaryContainer),
+            style: TextButton.styleFrom(
+              foregroundColor: AdminColors.primaryContainer,
+            ),
           ),
       ],
     );
@@ -173,11 +217,17 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         case _SortColumn.name:
           cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
         case _SortColumn.code:
-          cmp = a.studentCode.toLowerCase().compareTo(b.studentCode.toLowerCase());
+          cmp = a.studentCode.toLowerCase().compareTo(
+            b.studentCode.toLowerCase(),
+          );
         case _SortColumn.programme:
-          cmp = (_programmeOf(a) ?? '').toLowerCase().compareTo((_programmeOf(b) ?? '').toLowerCase());
+          cmp = (_programmeOf(a) ?? '').toLowerCase().compareTo(
+            (_programmeOf(b) ?? '').toLowerCase(),
+          );
         case _SortColumn.department:
-          cmp = (a.department ?? a.role ?? '').toLowerCase().compareTo((b.department ?? b.role ?? '').toLowerCase());
+          cmp = (a.department ?? a.role ?? '').toLowerCase().compareTo(
+            (b.department ?? b.role ?? '').toLowerCase(),
+          );
       }
       return _sortAscending ? cmp : -cmp;
     });
@@ -211,10 +261,19 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          Text(
+            label,
+            style: AdminTypography.labelSm(
+              color: active
+                  ? AdminColors.onSurface
+                  : AdminColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(width: 2),
           Icon(
-            active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
+            active && !_sortAscending
+                ? Icons.arrow_downward
+                : Icons.arrow_upward,
             size: 12,
             color: active ? AdminColors.onSurface : AdminColors.outline,
           ),
@@ -226,10 +285,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() {
-          _query = _searchController.text.trim().toLowerCase();
-          _page = 1;
-        }));
+    _searchController.addListener(
+      () => setState(() {
+        _query = _searchController.text.trim().toLowerCase();
+        _page = 1;
+      }),
+    );
     _load();
   }
 
@@ -249,12 +310,18 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       final students = await _repository.getStudents();
       final credentials = await _repository.getEarnedCredentialTitles();
       final trend = await _badgesRepository.getMonthlyIssueCounts();
-      final enrolledCourseIds = await _repository.getEnrolledCourseIdsByStudent();
+      final enrolledCourseIds = await _repository
+          .getEnrolledCourseIdsByStudent();
       final roles = await _masterDataRepository.getRoles();
       final programTracks = await _masterDataRepository.getProgramTracks();
       final departments = await _masterDataRepository.getDepartments();
-      final programmesByTrack = await SupabaseProgrammeTrackMappingRepositoryImpl(Supabase.instance.client).getProgrammeNamesByTrackName();
-      final programmes = await SupabaseProgrammesRepositoryImpl(Supabase.instance.client).getProgrammes();
+      final programmesByTrack =
+          await SupabaseProgrammeTrackMappingRepositoryImpl(
+            Supabase.instance.client,
+          ).getProgrammeNamesByTrackName();
+      final programmes = await SupabaseProgrammesRepositoryImpl(
+        Supabase.instance.client,
+      ).getProgrammes();
       final mismatches = await _computeCourseMismatches(
         students: students,
         enrolledCourseIds: enrolledCourseIds,
@@ -303,9 +370,15 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     required List<dynamic> programTracks,
     required List<dynamic> departments,
   }) async {
-    final roleIdByName = {for (final r in roles) r.name as String: r.id as String};
-    final trackIdByName = {for (final t in programTracks) t.name as String: t.id as String};
-    final departmentIdByName = {for (final d in departments) d.name as String: d.id as String};
+    final roleIdByName = {
+      for (final r in roles) r.name as String: r.id as String,
+    };
+    final trackIdByName = {
+      for (final t in programTracks) t.name as String: t.id as String,
+    };
+    final departmentIdByName = {
+      for (final d in departments) d.name as String: d.id as String,
+    };
 
     final neededTrackIds = <String>{};
     final neededRoleIds = <String>{};
@@ -325,28 +398,40 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
 
     final trackRows = neededTrackIds.isEmpty
         ? const <dynamic>[]
-        : await _client.from('track_courses').select('track_id, course_id').inFilter('track_id', neededTrackIds.toList());
+        : await _client
+              .from('track_courses')
+              .select('track_id, course_id')
+              .inFilter('track_id', neededTrackIds.toList());
     final roleRows = neededRoleIds.isEmpty
         ? const <dynamic>[]
-        : await _client.from('role_courses').select('role_id, course_id').inFilter('role_id', neededRoleIds.toList());
+        : await _client
+              .from('role_courses')
+              .select('role_id, course_id')
+              .inFilter('role_id', neededRoleIds.toList());
     final departmentRows = neededDepartmentIds.isEmpty
         ? const <dynamic>[]
         : await _client
-            .from('department_courses')
-            .select('department_id, course_id')
-            .inFilter('department_id', neededDepartmentIds.toList());
+              .from('department_courses')
+              .select('department_id, course_id')
+              .inFilter('department_id', neededDepartmentIds.toList());
 
     final courseIdsByTrackId = <String, Set<String>>{};
     for (final row in trackRows) {
-      courseIdsByTrackId.putIfAbsent(row['track_id'] as String, () => {}).add(row['course_id'] as String);
+      courseIdsByTrackId
+          .putIfAbsent(row['track_id'] as String, () => {})
+          .add(row['course_id'] as String);
     }
     final courseIdsByRoleId = <String, Set<String>>{};
     for (final row in roleRows) {
-      courseIdsByRoleId.putIfAbsent(row['role_id'] as String, () => {}).add(row['course_id'] as String);
+      courseIdsByRoleId
+          .putIfAbsent(row['role_id'] as String, () => {})
+          .add(row['course_id'] as String);
     }
     final courseIdsByDepartmentId = <String, Set<String>>{};
     for (final row in departmentRows) {
-      courseIdsByDepartmentId.putIfAbsent(row['department_id'] as String, () => {}).add(row['course_id'] as String);
+      courseIdsByDepartmentId
+          .putIfAbsent(row['department_id'] as String, () => {})
+          .add(row['course_id'] as String);
     }
 
     final mismatches = <String>{};
@@ -364,10 +449,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         if (roleId == null && departmentId == null) continue;
         allowed = {
           ...?roleId == null ? null : courseIdsByRoleId[roleId],
-          ...?departmentId == null ? null : courseIdsByDepartmentId[departmentId],
+          ...?departmentId == null
+              ? null
+              : courseIdsByDepartmentId[departmentId],
         };
       }
-      if (enrolled.any((courseId) => !allowed.contains(courseId))) mismatches.add(s.id);
+      if (enrolled.any((courseId) => !allowed.contains(courseId)))
+        mismatches.add(s.id);
     }
     return mismatches;
   }
@@ -384,16 +472,29 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
 
   /// A track under several programmes is filed under the first by name.
   String? _firstProgrammeOf(String track) {
-    final names = (_programmesByTrack[track] ?? const <String>{}).toList()..sort();
+    final names = (_programmesByTrack[track] ?? const <String>{}).toList()
+      ..sort();
     return names.isEmpty ? null : names.first;
   }
 
-  static const _csvColumns = ['name', 'studentCode', 'email', 'studentType', 'department', 'title', 'programTrack', 'role', 'registrationDate'];
+  static const _csvColumns = [
+    'name',
+    'studentCode',
+    'email',
+    'studentType',
+    'department',
+    'title',
+    'programTrack',
+    'role',
+    'registrationDate',
+  ];
 
   Future<void> _downloadCsvTemplate() async {
     final header = _csvColumns.join(',');
-    const staffExample = 'Jane Doe,EMP-90001,jane.doe@enterprise.com,Staff,Operations,Product Analyst,,Data Analyst,2025-01-15';
-    const publicExample = 'John Smith,EMP-90002,john.smith@enterprise.com,Public,,,AI Engineering Track,,2025-01-15';
+    const staffExample =
+        'Jane Doe,EMP-90001,jane.doe@enterprise.com,Staff,Operations,Product Analyst,,Data Analyst,2025-01-15';
+    const publicExample =
+        'John Smith,EMP-90002,john.smith@enterprise.com,Public,,,AI Engineering Track,,2025-01-15';
     const notes = [
       '# Lines starting with # are instructions and are ignored on import. You may delete them.',
       '# Required: name, studentCode, email, studentType, registrationDate.',
@@ -419,14 +520,17 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       );
       if (path == null) return;
       // On desktop, file_picker only returns the chosen path; it doesn't write the bytes.
-      if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-        await File(path.toLowerCase().endsWith('.csv') ? path : '$path.csv').writeAsBytes(bytes);
+      if (!kIsWeb &&
+          (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+        await File(path.toLowerCase().endsWith('.csv') ? path : '$path.csv')
+            .writeAsBytes(bytes);
       }
       if (!mounted) return;
       showSuccessSnackBar(context, 'Template saved.');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save template: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not save template: $e')));
     }
   }
 
@@ -454,7 +558,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         row.add(buffer.toString());
         buffer.clear();
       } else if (char == '\n' || char == '\r') {
-        if (char == '\r' && i + 1 < content.length && content[i + 1] == '\n') i++;
+        if (char == '\r' && i + 1 < content.length && content[i + 1] == '\n')
+          i++;
         row.add(buffer.toString());
         buffer.clear();
         rows.add(row);
@@ -471,15 +576,22 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   }
 
   Future<void> _importFromCsv() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['csv'], withData: true);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      withData: true,
+    );
     if (result == null || result.files.isEmpty) return;
     final bytes = result.files.single.bytes;
     if (bytes == null) return;
 
-    final rows = _parseCsv(utf8.decode(bytes)).where((r) => !r.first.trimLeft().startsWith('#')).toList();
+    final rows = _parseCsv(utf8.decode(bytes))
+        .where((r) => !r.first.trimLeft().startsWith('#'))
+        .toList();
     if (rows.length < 2) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV has no data rows.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('CSV has no data rows.')));
       return;
     }
 
@@ -497,7 +609,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     if ([iName, iCode, iEmail, iType, iRegDate].any((i) => i == -1)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('CSV is missing required columns (name, studentCode, email, studentType, registrationDate).')),
+        const SnackBar(
+          content: Text(
+            'CSV is missing required columns (name, studentCode, email, studentType, registrationDate).',
+          ),
+        ),
       );
       return;
     }
@@ -512,20 +628,30 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       final email = cell(iEmail);
       final typeLabel = cell(iType);
       final registrationDateStr = cell(iRegDate);
-      if (name.isEmpty && codeSuffix.isEmpty && email.isEmpty) continue; // blank row
-      if (name.isEmpty || codeSuffix.isEmpty || email.isEmpty || registrationDateStr.isEmpty) {
+      if (name.isEmpty && codeSuffix.isEmpty && email.isEmpty)
+        continue; // blank row
+      if (name.isEmpty ||
+          codeSuffix.isEmpty ||
+          email.isEmpty ||
+          registrationDateStr.isEmpty) {
         errors.add('Row ${r + 1}: missing required field(s).');
         continue;
       }
-      final matchingType = StudentType.values.where((t) => t.label.toLowerCase() == typeLabel.toLowerCase());
+      final matchingType = StudentType.values.where(
+        (t) => t.label.toLowerCase() == typeLabel.toLowerCase(),
+      );
       if (matchingType.isEmpty) {
-        errors.add('Row ${r + 1}: unknown studentType "$typeLabel" (expected Staff or Public).');
+        errors.add(
+          'Row ${r + 1}: unknown studentType "$typeLabel" (expected Staff or Public).',
+        );
         continue;
       }
       final studentType = matchingType.first;
       final registrationDate = DateTime.tryParse(registrationDateStr);
       if (registrationDate == null) {
-        errors.add('Row ${r + 1}: invalid registrationDate "$registrationDateStr" (expected YYYY-MM-DD).');
+        errors.add(
+          'Row ${r + 1}: invalid registrationDate "$registrationDateStr" (expected YYYY-MM-DD).',
+        );
         continue;
       }
       final department = cell(iDept);
@@ -538,11 +664,24 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           studentCode: '${tenantPrefix()}${codeSuffix.toUpperCase()}',
           email: email,
           studentType: studentType,
-          department: studentType == StudentType.internal && department.isNotEmpty ? department : null,
-          title: studentType == StudentType.internal && title.isNotEmpty ? title : null,
-          programTrack: studentType == StudentType.external && programTrack.isNotEmpty ? programTrack : null,
-          programme: studentType == StudentType.external && programTrack.isNotEmpty ? _firstProgrammeOf(programTrack) : null,
-          role: studentType == StudentType.internal && role.isNotEmpty ? role : null,
+          department:
+              studentType == StudentType.internal && department.isNotEmpty
+              ? department
+              : null,
+          title: studentType == StudentType.internal && title.isNotEmpty
+              ? title
+              : null,
+          programTrack:
+              studentType == StudentType.external && programTrack.isNotEmpty
+              ? programTrack
+              : null,
+          programme:
+              studentType == StudentType.external && programTrack.isNotEmpty
+              ? _firstProgrammeOf(programTrack)
+              : null,
+          role: studentType == StudentType.internal && role.isNotEmpty
+              ? role
+              : null,
           registrationDate: registrationDate,
         );
         succeeded++;
@@ -570,13 +709,22 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                 Text(summary),
                 if (errors.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  for (final e in errors) Text(e, style: AdminTypography.bodySm(color: AdminColors.error)),
+                  for (final e in errors)
+                    Text(
+                      e,
+                      style: AdminTypography.bodySm(color: AdminColors.error),
+                    ),
                 ],
               ],
             ),
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close', textAlign: TextAlign.center))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close', textAlign: TextAlign.center),
+          ),
+        ],
       ),
     );
   }
@@ -590,7 +738,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
 
   Future<void> _openEnrolledCourses(Student s) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => StudentEnrolledCoursesScreen(studentId: s.id)),
+      MaterialPageRoute(
+        builder: (_) => StudentEnrolledCoursesScreen(studentId: s.id),
+      ),
     );
     _load();
   }
@@ -621,20 +771,32 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     final roles = await _masterDataRepository.getRoles();
     // Bulk-fetched once (small tables) so the dialog's Track/Department/Role
     // filter is instant client-side instead of a query per selection.
-    final trackRows = await _client.from('track_courses').select('track_id, course_id');
-    final roleRows = await _client.from('role_courses').select('role_id, course_id');
-    final departmentRows = await _client.from('department_courses').select('department_id, course_id');
+    final trackRows = await _client
+        .from('track_courses')
+        .select('track_id, course_id');
+    final roleRows = await _client
+        .from('role_courses')
+        .select('role_id, course_id');
+    final departmentRows = await _client
+        .from('department_courses')
+        .select('department_id, course_id');
     final courseIdsByTrackId = <String, Set<String>>{};
     for (final row in trackRows as List) {
-      courseIdsByTrackId.putIfAbsent(row['track_id'] as String, () => {}).add(row['course_id'] as String);
+      courseIdsByTrackId
+          .putIfAbsent(row['track_id'] as String, () => {})
+          .add(row['course_id'] as String);
     }
     final courseIdsByRoleId = <String, Set<String>>{};
     for (final row in roleRows as List) {
-      courseIdsByRoleId.putIfAbsent(row['role_id'] as String, () => {}).add(row['course_id'] as String);
+      courseIdsByRoleId
+          .putIfAbsent(row['role_id'] as String, () => {})
+          .add(row['course_id'] as String);
     }
     final courseIdsByDepartmentId = <String, Set<String>>{};
     for (final row in departmentRows as List) {
-      courseIdsByDepartmentId.putIfAbsent(row['department_id'] as String, () => {}).add(row['course_id'] as String);
+      courseIdsByDepartmentId
+          .putIfAbsent(row['department_id'] as String, () => {})
+          .add(row['course_id'] as String);
     }
     if (!mounted) return;
     final chosen = await showDialog<CourseSection>(
@@ -651,15 +813,22 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       ),
     );
     if (chosen == null) return;
-    final outcome = await _repository.enrollStudentsInSection(studentIds, sectionId: chosen.id, courseId: chosen.courseId);
+    final outcome = await _repository.enrollStudentsInSection(
+      studentIds,
+      sectionId: chosen.id,
+      courseId: chosen.courseId,
+    );
     if (!mounted) return;
     setState(_selected.clear);
     await _load();
     if (!mounted) return;
-    String nameOf(String id) => _students.where((s) => s.id == id).map((s) => s.name).firstOrNull ?? 'Student $id';
+    String nameOf(String id) =>
+        _students.where((s) => s.id == id).map((s) => s.name).firstOrNull ??
+        'Student $id';
     final n = outcome.enrolled.length;
     final lines = <String>[
-      if (n > 0) '$n student${n == 1 ? '' : 's'} successfully enrolled in ${chosen.sectionCode}.',
+      if (n > 0)
+        '$n student${n == 1 ? '' : 's'} successfully enrolled in ${chosen.sectionCode}.',
       if (outcome.alreadyInThisClass.isNotEmpty)
         'Already enrolled in ${chosen.sectionCode}: ${outcome.alreadyInThisClass.map(nameOf).join(', ')}.',
       if (outcome.inOtherClass.isNotEmpty)
@@ -668,7 +837,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     ];
     if (lines.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(lines.join('\n')), duration: Duration(seconds: lines.length > 1 ? 10 : 4)),
+        SnackBar(
+          content: Text(lines.join('\n')),
+          duration: Duration(seconds: lines.length > 1 ? 10 : 4),
+        ),
       );
     }
     if (outcome.scheduleClashes.isNotEmpty) {
@@ -676,7 +848,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text('${outcome.scheduleClashes.length} student${outcome.scheduleClashes.length == 1 ? '' : 's'} not enrolled — schedule clash'),
+          title: Text(
+            '${outcome.scheduleClashes.length} student${outcome.scheduleClashes.length == 1 ? '' : 's'} not enrolled — schedule clash',
+          ),
           content: SizedBox(
             width: 480,
             child: SingleChildScrollView(
@@ -684,21 +858,34 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('These students already attend a class at the same time as ${chosen.sectionCode}. Everyone else was enrolled.'),
+                  Text(
+                    'These students already attend a class at the same time as ${chosen.sectionCode}. Everyone else was enrolled.',
+                  ),
                   const SizedBox(height: 12),
                   for (final e in outcome.scheduleClashes.entries) ...[
                     Text(
-                      byId[e.key] == null ? 'Student ${e.key}' : '${displayCode(byId[e.key]!.studentCode)} — ${byId[e.key]!.name}',
+                      byId[e.key] == null
+                          ? 'Student ${e.key}'
+                          : '${displayCode(byId[e.key]!.studentCode)} — ${byId[e.key]!.name}',
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    for (final c in e.value) Padding(padding: const EdgeInsets.only(left: 12, top: 2), child: Text('• $c')),
+                    for (final c in e.value)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12, top: 2),
+                        child: Text('• $c'),
+                      ),
                     const SizedBox(height: 10),
                   ],
                 ],
               ),
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close'),
+            ),
+          ],
         ),
       );
     }
@@ -708,7 +895,13 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.manageStudents, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.manageStudents,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     // Only rows still visible (after a search or filter) can stay selected, so
     // the "N selected" count and bulk actions never include hidden records.
@@ -722,9 +915,16 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_errorMessage!, style: AdminTypography.bodyMd(color: AdminColors.error), textAlign: TextAlign.center),
+                Text(
+                  _errorMessage!,
+                  style: AdminTypography.bodyMd(color: AdminColors.error),
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 12),
-                ElevatedButton(onPressed: _load, child: const Text('Retry', textAlign: TextAlign.center)),
+                ElevatedButton(
+                  onPressed: _load,
+                  child: const Text('Retry', textAlign: TextAlign.center),
+                ),
               ],
             ),
           ),
@@ -764,11 +964,17 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Manage and Enrol Students', style: AdminTypography.headlineLg()),
+            Text(
+              'Manage and Enrol Students',
+              style: AdminTypography.headlineLg(),
+            ),
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('The register of all students. Add students, place them in a semester, department or track, and enrol them into courses.', style: AdminTypography.bodyMd()),
+              child: Text(
+                'The register of all students. Add students, place them in a semester, department or track, and enrol them into courses.',
+                style: AdminTypography.bodyMd(),
+              ),
             ),
           ],
         ),
@@ -780,11 +986,19 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             OutlinedButton.icon(
               onPressed: _downloadCsvTemplate,
               icon: const Icon(Icons.download_outlined, size: 18),
-              label: const Text('Download CSV Template', textAlign: TextAlign.center),
+              label: const Text(
+                'Download CSV Template',
+                textAlign: TextAlign.center,
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AdminColors.primaryContainer,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             OutlinedButton.icon(
@@ -793,20 +1007,33 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               label: const Text('Import from CSV', textAlign: TextAlign.center),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AdminColors.primaryContainer,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             ElevatedButton.icon(
               onPressed: _openRegisterStudent,
               icon: const Icon(Icons.person_add_outlined, size: 18),
-              label: const Text('Register New Student', textAlign: TextAlign.center),
+              label: const Text(
+                'Register New Student',
+                textAlign: TextAlign.center,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AdminColors.primaryContainer,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
@@ -819,7 +1046,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
 
   int get _totalEnrolled => _students.length;
 
-  int get _totalCredentials => _credentialTitles.values.fold(0, (sum, list) => sum + list.length);
+  int get _totalCredentials =>
+      _credentialTitles.values.fold(0, (sum, list) => sum + list.length);
 
   Widget _buildInstructionBanner() {
     return Container(
@@ -837,11 +1065,25 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           Expanded(
             child: Text.rich(
               TextSpan(
-                style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed),
+                style: AdminTypography.bodySm(
+                  color: AdminColors.onPrimaryFixed,
+                ),
                 children: [
-                  TextSpan(text: 'Tip: ', style: AdminTypography.titleSm(color: AdminColors.onPrimaryFixed)),
-                  const TextSpan(text: 'Check the boxes next to student rows to select them, then click '),
-                  TextSpan(text: 'Bulk Enrol', style: AdminTypography.bodySm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
+                  TextSpan(
+                    text: 'Tip: ',
+                    style: AdminTypography.titleSm(
+                      color: AdminColors.onPrimaryFixed,
+                    ),
+                  ),
+                  const TextSpan(
+                    text: 'Check the boxes next to student rows to select them, then click ',
+                  ),
+                  TextSpan(
+                    text: 'Bulk Enrol',
+                    style: AdminTypography.bodySm(
+                      color: AdminColors.onPrimaryFixed,
+                    ).copyWith(fontWeight: FontWeight.w700),
+                  ),
                   const TextSpan(text: ' to enrol them into a class.'),
                 ],
               ),
@@ -853,34 +1095,85 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   }
 
   Widget _buildMetrics() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth >= 500 ? 2 : 1;
-      final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
-      final cards = [
-        _metric('TOTAL ENROLLED', '$_totalEnrolled Active', Icons.groups_outlined, 'Registered across all semesters'),
-        _metric('GRANTED CREDENTIALS', '$_totalCredentials Granted', Icons.workspace_premium_outlined, 'Earned or revoked credentials'),
-      ];
-      return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth >= 500 ? 2 : 1;
+        final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
+        final cards = [
+          _metric(
+            'TOTAL ENROLLED',
+            '$_totalEnrolled Active',
+            Icons.groups_outlined,
+            'Registered across all semesters',
+          ),
+          _metric(
+            'GRANTED CREDENTIALS',
+            '$_totalCredentials Granted',
+            Icons.workspace_premium_outlined,
+            'Earned or revoked credentials',
+          ),
+        ];
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: cards.map((c) => SizedBox(width: width, child: c)).toList(),
+        );
+      },
+    );
   }
 
-  Widget _metric(String label, String value, IconData icon, String footer, {bool urgent = false}) {
+  Widget _metric(
+    String label,
+    String value,
+    IconData icon,
+    String footer, {
+    bool urgent = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Expanded(child: Text(label, style: AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w600))),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: urgent ? AdminColors.errorContainer : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, size: 18, color: urgent ? AdminColors.onErrorContainer : AdminColors.primary),
-            ),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: AdminTypography.labelMd().copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: urgent
+                      ? AdminColors.errorContainer
+                      : AdminColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: urgent
+                      ? AdminColors.onErrorContainer
+                      : AdminColors.primary,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
-          Text(value, style: AdminTypography.dataMetric(color: urgent ? AdminColors.error : AdminColors.onSurface)),
+          Text(
+            value,
+            style: AdminTypography.dataMetric(
+              color: urgent ? AdminColors.error : AdminColors.onSurface,
+            ),
+          ),
           const SizedBox(height: 6),
           Text(footer, style: AdminTypography.bodySm()),
         ],
@@ -890,7 +1183,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
 
   Widget _buildTableCard() {
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -902,59 +1199,109 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               style: AdminTypography.bodySm(color: AdminColors.onSurface),
               decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Search student by name, student ID, email, or company...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                hintText:
+                    'Search student by name, student ID, email, or company...',
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(alignment: Alignment.centerLeft, child: _buildFilterRow()),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _buildFilterRow(),
+            ),
           ),
           if (_selected.isNotEmpty)
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.check_box, size: 18, color: AdminColors.secondary),
-                    const SizedBox(width: 6),
-                    Text('${_selected.length} student${_selected.length == 1 ? '' : 's'} selected', style: AdminTypography.titleSm()),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => setState(_selected.clear),
-                      child: Text('Deselect all', style: AdminTypography.labelMd(color: AdminColors.secondary)),
-                    ),
-                  ]),
-                  Wrap(spacing: 6, children: [
-                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enrol', textAlign: TextAlign.center)),
-                    OutlinedButton.icon(
-                      onPressed: _deleteSelected,
-                      icon: const Icon(Icons.delete_outline, size: 16),
-                      label: const Text('Delete', textAlign: TextAlign.center),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AdminColors.error,
-                        backgroundColor: AdminColors.errorContainer,
-                        side: BorderSide.none,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        textStyle: AdminTypography.labelSm(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_box,
+                        size: 18,
+                        color: AdminColors.secondary,
                       ),
-                    ),
-                  ]),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_selected.length} student${_selected.length == 1 ? '' : 's'} selected',
+                        style: AdminTypography.titleSm(),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => setState(_selected.clear),
+                        child: Text(
+                          'Deselect all',
+                          style: AdminTypography.labelMd(
+                            color: AdminColors.secondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Wrap(
+                    spacing: 6,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _openBulkEnroll,
+                        style: _pillButtonStyle(),
+                        child: const Text(
+                          'Bulk Enrol',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _deleteSelected,
+                        icon: const Icon(Icons.delete_outline, size: 16),
+                        label: const Text(
+                          'Delete',
+                          textAlign: TextAlign.center,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AdminColors.error,
+                          backgroundColor: AdminColors.errorContainer,
+                          side: BorderSide.none,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          textStyle: AdminTypography.labelSm(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           if (_filteredStudents.isNotEmpty) _headerRow(),
           if (_students.isNotEmpty && _filteredStudents.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            ),
           Column(children: [for (final s in _pagedStudents) _studentRow(s)]),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -976,27 +1323,51 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   }
 
   ButtonStyle _pillButtonStyle() => OutlinedButton.styleFrom(
-        foregroundColor: Colors.white,
-        backgroundColor: AdminColors.primaryContainer,
-        side: BorderSide.none,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: AdminTypography.labelSm(),
-      );
+    foregroundColor: Colors.white,
+    backgroundColor: AdminColors.primaryContainer,
+    side: BorderSide.none,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    textStyle: AdminTypography.labelSm(),
+  );
 
   Widget _headerRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           const SizedBox(width: 48),
           Expanded(flex: 2, child: _sortHeader('Code', _SortColumn.code)),
           Expanded(flex: 4, child: _sortHeader('Student', _SortColumn.name)),
-          Expanded(flex: 2, child: Text('Student Type', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
-          Expanded(flex: 2, child: _sortHeader('Programme', _SortColumn.programme)),
-          Expanded(flex: 3, child: _sortHeader('Department / Role', _SortColumn.department)),
-          Expanded(flex: 3, child: Text('Badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Student Type',
+              style: AdminTypography.labelSm(
+                color: AdminColors.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: _sortHeader('Programme', _SortColumn.programme),
+          ),
+          Expanded(
+            flex: 3,
+            child: _sortHeader('Department / Role', _SortColumn.department),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              'Badges',
+              style: AdminTypography.labelSm(
+                color: AdminColors.onSurfaceVariant,
+              ),
+            ),
+          ),
           const SizedBox(width: 190),
         ],
       ),
@@ -1019,7 +1390,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
+            onChanged: (v) => setState(
+              () => v == true ? _selected.add(s.id) : _selected.remove(s.id),
+            ),
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
@@ -1039,7 +1412,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   Row(
                     children: [
                       Flexible(
-                        child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+                        child: Text(
+                          s.name,
+                          style: AdminTypography.titleSm(
+                            color: AdminColors.onSurface,
+                          ),
+                        ),
                       ),
                       if (courseMismatch) ...[
                         const SizedBox(width: 4),
@@ -1047,7 +1425,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                           message: s.studentType == StudentType.external
                               ? 'One or more enrolled course is not mapped to this student\'s track. Please click on the Manage Enrolled Courses button for more info.'
                               : 'One or more enrolled course is not mapped to this student\'s role or department. Please click on the Manage Enrolled Courses button for more info.',
-                          child: Icon(Icons.error, size: 15, color: AdminColors.error),
+                          child: Icon(
+                            Icons.error,
+                            size: 15,
+                            color: AdminColors.error,
+                          ),
                         ),
                       ],
                       const SizedBox(width: 4),
@@ -1056,7 +1438,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                         borderRadius: BorderRadius.circular(6),
                         child: Padding(
                           padding: const EdgeInsets.all(2),
-                          child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
+                          child: Icon(
+                            Icons.edit_outlined,
+                            size: 14,
+                            color: AdminColors.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ],
@@ -1070,7 +1456,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(s.studentType.label, style: AdminTypography.titleSm()),
+              child: Text(
+                s.studentType.label,
+                style: AdminTypography.titleSm(),
+              ),
             ),
           ),
           Expanded(
@@ -1080,8 +1469,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_programmeOf(s) ?? '—', style: AdminTypography.titleSm()),
-                  if (s.programTrack != null) Text(s.programTrack!, style: AdminTypography.bodySm()),
+                  Text(
+                    _programmeOf(s) ?? '—',
+                    style: AdminTypography.titleSm(),
+                  ),
+                  if (s.programTrack != null)
+                    Text(s.programTrack!, style: AdminTypography.bodySm()),
                 ],
               ),
             ),
@@ -1090,23 +1483,47 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.department ?? '—', style: AdminTypography.titleSm()),
-                Text(s.role ?? '—', style: AdminTypography.labelSm()),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.department ?? '—', style: AdminTypography.titleSm()),
+                  Text(s.role ?? '—', style: AdminTypography.labelSm()),
+                ],
+              ),
             ),
           ),
           Expanded(
             flex: 3,
             child: credentials.isEmpty
-                ? Text('—', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
+                ? Text(
+                    '—',
+                    style: AdminTypography.labelSm(
+                      color: AdminColors.onSurfaceVariant,
+                    ),
+                  )
                 : Tooltip(
                     message: credentials.join('\n'),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.workspace_premium_outlined, size: 14, color: flagged ? AdminColors.error : AdminColors.onSurface),
-                      const SizedBox(width: 4),
-                      Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.titleSm(color: flagged ? AdminColors.error : AdminColors.onSurface)),
-                    ]),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.workspace_premium_outlined,
+                          size: 14,
+                          color: flagged
+                              ? AdminColors.error
+                              : AdminColors.onSurface,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${credentials.length} Badge${credentials.length == 1 ? '' : 's'}',
+                          style: AdminTypography.titleSm(
+                            color: flagged
+                                ? AdminColors.error
+                                : AdminColors.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
           ),
           SizedBox(
@@ -1119,11 +1536,19 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   foregroundColor: Colors.white,
                   backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: const Text('Manage Enrolled Courses', textAlign: TextAlign.center),
+                child: const Text(
+                  'Manage Enrolled Courses',
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),
@@ -1132,8 +1557,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     );
   }
 
-  int get _publicStudentCount => _students.where((s) => s.studentType == StudentType.external).length;
-  int get _staffStudentCount => _students.where((s) => s.studentType == StudentType.internal).length;
+  int get _publicStudentCount =>
+      _students.where((s) => s.studentType == StudentType.external).length;
+  int get _staffStudentCount =>
+      _students.where((s) => s.studentType == StudentType.internal).length;
 
   /// Counts of staff (internal) students per value of [pick], largest first;
   /// students without a value are grouped under "Unassigned".
@@ -1144,7 +1571,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       final key = pick(s) ?? 'Unassigned';
       counts[key] = (counts[key] ?? 0) + 1;
     }
-    return [for (final e in counts.entries) (e.key, e.value)]..sort((a, b) => b.$2.compareTo(a.$2));
+    return [for (final e in counts.entries) (e.key, e.value)]
+      ..sort((a, b) => b.$2.compareTo(a.$2));
   }
 
   /// Public students per programme (through their track), largest first;
@@ -1156,29 +1584,30 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       final key = _programmeOf(s) ?? 'Unassigned';
       counts[key] = (counts[key] ?? 0) + 1;
     }
-    return [for (final e in counts.entries) (e.key, e.value)]..sort((a, b) => b.$2.compareTo(a.$2));
+    return [for (final e in counts.entries) (e.key, e.value)]
+      ..sort((a, b) => b.$2.compareTo(a.$2));
   }
 
   Widget _buildTracksCard() => _buildDistributionCard(
-        title: 'Public Students by Programme',
-        subtitle: 'Total public students: $_publicStudentCount',
-        entries: _publicCountsByProgramme(),
-        total: _publicStudentCount,
-      );
+    title: 'Public Students by Programme',
+    subtitle: 'Total public students: $_publicStudentCount',
+    entries: _publicCountsByProgramme(),
+    total: _publicStudentCount,
+  );
 
   Widget _buildDepartmentCard() => _buildDistributionCard(
-        title: 'Staff Students by Department',
-        subtitle: 'Total staff students: $_staffStudentCount',
-        entries: _staffCountsBy((s) => s.department),
-        total: _staffStudentCount,
-      );
+    title: 'Staff Students by Department',
+    subtitle: 'Total staff students: $_staffStudentCount',
+    entries: _staffCountsBy((s) => s.department),
+    total: _staffStudentCount,
+  );
 
   Widget _buildRoleCard() => _buildDistributionCard(
-        title: 'Staff Students by Role',
-        subtitle: 'Total staff students: $_staffStudentCount',
-        entries: _staffCountsBy((s) => s.role),
-        total: _staffStudentCount,
-      );
+    title: 'Staff Students by Role',
+    subtitle: 'Total staff students: $_staffStudentCount',
+    entries: _staffCountsBy((s) => s.role),
+    total: _staffStudentCount,
+  );
 
   Widget _buildDistributionCard({
     required String title,
@@ -1188,7 +1617,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   }) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1196,22 +1629,49 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           const SizedBox(height: 4),
           Text(subtitle, style: AdminTypography.bodySm()),
           const SizedBox(height: 12),
-          if (entries.isEmpty) Text('No students yet.', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+          if (entries.isEmpty)
+            Text(
+              'No students yet.',
+              style: AdminTypography.bodySm(
+                color: AdminColors.onSurfaceVariant,
+              ),
+            ),
           for (final t in entries)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Expanded(child: Text(t.$1, style: AdminTypography.labelMd(color: AdminColors.onSurface))),
-                    const SizedBox(width: 8),
-                    Text('${t.$2} Students (${total == 0 ? 0 : (t.$2 * 100 / total).round()}%)', style: AdminTypography.labelSm()),
-                  ]),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          t.$1,
+                          style: AdminTypography.labelMd(
+                            color: AdminColors.onSurface,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${t.$2} Students (${total == 0 ? 0 : (t.$2 * 100 / total).round()}%)',
+                        style: AdminTypography.labelSm(),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(9999),
-                    child: LinearProgressIndicator(value: total == 0 ? 0 : t.$2 / total, minHeight: 6, backgroundColor: AdminColors.surfaceContainerLow, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.secondaryContainer)),
+                    child: LinearProgressIndicator(
+                      value: total == 0 ? 0 : t.$2 / total,
+                      minHeight: 6,
+                      backgroundColor: AdminColors.surfaceContainerLow,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AdminColors.secondaryContainer,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1224,29 +1684,43 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
   /// The four summary charts in an aligned 2×2 grid on wide screens (equal
   /// column widths, equal heights per row), stacked on narrow ones.
   Widget _buildChartsGrid() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final charts = [_buildTracksCard(), _buildDepartmentCard(), _buildRoleCard(), _buildCredentialTrendCard()];
-      if (constraints.maxWidth < 900) {
-        return Column(children: [
-          for (var i = 0; i < charts.length; i++) ...[
-            if (i > 0) const SizedBox(height: 16),
-            charts[i],
-          ],
-        ]);
-      }
-      Widget pair(Widget a, Widget b) => IntrinsicHeight(
-            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final charts = [
+          _buildTracksCard(),
+          _buildDepartmentCard(),
+          _buildRoleCard(),
+          _buildCredentialTrendCard(),
+        ];
+        if (constraints.maxWidth < 900) {
+          return Column(
+            children: [
+              for (var i = 0; i < charts.length; i++) ...[
+                if (i > 0) const SizedBox(height: 16),
+                charts[i],
+              ],
+            ],
+          );
+        }
+        Widget pair(Widget a, Widget b) => IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Expanded(child: a),
               const SizedBox(width: 16),
               Expanded(child: b),
-            ]),
-          );
-      return Column(children: [
-        pair(charts[0], charts[1]),
-        const SizedBox(height: 16),
-        pair(charts[2], charts[3]),
-      ]);
-    });
+            ],
+          ),
+        );
+        return Column(
+          children: [
+            pair(charts[0], charts[1]),
+            const SizedBox(height: 16),
+            pair(charts[2], charts[3]),
+          ],
+        );
+      },
+    );
   }
 
   /// Round-number y-axis step (1, 2, 5 × 10^k, never below 1) giving about
@@ -1266,27 +1740,46 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
 
   Widget _buildCredentialTrendCard() {
     final months = _trend;
-    final maxValue = months.isEmpty ? 0 : months.map((m) => m.$2).reduce((a, b) => a > b ? a : b);
+    final maxValue = months.isEmpty
+        ? 0
+        : months.map((m) => m.$2).reduce((a, b) => a > b ? a : b);
     const intervals = 4;
     final step = _niceStep(maxValue);
     final axisMax = step * intervals;
     const plotHeight = 140.0;
-    final axisLine = BorderSide(color: AdminColors.onSurfaceVariant, width: 1.5);
+    final axisLine = BorderSide(
+      color: AdminColors.onSurfaceVariant,
+      width: 1.5,
+    );
     final gridLine = BorderSide(color: UiContrast.divider);
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Expanded(child: Text('Monthly Badge Grant Rate', style: AdminTypography.titleMd())),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(6)),
-              child: Text('Last 6 Months', style: AdminTypography.labelSm()),
-            ),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Monthly Badge Grant Rate',
+                  style: AdminTypography.titleMd(),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AdminColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('Last 6 Months', style: AdminTypography.labelSm()),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1302,7 +1795,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                       Positioned(
                         right: 6,
                         bottom: plotHeight * i / intervals - 7,
-                        child: Text('${step * i}', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+                        child: Text(
+                          '${step * i}',
+                          style: AdminTypography.labelSm(
+                            color: AdminColors.onSurfaceVariant,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -1312,7 +1810,9 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   children: [
                     Container(
                       height: plotHeight,
-                      decoration: BoxDecoration(border: Border(left: axisLine, bottom: axisLine)),
+                      decoration: BoxDecoration(
+                        border: Border(left: axisLine, bottom: axisLine),
+                      ),
                       child: Stack(
                         children: [
                           for (var i = 1; i <= intervals; i++)
@@ -1320,7 +1820,12 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                               left: 0,
                               right: 0,
                               bottom: plotHeight * i / intervals - 1,
-                              child: Container(height: 1, decoration: BoxDecoration(border: Border(top: gridLine))),
+                              child: Container(
+                                height: 1,
+                                decoration: BoxDecoration(
+                                  border: Border(top: gridLine),
+                                ),
+                              ),
                             ),
                           Positioned.fill(
                             child: Row(
@@ -1329,14 +1834,26 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                                 for (final m in months)
                                   Expanded(
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
                                       child: Tooltip(
-                                        message: '${m.$1}: ${m.$2} badge${m.$2 == 1 ? '' : 's'}',
+                                        message:
+                                            '${m.$1}: ${m.$2} badge${m.$2 == 1 ? '' : 's'}',
                                         child: Container(
-                                          height: (m.$2 / axisMax) * (plotHeight - 1.5),
+                                          height:
+                                              (m.$2 / axisMax) *
+                                              (plotHeight - 1.5),
                                           decoration: BoxDecoration(
-                                            color: m == months.last ? AdminColors.secondaryContainer : AdminColors.surfaceContainerHigh,
-                                            borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                                            color: m == months.last
+                                                ? AdminColors.secondaryContainer
+                                                : AdminColors
+                                                      .surfaceContainerHigh,
+                                            borderRadius:
+                                                const BorderRadius.only(
+                                                  topLeft: Radius.circular(4),
+                                                  topRight: Radius.circular(4),
+                                                ),
                                           ),
                                         ),
                                       ),
@@ -1354,7 +1871,14 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                         for (final m in months)
                           Expanded(
                             child: Center(
-                              child: Text(m.$1, style: AdminTypography.labelSm(color: m == months.last ? AdminColors.secondary : AdminColors.onSurfaceVariant)),
+                              child: Text(
+                                m.$1,
+                                style: AdminTypography.labelSm(
+                                  color: m == months.last
+                                      ? AdminColors.secondary
+                                      : AdminColors.onSurfaceVariant,
+                                ),
+                              ),
                             ),
                           ),
                       ],
@@ -1367,8 +1891,14 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Text('Current Term Peak: $maxValue Badges', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'Current Term Peak: $maxValue Badges',
+              style: AdminTypography.bodySm(color: AdminColors.onSurface),
+            ),
           ),
         ],
       ),
@@ -1387,7 +1917,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       appBar: const AdminMobileTopBar.root(title: 'Manage and Enrol Students'),
       bottomNavigationBar: AdminMobileBottomNav(
         selected: AdminMobileTab.students,
-        onTap: (tab) => handleAdminMobileTab(context, AdminMobileTab.students, tab),
+        onTap: (tab) =>
+            handleAdminMobileTab(context, AdminMobileTab.students, tab),
         onMore: () => showAdminMoreMenu(context),
       ),
       body: SafeArea(
@@ -1415,13 +1946,26 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   onDeselectAll: () => setState(_selected.clear),
                   onDelete: _deleteSelected,
                   extraActions: [
-                    OutlinedButton(onPressed: _openBulkEnroll, style: _pillButtonStyle(), child: const Text('Bulk Enrol', textAlign: TextAlign.center)),
+                    OutlinedButton(
+                      onPressed: _openBulkEnroll,
+                      style: _pillButtonStyle(),
+                      child: const Text(
+                        'Bulk Enrol',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   ],
                 ),
               ],
               const SizedBox(height: 16),
               if (_students.isNotEmpty && _filteredStudents.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus)),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
+                ),
               for (final s in _pagedStudents) ...[
                 _buildMobileStudentCard(s),
                 const SizedBox(height: 12),
@@ -1462,7 +2006,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
         isDense: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search student by name, student ID, email, or company...',
-        prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
+        prefixIcon: const Icon(
+          Icons.search,
+          size: 20,
+          color: AdminColors.outline,
+        ),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );
@@ -1487,7 +2035,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             children: [
               Checkbox(
                 value: selected,
-                onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
+                onChanged: (v) => setState(
+                  () =>
+                      v == true ? _selected.add(s.id) : _selected.remove(s.id),
+                ),
                 activeColor: AdminColors.primaryContainer,
               ),
               Expanded(
@@ -1497,14 +2048,25 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                     Text(s.studentCode, style: AdminTypography.labelSm()),
                     Row(
                       children: [
-                        Flexible(child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
+                        Flexible(
+                          child: Text(
+                            s.name,
+                            style: AdminTypography.titleSm(
+                              color: AdminColors.onSurface,
+                            ),
+                          ),
+                        ),
                         if (courseMismatch) ...[
                           const SizedBox(width: 4),
                           Tooltip(
                             message: s.studentType == StudentType.external
                                 ? 'One or more enrolled course is not mapped to this student\'s track. Please click on the Manage Enrolled Courses button for more info.'
                                 : 'One or more enrolled course is not mapped to this student\'s role or department. Please click on the Manage Enrolled Courses button for more info.',
-                            child: Icon(Icons.error, size: 15, color: AdminColors.error),
+                            child: Icon(
+                              Icons.error,
+                              size: 15,
+                              color: AdminColors.error,
+                            ),
                           ),
                         ],
                         const SizedBox(width: 4),
@@ -1513,7 +2075,11 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                           borderRadius: BorderRadius.circular(6),
                           child: Padding(
                             padding: const EdgeInsets.all(2),
-                            child: Icon(Icons.edit_outlined, size: 14, color: AdminColors.onSurfaceVariant),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              size: 14,
+                              color: AdminColors.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ],
@@ -1522,14 +2088,25 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   ],
                 ),
               ),
-              Text(s.studentType.label, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+              Text(
+                s.studentType.label,
+                style: AdminTypography.labelSm(color: AdminColors.onSurface),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           // Stacked full-width: two half-width columns squeezed long names into thin strips.
-          _mobileLabeled('Programme', _programmeOf(s) ?? '—', second: s.programTrack),
+          _mobileLabeled(
+            'Programme',
+            _programmeOf(s) ?? '—',
+            second: s.programTrack,
+          ),
           const SizedBox(height: 8),
-          _mobileLabeled('Department / Role', s.department ?? '—', second: s.role ?? '—'),
+          _mobileLabeled(
+            'Department / Role',
+            s.department ?? '—',
+            second: s.role ?? '—',
+          ),
           const SizedBox(height: 10),
           Wrap(
             alignment: WrapAlignment.spaceBetween,
@@ -1538,29 +2115,54 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             runSpacing: 8,
             children: [
               credentials.isEmpty
-                    ? Text('No badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
-                    : Align(
-                        alignment: Alignment.centerLeft,
-                        child: Tooltip(
-                          message: credentials.join('\n'),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const Icon(Icons.workspace_premium_outlined, size: 14, color: AdminColors.onSurface),
+                  ? Text(
+                      'No badges',
+                      style: AdminTypography.labelSm(
+                        color: AdminColors.onSurfaceVariant,
+                      ),
+                    )
+                  : Align(
+                      alignment: Alignment.centerLeft,
+                      child: Tooltip(
+                        message: credentials.join('\n'),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.workspace_premium_outlined,
+                              size: 14,
+                              color: AdminColors.onSurface,
+                            ),
                             const SizedBox(width: 4),
-                            Text('${credentials.length} Badge${credentials.length == 1 ? '' : 's'}', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
-                          ]),
+                            Text(
+                              '${credentials.length} Badge${credentials.length == 1 ? '' : 's'}',
+                              style: AdminTypography.labelSm(
+                                color: AdminColors.onSurface,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    ),
               OutlinedButton(
                 onPressed: () => _openEnrolledCourses(s),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: AdminColors.primaryContainer,
                   side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   textStyle: AdminTypography.labelSm(),
                 ),
-                child: const Text('Manage Enrolled Courses', textAlign: TextAlign.center),
+                child: const Text(
+                  'Manage Enrolled Courses',
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ),
@@ -1573,7 +2175,10 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+        Text(
+          label,
+          style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+        ),
         Text(value, style: AdminTypography.titleSm()),
         if (second != null) Text(second, style: AdminTypography.labelSm()),
       ],
@@ -1619,7 +2224,11 @@ class _ProfileFilter {
   final String key;
   final String label;
   final Set<String> courseIds;
-  const _ProfileFilter({required this.key, required this.label, required this.courseIds});
+  const _ProfileFilter({
+    required this.key,
+    required this.label,
+    required this.courseIds,
+  });
 }
 
 class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
@@ -1636,26 +2245,46 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
   }
 
   List<String> get _semesterNames {
-    final names = widget.sections.map((s) => s.semester).whereType<String>().toSet().toList();
+    final names = widget.sections
+        .map((s) => s.semester)
+        .whereType<String>()
+        .toSet()
+        .toList();
     names.sort();
     return names;
   }
 
   List<_ProfileFilter> get _profileFilters => [
-        for (final t in widget.programTracks)
-          _ProfileFilter(key: 'track:${t.id}', label: 'Track: ${t.name}', courseIds: widget.courseIdsByTrackId[t.id] ?? const {}),
-        for (final d in widget.departments)
-          _ProfileFilter(key: 'dept:${d.id}', label: 'Department: ${d.name}', courseIds: widget.courseIdsByDepartmentId[d.id] ?? const {}),
-        for (final r in widget.roles)
-          _ProfileFilter(key: 'role:${r.id}', label: 'Role: ${r.name}', courseIds: widget.courseIdsByRoleId[r.id] ?? const {}),
-      ];
+    for (final t in widget.programTracks)
+      _ProfileFilter(
+        key: 'track:${t.id}',
+        label: 'Track: ${t.name}',
+        courseIds: widget.courseIdsByTrackId[t.id] ?? const {},
+      ),
+    for (final d in widget.departments)
+      _ProfileFilter(
+        key: 'dept:${d.id}',
+        label: 'Department: ${d.name}',
+        courseIds: widget.courseIdsByDepartmentId[d.id] ?? const {},
+      ),
+    for (final r in widget.roles)
+      _ProfileFilter(
+        key: 'role:${r.id}',
+        label: 'Role: ${r.name}',
+        courseIds: widget.courseIdsByRoleId[r.id] ?? const {},
+      ),
+  ];
 
   List<CourseSection> get _sectionsForSelection {
-    var sections = widget.sections.where((s) => s.semester == _selectedSemester).toList();
+    var sections = widget.sections
+        .where((s) => s.semester == _selectedSemester)
+        .toList();
     final filterKey = _selectedProfileFilterKey;
     if (filterKey != null) {
       final filter = _profileFilters.firstWhere((f) => f.key == filterKey);
-      sections = sections.where((s) => filter.courseIds.contains(s.courseId)).toList();
+      sections = sections
+          .where((s) => filter.courseIds.contains(s.courseId))
+          .toList();
     }
     sections.sort((a, b) => a.sectionCode.compareTo(b.sectionCode));
     return sections;
@@ -1676,74 +2305,112 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
           setState(() => _sectionError = 'Select a class to enrol into.');
           return;
         }
-        Navigator.of(context).pop(widget.sections.firstWhere((s) => s.id == id));
+        Navigator.of(context)
+            .pop(widget.sections.firstWhere((s) => s.id == id));
       },
       child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Select a semester, optionally narrow by track/department/role, then a class, to enrol ${count == 1 ? 'this student' : 'these students'} into.',
+            style: AdminTypography.bodySm(),
+          ),
+          const SizedBox(height: 14),
+          if (widget.sections.isEmpty)
             Text(
-              'Select a semester, optionally narrow by track/department/role, then a class, to enrol ${count == 1 ? 'this student' : 'these students'} into.',
-              style: AdminTypography.bodySm(),
+              'No classes exist yet. Create one from Manage Assigned Courses first.',
+              style: AdminTypography.bodySm(color: AdminColors.error),
+            )
+          else ...[
+            SearchableDropdownFormField<String>(
+              initialValue: semesterNames.contains(_selectedSemester)
+                  ? _selectedSemester
+                  : null,
+              isExpanded: true,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
+              ),
+              hint: const Text('Select a semester'),
+              items: [
+                for (final c in semesterNames)
+                  DropdownMenuItem(
+                    value: c,
+                    child: Text(c, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: (v) => setState(() {
+                _selectedSemester = v;
+                _selectedSectionId = null;
+              }),
             ),
-            const SizedBox(height: 14),
-            if (widget.sections.isEmpty)
-              Text('No classes exist yet. Create one from Manage Assigned Courses first.', style: AdminTypography.bodySm(color: AdminColors.error))
-            else ...[
-              SearchableDropdownFormField<String>(
-                initialValue: semesterNames.contains(_selectedSemester) ? _selectedSemester : null,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            const SizedBox(height: 12),
+            SearchableDropdownFormField<String>(
+              initialValue:
+                  profileFilters.any((f) => f.key == _selectedProfileFilterKey)
+                  ? _selectedProfileFilterKey
+                  : null,
+              isExpanded: true,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
                 ),
-                hint: const Text('Select a semester'),
-                items: [for (final c in semesterNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
-                onChanged: (v) => setState(() {
-                  _selectedSemester = v;
-                  _selectedSectionId = null;
-                }),
               ),
-              const SizedBox(height: 12),
-              SearchableDropdownFormField<String>(
-                initialValue: profileFilters.any((f) => f.key == _selectedProfileFilterKey) ? _selectedProfileFilterKey : null,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              hint: const Text('Track / Department / Role (optional)'),
+              items: [
+                for (final f in profileFilters)
+                  DropdownMenuItem(
+                    value: f.key,
+                    child: Text(f.label, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: (v) => setState(() {
+                _selectedProfileFilterKey = v;
+                _selectedSectionId = null;
+              }),
+            ),
+            const SizedBox(height: 12),
+            SearchableDropdownFormField<String>(
+              initialValue: sections.any((s) => s.id == _selectedSectionId)
+                  ? _selectedSectionId
+                  : null,
+              isExpanded: true,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
                 ),
-                hint: const Text('Track / Department / Role (optional)'),
-                items: [for (final f in profileFilters) DropdownMenuItem(value: f.key, child: Text(f.label, overflow: TextOverflow.ellipsis))],
-                onChanged: (v) => setState(() {
-                  _selectedProfileFilterKey = v;
-                  _selectedSectionId = null;
-                }),
               ),
-              const SizedBox(height: 12),
-              SearchableDropdownFormField<String>(
-                initialValue: sections.any((s) => s.id == _selectedSectionId) ? _selectedSectionId : null,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                ),
-                hint: Text(_selectedSemester == null ? 'Select a semester first' : 'Select a class'),
-                items: [
-                  for (final s in sections)
-                    DropdownMenuItem(
-                      value: s.id,
-                      child: Text('${s.sectionCode} • ${s.courseTitle}'),
-                    ),
-                ],
-                onChanged: sections.isEmpty ? null : (v) => setState(() {
-                  _selectedSectionId = v;
-                  _sectionError = null;
-                }),
+              hint: Text(
+                _selectedSemester == null
+                    ? 'Select a semester first'
+                    : 'Select a class',
               ),
-              AdminFieldError(_sectionError),
-            ],
+              items: [
+                for (final s in sections)
+                  DropdownMenuItem(
+                    value: s.id,
+                    child: Text('${s.sectionCode} • ${s.courseTitle}'),
+                  ),
+              ],
+              onChanged: sections.isEmpty
+                  ? null
+                  : (v) => setState(() {
+                      _selectedSectionId = v;
+                      _sectionError = null;
+                    }),
+            ),
+            AdminFieldError(_sectionError),
           ],
-        ),
+        ],
+      ),
     );
   }
 }

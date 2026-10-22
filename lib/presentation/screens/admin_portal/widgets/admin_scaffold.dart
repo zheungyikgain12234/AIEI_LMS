@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
+
 import 'admin_header.dart';
 import 'admin_sidebar.dart';
 
@@ -27,14 +28,20 @@ class AdminScaffold extends StatelessWidget {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdminSidebar(selected: selected, onDestinationSelected: onDestinationSelected),
+          AdminSidebar(
+            selected: selected,
+            onDestinationSelected: onDestinationSelected,
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 32,
+                    ),
                     child: body,
                   ),
                 ),

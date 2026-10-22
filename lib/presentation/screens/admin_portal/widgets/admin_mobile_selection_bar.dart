@@ -13,7 +13,10 @@ Widget adminMobileSelectionBar({
 }) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(
+      color: AdminColors.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(12),
+    ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -21,10 +24,16 @@ Widget adminMobileSelectionBar({
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 8,
           children: [
-            Text('$count $itemLabel${count == 1 ? '' : 's'} selected', style: AdminTypography.titleSm()),
+            Text(
+              '$count $itemLabel${count == 1 ? '' : 's'} selected',
+              style: AdminTypography.titleSm(),
+            ),
             GestureDetector(
               onTap: onDeselectAll,
-              child: Text('Deselect all', style: AdminTypography.labelMd(color: AdminColors.secondary)),
+              child: Text(
+                'Deselect all',
+                style: AdminTypography.labelMd(color: AdminColors.secondary),
+              ),
             ),
           ],
         ),
@@ -42,8 +51,13 @@ Widget adminMobileSelectionBar({
                 foregroundColor: AdminColors.error,
                 backgroundColor: AdminColors.errorContainer,
                 side: BorderSide.none,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 textStyle: AdminTypography.labelSm(),
               ),
             ),

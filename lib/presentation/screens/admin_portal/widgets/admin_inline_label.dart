@@ -13,12 +13,26 @@ class AdminInlineLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Text(label, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant));
-    return LayoutBuilder(builder: (context, constraints) {
-      if (constraints.maxWidth < 520) {
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [text, const SizedBox(height: 6), field]);
-      }
-      return Row(children: [text, const SizedBox(width: 12), Expanded(child: field)]);
-    });
+    final text = Text(
+      label,
+      style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 520) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [text, const SizedBox(height: 6), field],
+          );
+        }
+        return Row(
+          children: [
+            text,
+            const SizedBox(width: 12),
+            Expanded(child: field),
+          ],
+        );
+      },
+    );
   }
 }

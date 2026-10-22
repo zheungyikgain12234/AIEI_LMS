@@ -213,7 +213,9 @@ class _DependentsDialogState extends State<_DependentsDialog> {
               : null,
           style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
           child: Text(
-            undecided == 0 ? 'Continue' : '$undecided left to decide', textAlign: TextAlign.center),
+            undecided == 0 ? 'Continue' : '$undecided left to decide',
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     );
@@ -232,17 +234,25 @@ Future<bool> runTypedNameDelete(
 }) async {
   final ok = await showDialog<bool>(
     context: context,
-    builder: (_) => _TypedNameDialog(noun: noun, names: names, warning: warning),
+    builder: (_) =>
+        _TypedNameDialog(noun: noun, names: names, warning: warning),
   );
   if (ok != true || !context.mounted) return false;
   final messenger = ScaffoldMessenger.of(context);
   await runWithBusy(context, 'Deleting…', perform);
-  showSuccessSnackBarOn(messenger, '${names.length} ${names.length == 1 ? noun : '${noun}s'} deleted');
+  showSuccessSnackBarOn(
+    messenger,
+    '${names.length} ${names.length == 1 ? noun : '${noun}s'} deleted',
+  );
   return true;
 }
 
 class _TypedNameDialog extends StatefulWidget {
-  const _TypedNameDialog({required this.noun, required this.names, required this.warning});
+  const _TypedNameDialog({
+    required this.noun,
+    required this.names,
+    required this.warning,
+  });
 
   final String noun;
   final List<String> names;
@@ -253,7 +263,9 @@ class _TypedNameDialog extends StatefulWidget {
 }
 
 class _TypedNameDialogState extends State<_TypedNameDialog> {
-  late final List<TextEditingController> _controllers = [for (final _ in widget.names) TextEditingController()];
+  late final List<TextEditingController> _controllers = [
+    for (final _ in widget.names) TextEditingController(),
+  ];
 
   @override
   void dispose() {
@@ -263,12 +275,17 @@ class _TypedNameDialogState extends State<_TypedNameDialog> {
     super.dispose();
   }
 
-  bool get _matches => [for (var i = 0; i < widget.names.length; i++) _controllers[i].text.trim() == widget.names[i]].every((m) => m);
+  bool get _matches => [
+    for (var i = 0; i < widget.names.length; i++)
+      _controllers[i].text.trim() == widget.names[i],
+  ].every((m) => m);
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Delete ${widget.names.length == 1 ? widget.noun : '${widget.noun}s'}?'),
+      title: Text(
+        'Delete ${widget.names.length == 1 ? widget.noun : '${widget.noun}s'}?',
+      ),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -278,24 +295,52 @@ class _TypedNameDialogState extends State<_TypedNameDialog> {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Icon(Icons.warning_amber_rounded, size: 20, color: AdminColors.error),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(widget.warning, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer))),
-                ]),
+                decoration: BoxDecoration(
+                  color: AdminColors.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      size: 20,
+                      color: AdminColors.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.warning,
+                        style: AdminTypography.bodySm(
+                          color: AdminColors.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               for (var i = 0; i < widget.names.length; i++) ...[
                 const SizedBox(height: 16),
-                Text.rich(TextSpan(text: 'Type ', children: [
-                  TextSpan(text: widget.names[i], style: const TextStyle(fontWeight: FontWeight.w700)),
-                  const TextSpan(text: ' to confirm'),
-                ])),
+                Text.rich(
+                  TextSpan(
+                    text: 'Type ',
+                    children: [
+                      TextSpan(
+                        text: widget.names[i],
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const TextSpan(text: ' to confirm'),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 6),
                 TextField(
                   controller: _controllers[i],
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ],
             ],
@@ -303,7 +348,10 @@ class _TypedNameDialogState extends State<_TypedNameDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel', textAlign: TextAlign.center)),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel', textAlign: TextAlign.center),
+        ),
         FilledButton(
           onPressed: _matches ? () => Navigator.of(context).pop(true) : null,
           style: FilledButton.styleFrom(backgroundColor: AdminColors.error),

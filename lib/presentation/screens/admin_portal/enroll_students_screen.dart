@@ -12,6 +12,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_master_data_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_role_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/enrollment_candidate.dart';
+
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -32,10 +33,18 @@ class EnrollStudentsScreen extends StatefulWidget {
 }
 
 class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
-  final _adminStudentsRepository = SupabaseAdminStudentsRepositoryImpl(Supabase.instance.client);
-  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
-  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
-  final _roleCourseMappingRepository = SupabaseRoleCourseMappingRepositoryImpl(Supabase.instance.client);
+  final _adminStudentsRepository = SupabaseAdminStudentsRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _roleCourseMappingRepository = SupabaseRoleCourseMappingRepositoryImpl(
+    Supabase.instance.client,
+  );
 
   bool _isLoading = true;
   bool _candidatesLoading = false;
@@ -60,7 +69,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   /// Semester dropdown, so the admin narrows down to a semester before picking
   /// which of its classes to enroll students into.
   List<String> get _semesterNames {
-    final names = _allSections.map((s) => s.semester).whereType<String>().toSet().toList();
+    final names = _allSections
+        .map((s) => s.semester)
+        .whereType<String>()
+        .toSet()
+        .toList();
     names.sort();
     return names;
   }
@@ -68,18 +81,24 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   /// Classes within [_selectedSemester] only — what the Class dropdown offers,
   /// so it updates whenever the semester selection changes.
   List<CourseSection> get _sectionsForSelectedSemester {
-    final sections = _allSections.where((s) => s.semester == _selectedSemester).toList();
+    final sections = _allSections
+        .where((s) => s.semester == _selectedSemester)
+        .toList();
     sections.sort((a, b) => a.sectionCode.compareTo(b.sectionCode));
     return sections;
   }
 
   List<EnrollmentCandidate> get _filteredCandidates {
     if (_query.isEmpty) return _candidates;
-    return _candidates.where((c) =>
-        c.studentName.toLowerCase().contains(_query) ||
-        (c.studentEmployeeId ?? '').toLowerCase().contains(_query) ||
-        c.studentEmail.toLowerCase().contains(_query) ||
-        c.department.toLowerCase().contains(_query)).toList();
+    return _candidates
+        .where(
+          (c) =>
+              c.studentName.toLowerCase().contains(_query) ||
+              (c.studentEmployeeId ?? '').toLowerCase().contains(_query) ||
+              c.studentEmail.toLowerCase().contains(_query) ||
+              c.department.toLowerCase().contains(_query),
+        )
+        .toList();
   }
 
   int get _baseEnrolled => _section?.enrolledCount ?? 0;
@@ -88,14 +107,20 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   String get _courseTitle => _section?.courseTitle ?? '';
   String get _sectionCode => _section?.sectionCode ?? '';
 
-  int get _waitlistCount => _candidates.where((c) => c.queueTag?.contains('Waitlist') ?? false).length;
-  int get _sponsoredCount => _candidates.where((c) => c.sponsorship != 'Self-Enrolled').length;
+  int get _waitlistCount => _candidates
+      .where((c) => c.queueTag?.contains('Waitlist') ?? false)
+      .length;
+  int get _sponsoredCount =>
+      _candidates.where((c) => c.sponsorship != 'Self-Enrolled').length;
 
   @override
   void initState() {
     super.initState();
     _staged = {};
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -148,7 +173,9 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     }
 
     setState(() => _candidatesLoading = true);
-    final candidates = await _adminStudentsRepository.getEnrollmentCandidates(section.courseId);
+    final candidates = await _adminStudentsRepository.getEnrollmentCandidates(
+      section.courseId,
+    );
     final roles = await _masterDataRepository.getRoles();
     if (!mounted) return;
 
@@ -161,14 +188,17 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     for (final c in candidates) {
       final roleId = roleIdByName[c.role];
       if (roleId == null) continue;
-      final allowed = allowedCourseIdsByRoleId[roleId] ??= await _roleCourseMappingRepository.getCourseIdsForRole(roleId);
+      final allowed = allowedCourseIdsByRoleId[roleId] ??=
+          await _roleCourseMappingRepository.getCourseIdsForRole(roleId);
       if (!allowed.contains(c.targetCourseId)) mismatches.add(c.id);
     }
 
     if (!mounted) return;
     setState(() {
       _candidates = candidates;
-      _staged = {for (final c in candidates.where((c) => c.queueTag == 'Staged')) c.id};
+      _staged = {
+        for (final c in candidates.where((c) => c.queueTag == 'Staged')) c.id,
+      };
       _roleMismatchCandidateIds = mismatches;
       _candidatesLoading = false;
     });
@@ -196,7 +226,13 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.courseEnrollment, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.courseEnrollment,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
@@ -210,11 +246,17 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         children: [
           _buildTopBar(),
           const SizedBox(height: 12),
-          Text('Enrol Students into Course', style: AdminTypography.headlineLg()),
+          Text(
+            'Enrol Students into Course',
+            style: AdminTypography.headlineLg(),
+          ),
           const SizedBox(height: 2),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 620),
-            child: Text('Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this semester.', style: AdminTypography.bodyMd()),
+            child: Text(
+              'Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this semester.',
+              style: AdminTypography.bodyMd(),
+            ),
           ),
           const SizedBox(height: 20),
           _buildClassPicker(),
@@ -222,24 +264,34 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
           if (_section == null)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: Text('No classes found for this semester.', style: AdminTypography.bodyMd()),
+              child: Text(
+                'No classes found for this semester.',
+                style: AdminTypography.bodyMd(),
+              ),
             )
           else ...[
             _buildCourseSummary(postCapacity),
             const SizedBox(height: 20),
-            LayoutBuilder(builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 1000;
-              final left = _buildCandidateTable();
-              final right = _buildStagedPanel(postCapacity);
-              if (wide) {
-                return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Expanded(flex: 8, child: left),
-                  const SizedBox(width: 20),
-                  Expanded(flex: 4, child: right),
-                ]);
-              }
-              return Column(children: [left, const SizedBox(height: 20), right]);
-            }),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 1000;
+                final left = _buildCandidateTable();
+                final right = _buildStagedPanel(postCapacity);
+                if (wide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 8, child: left),
+                      const SizedBox(width: 20),
+                      Expanded(flex: 4, child: right),
+                    ],
+                  );
+                }
+                return Column(
+                  children: [left, const SizedBox(height: 20), right],
+                );
+              },
+            ),
           ],
         ],
       ),
@@ -271,15 +323,33 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     const AdminFieldLabel('Semester'),
                     const SizedBox(height: 6),
                     SearchableDropdownFormField<String>(
-                      initialValue: semesterNames.contains(_selectedSemester) ? _selectedSemester : null,
+                      initialValue: semesterNames.contains(_selectedSemester)
+                          ? _selectedSemester
+                          : null,
                       isExpanded: true,
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
-                      hint: Text('Select semester', style: AdminTypography.bodySm(color: AdminColors.outline)),
-                      items: [for (final c in semesterNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
+                      hint: Text(
+                        'Select semester',
+                        style: AdminTypography.bodySm(
+                          color: AdminColors.outline,
+                        ),
+                      ),
+                      items: [
+                        for (final c in semesterNames)
+                          DropdownMenuItem(
+                            value: c,
+                            child: Text(c, overflow: TextOverflow.ellipsis),
+                          ),
+                      ],
                       onChanged: (c) {
                         if (c != null) _onSemesterChanged(c);
                       },
@@ -295,20 +365,38 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     const AdminFieldLabel('Class'),
                     const SizedBox(height: 6),
                     SearchableDropdownFormField<String>(
-                      initialValue: sections.any((s) => s.id == _selectedSectionId) ? _selectedSectionId : null,
+                      initialValue:
+                          sections.any((s) => s.id == _selectedSectionId)
+                          ? _selectedSectionId
+                          : null,
                       isExpanded: true,
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
                       hint: Text(
-                        _selectedSemester == null ? 'Select a semester first' : 'Select class',
-                        style: AdminTypography.bodySm(color: AdminColors.outline),
+                        _selectedSemester == null
+                            ? 'Select a semester first'
+                            : 'Select class',
+                        style: AdminTypography.bodySm(
+                          color: AdminColors.outline,
+                        ),
                       ),
                       items: [
                         for (final s in sections)
-                          DropdownMenuItem(value: s.id, child: Text('${s.sectionCode} • ${s.courseCode}', overflow: TextOverflow.ellipsis)),
+                          DropdownMenuItem(
+                            value: s.id,
+                            child: Text(
+                              '${s.sectionCode} • ${s.courseCode}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                       ],
                       onChanged: sections.isEmpty
                           ? null
@@ -325,7 +413,10 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(9999),
-              child: const LinearProgressIndicator(minHeight: 3, backgroundColor: AdminColors.surfaceContainerHigh),
+              child: const LinearProgressIndicator(
+                minHeight: 3,
+                backgroundColor: AdminColors.surfaceContainerHigh,
+              ),
             ),
           ],
         ],
@@ -340,12 +431,25 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         cursor: SystemMouseCursors.click,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(10), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.arrow_back, size: 18, color: AdminColors.onSurfaceVariant),
-            const SizedBox(width: 6),
-            Text('Back to Course Roster', style: AdminTypography.labelMd()),
-          ]),
+          decoration: BoxDecoration(
+            color: AdminColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: const [
+              BoxShadow(color: Color(0x0D000000), blurRadius: 6),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.arrow_back,
+                size: 18,
+                color: AdminColors.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text('Back to Course Roster', style: AdminTypography.labelMd()),
+            ],
+          ),
         ),
       ),
     );
@@ -354,51 +458,138 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget _buildCourseSummary(int postCapacity) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 16,
         runSpacing: 12,
         children: [
-          Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(width: 48, height: 48, decoration: BoxDecoration(color: AdminColors.secondaryFixed, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.class_outlined, color: AdminColors.primary, size: 26)),
-            const SizedBox(width: 14),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Wrap(spacing: 6, children: [
-                _tag('Active Semester', AdminColors.tertiaryFixed, AdminColors.onTertiaryFixedVariant, dot: true),
-                _tag('SECTION: $_sectionCode', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
-              ]),
-              const SizedBox(height: 4),
-              Text('$_courseCode: $_courseTitle', style: AdminTypography.headlineSm()),
-              const SizedBox(height: 4),
-              if (_section?.lecturerName != null)
-                Wrap(spacing: 8, children: [
-                  Text('Instructor: ${_section!.lecturerName}', style: AdminTypography.bodySm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                  Text('• Schedule: ${_section!.scheduleText}', style: AdminTypography.bodySm()),
-                ])
-              else if (_section != null)
-                Text('Schedule: ${_section!.scheduleText}', style: AdminTypography.bodySm()),
-            ]),
-          ]),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AdminColors.secondaryFixed,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.class_outlined,
+                  color: AdminColors.primary,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 6,
+                    children: [
+                      _tag(
+                        'Active Semester',
+                        AdminColors.tertiaryFixed,
+                        AdminColors.onTertiaryFixedVariant,
+                        dot: true,
+                      ),
+                      _tag(
+                        'SECTION: $_sectionCode',
+                        AdminColors.surfaceContainer,
+                        AdminColors.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$_courseCode: $_courseTitle',
+                    style: AdminTypography.headlineSm(),
+                  ),
+                  const SizedBox(height: 4),
+                  if (_section?.lecturerName != null)
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        Text(
+                          'Instructor: ${_section!.lecturerName}',
+                          style: AdminTypography.bodySm(
+                            color: AdminColors.onSurface,
+                          ).copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          '• Schedule: ${_section!.scheduleText}',
+                          style: AdminTypography.bodySm(),
+                        ),
+                      ],
+                    )
+                  else if (_section != null)
+                    Text(
+                      'Schedule: ${_section!.scheduleText}',
+                      style: AdminTypography.bodySm(),
+                    ),
+                ],
+              ),
+            ],
+          ),
           Container(
             width: 260,
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('Semester Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
-                  Text('$postCapacity / $_capacity Enrolled', style: AdminTypography.titleSm()),
-                ]),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Semester Capacity Status',
+                      style: AdminTypography.bodySm(
+                        color: AdminColors.onSurface,
+                      ),
+                    ),
+                    Text(
+                      '$postCapacity / $_capacity Enrolled',
+                      style: AdminTypography.titleSm(),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 6),
-                ClipRRect(borderRadius: BorderRadius.circular(9999), child: LinearProgressIndicator(value: postCapacity / _capacity, minHeight: 8, backgroundColor: AdminColors.surfaceContainerHigh, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.primaryContainer))),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(9999),
+                  child: LinearProgressIndicator(
+                    value: postCapacity / _capacity,
+                    minHeight: 8,
+                    backgroundColor: AdminColors.surfaceContainerHigh,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AdminColors.primaryContainer,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('${_capacity - postCapacity} seats remaining', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
-                  Text('$_waitlistCount on Waitlist', style: AdminTypography.labelSm()),
-                ]),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${_capacity - postCapacity} seats remaining',
+                      style: AdminTypography.labelSm(
+                        color: AdminColors.secondary,
+                      ).copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      '$_waitlistCount on Waitlist',
+                      style: AdminTypography.labelSm(),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -408,20 +599,43 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   }
 
   Widget _tag(String text, Color bg, Color fg, {bool dot = false}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(9999)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (dot) ...[Container(width: 6, height: 6, decoration: BoxDecoration(color: fg, shape: BoxShape.circle)), const SizedBox(width: 4)],
-          Text(text, style: AdminTypography.labelSm(color: fg).copyWith(fontWeight: FontWeight.w700)),
-        ]),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(9999),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (dot) ...[
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          text,
+          style: AdminTypography.labelSm(color: fg)
+              .copyWith(fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildCandidateTable() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+          decoration: BoxDecoration(
+            color: AdminColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(color: Color(0x0D000000), blurRadius: 6),
+            ],
+          ),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
@@ -433,50 +647,106 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     TextField(
                       controller: _searchController,
                       focusNode: _searchFocus,
-                      style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                      decoration: InputDecoration(isDense: true, hintText: 'Search student by name, corporate ID, track...', prefixIcon: const Icon(Icons.search, size: 16, color: AdminColors.onSurfaceVariant), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
+                      style: AdminTypography.bodySm(
+                        color: AdminColors.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText:
+                            'Search student by name, corporate ID, track...',
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          size: 16,
+                          color: AdminColors.onSurfaceVariant,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 10),
-                    Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                      Text('Filter by:', style: AdminTypography.labelSm()),
-                      _pill('All Eligible (${_candidates.length})', true),
-                      _pill('From Waitlist ($_waitlistCount)', false),
-                      _pill('Corporate Sponsored ($_sponsoredCount)', false),
-                    ]),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('Filter by:', style: AdminTypography.labelSm()),
+                        _pill('All Eligible (${_candidates.length})', true),
+                        _pill('From Waitlist ($_waitlistCount)', false),
+                        _pill('Corporate Sponsored ($_sponsoredCount)', false),
+                      ],
+                    ),
                   ],
                 ),
               ),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: SizedBox(width: 950, child: Column(children: [for (final c in _filteredCandidates) _candidateRow(c)])),
+                child: SizedBox(
+                  width: 950,
+                  child: Column(
+                    children: [
+                      for (final c in _filteredCandidates) _candidateRow(c),
+                    ],
+                  ),
+                ),
               ),
               if (_filteredCandidates.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
-              ),
+                  child: AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
+                ),
             ],
           ),
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFDBEAFE))),
-          child: Row(children: [
-            const Icon(Icons.info_outline, size: 18, color: AdminColors.primary),
-            const SizedBox(width: 8),
-            Expanded(child: Text('Only students meeting prerequisite compliance appear as eligible. Waitlisted students require manual dean sign-off before staging.', style: AdminTypography.bodySm(color: AdminColors.onSurface))),
-          ]),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFDBEAFE)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.info_outline,
+                size: 18,
+                color: AdminColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Only students meeting prerequisite compliance appear as eligible. Waitlisted students require manual dean sign-off before staging.',
+                  style: AdminTypography.bodySm(color: AdminColors.onSurface),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
   Widget _pill(String label, bool active) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: active ? AdminColors.secondaryFixed : AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-        child: Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSecondaryFixedVariant : AdminColors.onSurfaceVariant)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: active
+          ? AdminColors.secondaryFixed
+          : AdminColors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(9999),
+    ),
+    child: Text(
+      label,
+      style: AdminTypography.labelSm(
+        color: active
+            ? AdminColors.onSecondaryFixedVariant
+            : AdminColors.onSurfaceVariant,
+      ),
+    ),
+  );
 
   Widget _candidateRow(EnrollmentCandidate c) {
     final staged = _staged.contains(c.id);
@@ -485,54 +755,162 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: staged ? AdminColors.secondaryFixed.withValues(alpha: 0.15) : null,
+        color: staged
+            ? AdminColors.secondaryFixed.withValues(alpha: 0.15)
+            : null,
         border: const Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Checkbox(value: staged, onChanged: (v) => setState(() => v == true ? _staged.add(c.id) : _staged.remove(c.id)), activeColor: AdminColors.primaryContainer),
+          Checkbox(
+            value: staged,
+            onChanged: (v) => setState(
+              () => v == true ? _staged.add(c.id) : _staged.remove(c.id),
+            ),
+            activeColor: AdminColors.primaryContainer,
+          ),
           SizedBox(
             width: 230,
-            child: Row(children: [
-              Container(width: 32, height: 32, alignment: Alignment.center, decoration: const BoxDecoration(color: AdminColors.tertiary, shape: BoxShape.circle), child: Text(c.initials, style: AdminTypography.labelSm(color: Colors.white).copyWith(fontWeight: FontWeight.w700))),
-              const SizedBox(width: 10),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Flexible(child: Text(c.studentName, style: AdminTypography.titleSm())),
-                  if (roleMismatch) ...[
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: AdminColors.tertiary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    c.initials,
+                    style: AdminTypography.labelSm(color: Colors.white)
+                        .copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              c.studentName,
+                              style: AdminTypography.titleSm(),
+                            ),
+                          ),
+                          if (roleMismatch) ...[
+                            const SizedBox(width: 4),
+                            Tooltip(
+                              message: 'One or more course mismatch with the student role',
+                              child: Icon(
+                                Icons.error,
+                                size: 15,
+                                color: AdminColors.error,
+                              ),
+                            ),
+                          ],
+                          if (c.queueTag != null) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: warn
+                                    ? AdminColors.errorContainer
+                                    : AdminColors.primaryFixed,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                c.queueTag!,
+                                style: AdminTypography.labelSm(
+                                  color: warn
+                                      ? AdminColors.onErrorContainer
+                                      : AdminColors.onPrimaryFixed,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      Text(
+                        '${c.studentEmployeeId ?? '—'} • ${c.studentEmail}',
+                        style: AdminTypography.labelSm(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 150,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  c.department,
+                  style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                ),
+                Text(c.semester, style: AdminTypography.labelSm()),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 220,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      warn ? Icons.warning_amber_rounded : Icons.check_circle,
+                      size: 14,
+                      color: warn
+                          ? const Color(0xFFB45309)
+                          : AdminColors.secondary,
+                    ),
                     const SizedBox(width: 4),
-                    Tooltip(
-                      message: 'One or more course mismatch with the student role',
-                      child: Icon(Icons.error, size: 15, color: AdminColors.error),
+                    Flexible(
+                      child: Text(
+                        c.prerequisiteDetail,
+                        style: AdminTypography.bodyMd(
+                          color: warn
+                              ? const Color(0xFFB45309)
+                              : AdminColors.secondary,
+                        ).copyWith(fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ],
-                  if (c.queueTag != null) ...[
-                    const SizedBox(width: 4),
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: warn ? AdminColors.errorContainer : AdminColors.primaryFixed, borderRadius: BorderRadius.circular(4)), child: Text(c.queueTag!, style: AdminTypography.labelSm(color: warn ? AdminColors.onErrorContainer : AdminColors.onPrimaryFixed))),
-                  ],
-                ]),
-                Text('${c.studentEmployeeId ?? '—'} • ${c.studentEmail}', style: AdminTypography.labelSm()),
-              ])),
-            ]),
+                ),
+                Text(c.standingDetail, style: AdminTypography.labelSm()),
+              ],
+            ),
           ),
-          SizedBox(width: 150, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(c.department, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
-            Text(c.semester, style: AdminTypography.labelSm()),
-          ])),
-          SizedBox(width: 220, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Icon(warn ? Icons.warning_amber_rounded : Icons.check_circle, size: 14, color: warn ? const Color(0xFFB45309) : AdminColors.secondary),
-              const SizedBox(width: 4),
-              Flexible(child: Text(c.prerequisiteDetail, style: AdminTypography.bodyMd(color: warn ? const Color(0xFFB45309) : AdminColors.secondary).copyWith(fontWeight: FontWeight.w600))),
-            ]),
-            Text(c.standingDetail, style: AdminTypography.labelSm()),
-          ])),
-          SizedBox(width: 120, child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            decoration: BoxDecoration(color: c.sponsorship == 'Self-Enrolled' ? AdminColors.surfaceContainer : const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(4)),
-            child: Text(c.sponsorship, style: AdminTypography.labelSm(color: c.sponsorship == 'Self-Enrolled' ? AdminColors.onSurfaceVariant : const Color(0xFF047857))),
-          )),
+          SizedBox(
+            width: 120,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: c.sponsorship == 'Self-Enrolled'
+                    ? AdminColors.surfaceContainer
+                    : const Color(0xFFECFDF5),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                c.sponsorship,
+                style: AdminTypography.labelSm(
+                  color: c.sponsorship == 'Self-Enrolled'
+                      ? AdminColors.onSurfaceVariant
+                      : const Color(0xFF047857),
+                ),
+              ),
+            ),
+          ),
           SizedBox(
             width: 90,
             child: Align(
@@ -540,12 +918,38 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               child: staged
                   ? OutlinedButton(
                       onPressed: () => setState(() => _staged.remove(c.id)),
-                      style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, backgroundColor: AdminColors.errorContainer.withValues(alpha: 0.3), side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AdminColors.error,
+                        backgroundColor: AdminColors.errorContainer.withValues(
+                          alpha: 0.3,
+                        ),
+                        side: BorderSide.none,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        textStyle: AdminTypography.labelSm(),
+                      ),
                       child: const Text('Remove', textAlign: TextAlign.center),
                     )
                   : OutlinedButton(
                       onPressed: () => setState(() => _staged.add(c.id)),
-                      style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), textStyle: AdminTypography.labelSm()),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: AdminColors.primaryContainer,
+                        side: BorderSide.none,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        textStyle: AdminTypography.labelSm(),
+                      ),
                       child: const Text('+ Add', textAlign: TextAlign.center),
                     ),
             ),
@@ -558,36 +962,87 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget _buildStagedPanel(int postCapacity) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Enrolment Batch Summary', style: AdminTypography.titleMd()),
-              Text('${_staged.length} students queued for commit', style: AdminTypography.bodySm()),
-            ])),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: AdminColors.primaryFixed, borderRadius: BorderRadius.circular(9999)),
-              child: Text('${_staged.length} Staged', style: AdminTypography.labelSm(color: AdminColors.onPrimaryFixed).copyWith(fontWeight: FontWeight.w700)),
-            ),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Enrolment Batch Summary',
+                      style: AdminTypography.titleMd(),
+                    ),
+                    Text(
+                      '${_staged.length} students queued for commit',
+                      style: AdminTypography.bodySm(),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AdminColors.primaryFixed,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  '${_staged.length} Staged',
+                  style: AdminTypography.labelSm(
+                    color: AdminColors.onPrimaryFixed,
+                  ).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('Capacity Post-Enrolment:', style: AdminTypography.titleSm()),
-                  Text('$postCapacity / $_capacity', style: AdminTypography.titleSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w800)),
-                ]),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Capacity Post-Enrolment:',
+                      style: AdminTypography.titleSm(),
+                    ),
+                    Text(
+                      '$postCapacity / $_capacity',
+                      style: AdminTypography.titleSm(color: AdminColors.primary)
+                          .copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 6),
-                ClipRRect(borderRadius: BorderRadius.circular(9999), child: LinearProgressIndicator(value: postCapacity / _capacity, minHeight: 6, backgroundColor: AdminColors.surfaceContainerHigh, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.primaryContainer))),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(9999),
+                  child: LinearProgressIndicator(
+                    value: postCapacity / _capacity,
+                    minHeight: 6,
+                    backgroundColor: AdminColors.surfaceContainerHigh,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AdminColors.primaryContainer,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text('Remaining seats will reduce from ${_capacity - _baseEnrolled} to ${_capacity - postCapacity} seats.', style: AdminTypography.labelSm()),
+                Text(
+                  'Remaining seats will reduce from ${_capacity - _baseEnrolled} to ${_capacity - postCapacity} seats.',
+                  style: AdminTypography.labelSm(),
+                ),
               ],
             ),
           ),
@@ -599,11 +1054,25 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   ? null
                   : () {
                       Navigator.of(context).pop();
-                      showSuccessSnackBar(context, '${_staged.length} student(s) enrolled into $_courseCode.');
+                      showSuccessSnackBar(
+                        context,
+                        '${_staged.length} student(s) enrolled into $_courseCode.',
+                      );
                     },
               icon: const Icon(Icons.person_add_alt_1, size: 18),
-              label: Text('Confirm & Enrol ${_staged.length} Students', textAlign: TextAlign.center),
-              style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              label: Text(
+                'Confirm & Enrol ${_staged.length} Students',
+                textAlign: TextAlign.center,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminColors.primaryContainer,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -611,7 +1080,15 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: AdminColors.primaryContainer,
+                side: BorderSide(color: AdminColors.outlineVariant),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               child: const Text('Cancel & Return', textAlign: TextAlign.center),
             ),
           ),
@@ -646,40 +1123,91 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.arrow_back, size: 18, color: AdminColors.secondary),
-                      const SizedBox(width: 6),
-                      Text('Course Roster', style: AdminTypography.labelMd(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w600)),
-                    ]),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.arrow_back,
+                          size: 18,
+                          color: AdminColors.secondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Course Roster',
+                          style: AdminTypography.labelMd(
+                            color: AdminColors.secondary,
+                          ).copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.tag, size: 14, color: AdminColors.onSurfaceVariant),
-                      const SizedBox(width: 4),
-                      Text(_sectionCode, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(letterSpacing: 0.5)),
-                    ]),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AdminColors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.tag,
+                          size: 14,
+                          color: AdminColors.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _sectionCode,
+                          style: AdminTypography.labelSm(
+                            color: AdminColors.onSurfaceVariant,
+                          ).copyWith(letterSpacing: 0.5),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(width: 6, height: 6, decoration: const BoxDecoration(color: AdminColors.secondary, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                Text('ACADEMIC REGISTRATIONS', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.6)),
-              ]),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AdminColors.secondary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'ACADEMIC REGISTRATIONS',
+                    style: AdminTypography.labelSm(
+                      color: AdminColors.secondary,
+                    ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.6),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text('Enrol Students', style: AdminTypography.headlineLg()),
               const SizedBox(height: 4),
-              Text('Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this semester.', style: AdminTypography.bodySm()),
+              Text(
+                'Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this semester.',
+                style: AdminTypography.bodySm(),
+              ),
               const SizedBox(height: 16),
               _buildClassPicker(),
               const SizedBox(height: 16),
               if (_section == null)
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('No classes found for this semester.', style: AdminTypography.bodyMd()),
+                  child: Text(
+                    'No classes found for this semester.',
+                    style: AdminTypography.bodyMd(),
+                  ),
                 )
               else ...[
                 _mobileCourseSummary(postCapacity),
@@ -688,7 +1216,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 const SizedBox(height: 10),
                 _mobileFilterBar(),
                 const SizedBox(height: 16),
-                if (_filteredCandidates.isEmpty) AdminNoResults(controller: _searchController, focusNode: _searchFocus),
+                if (_filteredCandidates.isEmpty)
+                  AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
                 for (final c in _filteredCandidates) ...[
                   _mobileCandidateCard(c),
                   const SizedBox(height: 12),
@@ -705,7 +1237,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget _mobileCourseSummary(int postCapacity) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -713,19 +1249,40 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: AdminColors.primary, borderRadius: BorderRadius.circular(4)),
-                      child: Text(_courseCode, style: AdminTypography.labelSm(color: AdminColors.onPrimary).copyWith(fontWeight: FontWeight.w700)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AdminColors.primary,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _courseCode,
+                            style: AdminTypography.labelSm(
+                              color: AdminColors.onPrimary,
+                            ).copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '• $_sectionCode',
+                            style: AdminTypography.labelSm(),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Flexible(child: Text('• $_sectionCode', style: AdminTypography.labelSm())),
-                  ]),
-                  const SizedBox(height: 4),
-                  Text(_courseTitle, style: AdminTypography.headlineSm()),
-                ]),
+                    const SizedBox(height: 4),
+                    Text(_courseTitle, style: AdminTypography.headlineSm()),
+                  ],
+                ),
               ),
             ],
           ),
@@ -733,17 +1290,45 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
           if (_section?.lecturerName != null)
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-              child: Row(children: [
-                Container(width: 32, height: 32, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHighest, shape: BoxShape.circle), child: const Icon(Icons.co_present, size: 18, color: AdminColors.primary)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(_section!.lecturerName!, style: AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700)),
-                    Text(_section!.scheduleText, style: AdminTypography.bodySm()),
-                  ]),
-                ),
-              ]),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: const BoxDecoration(
+                      color: AdminColors.surfaceContainerHighest,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.co_present,
+                      size: 18,
+                      color: AdminColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _section!.lecturerName!,
+                          style: AdminTypography.labelMd().copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          _section!.scheduleText,
+                          style: AdminTypography.bodySm(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           const SizedBox(height: 12),
           _mobileCapacityBar(postCapacity),
@@ -757,13 +1342,21 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          Flexible(
-            child: Text('Semester Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
-          ),
-          const SizedBox(width: 8),
-          Text('$postCapacity / $_capacity Enrolled', style: AdminTypography.titleSm()),
-        ]),
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                'Semester Capacity Status',
+                style: AdminTypography.bodySm(color: AdminColors.onSurface),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$postCapacity / $_capacity Enrolled',
+              style: AdminTypography.titleSm(),
+            ),
+          ],
+        ),
         const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(9999),
@@ -772,24 +1365,41 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(flex: _baseEnrolled, child: Container(color: AdminColors.primaryContainer)),
-                if (_staged.isNotEmpty) Expanded(flex: _staged.length, child: Container(color: AdminColors.secondary)),
-                if (remaining > 0) Expanded(flex: remaining, child: Container(color: AdminColors.surfaceContainerHigh)),
+                Expanded(
+                  flex: _baseEnrolled,
+                  child: Container(color: AdminColors.primaryContainer),
+                ),
+                if (_staged.isNotEmpty)
+                  Expanded(
+                    flex: _staged.length,
+                    child: Container(color: AdminColors.secondary),
+                  ),
+                if (remaining > 0)
+                  Expanded(
+                    flex: remaining,
+                    child: Container(color: AdminColors.surfaceContainerHigh),
+                  ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 6),
-        Row(children: [
-          Flexible(
-            child: Text(
-              '$remaining seats remaining',
-              style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                '$remaining seats remaining',
+                style: AdminTypography.labelSm(color: AdminColors.secondary)
+                    .copyWith(fontWeight: FontWeight.w700),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text('$_waitlistCount on Waitlist', style: AdminTypography.labelSm()),
-        ]),
+            const SizedBox(width: 8),
+            Text(
+              '$_waitlistCount on Waitlist',
+              style: AdminTypography.labelSm(),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -803,7 +1413,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         isDense: true,
         fillColor: AdminColors.surfaceContainerLowest,
         hintText: 'Search student by name, ID...',
-        prefixIcon: const Icon(Icons.search, size: 20, color: AdminColors.outline),
+        prefixIcon: const Icon(
+          Icons.search,
+          size: 20,
+          color: AdminColors.outline,
+        ),
         contentPadding: const EdgeInsets.symmetric(vertical: 10),
       ),
     );
@@ -829,19 +1443,39 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: active ? AdminColors.secondary : AdminColors.surfaceContainerLowest,
+        color: active
+            ? AdminColors.secondary
+            : AdminColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(8),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 4)],
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text(label, style: AdminTypography.labelMd(color: active ? Colors.white : AdminColors.onSurfaceVariant)),
-        const SizedBox(width: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-          decoration: BoxDecoration(color: active ? Colors.white.withValues(alpha: 0.2) : AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-          child: Text(count, style: AdminTypography.labelSm(color: active ? Colors.white : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
-        ),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: AdminTypography.labelMd(
+              color: active ? Colors.white : AdminColors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: active
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : AdminColors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              count,
+              style: AdminTypography.labelSm(
+                color: active ? Colors.white : AdminColors.onSurface,
+              ).copyWith(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -853,22 +1487,37 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     return semester;
   }
 
-  Widget _mobileDetailRow(String label, String value, {IconData? icon, Color? iconColor, Color? valueColor}) {
+  Widget _mobileDetailRow(
+    String label,
+    String value, {
+    IconData? icon,
+    Color? iconColor,
+    Color? valueColor,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(letterSpacing: 0.4)),
+        Text(
+          label,
+          style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)
+              .copyWith(letterSpacing: 0.4),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (icon != null) ...[Icon(icon, size: 14, color: iconColor), const SizedBox(width: 4)],
+              if (icon != null) ...[
+                Icon(icon, size: 14, color: iconColor),
+                const SizedBox(width: 4),
+              ],
               Flexible(
                 child: Text(
                   value,
                   textAlign: TextAlign.end,
-                  style: AdminTypography.labelMd(color: valueColor ?? AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600),
+                  style: AdminTypography.labelMd(
+                    color: valueColor ?? AdminColors.onSurface,
+                  ).copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -892,8 +1541,12 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
       pillFg = AdminColors.secondary;
     } else if (c.queueTag != null) {
       pillText = c.queueTag!;
-      pillBg = c.needsReview ? AdminColors.errorContainer : AdminColors.surfaceContainer;
-      pillFg = c.needsReview ? AdminColors.onErrorContainer : AdminColors.onSurfaceVariant;
+      pillBg = c.needsReview
+          ? AdminColors.errorContainer
+          : AdminColors.surfaceContainer;
+      pillFg = c.needsReview
+          ? AdminColors.onErrorContainer
+          : AdminColors.onSurfaceVariant;
     } else if (c.sponsorship == 'Self-Enrolled') {
       pillText = 'Self-Enrolled';
       pillBg = AdminColors.surfaceContainer;
@@ -910,7 +1563,9 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         color: AdminColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-        border: staged ? Border.all(color: AdminColors.secondary.withValues(alpha: 0.3)) : null,
+        border: staged
+            ? Border.all(color: AdminColors.secondary.withValues(alpha: 0.3))
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -923,36 +1578,63 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   width: 20,
                   height: 20,
                   margin: const EdgeInsets.only(top: 2, right: 8),
-                  decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(5)),
-                  child: const Icon(Icons.lock, size: 13, color: AdminColors.onErrorContainer),
+                  decoration: BoxDecoration(
+                    color: AdminColors.errorContainer,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: const Icon(
+                    Icons.lock,
+                    size: 13,
+                    color: AdminColors.onErrorContainer,
+                  ),
                 )
               else
                 GestureDetector(
-                  onTap: () => setState(() => staged ? _staged.remove(c.id) : _staged.add(c.id)),
+                  onTap: () => setState(
+                    () => staged ? _staged.remove(c.id) : _staged.add(c.id),
+                  ),
                   child: Container(
                     width: 20,
                     height: 20,
                     margin: const EdgeInsets.only(top: 2, right: 8),
                     decoration: BoxDecoration(
-                      color: staged ? AdminColors.secondary : AdminColors.surfaceContainerHigh,
+                      color: staged
+                          ? AdminColors.secondary
+                          : AdminColors.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(5),
                     ),
-                    child: staged ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                    child: staged
+                        ? const Icon(Icons.check, size: 14, color: Colors.white)
+                        : null,
                   ),
                 ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                      Text(c.studentName, style: AdminTypography.headlineSm()),
-                      Text(c.studentEmployeeId ?? '—', style: AdminTypography.labelSm()),
-                      if (roleMismatch)
-                        Tooltip(
-                          message: 'One or more course mismatch with the student role',
-                          child: Icon(Icons.error, size: 15, color: AdminColors.error),
+                    Wrap(
+                      spacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          c.studentName,
+                          style: AdminTypography.headlineSm(),
                         ),
-                    ]),
+                        Text(
+                          c.studentEmployeeId ?? '—',
+                          style: AdminTypography.labelSm(),
+                        ),
+                        if (roleMismatch)
+                          Tooltip(
+                            message: 'One or more course mismatch with the student role',
+                            child: Icon(
+                              Icons.error,
+                              size: 15,
+                              color: AdminColors.error,
+                            ),
+                          ),
+                      ],
+                    ),
                     Text(c.studentEmail, style: AdminTypography.bodySm()),
                   ],
                 ),
@@ -960,28 +1642,49 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: pillBg, borderRadius: BorderRadius.circular(9999)),
-                child: Text(pillText, style: AdminTypography.labelSm(color: pillFg).copyWith(fontWeight: FontWeight.w700)),
+                decoration: BoxDecoration(
+                  color: pillBg,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  pillText,
+                  style: AdminTypography.labelSm(color: pillFg)
+                      .copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Column(children: [
-              _mobileDetailRow('Track', '${c.department} (${_shortSemester(c.semester)})'),
-              const SizedBox(height: 6),
-              _mobileDetailRow(
-                'Prereqs',
-                c.prerequisiteDetail,
-                icon: c.needsReview ? Icons.warning_amber_rounded : Icons.verified,
-                iconColor: c.needsReview ? const Color(0xFFB45309) : AdminColors.secondary,
-                valueColor: c.needsReview ? const Color(0xFFB45309) : AdminColors.secondary,
-              ),
-              const SizedBox(height: 6),
-              _mobileDetailRow('Sponsor', c.sponsorship),
-            ]),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                _mobileDetailRow(
+                  'Track',
+                  '${c.department} (${_shortSemester(c.semester)})',
+                ),
+                const SizedBox(height: 6),
+                _mobileDetailRow(
+                  'Prereqs',
+                  c.prerequisiteDetail,
+                  icon: c.needsReview
+                      ? Icons.warning_amber_rounded
+                      : Icons.verified,
+                  iconColor: c.needsReview
+                      ? const Color(0xFFB45309)
+                      : AdminColors.secondary,
+                  valueColor: c.needsReview
+                      ? const Color(0xFFB45309)
+                      : AdminColors.secondary,
+                ),
+                const SizedBox(height: 6),
+                _mobileDetailRow('Sponsor', c.sponsorship),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           if (locked) ...[
@@ -998,11 +1701,24 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   const Icon(Icons.warning, size: 16, color: AdminColors.error),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Prereq Waiver Required', style: AdminTypography.labelMd(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 2),
-                      Text(c.standingDetail, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
-                    ]),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Prereq Waiver Required',
+                          style: AdminTypography.labelMd(
+                            color: AdminColors.error,
+                          ).copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          c.standingDetail,
+                          style: AdminTypography.bodySm(
+                            color: AdminColors.onErrorContainer,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1012,9 +1728,19 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () {
-                  showSuccessSnackBar(context, 'Waiver review requested for ${c.studentName}.');
+                  showSuccessSnackBar(
+                    context,
+                    'Waiver review requested for ${c.studentName}.',
+                  );
                 },
-                style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: BorderSide(color: AdminColors.error), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AdminColors.error,
+                  side: BorderSide(color: AdminColors.error),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
                 child: const Text('Review Waiver', textAlign: TextAlign.center),
               ),
             ),
@@ -1022,18 +1748,42 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Row(children: [
-                    const Icon(Icons.check_circle, size: 14, color: AdminColors.secondary),
-                    const SizedBox(width: 4),
-                    Flexible(child: Text(c.standingDetail, style: AdminTypography.labelSm())),
-                  ]),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        size: 14,
+                        color: AdminColors.secondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          c.standingDetail,
+                          style: AdminTypography.labelSm(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 TextButton(
-                  onPressed: () => setState(() => staged ? _staged.remove(c.id) : _staged.add(c.id)),
-                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  onPressed: () => setState(
+                    () => staged ? _staged.remove(c.id) : _staged.add(c.id),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   child: Text(
                     staged ? 'Remove' : '+ Stage',
-                    style: AdminTypography.labelMd(color: staged ? AdminColors.error : AdminColors.secondary).copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+                    style: AdminTypography.labelMd(
+                      color: staged ? AdminColors.error : AdminColors.secondary,
+                    ).copyWith(fontWeight: FontWeight.w700),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ),
@@ -1046,42 +1796,85 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   Widget _mobileBatchSummary(int postCapacity) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Color(0x1F000000), blurRadius: 12, offset: Offset(0, -2))]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F000000),
+            blurRadius: 12,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(color: AdminColors.secondary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.fact_check, size: 18, color: AdminColors.secondary),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Enrolment Batch Summary (${_staged.length} Staged)', style: AdminTypography.headlineSm()),
-                Text('Capacity Post-Enrolment: $postCapacity / $_capacity', style: AdminTypography.bodySm()),
-              ]),
-            ),
-          ]),
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AdminColors.secondary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.fact_check,
+                  size: 18,
+                  color: AdminColors.secondary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Enrolment Batch Summary (${_staged.length} Staged)',
+                      style: AdminTypography.headlineSm(),
+                    ),
+                    Text(
+                      'Capacity Post-Enrolment: $postCapacity / $_capacity',
+                      style: AdminTypography.bodySm(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-            child: Row(children: [
-              const Icon(Icons.trending_down, size: 16, color: AdminColors.secondary),
-              const SizedBox(width: 6),
-              Expanded(child: Text('Seat Allocation Impact:', style: AdminTypography.labelSm())),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  'Remaining: ${_capacity - _baseEnrolled} → ${_capacity - postCapacity}',
-                  textAlign: TextAlign.end,
-                  style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.trending_down,
+                  size: 16,
+                  color: AdminColors.secondary,
                 ),
-              ),
-            ]),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Seat Allocation Impact:',
+                    style: AdminTypography.labelSm(),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    'Remaining: ${_capacity - _baseEnrolled} → ${_capacity - postCapacity}',
+                    textAlign: TextAlign.end,
+                    style: AdminTypography.labelSm(color: AdminColors.onSurface)
+                        .copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -1091,11 +1884,25 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   ? null
                   : () {
                       Navigator.of(context).pop();
-                      showSuccessSnackBar(context, '${_staged.length} student(s) enrolled into $_courseCode.');
+                      showSuccessSnackBar(
+                        context,
+                        '${_staged.length} student(s) enrolled into $_courseCode.',
+                      );
                     },
               icon: const Icon(Icons.how_to_reg, size: 18),
-              label: Text('Confirm & Enrol ${_staged.length} Students', textAlign: TextAlign.center),
-              style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              label: Text(
+                'Confirm & Enrol ${_staged.length} Students',
+                textAlign: TextAlign.center,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminColors.primaryContainer,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -1103,7 +1910,15 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: AdminColors.primaryContainer, side: BorderSide(color: AdminColors.outlineVariant), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: AdminColors.primaryContainer,
+                side: BorderSide(color: AdminColors.outlineVariant),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               child: const Text('Cancel & Return', textAlign: TextAlign.center),
             ),
           ),

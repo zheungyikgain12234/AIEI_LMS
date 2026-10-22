@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/admin_typography.dart';
+
 import 'pending_syllabus_badge.dart';
 
 enum AdminNavDestination {
@@ -60,44 +61,148 @@ class AdminMenuGroup {
 /// where the records are managed day to day.
 const adminMenuGroups = <AdminMenuGroup>[
   AdminMenuGroup('LECTURERS', Color(0xFFEAF1FB), [
-    AdminMenuItem(Icons.corporate_fare_outlined, 'Manage Lecturer Depts', AdminNavDestination.manageLecturerDepartments),
-    AdminMenuItem(Icons.psychology_outlined, 'Manage Teaching Competencies', AdminNavDestination.manageSpecializations),
-    AdminMenuItem(Icons.psychology_alt_outlined, 'Teaching Competency ↔ Course Mapping', AdminNavDestination.specializationCourseMapping),
-    AdminMenuItem(Icons.badge_outlined, 'Manage and Assign Lecturers', AdminNavDestination.manageLecturers),
+    AdminMenuItem(
+      Icons.corporate_fare_outlined,
+      'Manage Lecturer Depts',
+      AdminNavDestination.manageLecturerDepartments,
+    ),
+    AdminMenuItem(
+      Icons.psychology_outlined,
+      'Manage Teaching Competencies',
+      AdminNavDestination.manageSpecializations,
+    ),
+    AdminMenuItem(
+      Icons.psychology_alt_outlined,
+      'Teaching Competency ↔ Course Mapping',
+      AdminNavDestination.specializationCourseMapping,
+    ),
+    AdminMenuItem(
+      Icons.badge_outlined,
+      'Manage and Assign Lecturers',
+      AdminNavDestination.manageLecturers,
+    ),
   ]),
   AdminMenuGroup('COURSES & CLASSES', Color(0xFFEAF5EE), [
-    AdminMenuItem(Icons.sell_outlined, 'Manage Course Tags', AdminNavDestination.manageCourseTags),
-    AdminMenuItem(Icons.view_module_outlined, 'Manage Module Lists', AdminNavDestination.manageModuleLists),
-    AdminMenuItem(Icons.menu_book_outlined, 'Manage Courses', AdminNavDestination.manageCourses),
-    AdminMenuItem(Icons.event_note_outlined, 'Manage Classes', AdminNavDestination.manageClasses),
-    AdminMenuItem(Icons.fact_check_outlined, 'Manage Syllabi', AdminNavDestination.manageSyllabi),
+    AdminMenuItem(
+      Icons.sell_outlined,
+      'Manage Course Tags',
+      AdminNavDestination.manageCourseTags,
+    ),
+    AdminMenuItem(
+      Icons.view_module_outlined,
+      'Manage Module Lists',
+      AdminNavDestination.manageModuleLists,
+    ),
+    AdminMenuItem(
+      Icons.menu_book_outlined,
+      'Manage Courses',
+      AdminNavDestination.manageCourses,
+    ),
+    AdminMenuItem(
+      Icons.event_note_outlined,
+      'Manage Classes',
+      AdminNavDestination.manageClasses,
+    ),
+    AdminMenuItem(
+      Icons.fact_check_outlined,
+      'Manage Syllabi',
+      AdminNavDestination.manageSyllabi,
+    ),
   ]),
   AdminMenuGroup('STUDENTS', Color(0xFFFFF4E2), [
-    AdminMenuItem(Icons.hub_outlined, 'Manage Semesters', AdminNavDestination.manageSemesters),
-    AdminMenuItem(Icons.groups_outlined, 'Manage and Enrol Students', AdminNavDestination.manageStudents),
+    AdminMenuItem(
+      Icons.hub_outlined,
+      'Manage Semesters',
+      AdminNavDestination.manageSemesters,
+    ),
+    AdminMenuItem(
+      Icons.groups_outlined,
+      'Manage and Enrol Students',
+      AdminNavDestination.manageStudents,
+    ),
   ]),
   AdminMenuGroup('PUBLIC STUDENTS', Color(0xFFF1ECFA), [
-    AdminMenuItem(Icons.workspace_premium_outlined, 'Manage Programmes', AdminNavDestination.manageProgrammes),
-    AdminMenuItem(Icons.alt_route_outlined, 'Manage Tracks', AdminNavDestination.manageProgramTracks),
-    AdminMenuItem(Icons.account_tree_outlined, 'Programme ↔ Track Mapping', AdminNavDestination.programmeTrackMapping),
-    AdminMenuItem(Icons.alt_route, 'Track ↔ Course Mapping', AdminNavDestination.trackCourseMapping),
+    AdminMenuItem(
+      Icons.workspace_premium_outlined,
+      'Manage Programmes',
+      AdminNavDestination.manageProgrammes,
+    ),
+    AdminMenuItem(
+      Icons.alt_route_outlined,
+      'Manage Tracks',
+      AdminNavDestination.manageProgramTracks,
+    ),
+    AdminMenuItem(
+      Icons.account_tree_outlined,
+      'Programme ↔ Track Mapping',
+      AdminNavDestination.programmeTrackMapping,
+    ),
+    AdminMenuItem(
+      Icons.alt_route,
+      'Track ↔ Course Mapping',
+      AdminNavDestination.trackCourseMapping,
+    ),
   ]),
   AdminMenuGroup('STAFF STUDENTS', Color(0xFFE6F4F4), [
-    AdminMenuItem(Icons.apartment_outlined, 'Manage Staff Depts', AdminNavDestination.manageDepartments),
-    AdminMenuItem(Icons.work_outline, 'Manage Staff Roles', AdminNavDestination.manageRoles),
-    AdminMenuItem(Icons.account_tree_outlined, 'Staff Depts ↔ Course Mapping', AdminNavDestination.departmentCourseMapping),
-    AdminMenuItem(Icons.swap_horiz_outlined, 'Staff Role ↔ Course Mapping', AdminNavDestination.roleCourseMapping),
+    AdminMenuItem(
+      Icons.apartment_outlined,
+      'Manage Staff Depts',
+      AdminNavDestination.manageDepartments,
+    ),
+    AdminMenuItem(
+      Icons.work_outline,
+      'Manage Staff Roles',
+      AdminNavDestination.manageRoles,
+    ),
+    AdminMenuItem(
+      Icons.account_tree_outlined,
+      'Staff Depts ↔ Course Mapping',
+      AdminNavDestination.departmentCourseMapping,
+    ),
+    AdminMenuItem(
+      Icons.swap_horiz_outlined,
+      'Staff Role ↔ Course Mapping',
+      AdminNavDestination.roleCourseMapping,
+    ),
   ]),
   AdminMenuGroup('GRADES & BADGES', Color(0xFFFBEDEF), [
-    AdminMenuItem(Icons.rule_outlined, 'Grade Approvals', AdminNavDestination.gradeApprovals),
-    AdminMenuItem(Icons.military_tech_outlined, 'Manage Badges', AdminNavDestination.manageBadgeCatalog),
-    AdminMenuItem(Icons.military_tech_outlined, 'Badge ↔ Course Mapping', AdminNavDestination.badgeCourseMapping),
-    AdminMenuItem(Icons.approval_outlined, 'Badge Approvals', AdminNavDestination.badgeApprovals),
-    AdminMenuItem(Icons.workspace_premium, 'Manage Badge Award', AdminNavDestination.manageBadges),
+    AdminMenuItem(
+      Icons.rule_outlined,
+      'Grade Approvals',
+      AdminNavDestination.gradeApprovals,
+    ),
+    AdminMenuItem(
+      Icons.military_tech_outlined,
+      'Manage Badges',
+      AdminNavDestination.manageBadgeCatalog,
+    ),
+    AdminMenuItem(
+      Icons.military_tech_outlined,
+      'Badge ↔ Course Mapping',
+      AdminNavDestination.badgeCourseMapping,
+    ),
+    AdminMenuItem(
+      Icons.approval_outlined,
+      'Badge Approvals',
+      AdminNavDestination.badgeApprovals,
+    ),
+    AdminMenuItem(
+      Icons.workspace_premium,
+      'Manage Badge Award',
+      AdminNavDestination.manageBadges,
+    ),
   ]),
   AdminMenuGroup('SYSTEM', Color(0xFFF0F1F3), [
-    AdminMenuItem(Icons.admin_panel_settings_outlined, 'Manage Admin', AdminNavDestination.manageAdmins),
-    AdminMenuItem(Icons.settings_outlined, 'Settings', AdminNavDestination.settings),
+    AdminMenuItem(
+      Icons.admin_panel_settings_outlined,
+      'Manage Admin',
+      AdminNavDestination.manageAdmins,
+    ),
+    AdminMenuItem(
+      Icons.settings_outlined,
+      'Settings',
+      AdminNavDestination.settings,
+    ),
   ]),
 ];
 
@@ -136,13 +241,19 @@ class AdminSidebar extends StatelessWidget {
                 Container(
                   margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
                   padding: const EdgeInsets.fromLTRB(0, 12, 0, 6),
-                  decoration: BoxDecoration(color: group.tint, borderRadius: BorderRadius.circular(14)),
+                  decoration: BoxDecoration(
+                    color: group.tint,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: Text(group.title, style: AdminTypography.labelSm()),
+                        child: Text(
+                          group.title,
+                          style: AdminTypography.labelSm(),
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -153,9 +264,15 @@ class AdminSidebar extends StatelessWidget {
                               _NavItem(
                                 icon: item.icon,
                                 label: item.label,
-                                trailing: item.destination == AdminNavDestination.manageSyllabi ? const PendingSyllabusDot() : null,
+                                trailing:
+                                    item.destination ==
+                                        AdminNavDestination.manageSyllabi
+                                    ? const PendingSyllabusDot()
+                                    : null,
                                 isSelected: selected == item.destination,
-                                onTap: () => onDestinationSelected?.call(item.destination),
+                                onTap: () => onDestinationSelected?.call(
+                                  item.destination,
+                                ),
                               ),
                           ],
                         ),
@@ -170,7 +287,6 @@ class AdminSidebar extends StatelessWidget {
     );
   }
 }
-
 
 class _NavItem extends StatefulWidget {
   final IconData icon;
@@ -229,7 +345,10 @@ class _NavItemState extends State<_NavItem> {
                   ),
                 ),
               ),
-              if (widget.trailing != null) ...[const SizedBox(width: 8), widget.trailing!],
+              if (widget.trailing != null) ...[
+                const SizedBox(width: 8),
+                widget.trailing!,
+              ],
             ],
           ),
         ),

@@ -3,8 +3,10 @@ import 'package:stitch_aiei_lms/core/utils/app_snackbar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
+
 import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_fixed_code.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,6 +18,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_course_tags_rep
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/domain/models/course_tag_option.dart';
+
 import 'widgets/admin_field_error.dart';
 import 'widgets/admin_field_label.dart';
 import 'widgets/searchable_dropdown.dart';
@@ -38,8 +41,12 @@ class CourseFormScreen extends ConsumerStatefulWidget {
 }
 
 class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
-  final _repository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
-  final _tagsRepository = SupabaseAdminCourseTagsRepositoryImpl(Supabase.instance.client);
+  final _repository = SupabaseAdminCoursesRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _tagsRepository = SupabaseAdminCourseTagsRepositoryImpl(
+    Supabase.instance.client,
+  );
   final _formKey = GlobalKey<FormState>();
 
   final _courseCodeController = TextEditingController();
@@ -64,8 +71,10 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
-  String? get _codeConflict => _errorMessage == codeConflictMessage ? _errorMessage : null;
-  String? get _nameConflict => _errorMessage == nameConflictMessage ? _errorMessage : null;
+  String? get _codeConflict =>
+      _errorMessage == codeConflictMessage ? _errorMessage : null;
+  String? get _nameConflict =>
+      _errorMessage == nameConflictMessage ? _errorMessage : null;
   String? _tagError;
 
   /// Every code is stored tenant-prefixed (`TN01-PY-402`) to keep it unique
@@ -100,7 +109,9 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           _courseDescriptionController.text = course.courseDescription;
           _creditsController.text = course.credits.toString();
           _bannerImageUrl = course.imageUrl;
-          _category = _categoryOptions.any((c) => c.$1 == course!.category) ? course.category : 'techData';
+          _category = _categoryOptions.any((c) => c.$1 == course!.category)
+              ? course.category
+              : 'techData';
           _selectedTagIds
             ..clear()
             ..addAll(course.tagIds);
@@ -126,14 +137,20 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   }
 
   Future<void> _pickAndUploadBanner() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
     if (result == null || result.files.isEmpty) return;
     final file = result.files.single;
     final Uint8List? bytes = file.bytes;
     if (bytes == null) return;
     setState(() => _uploadingBanner = true);
     try {
-      final url = await _repository.uploadCourseBanner(fileName: file.name, bytes: bytes);
+      final url = await _repository.uploadCourseBanner(
+        fileName: file.name,
+        bytes: bytes,
+      );
       if (!mounted) return;
       setState(() {
         _bannerImageUrl = url;
@@ -151,7 +168,9 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
   Future<void> _save() async {
     final formValid = _formKey.currentState!.validate();
     final tagsValid = _selectedTagIds.isNotEmpty;
-    setState(() => _tagError = tagsValid ? null : 'Select at least one Course Tag.');
+    setState(
+      () => _tagError = tagsValid ? null : 'Select at least one Course Tag.',
+    );
     if (!formValid || !tagsValid) return;
     setState(() {
       _isSaving = true;
@@ -163,7 +182,8 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
       if (widget.isEditing) {
         saved = await _repository.updateCourse(
           widget.courseId!,
-          courseCode: '${_tenantPrefix()}${_courseCodeController.text.trim().toUpperCase()}',
+          courseCode:
+              '${_tenantPrefix()}${_courseCodeController.text.trim().toUpperCase()}',
           courseTitle: _courseTitleController.text.trim(),
           courseDescription: _courseDescriptionController.text.trim(),
           category: _category,
@@ -173,7 +193,8 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
         );
       } else {
         saved = await _repository.createCourse(
-          courseCode: '${_tenantPrefix()}${_courseCodeController.text.trim().toUpperCase()}',
+          courseCode:
+              '${_tenantPrefix()}${_courseCodeController.text.trim().toUpperCase()}',
           courseTitle: _courseTitleController.text.trim(),
           courseDescription: _courseDescriptionController.text.trim(),
           category: _category,
@@ -183,7 +204,10 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
         );
       }
       if (!mounted) return;
-      showSuccessSnackBar(context, widget.isEditing ? 'Course updated.' : 'Course created.');
+      showSuccessSnackBar(
+        context,
+        widget.isEditing ? 'Course updated.' : 'Course created.',
+      );
       Navigator.of(context).pop(saved);
     } catch (e) {
       if (!mounted) return;
@@ -206,133 +230,193 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
         foregroundColor: AdminColors.onSurface,
         title: Text(title, style: AdminTypography.headlineSm()),
       ),
-      body: _isLoading
-          ? const SkeletonBody()
-          : Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AdminColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            widget.isEditing
-                                ? 'Update this course\'s catalogue information.'
-                                : 'Add a new course to the institutional catalogue. Lecturer and section assignment can be done afterward.',
-                            style: AdminTypography.bodyMd(),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_errorMessage != null && !isFieldConflictMessage(_errorMessage!)) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AdminColors.errorContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(_errorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                          if (widget.isEditing)
-                            AdminFixedCode(label: 'Course Code', value: _courseCodeController.text.trim().toUpperCase()),
-                          _bannerField(),
-                          const SizedBox(height: 14),
-                          if (!widget.isEditing) ...[
-                            _field(controller: _courseCodeController, label: 'Course Code', hint: 'PY-402', inputFormatters: const [UpperCaseTextFormatter()]),
-                            AdminFieldError(_codeConflict),
-                            const SizedBox(height: 14),
-                          ],
-                          _field(controller: _courseTitleController, label: 'Course Title', hint: 'Python for Enterprise Data Analysis'),
-                          AdminFieldError(_nameConflict),
-                          const SizedBox(height: 14),
-                          _field(controller: _courseDescriptionController, label: 'Description', hint: 'What this course covers...', maxLines: 4),
-                          const SizedBox(height: 14),
-                          _dropdown(
-                            label: 'Category',
-                            value: _category,
-                            options: _categoryOptions,
-                            onChanged: (v) => setState(() => _category = v!),
-                          ),
-                          const SizedBox(height: 14),
-                          _field(
-                            controller: _creditsController,
-                            label: 'Credits',
-                            hint: '3',
-                            keyboardType: TextInputType.number,
-                            inputFormatters: digitsOnly,
-                            validator: (value) {
-                              final trimmed = value?.trim() ?? '';
-                              if (trimmed.isEmpty) return 'Credits is required';
-                              final parsed = int.tryParse(trimmed);
-                              if (parsed == null || parsed <= 0) return 'Enter a positive whole number';
-                              if (parsed > maxCredits) return 'Credits cannot exceed $maxCredits';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          _multiSelect(
-                            label: 'Course Tags',
-                            required: true,
-                            hint: 'Select at least one tag',
-                            options: [for (final t in _availableTags) (id: t.id, label: t.label)],
-                            selectedIds: _selectedTagIds,
-                          ),
-                          AdminFieldError(_tagError),
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: AdminColors.primaryContainer,
-                                    side: BorderSide.none,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: const Text('Cancel', textAlign: TextAlign.center),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _isSaving ? null : _save,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AdminColors.primaryContainer,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: _isSaving
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                        )
-                                      : Text(widget.isEditing ? 'Save Changes' : 'Add Course'),
-                                ),
-                              ),
-                            ],
-                          ),
+      body: SafeArea(
+        top: false,
+        child: _isLoading
+            ? const SkeletonBody()
+            : Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AdminColors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x0D000000), blurRadius: 6),
                         ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              widget.isEditing
+                                  ? 'Update this course\'s catalogue information.'
+                                  : 'Add a new course to the institutional catalogue. Lecturer and section assignment can be done afterward.',
+                              style: AdminTypography.bodyMd(),
+                            ),
+                            const SizedBox(height: 20),
+                            if (_errorMessage != null &&
+                                !isFieldConflictMessage(_errorMessage!)) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AdminColors.errorContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _errorMessage!,
+                                  style: AdminTypography.bodySm(
+                                    color: AdminColors.onErrorContainer,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            if (widget.isEditing)
+                              AdminFixedCode(
+                                label: 'Course Code',
+                                value: _courseCodeController.text
+                                    .trim()
+                                    .toUpperCase(),
+                              ),
+                            _bannerField(),
+                            const SizedBox(height: 14),
+                            if (!widget.isEditing) ...[
+                              _field(
+                                controller: _courseCodeController,
+                                label: 'Course Code',
+                                hint: 'PY-402',
+                                inputFormatters: const [
+                                  UpperCaseTextFormatter(),
+                                ],
+                              ),
+                              AdminFieldError(_codeConflict),
+                              const SizedBox(height: 14),
+                            ],
+                            _field(
+                              controller: _courseTitleController,
+                              label: 'Course Title',
+                              hint: 'Python for Enterprise Data Analysis',
+                            ),
+                            AdminFieldError(_nameConflict),
+                            const SizedBox(height: 14),
+                            _field(
+                              controller: _courseDescriptionController,
+                              label: 'Description',
+                              hint: 'What this course covers...',
+                              maxLines: 4,
+                            ),
+                            const SizedBox(height: 14),
+                            _dropdown(
+                              label: 'Category',
+                              value: _category,
+                              options: _categoryOptions,
+                              onChanged: (v) => setState(() => _category = v!),
+                            ),
+                            const SizedBox(height: 14),
+                            _field(
+                              controller: _creditsController,
+                              label: 'Credits',
+                              hint: '3',
+                              keyboardType: TextInputType.number,
+                              inputFormatters: digitsOnly,
+                              validator: (value) {
+                                final trimmed = value?.trim() ?? '';
+                                if (trimmed.isEmpty)
+                                  return 'Credits is required';
+                                final parsed = int.tryParse(trimmed);
+                                if (parsed == null || parsed <= 0)
+                                  return 'Enter a positive whole number';
+                                if (parsed > maxCredits)
+                                  return 'Credits cannot exceed $maxCredits';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            _multiSelect(
+                              label: 'Course Tags',
+                              required: true,
+                              hint: 'Select at least one tag',
+                              options: [
+                                for (final t in _availableTags)
+                                  (id: t.id, label: t.label),
+                              ],
+                              selectedIds: _selectedTagIds,
+                            ),
+                            AdminFieldError(_tagError),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: _isSaving
+                                        ? null
+                                        : () => Navigator.of(context).pop(),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor:
+                                          AdminColors.primaryContainer,
+                                      side: BorderSide.none,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Cancel',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _isSaving ? null : _save,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          AdminColors.primaryContainer,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: _isSaving
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            widget.isEditing
+                                                ? 'Save Changes'
+                                                : 'Add Course',
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -349,12 +433,23 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
             width: double.infinity,
             color: AdminColors.surfaceContainerLow,
             child: _bannerImageUrl == null || _bannerImageUrl!.isEmpty
-                ? const Center(child: Icon(Icons.image_outlined, size: 36, color: AdminColors.outline))
+                ? const Center(
+                    child: Icon(
+                      Icons.image_outlined,
+                      size: 36,
+                      color: AdminColors.outline,
+                    ),
+                  )
                 : Image.network(
                     _bannerImageUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Center(child: Icon(Icons.broken_image_outlined, size: 36, color: AdminColors.outline)),
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        size: 36,
+                        color: AdminColors.outline,
+                      ),
+                    ),
                   ),
           ),
         ),
@@ -364,21 +459,37 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
             OutlinedButton.icon(
               onPressed: _uploadingBanner ? null : _pickAndUploadBanner,
               icon: _uploadingBanner
-                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Icon(Icons.upload_outlined, size: 16),
-              label: Text(_bannerImageUrl == null || _bannerImageUrl!.isEmpty ? 'Upload Banner Image' : 'Replace Banner Image', textAlign: TextAlign.center),
+              label: Text(
+                _bannerImageUrl == null || _bannerImageUrl!.isEmpty
+                    ? 'Upload Banner Image'
+                    : 'Replace Banner Image',
+                textAlign: TextAlign.center,
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
                 backgroundColor: AdminColors.primaryContainer,
                 side: BorderSide.none,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
             if (_bannerImageUrl != null && _bannerImageUrl!.isNotEmpty) ...[
               const SizedBox(width: 8),
               TextButton(
-                onPressed: _uploadingBanner ? null : () => setState(() => _bannerImageUrl = null),
+                onPressed: _uploadingBanner
+                    ? null
+                    : () => setState(() => _bannerImageUrl = null),
                 child: const Text('Remove', textAlign: TextAlign.center),
               ),
             ],
@@ -395,7 +506,9 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
     required List<({String id, String label})> options,
     required Set<String> selectedIds,
   }) {
-    final selectedOptions = options.where((o) => selectedIds.contains(o.id)).toList();
+    final selectedOptions = options
+        .where((o) => selectedIds.contains(o.id))
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -403,17 +516,35 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
         const SizedBox(height: 6),
         InkWell(
           borderRadius: BorderRadius.circular(10),
-          onTap: () => _openMultiSelectPicker(label: label, options: options, selectedIds: selectedIds),
+          onTap: () => _openMultiSelectPicker(
+            label: label,
+            options: options,
+            selectedIds: selectedIds,
+          ),
           child: Container(
             width: double.infinity,
             constraints: const BoxConstraints(minHeight: 48),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: selectedOptions.isEmpty
                 ? Row(
                     children: [
-                      Expanded(child: Text(hint, style: AdminTypography.bodySm(color: AdminColors.outline))),
-                      const Icon(Icons.expand_more, size: 18, color: AdminColors.onSurfaceVariant),
+                      Expanded(
+                        child: Text(
+                          hint,
+                          style: AdminTypography.bodySm(
+                            color: AdminColors.outline,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.expand_more,
+                        size: 18,
+                        color: AdminColors.onSurfaceVariant,
+                      ),
                     ],
                   )
                 : Wrap(
@@ -422,11 +553,18 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                     children: [
                       for (final o in selectedOptions)
                         Chip(
-                          label: Text(o.label, style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+                          label: Text(
+                            o.label,
+                            style: AdminTypography.labelSm(
+                              color: AdminColors.onSurface,
+                            ),
+                          ),
                           backgroundColor: AdminColors.surfaceContainer,
                           deleteIcon: const Icon(Icons.close, size: 14),
-                          onDeleted: () => setState(() => selectedIds.remove(o.id)),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          onDeleted: () =>
+                              setState(() => selectedIds.remove(o.id)),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                           visualDensity: VisualDensity.compact,
                         ),
                     ],
@@ -448,7 +586,11 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           final query = searchController.text.trim().toLowerCase();
-          final filtered = query.isEmpty ? options : options.where((o) => o.label.toLowerCase().contains(query)).toList();
+          final filtered = query.isEmpty
+              ? options
+              : options
+                    .where((o) => o.label.toLowerCase().contains(query))
+                    .toList();
           return AdminFormDialog(
             title: 'Select $label',
             maxWidth: 480,
@@ -464,12 +606,20 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                     autofocus: true,
                     onChanged: (_) => setDialogState(() {}),
                     style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-                    decoration: adminFormDecoration(hint: 'Search...', prefixIcon: const Icon(Icons.search, size: 18)),
+                    decoration: adminFormDecoration(
+                      hint: 'Search...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Expanded(
                     child: filtered.isEmpty
-                        ? Center(child: Text('No matches.', style: AdminTypography.bodySm()))
+                        ? Center(
+                            child: Text(
+                              'No matches.',
+                              style: AdminTypography.bodySm(),
+                            ),
+                          )
                         : ListView.builder(
                             itemCount: filtered.length,
                             itemBuilder: (context, index) {
@@ -478,10 +628,15 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
                               return CheckboxListTile(
                                 value: checked,
                                 dense: true,
-                                controlAffinity: ListTileControlAffinity.leading,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
                                 title: Text(option.label),
                                 onChanged: (v) => setDialogState(() {
-                                  setState(() => v == true ? selectedIds.add(option.id) : selectedIds.remove(option.id));
+                                  setState(
+                                    () => v == true
+                                        ? selectedIds.add(option.id)
+                                        : selectedIds.remove(option.id),
+                                  );
                                 }),
                               );
                             },
@@ -525,10 +680,21 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
             isDense: true,
             hintText: hint,
             prefixText: prefixText,
-            prefixStyle: AdminTypography.bodyMd(color: AdminColors.onSurfaceVariant),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            prefixStyle: AdminTypography.bodyMd(
+              color: AdminColors.onSurfaceVariant,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
-          validator: validator ?? (required ? (value) => (value == null || value.trim().isEmpty) ? '$label is required' : null : null),
+          validator:
+              validator ??
+              (required
+                  ? (value) => (value == null || value.trim().isEmpty)
+                        ? '$label is required'
+                        : null
+                  : null),
         ),
       ],
     );
@@ -551,9 +717,18 @@ class _CourseFormScreenState extends ConsumerState<CourseFormScreen> {
           style: AdminTypography.bodyMd(color: AdminColors.onSurface),
           decoration: InputDecoration(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
-          items: [for (final o in options) DropdownMenuItem(value: o.$1, child: Text(o.$2, overflow: TextOverflow.ellipsis))],
+          items: [
+            for (final o in options)
+              DropdownMenuItem(
+                value: o.$1,
+                child: Text(o.$2, overflow: TextOverflow.ellipsis),
+              ),
+          ],
           onChanged: onChanged,
         ),
       ],

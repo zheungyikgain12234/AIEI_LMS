@@ -19,7 +19,13 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
       decoration: const BoxDecoration(
         color: AdminColors.navSurface,
         border: Border(bottom: BorderSide(color: AdminColors.navBorder)),
-        boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
@@ -31,16 +37,33 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
                 'https://lh3.googleusercontent.com/aida-public/AB6AXuDCaMBS-U4oFSVROHoDpAiGwvpOy1ivvJGSI_WfY0WX7QoRM-fyACYsDXamVpuy9nPp4DS3CZS5Id-vsuIkd0IFETOltui-g18k3ZBnLHM1PY4o6wE9LeNHbGeuIBBYIVzFUtG1JDowy2iHIYlvr9T8QTrZSotsTanHF_Cc5uzgEJpX3htWp4qlZ2-oqutU_ei1cNZGJhEaiBobBpOspNBtvF96qnHxoXh2QI6_aQoJfzsJW49NLMxIIM7emyAqSTeeWw',
                 height: 32,
                 errorBuilder: (context, error, stackTrace) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: AdminColors.primary, borderRadius: BorderRadius.circular(6)),
-                  child: Text('AIEI', style: AdminTypography.titleMd(color: Colors.white)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AdminColors.primary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'AIEI',
+                    style: AdminTypography.titleMd(color: Colors.white),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(9999)),
-                child: Text('ADMIN PORTAL', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+                decoration: BoxDecoration(
+                  color: AdminColors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  'ADMIN PORTAL',
+                  style: AdminTypography.labelSm(
+                    color: AdminColors.onSurfaceVariant,
+                  ),
+                ),
               ),
             ],
           ),
@@ -60,16 +83,31 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(profile?.name ?? '', style: AdminTypography.titleSm(color: AdminColors.onSurface).copyWith(fontSize: 14)),
-                      Text(profile?.subtitle ?? '', style: AdminTypography.labelSm().copyWith(fontSize: 12)),
+                      Text(
+                        profile?.name ?? '',
+                        style: AdminTypography.titleSm(
+                          color: AdminColors.onSurface,
+                        ).copyWith(fontSize: 14),
+                      ),
+                      Text(
+                        profile?.subtitle ?? '',
+                        style: AdminTypography.labelSm().copyWith(fontSize: 12),
+                      ),
                     ],
                   ),
                   const SizedBox(width: 10),
                   Container(
                     width: 34,
                     height: 34,
-                    decoration: const BoxDecoration(color: AdminColors.primary, shape: BoxShape.circle),
-                    child: const Icon(Icons.person, color: AdminColors.onPrimary, size: 20),
+                    decoration: const BoxDecoration(
+                      color: AdminColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      color: AdminColors.onPrimary,
+                      size: 20,
+                    ),
                   ),
                 ],
               ),

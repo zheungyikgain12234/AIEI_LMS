@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/core/utils/error_messages.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
+
 import 'widgets/searchable_dropdown.dart';
 
 // ---------------------------------------------------------------------------
@@ -24,13 +25,19 @@ import 'widgets/searchable_dropdown.dart';
 class ReassignOrphanedClassesScreen extends StatefulWidget {
   final List<Lecturer> lecturersToDelete;
 
-  const ReassignOrphanedClassesScreen({super.key, required this.lecturersToDelete});
+  const ReassignOrphanedClassesScreen({
+    super.key,
+    required this.lecturersToDelete,
+  });
 
   @override
-  State<ReassignOrphanedClassesScreen> createState() => _ReassignOrphanedClassesScreenState();
+  State<ReassignOrphanedClassesScreen> createState() =>
+      _ReassignOrphanedClassesScreenState();
 }
 
-class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesScreen> with RefreshOnReturn<ReassignOrphanedClassesScreen> {
+class _ReassignOrphanedClassesScreenState
+    extends State<ReassignOrphanedClassesScreen>
+    with RefreshOnReturn<ReassignOrphanedClassesScreen> {
   @override
   void onReturnedTo() => _load();
 
@@ -44,9 +51,13 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
   final Map<String, String> _errorBySection = {};
   String? _loadError;
 
-  Set<String> get _deletingIds => {for (final l in widget.lecturersToDelete) l.id};
+  Set<String> get _deletingIds => {
+    for (final l in widget.lecturersToDelete) l.id,
+  };
 
-  bool get _allChosen => _orphaned.isNotEmpty && _orphaned.every((s) => _newLecturerBySection.containsKey(s.id));
+  bool get _allChosen =>
+      _orphaned.isNotEmpty &&
+      _orphaned.every((s) => _newLecturerBySection.containsKey(s.id));
 
   @override
   void initState() {
@@ -56,12 +67,16 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
 
   Future<void> _load() async {
     try {
-      final sections = await _repository.getSectionsForLecturers(_deletingIds.toList());
+      final sections = await _repository.getSectionsForLecturers(
+        _deletingIds.toList(),
+      );
       final lecturers = await _repository.getLecturers();
       if (!mounted) return;
       setState(() {
         _orphaned = sections;
-        _candidates = lecturers.where((l) => !_deletingIds.contains(l.id)).toList();
+        _candidates = lecturers
+            .where((l) => !_deletingIds.contains(l.id))
+            .toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -88,7 +103,9 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
       final newLecturerId = _newLecturerBySection[section.id]!;
       try {
         await _repository.assignLecturerToSection(section.id, newLecturerId);
-        await _repository.assignCoursesToLecturer(newLecturerId, [section.courseId]);
+        await _repository.assignCoursesToLecturer(newLecturerId, [
+          section.courseId,
+        ]);
       } catch (e) {
         remaining.add(section);
         _errorBySection[section.id] = friendlyErrorMessage(e);
@@ -108,7 +125,12 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete lecturers: ${friendlyErrorMessage(e)}'), backgroundColor: AdminColors.error),
+        SnackBar(
+          content: Text(
+            'Failed to delete lecturers: ${friendlyErrorMessage(e)}',
+          ),
+          backgroundColor: AdminColors.error,
+        ),
       );
       return;
     }
@@ -118,7 +140,8 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
   }
 
   String _scheduleLabel(CourseSection s) {
-    if (s.dayOfWeek == null || s.startTime == null || s.endTime == null) return 'Schedule TBD';
+    if (s.dayOfWeek == null || s.startTime == null || s.endTime == null)
+      return 'Schedule TBD';
     final dates = s.startDate == null && s.endDate == null
         ? ''
         : ' • ${_ymd(s.startDate)} to ${_ymd(s.endDate)}';
@@ -138,31 +161,39 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
         foregroundColor: AdminColors.onSurface,
         title: Text('Reassign Classes', style: AdminTypography.headlineSm()),
       ),
-      body: _isLoading
-          ? const SkeletonBody()
-          : _loadError != null
-              ? Center(child: Text(_loadError!, style: AdminTypography.bodyMd(color: AdminColors.error)))
-              : Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 760),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildIntroCard(),
-                          const SizedBox(height: 16),
-                          for (final s in _orphaned) ...[
-                            _buildClassCard(s),
-                            const SizedBox(height: 12),
-                          ],
-                          const SizedBox(height: 4),
-                          _buildSubmitBar(),
+      body: SafeArea(
+        top: false,
+        child: _isLoading
+            ? const SkeletonBody()
+            : _loadError != null
+            ? Center(
+                child: Text(
+                  _loadError!,
+                  style: AdminTypography.bodyMd(color: AdminColors.error),
+                ),
+              )
+            : Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildIntroCard(),
+                        const SizedBox(height: 16),
+                        for (final s in _orphaned) ...[
+                          _buildClassCard(s),
+                          const SizedBox(height: 12),
                         ],
-                      ),
+                        const SizedBox(height: 4),
+                        _buildSubmitBar(),
+                      ],
                     ),
                   ),
                 ),
+              ),
+      ),
     );
   }
 
@@ -177,14 +208,19 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, color: AdminColors.onErrorContainer),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: AdminColors.onErrorContainer,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               '$names ${widget.lecturersToDelete.length == 1 ? 'is' : 'are'} still assigned to '
               '${_orphaned.length} class${_orphaned.length == 1 ? '' : 'es'}. Pick a new lecturer for each class below — '
               'the lecturer${widget.lecturersToDelete.length == 1 ? '' : 's'} will only be deleted once every class is reassigned.',
-              style: AdminTypography.bodySm(color: AdminColors.onErrorContainer),
+              style: AdminTypography.bodySm(
+                color: AdminColors.onErrorContainer,
+              ),
             ),
           ),
         ],
@@ -205,20 +241,38 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Flexible(
-              child: Text('${s.courseCode} • ${s.courseTitle}', style: AdminTypography.titleSm()),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-              child: Text(s.sectionCode, style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-            ),
-          ]),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  '${s.courseCode} • ${s.courseTitle}',
+                  style: AdminTypography.titleSm(),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AdminColors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  s.sectionCode,
+                  style: AdminTypography.labelSm(color: AdminColors.onSurface)
+                      .copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 2),
-          Text('${s.semester ?? 'No semester'} • ${_scheduleLabel(s)}', style: AdminTypography.labelSm()),
-          Text('Currently: ${s.lecturerName ?? 'Unknown lecturer'}', style: AdminTypography.labelSm()),
+          Text(
+            '${s.semester ?? 'No semester'} • ${_scheduleLabel(s)}',
+            style: AdminTypography.labelSm(),
+          ),
+          Text(
+            'Currently: ${s.lecturerName ?? 'Unknown lecturer'}',
+            style: AdminTypography.labelSm(),
+          ),
           const SizedBox(height: 10),
           const Text('New lecturer'),
           const SizedBox(height: 6),
@@ -228,14 +282,23 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
             style: AdminTypography.bodyMd(color: AdminColors.onSurface),
             decoration: InputDecoration(
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
             ),
-            hint: Text('Search and select a lecturer', style: AdminTypography.bodySm(color: AdminColors.outline)),
+            hint: Text(
+              'Search and select a lecturer',
+              style: AdminTypography.bodySm(color: AdminColors.outline),
+            ),
             items: [
               for (final l in _candidates)
                 DropdownMenuItem(
                   value: l.id,
-                  child: Text('${l.name} (${displayCode(l.lecturerCode)}) • ${l.department}', overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    '${l.name} (${displayCode(l.lecturerCode)}) • ${l.department}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
             ],
             onChanged: (id) => setState(() {
@@ -249,7 +312,10 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
           ),
           if (error != null) ...[
             const SizedBox(height: 8),
-            Text(error, style: AdminTypography.bodySm(color: AdminColors.error)),
+            Text(
+              error,
+              style: AdminTypography.bodySm(color: AdminColors.error),
+            ),
           ],
         ],
       ),
@@ -257,7 +323,9 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
   }
 
   Widget _buildSubmitBar() {
-    final chosen = _orphaned.where((s) => _newLecturerBySection.containsKey(s.id)).length;
+    final chosen = _orphaned
+        .where((s) => _newLecturerBySection.containsKey(s.id))
+        .length;
     final count = widget.lecturersToDelete.length;
     return Row(
       children: [
@@ -270,17 +338,30 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
           ),
         ),
         ElevatedButton(
-          onPressed: _isSubmitting || _orphaned.isEmpty || _candidates.isEmpty ? null : _submit,
+          onPressed: _isSubmitting || _orphaned.isEmpty || _candidates.isEmpty
+              ? null
+              : _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: AdminColors.error,
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           child: _isSubmitting
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : Text('Reassign & Delete $count Lecturer${count == 1 ? '' : 's'}'),
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  'Reassign & Delete $count Lecturer${count == 1 ? '' : 's'}',
+                ),
         ),
       ],
     );

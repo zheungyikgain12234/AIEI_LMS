@@ -9,7 +9,11 @@ class AdminNoResults extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
 
-  const AdminNoResults({super.key, required this.controller, required this.focusNode});
+  const AdminNoResults({
+    super.key,
+    required this.controller,
+    required this.focusNode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,10 +31,11 @@ class AdminNoResults extends StatelessWidget {
             },
             child: Text(
               'Clear search query',
-              style: AdminTypography.bodyMd(color: AdminColors.primaryContainer).copyWith(
-                decoration: TextDecoration.underline,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AdminTypography.bodyMd(color: AdminColors.primaryContainer)
+                  .copyWith(
+                    decoration: TextDecoration.underline,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
         ],

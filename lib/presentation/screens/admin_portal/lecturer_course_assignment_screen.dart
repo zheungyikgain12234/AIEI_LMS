@@ -18,9 +18,11 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_specialization_course
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
 import 'package:stitch_aiei_lms/domain/models/semester.dart';
-import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart' show LecturerClassSlot;
+import 'package:stitch_aiei_lms/domain/repositories/lecturers_repository.dart'
+    show LecturerClassSlot;
 import 'package:stitch_aiei_lms/data/repositories/supabase_admin_module_lists_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/module_list.dart';
+
 import 'widgets/admin_form_dialog.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_field_error.dart';
@@ -46,18 +48,32 @@ class LecturerCourseAssignmentScreen extends ConsumerStatefulWidget {
   const LecturerCourseAssignmentScreen({super.key, required this.lecturerId});
 
   @override
-  ConsumerState<LecturerCourseAssignmentScreen> createState() => _LecturerCourseAssignmentScreenState();
+  ConsumerState<LecturerCourseAssignmentScreen> createState() =>
+      _LecturerCourseAssignmentScreenState();
 }
 
-class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseAssignmentScreen> with RefreshOnReturn<LecturerCourseAssignmentScreen> {
+class _LecturerCourseAssignmentScreenState
+    extends ConsumerState<LecturerCourseAssignmentScreen>
+    with RefreshOnReturn<LecturerCourseAssignmentScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _lecturersRepository = SupabaseLecturersRepositoryImpl(Supabase.instance.client);
-  final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
-  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
-  final _specializationMappingRepository = SupabaseSpecializationCourseMappingRepositoryImpl(Supabase.instance.client);
-  final _moduleListsRepository = SupabaseAdminModuleListsRepositoryImpl(Supabase.instance.client);
+  final _lecturersRepository = SupabaseLecturersRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _masterDataRepository = SupabaseAdminMasterDataRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _specializationMappingRepository =
+      SupabaseSpecializationCourseMappingRepositoryImpl(
+        Supabase.instance.client,
+      );
+  final _moduleListsRepository = SupabaseAdminModuleListsRepositoryImpl(
+    Supabase.instance.client,
+  );
   final _modules = ModuleNamesController();
 
   bool _isLoading = true;
@@ -79,8 +95,19 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   final _classCodeController = TextEditingController();
   final _capacityController = TextEditingController();
   String _query = '';
-  static const _dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  static const _deliveryModeOptions = [('physical', 'Physical'), ('online', 'Online')];
+  static const _dayOptions = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  static const _deliveryModeOptions = [
+    ('physical', 'Physical'),
+    ('online', 'Online'),
+  ];
   String? _dayOfWeek;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -96,7 +123,10 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -113,8 +143,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    final lecturer = await _lecturersRepository.getLecturerById(widget.lecturerId);
-    final assignedSchedules = await _lecturersRepository.getAssignedSchedules(widget.lecturerId);
+    final lecturer = await _lecturersRepository.getLecturerById(
+      widget.lecturerId,
+    );
+    final assignedSchedules = await _lecturersRepository.getAssignedSchedules(
+      widget.lecturerId,
+    );
     final allCourses = await _coursesRepository.getCourses();
     final semesters = await _masterDataRepository.getSemesters();
 
@@ -125,7 +159,11 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     final specializationCourseIds = <String>{};
     for (final s in specializations) {
       if (lecturer.competencies.contains(s.name)) {
-        specializationCourseIds.addAll(await _specializationMappingRepository.getCourseIdsForSpecialization(s.id));
+        specializationCourseIds.addAll(
+          await _specializationMappingRepository.getCourseIdsForSpecialization(
+            s.id,
+          ),
+        );
       }
     }
 
@@ -149,10 +187,15 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       final years = _allYears;
       if (_selectedYear == null || !years.contains(_selectedYear)) {
         final currentYear = DateTime.now().year;
-        _selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
+        _selectedYear = years.contains(currentYear)
+            ? currentYear
+            : (years.isEmpty ? null : years.last);
       }
-      final semesterNames = _selectedYear == null ? const <String>[] : _semesterNamesForYear(_selectedYear!);
-      if (_selectedSemester == null || !semesterNames.contains(_selectedSemester)) {
+      final semesterNames = _selectedYear == null
+          ? const <String>[]
+          : _semesterNamesForYear(_selectedYear!);
+      if (_selectedSemester == null ||
+          !semesterNames.contains(_selectedSemester)) {
         _selectedSemester = semesterNames.isEmpty ? null : semesterNames.first;
       }
       _selectedCourseId = null;
@@ -161,7 +204,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     });
   }
 
-  Map<String, int> get _semesterYearByName => {for (final c in _semesterModels) c.name: c.year};
+  Map<String, int> get _semesterYearByName => {
+    for (final c in _semesterModels) c.name: c.year,
+  };
 
   /// Every year with at least one semester in the system — the source for the
   /// Year dropdown at the top of the page (not limited to years this
@@ -174,7 +219,10 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   }
 
   List<String> _semesterNamesForYear(int year) {
-    final names = _semesterModels.where((c) => c.year == year).map((c) => c.name).toList();
+    final names = _semesterModels
+        .where((c) => c.year == year)
+        .map((c) => c.name)
+        .toList();
     return names;
   }
 
@@ -190,19 +238,30 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   /// semesters in [_selectedYear] only — real teaching load computed from
   /// this lecturer's actual class sections, since the same course can now
   /// be assigned to them more than once (different semesters and/or times).
-  List<({String semester, int classCount, int credits})> get _semesterWorkloads {
+  List<({String semester, int classCount, int credits})>
+  get _semesterWorkloads {
     final creditsBySemester = <String, int>{};
     final countBySemester = <String, int>{};
     for (final s in _assignedSchedules) {
       final semester = s.semester;
       if (semester == null) continue;
-      if (_selectedYear != null && _semesterYearByName[semester] != _selectedYear) continue;
+      if (_selectedYear != null &&
+          _semesterYearByName[semester] != _selectedYear)
+        continue;
       final credits = _creditsByCourseId[s.courseId] ?? 0;
-      creditsBySemester[semester] = (creditsBySemester[semester] ?? 0) + credits;
+      creditsBySemester[semester] =
+          (creditsBySemester[semester] ?? 0) + credits;
       countBySemester[semester] = (countBySemester[semester] ?? 0) + 1;
     }
     final names = creditsBySemester.keys.toList()..sort();
-    return [for (final name in names) (semester: name, classCount: countBySemester[name]!, credits: creditsBySemester[name]!)];
+    return [
+      for (final name in names)
+        (
+          semester: name,
+          classCount: countBySemester[name]!,
+          credits: creditsBySemester[name]!,
+        ),
+    ];
   }
 
   /// The lecturer's real total workload across every semester/section (not
@@ -210,16 +269,25 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   /// row per (lecturer, course) regardless of how many semesters/sections),
   /// so it can no longer be trusted as "credits used" now that a course may
   /// be assigned to the same lecturer more than once.
-  int get _realCreditsUsed => _assignedSchedules.fold(0, (sum, s) => sum + (_creditsByCourseId[s.courseId] ?? 0));
+  int get _realCreditsUsed => _assignedSchedules.fold(
+    0,
+    (sum, s) => sum + (_creditsByCourseId[s.courseId] ?? 0),
+  );
 
   List<AdminCourse> get _filteredAvailable {
     if (_query.isEmpty) return _availableCourses;
-    return _availableCourses.where((c) =>
-        c.courseCode.toLowerCase().contains(_query) || c.courseTitle.toLowerCase().contains(_query)).toList();
+    return _availableCourses
+        .where(
+          (c) =>
+              c.courseCode.toLowerCase().contains(_query) ||
+              c.courseTitle.toLowerCase().contains(_query),
+        )
+        .toList();
   }
 
-  int get _assignCredits =>
-      _availableCourses.where((c) => c.id == _selectedCourseId).fold(0, (sum, c) => sum + c.credits);
+  int get _assignCredits => _availableCourses
+      .where((c) => c.id == _selectedCourseId)
+      .fold(0, (sum, c) => sum + c.credits);
 
   /// Unassigning is per section now, so this is just the sum of credits for
   /// the specific sections selected to unassign.
@@ -242,21 +310,37 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   int get _selectedSemesterUnassignCredits {
     if (_selectedSemester == null) return 0;
     return _assignedSchedules
-        .where((s) => s.semester == _selectedSemester && _selectedToUnassign.contains(s.id))
+        .where(
+          (s) =>
+              s.semester == _selectedSemester &&
+              _selectedToUnassign.contains(s.id),
+        )
         .fold(0, (sum, s) => sum + (_creditsByCourseId[s.courseId] ?? 0));
   }
 
-  int get _projectedSemesterCreditsUsed => _selectedSemesterCreditsUsed + _assignCredits - _selectedSemesterUnassignCredits;
+  int get _projectedSemesterCreditsUsed =>
+      _selectedSemesterCreditsUsed +
+      _assignCredits -
+      _selectedSemesterUnassignCredits;
 
   bool get _overCapacity =>
-      _lecturer != null && _selectedSemester != null && _projectedSemesterCreditsUsed > _lecturer!.creditsMax;
+      _lecturer != null &&
+      _selectedSemester != null &&
+      _projectedSemesterCreditsUsed > _lecturer!.creditsMax;
 
-  bool get _timeRangeValid => _startTime != null && _endTime != null && _toMinutes(_endTime!) > _toMinutes(_startTime!);
+  bool get _timeRangeValid =>
+      _startTime != null &&
+      _endTime != null &&
+      _toMinutes(_endTime!) > _toMinutes(_startTime!);
 
   bool get _dateRangeValid =>
-      _courseStartDate != null && _courseEndDate != null && _courseEndDate!.isAfter(_courseStartDate!);
-  bool get _editWindowValid => _editStartAt != null && _editEndAt != null && _editEndAt!.isAfter(_editStartAt!);
-
+      _courseStartDate != null &&
+      _courseEndDate != null &&
+      _courseEndDate!.isAfter(_courseStartDate!);
+  bool get _editWindowValid =>
+      _editStartAt != null &&
+      _editEndAt != null &&
+      _editEndAt!.isAfter(_editStartAt!);
 
   int? get _classCapacity => int.tryParse(_capacityController.text.trim());
 
@@ -265,7 +349,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   /// more than one course is assigned at once, the course code is folded in
   /// too so the same suffix (e.g. `A01`) stays unique per course.
   String _classCodeFor(AdminCourse course) {
-    final courseSuffix = _stripTenantPrefix(course.courseCode).replaceAll('-', '');
+    final courseSuffix = _stripTenantPrefix(course.courseCode)
+        .replaceAll('-', '');
     final suffix = _classCodeController.text.trim();
     return '${_tenantPrefix()}CLS-$courseSuffix-$suffix';
   }
@@ -279,14 +364,18 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   int _toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
 
-  String _formatTime(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  String _trimSeconds(String hms) => hms.length >= 5 ? hms.substring(0, 5) : hms;
+  String _trimSeconds(String hms) =>
+      hms.length >= 5 ? hms.substring(0, 5) : hms;
 
   Future<void> _pickTime({required bool isStart}) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: (isStart ? _startTime : _endTime) ?? const TimeOfDay(hour: 9, minute: 0),
+      initialTime:
+          (isStart ? _startTime : _endTime) ??
+          const TimeOfDay(hour: 9, minute: 0),
     );
     if (picked == null) return;
     setState(() => isStart ? _startTime = picked : _endTime = picked);
@@ -295,12 +384,15 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   Future<void> _pickDate({required bool isStart}) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: (isStart ? _courseStartDate : _courseEndDate) ?? DateTime.now(),
+      initialDate:
+          (isStart ? _courseStartDate : _courseEndDate) ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
     if (picked == null) return;
-    setState(() => isStart ? _courseStartDate = picked : _courseEndDate = picked);
+    setState(
+      () => isStart ? _courseStartDate = picked : _courseEndDate = picked,
+    );
   }
 
   String _formatDate(DateTime d) => formatDate(d);
@@ -309,8 +401,10 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   /// field (keyed by field) so each can be shown right beneath that field.
   Map<String, String> _validateAssign() {
     final errors = <String, String>{};
-    if (_selectedSemester == null) errors['semester'] = 'Select a year and semester at the top of the page.';
-    if (_selectedCourseId == null) errors['course'] = 'Select a course to assign.';
+    if (_selectedSemester == null)
+      errors['semester'] = 'Select a year and semester at the top of the page.';
+    if (_selectedCourseId == null)
+      errors['course'] = 'Select a course to assign.';
     if (_overCapacity) errors['course'] = 'This assignment exceeds the lecturer\'s credit capacity for the semester.';
     if (_dayOfWeek == null) errors['day'] = 'Day is required.';
     if (_startTime == null) errors['startTime'] = 'Start Time is required.';
@@ -318,12 +412,17 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     if (_startTime != null && _endTime != null && !_timeRangeValid) {
       errors['endTime'] = 'End time must be after start time.';
     }
-    if (_courseStartDate == null) errors['startDate'] = 'Course Start Date is required.';
-    if (_courseEndDate == null) errors['endDate'] = 'Course End Date is required.';
-    if (_courseStartDate != null && _courseEndDate != null && !_dateRangeValid) {
+    if (_courseStartDate == null)
+      errors['startDate'] = 'Course Start Date is required.';
+    if (_courseEndDate == null)
+      errors['endDate'] = 'Course End Date is required.';
+    if (_courseStartDate != null &&
+        _courseEndDate != null &&
+        !_dateRangeValid) {
       errors['endDate'] = 'End date must be after start date.';
     }
-    if (_classCodeController.text.trim().isEmpty) errors['classCode'] = 'Class Code is required.';
+    if (_classCodeController.text.trim().isEmpty)
+      errors['classCode'] = 'Class Code is required.';
     final capacity = _classCapacity;
     if (capacity == null || capacity <= 0) {
       errors['capacity'] = 'Capacity must be a positive number.';
@@ -351,7 +450,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         ..addAll(errors);
     });
     if (errors.isNotEmpty) return;
-    final courses = _availableCourses.where((c) => c.id == _selectedCourseId).toList();
+    final courses = _availableCourses
+        .where((c) => c.id == _selectedCourseId)
+        .toList();
 
     // The repository rejects the assignment (ScheduleConflictException) if
     // this lecturer already teaches a class with the same day, an overlapping
@@ -363,7 +464,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     try {
       final startTime = _formatTime(_startTime!);
       final endTime = _formatTime(_endTime!);
-      final location = _deliveryMode == 'online' ? null : _locationController.text.trim();
+      final location = _deliveryMode == 'online'
+          ? null
+          : _locationController.text.trim();
       final capacity = _classCapacity!;
       for (final course in courses) {
         await _lecturersRepository.createSectionForCourse(
@@ -384,9 +487,14 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           editEndAt: _editEndAt!,
         );
       }
-      await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, [_selectedCourseId!]);
+      await _lecturersRepository.assignCoursesToLecturer(widget.lecturerId, [
+        _selectedCourseId!,
+      ]);
       if (!mounted) return;
-      showSuccessSnackBar(context, '${courses.length} course${courses.length == 1 ? '' : 's'} assigned to ${_lecturer!.name}.');
+      showSuccessSnackBar(
+        context,
+        '${courses.length} course${courses.length == 1 ? '' : 's'} assigned to ${_lecturer!.name}.',
+      );
       _dayOfWeek = null;
       _startTime = null;
       _endTime = null;
@@ -417,12 +525,18 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         await _lecturersRepository.unassignSection(sectionId);
       }
       if (!mounted) return;
-      showSuccessSnackBar(context, '$count class${count == 1 ? '' : 'es'} unassigned from ${_lecturer!.name}.');
+      showSuccessSnackBar(
+        context,
+        '$count class${count == 1 ? '' : 'es'} unassigned from ${_lecturer!.name}.',
+      );
       await _load();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to unassign classes: $e'), backgroundColor: AdminColors.error),
+        SnackBar(
+          content: Text('Failed to unassign classes: $e'),
+          backgroundColor: AdminColors.error,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isUnassigning = false);
@@ -438,46 +552,54 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AdminColors.onSurface,
-        title: Text('Manage Assigned Courses', style: AdminTypography.headlineSm()),
+        title: Text(
+          'Manage Assigned Courses',
+          style: AdminTypography.headlineSm(),
+        ),
       ),
-      body: _isLoading
-          ? const SkeletonBody()
-          : Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 760),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildLecturerCard(),
-                      const SizedBox(height: 20),
-                      _buildYearSemesterCard(),
-                      const SizedBox(height: 20),
-                      if (_assignedSchedules.isNotEmpty) ...[
-                        _buildWorkloadBySemesterCard(),
+      body: SafeArea(
+        top: false,
+        child: _isLoading
+            ? const SkeletonBody()
+            : Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildLecturerCard(),
                         const SizedBox(height: 20),
-                        _buildAssignedCard(),
+                        _buildYearSemesterCard(),
+                        const SizedBox(height: 20),
+                        if (_assignedSchedules.isNotEmpty) ...[
+                          _buildWorkloadBySemesterCard(),
+                          const SizedBox(height: 20),
+                          _buildAssignedCard(),
+                          const SizedBox(height: 16),
+                          _buildUnassignBar(),
+                          const SizedBox(height: 20),
+                        ],
+                        _buildAvailableCoursesCard(),
                         const SizedBox(height: 16),
-                        _buildUnassignBar(),
-                        const SizedBox(height: 20),
+                        _buildClassDetailsCard(),
+                        const SizedBox(height: 16),
+                        _buildAssignBar(),
                       ],
-                      _buildAvailableCoursesCard(),
-                      const SizedBox(height: 16),
-                      _buildClassDetailsCard(),
-                      const SizedBox(height: 16),
-                      _buildAssignBar(),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
   Widget _buildYearSemesterCard() {
     final years = _allYears;
-    final semesterNames = _selectedYear == null ? const <String>[] : _semesterNamesForYear(_selectedYear!);
+    final semesterNames = _selectedYear == null
+        ? const <String>[]
+        : _semesterNamesForYear(_selectedYear!);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -507,15 +629,30 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                     const AdminFieldLabel('Year', required: false),
                     const SizedBox(height: 6),
                     SearchableDropdownFormField<int>(
-                      initialValue: years.contains(_selectedYear) ? _selectedYear : null,
+                      initialValue: years.contains(_selectedYear)
+                          ? _selectedYear
+                          : null,
                       isExpanded: true,
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
-                      hint: Text('Select year', style: AdminTypography.bodySm(color: AdminColors.outline)),
-                      items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
+                      hint: Text(
+                        'Select year',
+                        style: AdminTypography.bodySm(
+                          color: AdminColors.outline,
+                        ),
+                      ),
+                      items: [
+                        for (final y in years)
+                          DropdownMenuItem(value: y, child: Text('$y')),
+                      ],
                       onChanged: (y) {
                         if (y != null) _onYearChanged(y);
                       },
@@ -531,15 +668,33 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                     const AdminFieldLabel('Semester'),
                     const SizedBox(height: 6),
                     SearchableDropdownFormField<String>(
-                      initialValue: semesterNames.contains(_selectedSemester) ? _selectedSemester : null,
+                      initialValue: semesterNames.contains(_selectedSemester)
+                          ? _selectedSemester
+                          : null,
                       isExpanded: true,
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
-                      hint: Text('Select semester', style: AdminTypography.bodySm(color: AdminColors.outline)),
-                      items: [for (final c in semesterNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
+                      hint: Text(
+                        'Select semester',
+                        style: AdminTypography.bodySm(
+                          color: AdminColors.outline,
+                        ),
+                      ),
+                      items: [
+                        for (final c in semesterNames)
+                          DropdownMenuItem(
+                            value: c,
+                            child: Text(c, overflow: TextOverflow.ellipsis),
+                          ),
+                      ],
                       onChanged: (c) => setState(() => _selectedSemester = c),
                     ),
                   ],
@@ -561,78 +716,115 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
-      child: LayoutBuilder(builder: (context, constraints) {
-        // On a phone the credits block drops under the name instead of squeezing it into a thin strip.
-        final narrow = constraints.maxWidth < 520;
-        final credits = Column(
-          crossAxisAlignment: narrow ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // On a phone the credits block drops under the name instead of squeezing it into a thin strip.
+          final narrow = constraints.maxWidth < 520;
+          final credits = Column(
+            crossAxisAlignment: narrow
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.end,
             children: _selectedSemester == null
                 ? [
-                    Text('$_realCreditsUsed Credits Used (All Semesters)', style: AdminTypography.titleMd()),
+                    Text(
+                      '$_realCreditsUsed Credits Used (All Semesters)',
+                      style: AdminTypography.titleMd(),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       'Cap is ${l.creditsMax} credits per semester — select a semester below to check its capacity.',
-                      style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+                      style: AdminTypography.labelSm(
+                        color: AdminColors.onSurfaceVariant,
+                      ),
                       textAlign: narrow ? TextAlign.start : TextAlign.end,
                     ),
                   ]
                 : [
                     Text(
                       '$_projectedSemesterCreditsUsed / ${l.creditsMax} Credits',
-                      style: AdminTypography.titleMd(color: _overCapacity ? AdminColors.error : AdminColors.onSurface),
+                      style: AdminTypography.titleMd(
+                        color: _overCapacity
+                            ? AdminColors.error
+                            : AdminColors.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _selectedSemester!,
-                      style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+                      style: AdminTypography.labelSm(
+                        color: AdminColors.onSurfaceVariant,
+                      ),
                     ),
                     Text(
                       _selectedCourseId == null && _selectedToUnassign.isEmpty
                           ? 'Currently used: $_selectedSemesterCreditsUsed'
                           : '$_selectedSemesterCreditsUsed used'
-                              '${_assignCredits > 0 ? ' + $_assignCredits selected' : ''}'
-                              '${_selectedSemesterUnassignCredits > 0 ? ' − $_selectedSemesterUnassignCredits unassigning' : ''}',
-                      style: AdminTypography.labelSm(color: _overCapacity ? AdminColors.error : AdminColors.onSurfaceVariant),
+                                '${_assignCredits > 0 ? ' + $_assignCredits selected' : ''}'
+                                '${_selectedSemesterUnassignCredits > 0 ? ' − $_selectedSemesterUnassignCredits unassigning' : ''}',
+                      style: AdminTypography.labelSm(
+                        color: _overCapacity
+                            ? AdminColors.error
+                            : AdminColors.onSurfaceVariant,
+                      ),
                     ),
                     if (_overCapacity) ...[
                       const SizedBox(height: 4),
                       Text(
                         'Exceeds this semester\'s capacity by ${_projectedSemesterCreditsUsed - l.creditsMax}',
-                        style: AdminTypography.labelSm(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700),
+                        style: AdminTypography.labelSm(color: AdminColors.error)
+                            .copyWith(fontWeight: FontWeight.w700),
                       ),
                     ],
                   ],
-        );
-        final identity = Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-            child: const Icon(Icons.person, color: AdminColors.primary, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+          );
+          final identity = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: AdminColors.surfaceContainerHigh,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: AdminColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.name, style: AdminTypography.titleMd()),
+                    Text(l.title, style: AdminTypography.bodySm()),
+                    Text(
+                      '${l.department} • ${l.lecturerCode}',
+                      style: AdminTypography.labelSm(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+          if (narrow) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l.name, style: AdminTypography.titleMd()),
-                Text(l.title, style: AdminTypography.bodySm()),
-                Text('${l.department} • ${l.lecturerCode}', style: AdminTypography.labelSm()),
-              ],
-            ),
-          ),
-          ],
-        );
-        if (narrow) {
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [identity, const SizedBox(height: 12), credits]);
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Expanded(child: identity), const SizedBox(width: 12), credits],
-        );
-      }),
+              children: [identity, const SizedBox(height: 12), credits],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: identity),
+              const SizedBox(width: 12),
+              credits,
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -650,12 +842,26 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         children: [
           Row(
             children: [
-              Expanded(child: Text('Workload by Semester', style: AdminTypography.titleSm())),
+              Expanded(
+                child: Text(
+                  'Workload by Semester',
+                  style: AdminTypography.titleSm(),
+                ),
+              ),
               if (_selectedYear != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: AdminColors.surfaceContainer, borderRadius: BorderRadius.circular(9999)),
-                  child: Text('$_selectedYear', style: AdminTypography.labelSm()),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AdminColors.surfaceContainer,
+                    borderRadius: BorderRadius.circular(9999),
+                  ),
+                  child: Text(
+                    '$_selectedYear',
+                    style: AdminTypography.labelSm(),
+                  ),
                 ),
             ],
           ),
@@ -667,7 +873,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           ),
           const SizedBox(height: 12),
           if (workloads.isEmpty)
-            Text('No classes for this year.', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant))
+            Text(
+              'No classes for this year.',
+              style: AdminTypography.bodySm(
+                color: AdminColors.onSurfaceVariant,
+              ),
+            )
           else
             Column(children: [for (final w in workloads) _workloadRow(w)]),
         ],
@@ -682,7 +893,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       decoration: BoxDecoration(
-        color: isSelected ? AdminColors.primaryContainer.withValues(alpha: 0.08) : null,
+        color: isSelected
+            ? AdminColors.primaryContainer.withValues(alpha: 0.08)
+            : null,
         border: const Border(bottom: BorderSide(color: UiContrast.divider)),
       ),
       child: Row(
@@ -694,21 +907,32 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           Expanded(
             child: Text(
               w.semester,
-              style: AdminTypography.bodyMd(color: AdminColors.onSurface).copyWith(fontWeight: isSelected ? FontWeight.w700 : null),
+              style: AdminTypography.bodyMd(color: AdminColors.onSurface)
+                  .copyWith(fontWeight: isSelected ? FontWeight.w700 : null),
             ),
           ),
-          Text('${w.classCount} class${w.classCount == 1 ? '' : 'es'}', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+          Text(
+            '${w.classCount} class${w.classCount == 1 ? '' : 'es'}',
+            style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
+          ),
           const SizedBox(width: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: atCapacity ? AdminColors.errorContainer : AdminColors.surfaceContainerLow,
+              color: atCapacity
+                  ? AdminColors.errorContainer
+                  : AdminColors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(9999),
             ),
             child: Text(
-              creditsMax == null ? '${w.credits} cr' : '${w.credits} / $creditsMax cr',
-              style: AdminTypography.labelSm(color: atCapacity ? AdminColors.onErrorContainer : AdminColors.onSurface)
-                  .copyWith(fontWeight: FontWeight.w700),
+              creditsMax == null
+                  ? '${w.credits} cr'
+                  : '${w.credits} / $creditsMax cr',
+              style: AdminTypography.labelSm(
+                color: atCapacity
+                    ? AdminColors.onErrorContainer
+                    : AdminColors.onSurface,
+              ).copyWith(fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -748,7 +972,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           if (schedules.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Text('No classes assigned in this semester yet.', style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+              child: Text(
+                'No classes assigned in this semester yet.',
+                style: AdminTypography.bodySm(
+                  color: AdminColors.onSurfaceVariant,
+                ),
+              ),
             )
           else
             Column(children: [for (final s in schedules) _assignedRow(s)]),
@@ -761,7 +990,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   /// Assigned" list is scoped to the semester picked at the top of the page,
   /// so it doesn't clutter the screen with every semester's classes at once.
   List<LecturerClassSlot> get _assignedSchedulesForSelectedSemester {
-    final filtered = _assignedSchedules.where((s) => s.semester == _selectedSemester).toList();
+    final filtered = _assignedSchedules
+        .where((s) => s.semester == _selectedSemester)
+        .toList();
     filtered.sort((a, b) => a.sectionCode.compareTo(b.sectionCode));
     return filtered;
   }
@@ -770,38 +1001,63 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     final selected = _selectedToUnassign.contains(s.id);
     final course = _courseById[s.courseId];
     final credits = _creditsByCourseId[s.courseId] ?? 0;
-    final timeLabel = s.dayOfWeek == null || s.startTime == null || s.endTime == null
+    final timeLabel =
+        s.dayOfWeek == null || s.startTime == null || s.endTime == null
         ? 'Schedule TBD'
         : '${s.dayOfWeek} ${_trimSeconds(s.startTime!)}–${_trimSeconds(s.endTime!)}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           Checkbox(
             value: selected,
-            onChanged: (v) => setState(() => v == true ? _selectedToUnassign.add(s.id) : _selectedToUnassign.remove(s.id)),
+            onChanged: (v) => setState(
+              () => v == true
+                  ? _selectedToUnassign.add(s.id)
+                  : _selectedToUnassign.remove(s.id),
+            ),
             activeColor: AdminColors.error,
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
-                  Flexible(
-                    child: Text(
-                      course == null ? s.courseId : '${course.courseCode} • ${course.courseTitle}',
-                      style: AdminTypography.titleSm(),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        course == null
+                            ? s.courseId
+                            : '${course.courseCode} • ${course.courseTitle}',
+                        style: AdminTypography.titleSm(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-                    child: Text(s.sectionCode, style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                  ),
-                ]),
-                Text('${s.semester ?? 'No semester'} • $timeLabel', style: AdminTypography.labelSm()),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AdminColors.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        s.sectionCode,
+                        style: AdminTypography.labelSm(
+                          color: AdminColors.onSurface,
+                        ).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${s.semester ?? 'No semester'} • $timeLabel',
+                  style: AdminTypography.labelSm(),
+                ),
                 Text(
                   s.startDate == null && s.endDate == null
                       ? 'Dates TBD'
@@ -813,8 +1069,14 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-            child: Text('$credits cr', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+            child: Text(
+              '$credits cr',
+              style: AdminTypography.labelSm(color: AdminColors.onSurface),
+            ),
           ),
         ],
       ),
@@ -836,7 +1098,14 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         OutlinedButton.icon(
           onPressed: disabled ? null : _unassign,
           icon: _isUnassigning
-              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AdminColors.error))
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AdminColors.error,
+                  ),
+                )
               : const Icon(Icons.link_off, size: 16),
           label: const Text('Unassign Selected', textAlign: TextAlign.center),
           style: OutlinedButton.styleFrom(
@@ -844,7 +1113,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             backgroundColor: AdminColors.errorContainer,
             side: BorderSide.none,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             textStyle: AdminTypography.labelSm(),
           ),
         ),
@@ -872,7 +1143,11 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Search course by code or title...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -880,7 +1155,10 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           if (courses.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: AdminNoResults(controller: _searchController, focusNode: _searchFocus),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
             )
           else
             Column(children: [for (final c in courses) _courseRow(c)]),
@@ -891,10 +1169,14 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
 
   Widget _courseRow(AdminCourse c) {
     final specializationMismatch = !_specializationCourseIds.contains(c.id);
-    final existingSlots = _assignedSchedules.where((s) => s.courseId == c.id).toList();
+    final existingSlots = _assignedSchedules
+        .where((s) => s.courseId == c.id)
+        .toList();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           Radio<String>(
@@ -914,20 +1196,33 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           ),
           if (existingSlots.isNotEmpty) ...[
             Tooltip(
-              message: 'Already assigned to this lecturer:\n'
+              message:
+                  'Already assigned to this lecturer:\n'
                   '${existingSlots.map((s) => '${s.semester ?? '—'} • ${s.dayOfWeek ?? '—'} ${s.startTime == null ? '' : _trimSeconds(s.startTime!)}–${s.endTime == null ? '' : _trimSeconds(s.endTime!)}').join('\n')}\n'
                   'Selecting it again is fine as long as the new class doesn\'t overlap the lecturer\'s other classes (day, time and course dates).',
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.info_outline, size: 13, color: AdminColors.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Already teaching (${existingSlots.length})',
-                    style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-                  ),
-                ]),
+                decoration: BoxDecoration(
+                  color: AdminColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 13,
+                      color: AdminColors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Already teaching (${existingSlots.length})',
+                      style: AdminTypography.labelSm(
+                        color: AdminColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -937,20 +1232,41 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               message: "Not related to lecturer's teaching competencies",
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(9999)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.warning_amber_rounded, size: 13, color: Color(0xFF8A6D00)),
-                  const SizedBox(width: 4),
-                  Text('Not a competency', style: AdminTypography.labelSm(color: const Color(0xFF8A6D00))),
-                ]),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3CD),
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      size: 13,
+                      color: Color(0xFF8A6D00),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Not a competency',
+                      style: AdminTypography.labelSm(
+                        color: const Color(0xFF8A6D00),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 8),
           ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(9999)),
-            child: Text('${c.credits} cr', style: AdminTypography.labelSm(color: AdminColors.onSurface)),
+            decoration: BoxDecoration(
+              color: AdminColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+            child: Text(
+              '${c.credits} cr',
+              style: AdminTypography.labelSm(color: AdminColors.onSurface),
+            ),
           ),
         ],
       ),
@@ -975,8 +1291,16 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           if (_assignErrorMessage != null) ...[
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AdminColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-              child: Text(_assignErrorMessage!, style: AdminTypography.bodySm(color: AdminColors.onErrorContainer)),
+              decoration: BoxDecoration(
+                color: AdminColors.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _assignErrorMessage!,
+                style: AdminTypography.bodySm(
+                  color: AdminColors.onErrorContainer,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
           ],
@@ -994,23 +1318,56 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                     SearchableDropdownFormField<String>(
                       initialValue: _dayOfWeek,
                       isExpanded: true,
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
-                      hint: Text('Select day', style: AdminTypography.bodySm(color: AdminColors.outline)),
-                      items: [for (final d in _dayOptions) DropdownMenuItem(value: d, child: Text(d))],
+                      hint: Text(
+                        'Select day',
+                        style: AdminTypography.bodySm(
+                          color: AdminColors.outline,
+                        ),
+                      ),
+                      items: [
+                        for (final d in _dayOptions)
+                          DropdownMenuItem(value: d, child: Text(d)),
+                      ],
                       onChanged: (v) => setState(() => _dayOfWeek = v),
                     ),
                     AdminFieldError(_assignErrors['day']),
                   ],
                 ),
               ),
-              _timeField(label: 'Start Time', value: _startTime, onTap: () => _pickTime(isStart: true), errorKey: 'startTime'),
-              _timeField(label: 'End Time', value: _endTime, onTap: () => _pickTime(isStart: false), errorKey: 'endTime'),
-              _dateField(label: 'Course Start Date', value: _courseStartDate, onTap: () => _pickDate(isStart: true), errorKey: 'startDate'),
-              _dateField(label: 'Course End Date', value: _courseEndDate, onTap: () => _pickDate(isStart: false), errorKey: 'endDate'),
+              _timeField(
+                label: 'Start Time',
+                value: _startTime,
+                onTap: () => _pickTime(isStart: true),
+                errorKey: 'startTime',
+              ),
+              _timeField(
+                label: 'End Time',
+                value: _endTime,
+                onTap: () => _pickTime(isStart: false),
+                errorKey: 'endTime',
+              ),
+              _dateField(
+                label: 'Course Start Date',
+                value: _courseStartDate,
+                onTap: () => _pickDate(isStart: true),
+                errorKey: 'startDate',
+              ),
+              _dateField(
+                label: 'Course End Date',
+                value: _courseEndDate,
+                onTap: () => _pickDate(isStart: false),
+                errorKey: 'endDate',
+              ),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 220),
                 child: Column(
@@ -1022,11 +1379,16 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       controller: _classCodeController,
                       inputFormatters: const [UpperCaseTextFormatter()],
                       onChanged: (_) => setState(() {}),
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: 'A01',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     AdminFieldError(_assignErrors['classCode']),
@@ -1045,11 +1407,16 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       onChanged: (_) => setState(() {}),
                       keyboardType: TextInputType.number,
                       inputFormatters: digitsOnly,
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: '30',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     AdminFieldError(_assignErrors['capacity']),
@@ -1066,12 +1433,20 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                     SearchableDropdownFormField<String>(
                       initialValue: _deliveryMode,
                       isExpanded: true,
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+                      style: AdminTypography.bodyMd(
+                        color: AdminColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
-                      items: [for (final m in _deliveryModeOptions) DropdownMenuItem(value: m.$1, child: Text(m.$2))],
+                      items: [
+                        for (final m in _deliveryModeOptions)
+                          DropdownMenuItem(value: m.$1, child: Text(m.$2)),
+                      ],
                       onChanged: (v) => setState(() {
                         _deliveryMode = v!;
                         // The location is never carried across a mode switch.
@@ -1081,38 +1456,55 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   ],
                 ),
               ),
-              if (_deliveryMode != 'online') ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 220),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const AdminFieldLabel('Location'),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _locationController,
-                      onChanged: (_) => setState(() {}),
-                      style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        hintText: 'Room 204',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              if (_deliveryMode != 'online')
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const AdminFieldLabel('Location'),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _locationController,
+                        onChanged: (_) => setState(() {}),
+                        style: AdminTypography.bodyMd(
+                          color: AdminColors.onSurface,
+                        ),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: 'Room 204',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
+                          ),
+                        ),
                       ),
-                    ),
-                    AdminFieldError(_assignErrors['location']),
-                  ],
+                      AdminFieldError(_assignErrors['location']),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.groups_outlined,
+                size: 14,
+                color: AdminColors.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _selectedSemester == null
+                    ? 'No semester selected above'
+                    : 'Assigning into: $_selectedSemester',
+                style: AdminTypography.labelSm(
+                  color: AdminColors.onSurfaceVariant,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.groups_outlined, size: 14, color: AdminColors.onSurfaceVariant),
-            const SizedBox(width: 4),
-            Text(
-              _selectedSemester == null ? 'No semester selected above' : 'Assigning into: $_selectedSemester',
-              style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-            ),
-          ]),
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -1143,11 +1535,21 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           children: [
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 340),
-              child: AdminDateTimeField(label: 'Edit Start', value: _editStartAt, defaultHour: 0, onChanged: (v) => setState(() => _editStartAt = v)),
+              child: AdminDateTimeField(
+                label: 'Edit Start',
+                value: _editStartAt,
+                defaultHour: 0,
+                onChanged: (v) => setState(() => _editStartAt = v),
+              ),
             ),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 340),
-              child: AdminDateTimeField(label: 'Edit End', value: _editEndAt, defaultHour: 23, onChanged: (v) => setState(() => _editEndAt = v)),
+              child: AdminDateTimeField(
+                label: 'Edit End',
+                value: _editEndAt,
+                defaultHour: 23,
+                onChanged: (v) => setState(() => _editEndAt = v),
+              ),
             ),
           ],
         ),
@@ -1162,9 +1564,15 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
       children: [
         const AdminFieldLabel('Modules *'),
         const SizedBox(height: 2),
-        Text('Type each module this class will teach. At least one is required.', style: AdminTypography.bodySm()),
+        Text(
+          'Type each module this class will teach. At least one is required.',
+          style: AdminTypography.bodySm(),
+        ),
         const SizedBox(height: 12),
-        ModuleNamesEditor(controller: _modules, onChanged: () => setState(() {})),
+        ModuleNamesEditor(
+          controller: _modules,
+          onChanged: () => setState(() {}),
+        ),
         AdminFieldError(_assignErrors['modules']),
         const SizedBox(height: 8),
         // Both buttons are shortcuts, not steps — kept visually distinct
@@ -1174,16 +1582,27 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text('Optional shortcuts:', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+            Text(
+              'Optional shortcuts:',
+              style: AdminTypography.labelSm(
+                color: AdminColors.onSurfaceVariant,
+              ),
+            ),
             OutlinedButton.icon(
               onPressed: _importModuleList,
               icon: const Icon(Icons.download_outlined, size: 16),
-              label: const Text('Import from saved list', textAlign: TextAlign.center),
+              label: const Text(
+                'Import from saved list',
+                textAlign: TextAlign.center,
+              ),
             ),
             OutlinedButton.icon(
               onPressed: _saveModuleList,
               icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-              label: const Text('Save as reusable list', textAlign: TextAlign.center),
+              label: const Text(
+                'Save as reusable list',
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),
@@ -1203,7 +1622,10 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         submitChild: const Text('Close'),
         onSubmit: () => Navigator.of(ctx).pop(),
         child: lists.isEmpty
-            ? Text('No saved module lists yet. Create one under Master Data → Manage Module Lists, or use "Save as reusable list".', style: AdminTypography.bodySm())
+            ? Text(
+                'No saved module lists yet. Create one under Master Data → Manage Module Lists, or use "Save as reusable list".',
+                style: AdminTypography.bodySm(),
+              )
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1219,13 +1641,19 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     );
     if (picked == null || !mounted) return;
     setState(() => _modules.setNames(picked.moduleNames));
-    showSuccessSnackBar(context, 'Imported "${picked.name}". You can still edit the modules below.');
+    showSuccessSnackBar(
+      context,
+      'Imported "${picked.name}". You can still edit the modules below.',
+    );
   }
 
   Future<void> _saveModuleList() async {
     final names = _modules.names;
     if (names.isEmpty) {
-      setState(() => _assignErrors['modules'] = 'Add at least one module before saving a reusable list.');
+      setState(
+        () => _assignErrors['modules'] =
+            'Add at least one module before saving a reusable list.',
+      );
       return;
     }
     final nameController = TextEditingController();
@@ -1241,7 +1669,10 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Saves these ${names.length} module${names.length == 1 ? '' : 's'} so you can import them into other classes.', style: AdminTypography.bodySm()),
+              Text(
+                'Saves these ${names.length} module${names.length == 1 ? '' : 's'} so you can import them into other classes.',
+                style: AdminTypography.bodySm(),
+              ),
               const SizedBox(height: 14),
               const AdminFieldLabel('List name'),
               const SizedBox(height: 6),
@@ -1250,7 +1681,9 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                 autofocus: true,
                 onChanged: (_) => setDialogState(() => errorMessage = null),
                 style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-                decoration: adminFormDecoration(hint: 'e.g. Standard 4-Module Course'),
+                decoration: adminFormDecoration(
+                  hint: 'e.g. Standard 4-Module Course',
+                ),
               ),
               AdminFieldError(errorMessage),
             ],
@@ -1276,7 +1709,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     showSuccessSnackBar(context, 'Saved module list "$saved".');
   }
 
-  Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap, String? errorKey}) {
+  Widget _dateField({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+    String? errorKey,
+  }) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 160),
       child: Column(
@@ -1289,14 +1727,25 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             borderRadius: BorderRadius.circular(10),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_today_outlined, size: 16, color: AdminColors.onSurfaceVariant),
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 16,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     value == null ? 'Select date' : _formatDate(value),
-                    style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+                    style: AdminTypography.bodyMd(
+                      color: value == null
+                          ? AdminColors.outline
+                          : AdminColors.onSurface,
+                    ),
                   ),
                 ],
               ),
@@ -1308,7 +1757,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
     );
   }
 
-  Widget _timeField({required String label, required TimeOfDay? value, required VoidCallback onTap, String? errorKey}) {
+  Widget _timeField({
+    required String label,
+    required TimeOfDay? value,
+    required VoidCallback onTap,
+    String? errorKey,
+  }) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 160),
       child: Column(
@@ -1321,14 +1775,25 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             borderRadius: BorderRadius.circular(10),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: AdminColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.schedule, size: 16, color: AdminColors.onSurfaceVariant),
+                  Icon(
+                    Icons.schedule,
+                    size: 16,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     value == null ? 'Select time' : _formatTime(value),
-                    style: AdminTypography.bodyMd(color: value == null ? AdminColors.outline : AdminColors.onSurface),
+                    style: AdminTypography.bodyMd(
+                      color: value == null
+                          ? AdminColors.outline
+                          : AdminColors.onSurface,
+                    ),
                   ),
                 ],
               ),
@@ -1351,8 +1816,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           children: [
             Expanded(
               child: Text(
-                _selectedCourseId == null ? 'Select a course to assign.' : '1 course selected • $_assignCredits credits',
-                style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant),
+                _selectedCourseId == null
+                    ? 'Select a course to assign.'
+                    : '1 course selected • $_assignCredits credits',
+                style: AdminTypography.bodySm(
+                  color: AdminColors.onSurfaceVariant,
+                ),
               ),
             ),
             ElevatedButton(
@@ -1361,11 +1830,23 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                 backgroundColor: AdminColors.primaryContainer,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: _isAssigning
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Assign to Lecturer'),
             ),
           ],

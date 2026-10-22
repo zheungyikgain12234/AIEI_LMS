@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_reposit
 import 'package:stitch_aiei_lms/data/repositories/supabase_badge_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/badge_catalog_item.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+
 import 'widgets/admin_inline_label.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
@@ -28,16 +29,24 @@ class BadgeCourseMappingScreen extends StatefulWidget {
   const BadgeCourseMappingScreen({super.key});
 
   @override
-  State<BadgeCourseMappingScreen> createState() => _BadgeCourseMappingScreenState();
+  State<BadgeCourseMappingScreen> createState() =>
+      _BadgeCourseMappingScreenState();
 }
 
-class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> with RefreshOnReturn<BadgeCourseMappingScreen> {
+class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen>
+    with RefreshOnReturn<BadgeCourseMappingScreen> {
   @override
   void onReturnedTo() => _load();
 
-  final _badgesRepository = SupabaseAdminBadgeCatalogRepositoryImpl(Supabase.instance.client);
-  final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(Supabase.instance.client);
-  final _mappingRepository = SupabaseBadgeCourseMappingRepositoryImpl(Supabase.instance.client);
+  final _badgesRepository = SupabaseAdminBadgeCatalogRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _coursesRepository = SupabaseAdminCoursesRepositoryImpl(
+    Supabase.instance.client,
+  );
+  final _mappingRepository = SupabaseBadgeCourseMappingRepositoryImpl(
+    Supabase.instance.client,
+  );
 
   bool _isLoading = true;
   bool _isLoadingMapping = false;
@@ -56,7 +65,10 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
+    _searchController.addListener(
+      () =>
+          setState(() => _query = _searchController.text.trim().toLowerCase()),
+    );
     _load();
   }
 
@@ -95,7 +107,9 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
 
   List<BadgeCatalogItem> get _filteredBadges {
     if (_query.isEmpty) return _badges;
-    return _badges.where((b) => b.title.toLowerCase().contains(_query)).toList();
+    return _badges
+        .where((b) => b.title.toLowerCase().contains(_query))
+        .toList();
   }
 
   AdminCourse? get _selectedCourse {
@@ -111,18 +125,33 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   Future<void> _toggleBadge(String badgeId, bool allowed) async {
     final courseId = _selectedCourseId;
     if (courseId == null) return;
-    setState(() => allowed ? _mappedBadgeIds.add(badgeId) : _mappedBadgeIds.remove(badgeId));
+    setState(
+      () => allowed
+          ? _mappedBadgeIds.add(badgeId)
+          : _mappedBadgeIds.remove(badgeId),
+    );
     try {
       await _mappingRepository.setCourseForBadge(badgeId, courseId, allowed);
       if (mounted) {
-        setState(() => allowed ? _courseByBadge[badgeId] = courseId : _courseByBadge.remove(badgeId));
+        setState(
+          () => allowed
+              ? _courseByBadge[badgeId] = courseId
+              : _courseByBadge.remove(badgeId),
+        );
         showSuccessSnackBar(context, 'Mapping updated.');
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => allowed ? _mappedBadgeIds.remove(badgeId) : _mappedBadgeIds.add(badgeId));
+      setState(
+        () => allowed
+            ? _mappedBadgeIds.remove(badgeId)
+            : _mappedBadgeIds.add(badgeId),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update mapping: $e'), backgroundColor: AdminColors.error),
+        SnackBar(
+          content: Text('Failed to update mapping: $e'),
+          backgroundColor: AdminColors.error,
+        ),
       );
     }
   }
@@ -131,7 +160,13 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   Widget build(BuildContext context) {
     if (_isLoading) {
       // Show the page frame straight away; only the content area is a placeholder.
-      return MediaQuery.of(context).size.width <= 900 ? const SkeletonScaffold() : AdminScaffold(selected: AdminNavDestination.badgeCourseMapping, onDestinationSelected: _handleNav, body: const SkeletonPage());
+      return MediaQuery.of(context).size.width <= 900
+          ? const SkeletonScaffold()
+          : AdminScaffold(
+              selected: AdminNavDestination.badgeCourseMapping,
+              onDestinationSelected: _handleNav,
+              body: const SkeletonPage(),
+            );
     }
     if (MediaQuery.of(context).size.width <= 900) {
       return _buildMobileScaffold(context);
@@ -173,33 +208,53 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     if (_courses.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No courses exist yet.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        decoration: BoxDecoration(
+          color: AdminColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+        ),
+        child: Text(
+          'No courses exist yet.',
+          style: AdminTypography.bodyMd(color: AdminColors.error),
+        ),
       );
     }
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       child: AdminInlineLabel(
         label: 'Course',
         field: SearchableDropdownFormField<String>(
-              initialValue: _selectedCourseId,
-              isExpanded: true,
-              style: AdminTypography.bodyMd(color: AdminColors.onSurface),
-              decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              ),
-              items: [
-                for (final c in _courses)
-                  DropdownMenuItem(value: c.id, child: Text('${c.courseCode} — ${c.courseTitle}', overflow: TextOverflow.ellipsis)),
-              ],
-              onChanged: (v) {
-                if (v == null) return;
-                setState(() => _selectedCourseId = v);
-                _loadMapping(v);
-              },
+          initialValue: _selectedCourseId,
+          isExpanded: true,
+          style: AdminTypography.bodyMd(color: AdminColors.onSurface),
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
             ),
+          ),
+          items: [
+            for (final c in _courses)
+              DropdownMenuItem(
+                value: c.id,
+                child: Text(
+                  '${c.courseCode} — ${c.courseTitle}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+          onChanged: (v) {
+            if (v == null) return;
+            setState(() => _selectedCourseId = v);
+            _loadMapping(v);
+          },
+        ),
       ),
     );
   }
@@ -207,7 +262,11 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
   Widget _buildBadgesCard() {
     final badges = _filteredBadges;
     return Container(
-      decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+      decoration: BoxDecoration(
+        color: AdminColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -220,15 +279,28 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
               decoration: InputDecoration(
                 isDense: true,
                 hintText: 'Search badge by title...',
-                prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 18,
+                  color: AdminColors.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),
           if (_isLoadingMapping)
-            const Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            )
           else if (badges.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: AdminNoResults(
+                controller: _searchController,
+                focusNode: _searchFocus,
+              ),
+            )
           else
             Column(children: [for (final b in badges) _badgeRow(b)]),
           Padding(
@@ -250,12 +322,17 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
     final allowed = _mappedBadgeIds.contains(b.id);
     final otherCourseId = _courseByBadge[b.id];
     final takenBy = otherCourseId != null && otherCourseId != _selectedCourseId
-        ? _courses.where((c) => c.id == otherCourseId).map((c) => '${c.courseCode} — ${c.courseTitle}').firstOrNull
+        ? _courses
+              .where((c) => c.id == otherCourseId)
+              .map((c) => '${c.courseCode} — ${c.courseTitle}')
+              .firstOrNull
         : null;
     final locked = otherCourseId != null && otherCourseId != _selectedCourseId;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: UiContrast.divider)),
+      ),
       child: Row(
         children: [
           Checkbox(
@@ -269,7 +346,10 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
               children: [
                 Text(b.title, style: AdminTypography.titleSm()),
                 if (locked)
-                  Text('Already assigned to ${takenBy ?? 'another course'}', style: AdminTypography.bodySm()),
+                  Text(
+                    'Already assigned to ${takenBy ?? 'another course'}',
+                    style: AdminTypography.bodySm(),
+                  ),
               ],
             ),
           ),
@@ -307,20 +387,41 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
                   isDense: true,
                   fillColor: AdminColors.surfaceContainerLowest,
                   hintText: 'Search badge by title...',
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AdminColors.onSurfaceVariant,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
               const SizedBox(height: 12),
               if (_isLoadingMapping)
-                const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
               else if (badges.isEmpty)
-                Padding(padding: const EdgeInsets.all(24), child: AdminNoResults(controller: _searchController, focusNode: _searchFocus))
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AdminNoResults(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                  ),
+                )
               else
                 Container(
-                  decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
+                  decoration: BoxDecoration(
+                    color: AdminColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x0D000000), blurRadius: 6),
+                    ],
+                  ),
                   clipBehavior: Clip.antiAlias,
-                  child: Column(children: [for (final b in badges) _badgeRow(b)]),
+                  child: Column(
+                    children: [for (final b in badges) _badgeRow(b)],
+                  ),
                 ),
               const SizedBox(height: 12),
               Text(

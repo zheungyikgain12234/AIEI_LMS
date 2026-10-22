@@ -373,7 +373,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Showing ${_filteredLecturers.isEmpty ? 0 : 1}-${_filteredLecturers.length} of ${_filteredLecturers.length} Lecturers', style: AdminTypography.bodySm()),
+              Flexible(child: Text('Showing ${_filteredLecturers.isEmpty ? 0 : 1}-${_filteredLecturers.length} of ${_filteredLecturers.length} Lecturers', style: AdminTypography.bodySm())),
               Row(mainAxisSize: MainAxisSize.min, children: [1].map((p) {
                 const active = true;
                 return Container(

@@ -361,6 +361,8 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
   }
 
   Widget _headerRow() {
+    // Each row is a stacked card on a phone, so there are no columns to label.
+    if (MediaQuery.of(context).size.width <= 900) return const SizedBox.shrink();
     final style = AdminTypography.labelSm(color: AdminColors.onSurfaceVariant);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -380,6 +382,40 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
   Widget _row(AdminUser a) {
     final selected = _selected.contains(a.id);
     final you = _isYou(a);
+    if (MediaQuery.of(context).size.width <= 900) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: selected,
+              onChanged: you ? null : (v) => setState(() => v == true ? _selected.add(a.id) : _selected.remove(a.id)),
+              activeColor: AdminColors.primaryContainer,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(you ? '${a.name} (You)' : a.name, style: AdminTypography.titleSm()),
+                    Text(a.email, style: AdminTypography.bodySm(color: AdminColors.onSurface)),
+                    Text('@${a.username}', style: AdminTypography.labelSm()),
+                  ],
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => _openForm(admin: a),
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined, size: 20, color: AdminColors.onSurface),
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),

@@ -506,7 +506,28 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
     );
   }
 
+  bool get _isMobile => MediaQuery.of(context).size.width <= 900;
+
   Widget _headerRow() {
+    // On a phone each row is a stacked card, so the column header becomes a
+    // row of sort buttons.
+    if (_isMobile) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Sort by', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+            _sortHeader(widget.codeLabel ?? 'Code', _SortColumn.code),
+            _sortHeader(widget.nameLabel ?? widget.itemLabel, _SortColumn.name),
+            if (widget.showYear) _sortHeader('Year', _SortColumn.year),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
@@ -544,6 +565,41 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
 
   Widget _row(MasterDataRow row) {
     final selected = _selected.contains(row.id);
+    if (_isMobile) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: selected,
+              onChanged: (v) => setState(() => v == true ? _selected.add(row.id) : _selected.remove(row.id)),
+              activeColor: AdminColors.primaryContainer,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(row.name, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+                    Text(row.code, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
+                    if (widget.showRemarksColumn && row.remarks.isNotEmpty) Text(row.remarks, style: AdminTypography.bodySm()),
+                    if (widget.showYear) Text('Year ${row.year}', style: AdminTypography.bodySm()),
+                  ],
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => _openForm(id: row.id, code: row.code, name: row.name, remarks: row.remarks, year: row.year),
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined, size: 20, color: AdminColors.onSurface),
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: UiContrast.divider))),

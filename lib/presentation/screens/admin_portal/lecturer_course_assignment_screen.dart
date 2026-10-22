@@ -499,8 +499,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             spacing: 12,
             runSpacing: 12,
             children: [
-              SizedBox(
-                width: 160,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 160),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -523,8 +523,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   ],
                 ),
               ),
-              SizedBox(
-                width: 260,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 260),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -561,29 +561,11 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
-            child: const Icon(Icons.person, color: AdminColors.primary, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l.name, style: AdminTypography.titleMd()),
-                Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                Text('${l.department} • ${l.lecturerCode}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+      child: LayoutBuilder(builder: (context, constraints) {
+        // On a phone the credits block drops under the name instead of squeezing it into a thin strip.
+        final narrow = constraints.maxWidth < 520;
+        final credits = Column(
+          crossAxisAlignment: narrow ? CrossAxisAlignment.start : CrossAxisAlignment.end,
             children: _selectedSemester == null
                 ? [
                     Text('$_realCreditsUsed Credits Used (All Semesters)', style: AdminTypography.titleMd()),
@@ -591,7 +573,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                     Text(
                       'Cap is ${l.creditsMax} credits per semester — select a semester below to check its capacity.',
                       style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant),
-                      textAlign: TextAlign.end,
+                      textAlign: narrow ? TextAlign.start : TextAlign.end,
                     ),
                   ]
                 : [
@@ -620,9 +602,37 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                       ),
                     ],
                   ],
+        );
+        final identity = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle),
+            child: const Icon(Icons.person, color: AdminColors.primary, size: 24),
           ),
-        ],
-      ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.name, style: AdminTypography.titleMd()),
+                Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                Text('${l.department} • ${l.lecturerCode}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          ],
+        );
+        if (narrow) {
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [identity, const SizedBox(height: 12), credits]);
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [Expanded(child: identity), const SizedBox(width: 12), credits],
+        );
+      }),
     );
   }
 
@@ -976,8 +986,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             spacing: 12,
             runSpacing: 12,
             children: [
-              SizedBox(
-                width: 160,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 160),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1003,8 +1013,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               _timeField(label: 'End Time', value: _endTime, onTap: () => _pickTime(isStart: false), errorKey: 'endTime'),
               _dateField(label: 'Course Start Date', value: _courseStartDate, onTap: () => _pickDate(isStart: true), errorKey: 'startDate'),
               _dateField(label: 'Course End Date', value: _courseEndDate, onTap: () => _pickDate(isStart: false), errorKey: 'endDate'),
-              SizedBox(
-                width: 220,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1025,8 +1035,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   ],
                 ),
               ),
-              SizedBox(
-                width: 140,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 140),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1048,8 +1058,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   ],
                 ),
               ),
-              SizedBox(
-                width: 160,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 160),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1073,8 +1083,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   ],
                 ),
               ),
-              if (_deliveryMode != 'online') SizedBox(
-                width: 220,
+              if (_deliveryMode != 'online') ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1133,12 +1143,12 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
           spacing: 16,
           runSpacing: 12,
           children: [
-            SizedBox(
-              width: 340,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
               child: AdminDateTimeField(label: 'Edit Start', value: _editStartAt, defaultHour: 0, onChanged: (v) => setState(() => _editStartAt = v)),
             ),
-            SizedBox(
-              width: 340,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
               child: AdminDateTimeField(label: 'Edit End', value: _editEndAt, defaultHour: 23, onChanged: (v) => setState(() => _editEndAt = v)),
             ),
           ],
@@ -1269,8 +1279,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   }
 
   Widget _dateField({required String label, required DateTime? value, required VoidCallback onTap, String? errorKey}) {
-    return SizedBox(
-      width: 160,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 160),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1301,8 +1311,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
   }
 
   Widget _timeField({required String label, required TimeOfDay? value, required VoidCallback onTap, String? errorKey}) {
-    return SizedBox(
-      width: 160,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 160),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

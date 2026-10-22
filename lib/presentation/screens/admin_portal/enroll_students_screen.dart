@@ -263,8 +263,8 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              SizedBox(
-                width: 240,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 240),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -287,8 +287,8 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   ],
                 ),
               ),
-              SizedBox(
-                width: 320,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

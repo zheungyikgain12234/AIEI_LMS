@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_reposit
 import 'package:stitch_aiei_lms/data/repositories/supabase_role_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+import 'widgets/admin_inline_label.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -174,12 +175,9 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text('Role', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SearchableDropdownFormField<String>(
+          AdminInlineLabel(
+            label: 'Role',
+            field: SearchableDropdownFormField<String>(
                   initialValue: _selectedRoleId,
                   isExpanded: true,
                   style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -194,8 +192,6 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
                     _loadMapping(v);
                   },
                 ),
-              ),
-            ],
           ),
           const SizedBox(height: 6),
           Text(

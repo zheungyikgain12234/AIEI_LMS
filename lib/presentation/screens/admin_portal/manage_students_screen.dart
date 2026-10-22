@@ -1526,19 +1526,18 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _mobileLabeled('Programme', _programmeOf(s) ?? '—', second: s.programTrack)),
-              const SizedBox(width: 12),
-              Expanded(child: _mobileLabeled('Department / Role', s.department ?? '—', second: s.role ?? '—')),
-            ],
-          ),
+          // Stacked full-width: two half-width columns squeezed long names into thin strips.
+          _mobileLabeled('Programme', _programmeOf(s) ?? '—', second: s.programTrack),
+          const SizedBox(height: 8),
+          _mobileLabeled('Department / Role', s.department ?? '—', second: s.role ?? '—'),
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: credentials.isEmpty
+              credentials.isEmpty
                     ? Text('No badges', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))
                     : Align(
                         alignment: Alignment.centerLeft,
@@ -1551,7 +1550,6 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                           ]),
                         ),
                       ),
-              ),
               OutlinedButton(
                 onPressed: () => _openEnrolledCourses(s),
                 style: OutlinedButton.styleFrom(
@@ -1576,8 +1574,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
-        Text(value, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-        if (second != null) Text(second, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+        Text(value, style: AdminTypography.titleSm()),
+        if (second != null) Text(second, style: AdminTypography.labelSm()),
       ],
     );
   }

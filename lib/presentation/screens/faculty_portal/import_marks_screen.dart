@@ -293,6 +293,14 @@ class _ImportMarksScreenState extends State<ImportMarksScreen> {
   }
 
   Widget _headerRow() {
+    // The phone rows say what each value is, so no column header is needed.
+    if (MediaQuery.of(context).size.width <= 600) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        color: FacultyColors.surfaceContainerLow,
+        child: Text('STUDENT • MARKS (/${_fmt(_maxMarks)})', style: FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700)),
+      );
+    }
     final style = FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -309,6 +317,32 @@ class _ImportMarksScreenState extends State<ImportMarksScreen> {
 
   Widget _studentRow(RosterStudent s) {
     final marks = _marksFor(s);
+    if (MediaQuery.of(context).size.width <= 600) {
+      // Phone: name and code stacked on the left, the marks on the right.
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainerLow))),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.name, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface)),
+                  Text(s.studentCode, style: FacultyTypography.bodySm(color: FacultyColors.secondary)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              marks == null ? 'No marks yet' : _fmt(marks),
+              textAlign: TextAlign.right,
+              style: marks == null ? FacultyTypography.labelXs(color: FacultyColors.error) : FacultyTypography.titleSm(color: FacultyColors.onSurface),
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainerLow))),

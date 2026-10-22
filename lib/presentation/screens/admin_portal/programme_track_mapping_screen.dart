@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository
 import 'package:stitch_aiei_lms/domain/models/program_track.dart';
 import 'package:stitch_aiei_lms/domain/models/programme.dart';
 import 'package:stitch_aiei_lms/presentation/widgets/skeleton.dart';
+import 'widgets/admin_inline_label.dart';
 import 'widgets/admin_mobile_top_bar.dart';
 import 'widgets/admin_nav.dart';
 import 'widgets/admin_scaffold.dart';
@@ -150,12 +151,9 @@ class _ProgrammeTrackMappingScreenState extends State<ProgrammeTrackMappingScree
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-      child: Row(
-        children: [
-          Text('Programme', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SearchableDropdownFormField<String>(
+      child: AdminInlineLabel(
+        label: 'Programme',
+        field: SearchableDropdownFormField<String>(
               initialValue: _selectedProgrammeId,
               isExpanded: true,
               style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -167,8 +165,6 @@ class _ProgrammeTrackMappingScreenState extends State<ProgrammeTrackMappingScree
                 _loadMapping(v);
               },
             ),
-          ),
-        ],
       ),
     );
   }

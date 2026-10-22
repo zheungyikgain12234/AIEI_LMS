@@ -253,32 +253,30 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     final saving = _saving.contains(settingKey);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
-                const SizedBox(height: 4),
-                Text(description, style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          if (saving)
-            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-          else
-            _NumericSettingInput(
+      child: LayoutBuilder(builder: (context, constraints) {
+        final texts = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
+            const SizedBox(height: 4),
+            Text(description, style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
+          ],
+        );
+        final Widget control = saving
+            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+            : _NumericSettingInput(
               key: ValueKey(settingKey),
               value: _numericSettings[settingKey],
               onSave: (value) => _saveNumeric(settingKey, value),
               maxValue: 100,
               hint: hint,
-            ),
-        ],
-      ),
+            );
+        // On a phone the input drops under the description instead of squeezing it.
+        if (constraints.maxWidth < 520) {
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [texts, const SizedBox(height: 10), control]);
+        }
+        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: texts), const SizedBox(width: 16), control]);
+      }),
     );
   }
 
@@ -675,7 +673,10 @@ class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
         for (final band in GradeBandLimit.values)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 6,
               children: [
                 SizedBox(width: 150, child: Text(band.label, style: AdminTypography.titleSm())),
                 SizedBox(
@@ -690,8 +691,7 @@ class _GradeDistributionEditorState extends State<_GradeDistributionEditor> {
                     decoration: const InputDecoration(hintText: 'No limit', suffixText: '%'),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(child: Text('of enrolled students', style: AdminTypography.bodySm())),
+                Text('of enrolled students', style: AdminTypography.bodySm()),
               ],
             ),
           ),

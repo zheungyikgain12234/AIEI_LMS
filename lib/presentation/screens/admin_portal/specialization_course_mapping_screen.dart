@@ -11,6 +11,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_courses_reposit
 import 'package:stitch_aiei_lms/data/repositories/supabase_specialization_course_mapping_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/specialization.dart';
 import 'package:stitch_aiei_lms/domain/models/admin_course.dart';
+import 'widgets/admin_inline_label.dart';
 import 'widgets/admin_no_results.dart';
 import 'widgets/admin_scaffold.dart';
 import 'widgets/admin_sidebar.dart';
@@ -206,12 +207,9 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-      child: Row(
-        children: [
-          Text('Teaching Competency', style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SearchableDropdownFormField<String>(
+      child: AdminInlineLabel(
+        label: 'Teaching Competency',
+        field: SearchableDropdownFormField<String>(
               initialValue: _selectedSpecializationId,
               isExpanded: true,
               style: AdminTypography.bodyMd(color: AdminColors.onSurface),
@@ -226,8 +224,6 @@ class _SpecializationCourseMappingScreenState extends State<SpecializationCourse
                 _loadMapping(v);
               },
             ),
-          ),
-        ],
       ),
     );
   }

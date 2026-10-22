@@ -208,6 +208,29 @@ class _MarkAssignmentScreenState extends State<MarkAssignmentScreen> {
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(builder: (context, constraints) {
+        // On a phone the columns become one stacked card per student.
+        if (constraints.maxWidth < 700) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                child: Wrap(
+                  spacing: 14,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text('SORT BY', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
+                    _headerCell('Student', _SortColumn.name),
+                    _headerCell('Code', _SortColumn.code),
+                    _headerCell('Status', _SortColumn.status),
+                    _headerCell('Score', _SortColumn.score),
+                  ],
+                ),
+              ),
+              for (var i = 0; i < pageRows.length; i++) _mobileRow(sorted, pageStart + i),
+            ],
+          );
+        }
         // Stretch to fill the available width on desktop instead of always
         // sitting at a fixed 940px (leaving dead space on wide screens);
         // only fall back to the 940px minimum + horizontal scroll when the
@@ -226,6 +249,66 @@ class _MarkAssignmentScreenState extends State<MarkAssignmentScreen> {
           ),
         );
       }),
+    );
+  }
+
+  Widget _mobileRow(List<RosterStudent> sorted, int index) {
+    final s = sorted[index];
+    final submission = _submissions[s.studentId];
+    final (statusLabel, statusColor, statusBg) = _statusFor(submission);
+    final percent = _percentFor(submission);
+    final carryMark = _carryMarkFor(submission);
+    Widget stat(String label, String value) => Padding(
+          padding: const EdgeInsets.only(right: 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label.toUpperCase(), style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700)),
+              Text(value, style: FacultyTypography.bodySm(color: FacultyColors.onSurface)),
+            ],
+          ),
+        );
+    return InkWell(
+      onTap: () => _openStudent(sorted, index),
+      child: Container(
+        decoration: const BoxDecoration(border: Border(top: BorderSide(color: FacultyColors.surfaceContainerLow))),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(s.name, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(6)),
+                        child: Text(statusLabel, style: FacultyTypography.labelXs(color: statusColor).copyWith(fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                  Text(s.studentCode, style: FacultyTypography.bodySm(color: FacultyColors.secondary)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    runSpacing: 6,
+                    children: [
+                      stat('Score', submission?.totalScore != null ? _formatScore(submission!.totalScore!) : '—'),
+                      stat('Mark %', percent != null ? '${percent.toStringAsFixed(1)}%' : '—'),
+                      stat('Carry Mark', carryMark != null ? _formatScore(carryMark) : '—'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: FacultyColors.onSurfaceVariant),
+          ],
+        ),
+      ),
     );
   }
 

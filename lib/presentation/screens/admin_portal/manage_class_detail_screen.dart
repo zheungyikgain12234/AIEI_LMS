@@ -575,27 +575,28 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             style: AdminTypography.bodySm(),
           ),
           const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: AdminDateTimeField(
-                  label: 'Edit Start',
-                  value: _editStartAt,
-                  onChanged: (v) => setState(() => _editStartAt = v),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: AdminDateTimeField(
-                  label: 'Edit End',
-                  value: _editEndAt,
-                  defaultHour: 23,
-                  onChanged: (v) => setState(() => _editEndAt = v),
-                ),
-              ),
-            ],
-          ),
+          // Each field holds a date box and a time box side by side, so on a phone
+          // the two fields stack instead of being squeezed to half width.
+          Builder(builder: (context) {
+            final start = AdminDateTimeField(
+              label: 'Edit Start',
+              value: _editStartAt,
+              onChanged: (v) => setState(() => _editStartAt = v),
+            );
+            final end = AdminDateTimeField(
+              label: 'Edit End',
+              value: _editEndAt,
+              defaultHour: 23,
+              onChanged: (v) => setState(() => _editEndAt = v),
+            );
+            if (MediaQuery.of(context).size.width <= 600) {
+              return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [start, const SizedBox(height: 12), end]);
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [Expanded(child: start), const SizedBox(width: 12), Expanded(child: end)],
+            );
+          }),
           AdminFieldError(_fieldErrors['editPeriod']),
           const SizedBox(height: 14),
           _textField(

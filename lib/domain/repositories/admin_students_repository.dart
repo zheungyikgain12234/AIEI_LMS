@@ -57,7 +57,7 @@ abstract class AdminStudentsRepository {
 
   /// Enrolled course ids per student (from `student_courses`), keyed by
   /// student id — used to flag enrollments that don't fit the student's role
-  /// (see `role_courses` / Role ↔ Course Mapping).
+  /// (see `role_courses` / Staff Role ↔ Course Mapping).
   Future<Map<String, List<String>>> getEnrolledCourseIdsByStudent();
 
   /// (trackName, studentCount) grouped from `students.program_track`.
@@ -69,10 +69,10 @@ abstract class AdminStudentsRepository {
   Future<List<EnrollmentCandidate>> getEnrollmentCandidates(String courseId);
 
   /// Enrolls each student into [courseId] via the class [sectionId]. A student
-  /// can be in only one class of a course per cohort (classes in different
-  /// cohorts are fine), so students who are already
+  /// can be in only one class of a course per semester (classes in different
+  /// semesters are fine), so students who are already
   /// enrolled in this course — in this class or in another one of the same
-  /// cohort — are NOT
+  /// semester — are NOT
   /// touched (nothing is overwritten or moved); they are reported back so the
   /// caller can tell the admin. A section's enrolled count is always derived
   /// from `student_courses`, never stored, so nothing else needs updating.
@@ -88,7 +88,7 @@ abstract class AdminStudentsRepository {
 
   /// Removes the student_courses row for (studentId, courseId) — only the one in
   /// [sectionId] when given, since a student can be in several classes of a
-  /// course (in different cohorts). A section's
+  /// course (in different semesters). A section's
   /// enrolled count is always derived from `student_courses`, never stored.
   Future<void> unenrollStudentFromCourse(String studentId, String courseId, {String? sectionId});
 
@@ -104,7 +104,7 @@ abstract class AdminStudentsRepository {
 
 /// Result of [AdminStudentsRepository.enrollStudentsInSection], as student ids.
 /// [inOtherClass] maps a student already in a different class of the course to
-/// that class's code (same cohort only).
+/// that class's code (same semester only).
 typedef EnrollOutcome = ({
   List<String> enrolled,
   List<String> alreadyInThisClass,

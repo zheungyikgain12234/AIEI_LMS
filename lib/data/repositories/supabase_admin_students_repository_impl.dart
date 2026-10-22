@@ -189,11 +189,11 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
     required String sectionId,
     required String courseId,
   }) async {
-    final target = await _client.from('course_sections').select('cohort_id').eq('id', sectionId).single();
-    final targetCohort = target['cohort_id'] as String?;
+    final target = await _client.from('course_sections').select('semester_id').eq('id', sectionId).single();
+    final targetSemester = target['semester_id'] as String?;
     final existing = await _client
         .from('student_courses')
-        .select('student_id, section_id, course_sections(section_code, cohort_id)')
+        .select('student_id, section_id, course_sections(section_code, semester_id)')
         .eq('course_id', courseId)
         .inFilter('student_id', studentIds);
     final alreadyInThisClass = <String>[];
@@ -203,7 +203,7 @@ class SupabaseAdminStudentsRepositoryImpl implements AdminStudentsRepository {
       final other = row['course_sections'] as Map<String, dynamic>?;
       if (row['section_id'] == sectionId) {
         alreadyInThisClass.add(id);
-      } else if (other == null || other['cohort_id'] == targetCohort) {
+      } else if (other == null || other['semester_id'] == targetSemester) {
         final code = other?['section_code'] as String?;
         inOtherClass[id] = code == null ? 'another class' : displayCode(code);
       }

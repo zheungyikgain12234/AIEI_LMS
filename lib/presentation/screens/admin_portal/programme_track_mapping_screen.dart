@@ -183,7 +183,7 @@ class _ProgrammeTrackMappingScreenState extends State<ProgrammeTrackMappingScree
       child: Column(
         children: [
           if (tracks.isEmpty)
-            Padding(padding: const EdgeInsets.all(32), child: Text('No tracks exist yet. Create one from Manage Student Tracks first.', style: AdminTypography.bodyMd()))
+            Padding(padding: const EdgeInsets.all(32), child: Text('No tracks exist yet. Create one from Manage Tracks first.', style: AdminTypography.bodyMd()))
           else
             for (final t in tracks) _trackRow(t),
           Padding(

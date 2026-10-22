@@ -27,7 +27,7 @@ import 'widgets/searchable_dropdown.dart';
 // ManageClassDetailScreen — "Manage" detail/edit page for a single class
 // section, reached from the Manage Classes table by its primary key
 // (`sectionId`). Lets the admin view/edit the class's date, schedule,
-// capacity, delivery mode, cohort, and status, and lists every student
+// capacity, delivery mode, semester, and status, and lists every student
 // currently enrolled in this section with an unchecked box each — tick the
 // students to remove and press the red "Unenroll Selected" button (after a
 // confirmation dialog they are unenrolled in one go).
@@ -86,7 +86,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   final Map<String, String> _fieldErrors = {};
   CourseSection? _section;
   List<RosterStudent> _roster = [];
-  List<String> _cohorts = [];
+  List<String> _semesters = [];
   final Set<String> _unenrolling = {};
   final Set<String> _selected = {};
   final _rosterSearchController = TextEditingController();
@@ -101,7 +101,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   String _deliveryMode = 'physical';
-  String? _selectedCohort;
+  String? _selectedSemester;
   String _status = 'scheduled';
 
   @override
@@ -138,12 +138,12 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
       final roster = await _studentsRepository.getSectionRoster(
         widget.sectionId,
       );
-      final cohorts = await _masterDataRepository.getCohorts();
+      final semesters = await _masterDataRepository.getSemesters();
       if (!mounted) return;
       setState(() {
         _section = section;
         _roster = roster;
-        _cohorts = [for (final c in cohorts) c.name];
+        _semesters = [for (final c in semesters) c.name];
         _startDate = section.startDate;
         _endDate = section.endDate;
         _dayOfWeek = section.dayOfWeek;
@@ -156,8 +156,8 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         _editEndAt = section.editEndAt;
         _overrideCodeController.text = section.editOverrideLecturerCode ?? '';
         _deliveryMode = section.deliveryMode;
-        _selectedCohort = _cohorts.contains(section.cohort)
-            ? section.cohort
+        _selectedSemester = _semesters.contains(section.semester)
+            ? section.semester
             : null;
         _status = section.status;
         _isLoading = false;
@@ -252,7 +252,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             : _locationController.text.trim(),
         capacity: capacity!,
         deliveryMode: _deliveryMode,
-        cohort: _selectedCohort!,
+        semester: _selectedSemester!,
         status: _status,
         editStartAt: _editStartAt!,
         editEndAt: _editEndAt!,
@@ -346,10 +346,10 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
         lecturerName: s.lecturerName,
         capacity: s.capacity,
         deliveryMode: s.deliveryMode,
-        cohortId: s.cohortId,
-        cohort: s.cohort,
-        cohortCode: s.cohortCode,
-        cohortYear: s.cohortYear,
+        semesterId: s.semesterId,
+        semester: s.semester,
+        semesterCode: s.semesterCode,
+        semesterYear: s.semesterYear,
         enrolledCount: _roster.length,
         status: s.status,
         startDate: s.startDate,
@@ -452,7 +452,7 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             children: [
               _codeLabel('Course Code', section.courseCode),
               _codeLabel('Class Code', section.sectionCode),
-              _codeLabel('Cohort Code', section.cohortCode ?? '—'),
+              _codeLabel('Semester Code', section.semesterCode ?? '—'),
             ],
           ),
           const SizedBox(height: 8),
@@ -626,9 +626,9 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          // A class's cohort is fixed once created: its enrolled students and the
-          // lecturer's per-cohort credit load both depend on it.
-          AdminFixedCode(label: 'Cohort', value: _selectedCohort ?? '—'),
+          // A class's semester is fixed once created: its enrolled students and the
+          // lecturer's per-semester credit load both depend on it.
+          AdminFixedCode(label: 'Semester', value: _selectedSemester ?? '—'),
           _labeledDropdown(
             label: 'Status',
             value: _status,

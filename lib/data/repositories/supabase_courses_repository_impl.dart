@@ -75,7 +75,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
         ? <dynamic>[]
         : await _client
             .from('course_sections')
-            .select('id, section_code, lecturers(name), cohorts(name)')
+            .select('id, section_code, lecturers(name), semesters(name)')
             .inFilter('id', sectionIds);
     final lecturerNameBySection = <String, String>{
       for (final row in sectionRows)
@@ -84,12 +84,12 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     final classCodeBySection = <String, String>{
       for (final row in sectionRows) row['id'] as String: displayCode(row['section_code'] as String),
     };
-    final cohortNameBySection = <String, String>{
+    final semesterNameBySection = <String, String>{
       for (final row in sectionRows)
-        if (row['cohorts'] != null) row['id'] as String: row['cohorts']['name'] as String,
+        if (row['semesters'] != null) row['id'] as String: row['semesters']['name'] as String,
     };
 
-    // One card per enrollment: the same course in two different cohorts
+    // One card per enrollment: the same course in two different semesters
     // shows as two classes, each with its own progress.
     final programmeNamesByCourse = await SupabaseProgrammesRepositoryImpl(_client).getProgrammeNamesByCourse();
     final courseById = {for (final course in courseRows as List) course['id'] as String: course as Map<String, dynamic>};
@@ -105,7 +105,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
             e.sectionId,
             lecturerNameBySection[e.sectionId],
             classCodeBySection[e.sectionId],
-            cohortNameBySection[e.sectionId],
+            semesterNameBySection[e.sectionId],
             earnedBadgeIds: earnedBadgeIdsByCourse[e.courseId] ?? const {},
             pendingBadgeIds: pendingBadgeIdsByCourse[e.courseId] ?? const {},
           ),
@@ -177,7 +177,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
     String? sectionId,
     String? lecturerName,
     String? classCode,
-    String? cohort, {
+    String? semester, {
     String? ctaOverride,
     Set<String> earnedBadgeIds = const {},
     Set<String> pendingBadgeIds = const {},
@@ -220,7 +220,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       category: category,
       sectionId: sectionId,
       classCode: classCode,
-      cohort: cohort,
+      semester: semester,
       instructorOrBoard: lecturerName ?? 'AIEI Lecturer',
       instructorIcon: categoryIcon,
       instructorIconColor: AppColors.secondary,
@@ -430,27 +430,27 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
-  Future<bool> enrollInCompulsoryCourse(String courseId, {String? cohortId}) async {
-    var query = _client.from('course_sections').select('id, cohort_id').eq('course_id', courseId);
-    if (cohortId != null) query = query.eq('cohort_id', cohortId);
+  Future<bool> enrollInCompulsoryCourse(String courseId, {String? semesterId}) async {
+    var query = _client.from('course_sections').select('id, semester_id').eq('course_id', courseId);
+    if (semesterId != null) query = query.eq('semester_id', semesterId);
     final sectionRow = await query.order('section_code').limit(1).maybeSingle();
     final sectionId = sectionRow?['id'] as String?;
     if (sectionId == null) return false;
 
-    // One class per course per cohort: if the student already has a class of
-    // this course in this cohort, leave it alone instead of moving them. A
-    // class in a different cohort is fine and is added alongside.
-    final targetCohort = sectionRow?['cohort_id'] as String?;
+    // One class per course per semester: if the student already has a class of
+    // this course in this semester, leave it alone instead of moving them. A
+    // class in a different semester is fine and is added alongside.
+    final targetSemester = sectionRow?['semester_id'] as String?;
     final existing = await _client
         .from('student_courses')
-        .select('section_id, course_sections(cohort_id)')
+        .select('section_id, course_sections(semester_id)')
         .eq('student_id', DemoIdentity.studentId)
         .eq('course_id', courseId);
-    final alreadyInCohort = (existing as List).any((row) {
+    final alreadyInSemester = (existing as List).any((row) {
       final other = row['course_sections'] as Map<String, dynamic>?;
-      return row['section_id'] == sectionId || other == null || other['cohort_id'] == targetCohort;
+      return row['section_id'] == sectionId || other == null || other['semester_id'] == targetSemester;
     });
-    if (!alreadyInCohort) {
+    if (!alreadyInSemester) {
       // Refuse a class that overlaps one the student already attends.
       final clashes = await findStudentScheduleConflicts(_client, studentIds: [DemoIdentity.studentId], sectionId: sectionId);
       final clash = clashes[DemoIdentity.studentId];
@@ -464,27 +464,27 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
-  Future<List<EnrollableClass>> getEnrollableClasses(String courseId, {String? cohortId}) async {
+  Future<List<EnrollableClass>> getEnrollableClasses(String courseId, {String? semesterId}) async {
     var query = _client
         .from('course_sections')
-        .select('id, section_code, cohort_id, day_of_week, start_time, end_time, start_date, end_date, location, status, cohorts(name)')
+        .select('id, section_code, semester_id, day_of_week, start_time, end_time, start_date, end_date, location, status, semesters(name)')
         .eq('course_id', courseId);
-    if (cohortId != null) query = query.eq('cohort_id', cohortId);
+    if (semesterId != null) query = query.eq('semester_id', semesterId);
     final sections = (await query.order('section_code') as List).cast<Map<String, dynamic>>().where((s) => s['status'] != 'cancelled').toList();
     if (sections.isEmpty) return [];
 
     final existing = await _client
         .from('student_courses')
-        .select('section_id, course_sections(cohort_id)')
+        .select('section_id, course_sections(semester_id)')
         .eq('student_id', DemoIdentity.studentId)
         .eq('course_id', courseId);
-    final cohortsTaken = {
-      for (final row in existing as List) (row['course_sections'] as Map<String, dynamic>?)?['cohort_id'] as String?,
+    final semestersTaken = {
+      for (final row in existing as List) (row['course_sections'] as Map<String, dynamic>?)?['semester_id'] as String?,
     };
 
     final result = <EnrollableClass>[];
     for (final s in sections) {
-      if (cohortsTaken.contains(s['cohort_id'] as String?)) continue;
+      if (semestersTaken.contains(s['semester_id'] as String?)) continue;
       final clashes = await findStudentScheduleConflicts(_client, studentIds: [DemoIdentity.studentId], sectionId: s['id'] as String);
       if (clashes.isNotEmpty) continue;
       final day = s['day_of_week'] as String?;
@@ -493,7 +493,7 @@ class SupabaseCoursesRepositoryImpl implements CoursesRepository {
       result.add(EnrollableClass(
         sectionId: s['id'] as String,
         sectionCode: s['section_code'] as String,
-        cohortName: (s['cohorts'] as Map<String, dynamic>?)?['name'] as String?,
+        semesterName: (s['semesters'] as Map<String, dynamic>?)?['name'] as String?,
         scheduleText: day != null && start != null && end != null
             ? '$day ${start.substring(0, 5)}–${end.substring(0, 5)}'
             : 'Schedule TBD',

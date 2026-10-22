@@ -149,7 +149,7 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(c.title, style: FacultyTypography.titleSm()),
-          Text('${c.courseCode} • ${c.sectionCode}${c.cohort == null ? '' : ' • ${c.cohort}'}', style: FacultyTypography.labelXs()),
+          Text('${c.courseCode} • ${c.sectionCode}${c.semester == null ? '' : ' • ${c.semester}'}', style: FacultyTypography.labelXs()),
           const SizedBox(height: 4),
           line(online ? Icons.videocam_outlined : Icons.place_outlined, where),
           line(Icons.schedule, dayTime),

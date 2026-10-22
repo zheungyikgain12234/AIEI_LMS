@@ -220,7 +220,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             const SizedBox(width: 14),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Wrap(spacing: 6, children: [
-                _tag('Active Cohort', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
+                _tag('Active Semester', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
                 _tag('$_enrolledCount / $_capacity Enrolled', AdminColors.secondaryFixed, AdminColors.onSecondaryFixedVariant),
               ]),
               const SizedBox(height: 4),
@@ -439,7 +439,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
   Widget _buildMobileScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Course Cohorts'),
+      appBar: const AdminMobileTopBar.detail(title: 'Course Semesters'),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -454,7 +454,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                   const SizedBox(height: 16),
                   _mobileQuickActions(context),
                   const SizedBox(height: 16),
-                  _mobileCohortCard(),
+                  _mobileSemesterCard(),
                   const SizedBox(height: 16),
                   _mobileMetricsGrid(),
                   const SizedBox(height: 16),
@@ -586,7 +586,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
     );
   }
 
-  Widget _mobileCohortCard() {
+  Widget _mobileSemesterCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),

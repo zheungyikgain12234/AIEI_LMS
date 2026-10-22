@@ -190,7 +190,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
   Widget _buildHeaderCard() {
     final content = _material?.content ?? const {};
     final title = _material?.name ?? 'Assignment 02: Automated Data Pipelines';
-    final benchmark = content['cohortBenchmarkLabel'] as String?;
+    final benchmark = content['semesterBenchmarkLabel'] as String?;
     final studentName = _student?.name ?? 'Alex Chen';
     final studentEmployeeId = _student?.studentCode ?? 'EMP-88219';
     final submittedAt = _progress?.submissionContent['submittedAt'] as String?;
@@ -224,7 +224,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
               ),
               Wrap(spacing: 6, children: [
                 _pill('Course DATA-402', FacultyColors.surfaceContainer, FacultyColors.onSurfaceVariant),
-                _pill('Cohort Fall 2025', FacultyColors.secondaryContainer, FacultyColors.onSecondaryContainer),
+                _pill('Semester Fall 2025', FacultyColors.secondaryContainer, FacultyColors.onSecondaryContainer),
               ]),
             ],
           ),

@@ -21,7 +21,7 @@ drop table if exists
   exam_question_options, exam_questions, exam_sections,
   content_blocks, sessions, module_materials, course_modules, courses,
   admins, students, lecturers,
-  departments, programmes, program_tracks, cohorts,
+  departments, programmes, program_tracks, semesters,
   lecturer_departments, specializations, roles
 cascade;
 
@@ -29,7 +29,7 @@ create extension if not exists pgcrypto;
 
 -- ── Master data (admin-managed lookup lists backing the student registry
 -- dropdowns — see Manage Departments / Manage Program Tracks / Manage
--- Cohorts screens) ─────────────────────────────────────────────────────
+-- Semesters screens) ─────────────────────────────────────────────────────
 
 -- Every master-data / people / catalogue row below carries a `code` that's
 -- unique per tenant. There's no `tenant_id` column yet (see AppSession /
@@ -89,7 +89,7 @@ create table programme_tracks (
   primary key (programme_id, track_id)
 );
 
-create table cohorts (
+create table semesters (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null unique,
@@ -97,7 +97,7 @@ create table cohorts (
   remarks text not null default '',
   created_at timestamptz not null default now()
 );
-create unique index cohorts_name_ci_idx on cohorts (lower(name));
+create unique index semesters_name_ci_idx on semesters (lower(name));
 
 create table lecturer_departments (
   id uuid primary key default gen_random_uuid(),
@@ -172,9 +172,9 @@ create table students (
   -- A public student belongs to a programme and, within it, a track. A track
   -- can sit under several programmes, so the programme is stored here.
   programme text references programmes(name) on update cascade,
-  -- Not collected at registration — a student's cohort follows from the
+  -- Not collected at registration — a student's semester follows from the
   -- class they're later enrolled into, not a standalone choice up front.
-  cohort text references cohorts(name) on update cascade,
+  semester text references semesters(name) on update cascade,
   role text references roles(name) on update cascade,
   gpa numeric(3, 2) not null default 0,
   registration_date date not null default current_date,
@@ -229,7 +229,7 @@ create table course_sections (
   lecturer_id uuid not null references lecturers(id),
   capacity int not null default 30,
   delivery_mode text not null default 'physical' check (delivery_mode in ('online', 'physical')),
-  cohort_id uuid references cohorts(id) on update cascade,
+  semester_id uuid references semesters(id) on update cascade,
   start_date date,
   end_date date,
   -- Syllabus edit window: outside [edit_start_at, edit_end_at] the lecturer
@@ -543,8 +543,8 @@ create trigger lecturer_courses_recalc_credits
   for each row execute function recalc_lecturer_credits_used();
 
 -- One row per (student, class). A student may take the same course in several
--- classes only if those classes are in different cohorts — the app refuses a
--- second class of the same course within the same cohort.
+-- classes only if those classes are in different semesters — the app refuses a
+-- second class of the same course within the same semester.
 create table student_courses (
   id uuid primary key default gen_random_uuid(),
   student_id bigint not null references students(id) on delete cascade,
@@ -589,7 +589,7 @@ create table student_certifications (
   revocation_reason text,
   case_ref text,
   inspecting_officer text,
-  cohort_label text,
+  semester_label text,
   created_at timestamptz not null default now()
 );
 
@@ -714,7 +714,7 @@ insert into grade_scale (letter, min_score, sort_order) values
 alter table departments enable row level security;
 alter table programmes enable row level security;
 alter table program_tracks enable row level security;
-alter table cohorts enable row level security;
+alter table semesters enable row level security;
 alter table lecturer_departments enable row level security;
 alter table specializations enable row level security;
 alter table roles enable row level security;
@@ -766,7 +766,7 @@ declare
   t text;
 begin
   foreach t in array array[
-    'departments', 'programmes', 'program_tracks', 'cohorts',
+    'departments', 'programmes', 'program_tracks', 'semesters',
     'lecturer_departments', 'specializations', 'roles',
     'lecturers', 'students', 'admins', 'courses', 'course_modules',
     'module_materials', 'sessions', 'content_blocks',
@@ -815,7 +815,7 @@ create policy "course-content anon delete" on storage.objects for delete to anon
 -- content_block_id) are deliberately not repeated. Idempotent.
 create index if not exists course_sections_course_id_idx on course_sections (course_id);
 create index if not exists course_sections_lecturer_id_idx on course_sections (lecturer_id);
-create index if not exists course_sections_cohort_id_idx on course_sections (cohort_id);
+create index if not exists course_sections_semester_id_idx on course_sections (semester_id);
 
 create index if not exists course_modules_section_id_idx on course_modules (section_id, module_sorting);
 create index if not exists module_materials_module_id_idx on module_materials (module_id);

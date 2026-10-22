@@ -1,6 +1,6 @@
 import 'package:stitch_aiei_lms/domain/models/department.dart';
 import 'package:stitch_aiei_lms/domain/models/program_track.dart';
-import 'package:stitch_aiei_lms/domain/models/cohort.dart';
+import 'package:stitch_aiei_lms/domain/models/semester.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer_department.dart';
 import 'package:stitch_aiei_lms/domain/models/specialization.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
@@ -20,10 +20,10 @@ abstract class AdminMasterDataRepository {
   Future<ProgramTrack> updateProgramTrack(String id, String code, String name, String remarks);
   Future<void> deleteProgramTracks(List<String> ids);
 
-  Future<List<Cohort>> getCohorts();
-  Future<Cohort> createCohort(String code, String name, int year, String remarks);
-  Future<Cohort> updateCohort(String id, String code, String name, int year, String remarks);
-  Future<void> deleteCohorts(List<String> ids);
+  Future<List<Semester>> getSemesters();
+  Future<Semester> createSemester(String code, String name, int year, String remarks);
+  Future<Semester> updateSemester(String id, String code, String name, int year, String remarks);
+  Future<void> deleteSemesters(List<String> ids);
 
   Future<List<LecturerDepartment>> getLecturerDepartments();
   Future<LecturerDepartment> createLecturerDepartment(String code, String name, String remarks);

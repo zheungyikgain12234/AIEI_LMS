@@ -48,7 +48,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     return rows.first['lecturer_code'] as String;
   }
 
-  static const _sectionSelect ='*, courses(course_code, course_title), lecturers(name), cohorts(code, name, year)';
+  static const _sectionSelect ='*, courses(course_code, course_title), lecturers(name), semesters(code, name, year)';
 
   @override
   Future<List<CourseSection>> getAllSections() async {
@@ -67,13 +67,13 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     return CourseSection.fromMap(row, enrolledCount: (enrolled as List).length);
   }
 
-  /// Resolves a cohort's display name to its `cohorts.id` — `course_sections`
-  /// stores `cohort_id` (a proper FK), but callers throughout the app still
-  /// pass/compare cohorts by name, so this is the one place that bridges the
-  /// two. Returns `null` if no cohort matches (e.g. an empty/blank name).
-  Future<String?> _cohortIdForName(String name) async {
+  /// Resolves a semester's display name to its `semesters.id` — `course_sections`
+  /// stores `semester_id` (a proper FK), but callers throughout the app still
+  /// pass/compare semesters by name, so this is the one place that bridges the
+  /// two. Returns `null` if no semester matches (e.g. an empty/blank name).
+  Future<String?> _semesterIdForName(String name) async {
     if (name.isEmpty) return null;
-    final row = await _client.from('cohorts').select('id').eq('name', name).maybeSingle();
+    final row = await _client.from('semesters').select('id').eq('name', name).maybeSingle();
     return row?['id'] as String?;
   }
 
@@ -89,8 +89,8 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     return counts;
   }
 
-  /// [cohort] is accepted for compatibility but ignored: a class's cohort is
-  /// fixed at creation (enrolled students and the lecturer's per-cohort credit
+  /// [semester] is accepted for compatibility but ignored: a class's semester is
+  /// fixed at creation (enrolled students and the lecturer's per-semester credit
   /// load depend on it).
   @override
   Future<CourseSection> updateSection(
@@ -103,7 +103,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     String? location,
     required int capacity,
     required String deliveryMode,
-    required String cohort,
+    required String semester,
     required String status,
     required DateTime editStartAt,
     required DateTime editEndAt,
@@ -414,14 +414,14 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
   Future<List<LecturerClassSlot>> getAssignedSchedules(String lecturerId) async {
     final rows = await _client
         .from('course_sections')
-        .select('id, course_id, cohorts(name), section_code, day_of_week, start_time, end_time, start_date, end_date')
+        .select('id, course_id, semesters(name), section_code, day_of_week, start_time, end_time, start_date, end_date')
         .eq('lecturer_id', lecturerId);
     return [
       for (final row in rows as List)
         (
           id: row['id'] as String,
           courseId: row['course_id'] as String,
-          cohort: (row['cohorts'] as Map<String, dynamic>?)?['name'] as String?,
+          semester: (row['semesters'] as Map<String, dynamic>?)?['name'] as String?,
           sectionCode: displayCode(row['section_code'] as String),
           dayOfWeek: row['day_of_week'] as String?,
           startTime: row['start_time'] as String?,
@@ -479,7 +479,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
     String? location,
     required int capacity,
     required String deliveryMode,
-    required String cohort,
+    required String semester,
     DateTime? courseStartDate,
     DateTime? courseEndDate,
     required List<String> moduleNames,
@@ -495,7 +495,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
       endDate: courseEndDate,
     );
     final dayAbbrev = dayOfWeek.substring(0, 3);
-    final cohortId = await _cohortIdForName(cohort);
+    final semesterId = await _semesterIdForName(semester);
     final row = await _client
         .from('course_sections')
         .insert({
@@ -511,7 +511,7 @@ class SupabaseLecturersRepositoryImpl implements LecturersRepository {
           'lecturer_id': lecturerId,
           'capacity': capacity,
           'delivery_mode': deliveryMode,
-          'cohort_id': cohortId,
+          'semester_id': semesterId,
           'start_date': courseStartDate?.toIso8601String().substring(0, 10),
           'end_date': courseEndDate?.toIso8601String().substring(0, 10),
           'status': 'scheduled',

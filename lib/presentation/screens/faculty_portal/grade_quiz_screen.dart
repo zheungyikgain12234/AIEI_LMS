@@ -1039,7 +1039,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
               Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.verified, size: 15, color: FacultyColors.tertiary),
                 const SizedBox(width: 4),
-                Text('Verified Cohort', style: FacultyTypography.labelMd(color: FacultyColors.tertiary)),
+                Text('Verified Semester', style: FacultyTypography.labelMd(color: FacultyColors.tertiary)),
               ]),
             ],
           ),

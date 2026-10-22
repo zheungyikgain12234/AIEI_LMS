@@ -15,10 +15,10 @@ class CourseFiltersBar extends StatelessWidget {
   final List<int> availableYears;
   final int? selectedYear;
   final ValueChanged<int> onYearChanged;
-  final List<String> cohortNames;
-  final String? selectedCohort;
-  final ValueChanged<String> onCohortChanged;
-  final bool showYearCohort;
+  final List<String> semesterNames;
+  final String? selectedSemester;
+  final ValueChanged<String> onSemesterChanged;
+  final bool showYearSemester;
 
   /// Programmes to filter by; the dropdown is hidden when there are none.
   final List<String> programmeNames;
@@ -29,7 +29,7 @@ class CourseFiltersBar extends StatelessWidget {
   final WrapAlignment alignment;
 
   const CourseFiltersBar({
-    this.showYearCohort = true,
+    this.showYearSemester = true,
     this.programmeNames = const [],
     this.selectedProgramme,
     this.onProgrammeChanged,
@@ -41,9 +41,9 @@ class CourseFiltersBar extends StatelessWidget {
     required this.availableYears,
     required this.selectedYear,
     required this.onYearChanged,
-    required this.cohortNames,
-    required this.selectedCohort,
-    required this.onCohortChanged,
+    required this.semesterNames,
+    required this.selectedSemester,
+    required this.onSemesterChanged,
   });
 
   @override
@@ -55,7 +55,7 @@ class CourseFiltersBar extends StatelessWidget {
       runSpacing: 8,
       children: [
         if (programmeNames.isNotEmpty) _programmeDropdown(),
-        if (showYearCohort) ...[_yearDropdown(), _cohortDropdown()],
+        if (showYearSemester) ...[_yearDropdown(), _semesterDropdown()],
         // Search Input
         ConstrainedBox(
           constraints: const BoxConstraints(minWidth: 200, maxWidth: 260),
@@ -187,7 +187,7 @@ class CourseFiltersBar extends StatelessWidget {
     );
   }
 
-  Widget _cohortDropdown() {
+  Widget _semesterDropdown() {
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -198,15 +198,15 @@ class CourseFiltersBar extends StatelessWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: cohortNames.contains(selectedCohort) ? selectedCohort : null,
-          hint: Text('Cohort', style: AppTypography.bodySm(color: AppColors.outline)),
+          value: semesterNames.contains(selectedSemester) ? selectedSemester : null,
+          hint: Text('Semester', style: AppTypography.bodySm(color: AppColors.outline)),
           icon: const Icon(Icons.expand_more, size: 18, color: AppColors.outline),
           borderRadius: BorderRadius.circular(8),
           style: AppTypography.labelMd(color: AppColors.onSurface),
-          onChanged: (cohort) {
-            if (cohort != null) onCohortChanged(cohort);
+          onChanged: (semester) {
+            if (semester != null) onSemesterChanged(semester);
           },
-          items: sortDropdownItems([for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))]),
+          items: sortDropdownItems([for (final name in semesterNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))]),
         ),
       ),
     );

@@ -663,7 +663,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       if (outcome.alreadyInThisClass.isNotEmpty)
         'Already enrolled in ${chosen.sectionCode}: ${outcome.alreadyInThisClass.map(nameOf).join(', ')}.',
       if (outcome.inOtherClass.isNotEmpty)
-        'Already enrolled in another class of this course in the same cohort (not changed — unenroll them first to move): '
+        'Already enrolled in another class of this course in the same semester (not changed — unenroll them first to move): '
             '${outcome.inOtherClass.entries.map((e) => '${nameOf(e.key)} (${e.value})').join(', ')}.',
     ];
     if (lines.isNotEmpty) {
@@ -768,7 +768,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             const SizedBox(height: 2),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: Text('The register of all students. Add students, place them in a cohort, department or track, and enrol them into courses.', style: AdminTypography.bodyMd()),
+              child: Text('The register of all students. Add students, place them in a semester, department or track, and enrol them into courses.', style: AdminTypography.bodyMd()),
             ),
           ],
         ),
@@ -857,7 +857,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
       final cols = constraints.maxWidth >= 500 ? 2 : 1;
       final width = (constraints.maxWidth - (cols - 1) * 16) / cols;
       final cards = [
-        _metric('TOTAL ENROLLED', '$_totalEnrolled Active', Icons.groups_outlined, 'Registered across all cohorts'),
+        _metric('TOTAL ENROLLED', '$_totalEnrolled Active', Icons.groups_outlined, 'Registered across all semesters'),
         _metric('GRANTED CREDENTIALS', '$_totalCredentials Granted', Icons.workspace_premium_outlined, 'Earned or revoked credentials'),
       ];
       return Wrap(spacing: 16, runSpacing: 16, children: cards.map((c) => SizedBox(width: width, child: c)).toList());
@@ -1625,7 +1625,7 @@ class _ProfileFilter {
 }
 
 class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
-  String? _selectedCohort;
+  String? _selectedSemester;
   String? _selectedProfileFilterKey;
   String? _selectedSectionId;
   String? _sectionError;
@@ -1633,12 +1633,12 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
   @override
   void initState() {
     super.initState();
-    final cohortNames = _cohortNames;
-    if (cohortNames.isNotEmpty) _selectedCohort = cohortNames.first;
+    final semesterNames = _semesterNames;
+    if (semesterNames.isNotEmpty) _selectedSemester = semesterNames.first;
   }
 
-  List<String> get _cohortNames {
-    final names = widget.sections.map((s) => s.cohort).whereType<String>().toSet().toList();
+  List<String> get _semesterNames {
+    final names = widget.sections.map((s) => s.semester).whereType<String>().toSet().toList();
     names.sort();
     return names;
   }
@@ -1653,7 +1653,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
       ];
 
   List<CourseSection> get _sectionsForSelection {
-    var sections = widget.sections.where((s) => s.cohort == _selectedCohort).toList();
+    var sections = widget.sections.where((s) => s.semester == _selectedSemester).toList();
     final filterKey = _selectedProfileFilterKey;
     if (filterKey != null) {
       final filter = _profileFilters.firstWhere((f) => f.key == filterKey);
@@ -1666,7 +1666,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
   @override
   Widget build(BuildContext context) {
     final count = widget.studentCount;
-    final cohortNames = _cohortNames;
+    final semesterNames = _semesterNames;
     final profileFilters = _profileFilters;
     final sections = _sectionsForSelection;
     return AdminFormDialog(
@@ -1685,7 +1685,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Select a cohort, optionally narrow by track/department/role, then a class, to enrol ${count == 1 ? 'this student' : 'these students'} into.',
+              'Select a semester, optionally narrow by track/department/role, then a class, to enrol ${count == 1 ? 'this student' : 'these students'} into.',
               style: AdminTypography.bodySm(),
             ),
             const SizedBox(height: 14),
@@ -1693,16 +1693,16 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
               Text('No classes exist yet. Create one from Manage Assigned Courses first.', style: AdminTypography.bodySm(color: AdminColors.error))
             else ...[
               SearchableDropdownFormField<String>(
-                initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
+                initialValue: semesterNames.contains(_selectedSemester) ? _selectedSemester : null,
                 isExpanded: true,
                 decoration: InputDecoration(
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 ),
-                hint: const Text('Select a cohort'),
-                items: [for (final c in cohortNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
+                hint: const Text('Select a semester'),
+                items: [for (final c in semesterNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
                 onChanged: (v) => setState(() {
-                  _selectedCohort = v;
+                  _selectedSemester = v;
                   _selectedSectionId = null;
                 }),
               ),
@@ -1729,7 +1729,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 ),
-                hint: Text(_selectedCohort == null ? 'Select a cohort first' : 'Select a class'),
+                hint: Text(_selectedSemester == null ? 'Select a semester first' : 'Select a class'),
                 items: [
                   for (final s in sections)
                     DropdownMenuItem(

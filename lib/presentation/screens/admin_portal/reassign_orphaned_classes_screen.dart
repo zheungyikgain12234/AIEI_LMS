@@ -217,7 +217,7 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
             ),
           ]),
           const SizedBox(height: 2),
-          Text('${s.cohort ?? 'No cohort'} • ${_scheduleLabel(s)}', style: AdminTypography.labelSm()),
+          Text('${s.semester ?? 'No semester'} • ${_scheduleLabel(s)}', style: AdminTypography.labelSm()),
           Text('Currently: ${s.lecturerName ?? 'Unknown lecturer'}', style: AdminTypography.labelSm()),
           const SizedBox(height: 10),
           const Text('New lecturer'),

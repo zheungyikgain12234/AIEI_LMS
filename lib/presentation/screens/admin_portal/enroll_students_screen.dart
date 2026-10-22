@@ -40,7 +40,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   bool _isLoading = true;
   bool _candidatesLoading = false;
   List<CourseSection> _allSections = [];
-  String? _selectedCohort;
+  String? _selectedSemester;
   String? _selectedSectionId;
   List<EnrollmentCandidate> _candidates = [];
   late Set<String> _staged;
@@ -56,19 +56,19 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     return null;
   }
 
-  /// Every cohort with at least one class section — the source for the
-  /// Cohort dropdown, so the admin narrows down to a cohort before picking
+  /// Every semester with at least one class section — the source for the
+  /// Semester dropdown, so the admin narrows down to a semester before picking
   /// which of its classes to enroll students into.
-  List<String> get _cohortNames {
-    final names = _allSections.map((s) => s.cohort).whereType<String>().toSet().toList();
+  List<String> get _semesterNames {
+    final names = _allSections.map((s) => s.semester).whereType<String>().toSet().toList();
     names.sort();
     return names;
   }
 
-  /// Classes within [_selectedCohort] only — what the Class dropdown offers,
-  /// so it updates whenever the cohort selection changes.
-  List<CourseSection> get _sectionsForSelectedCohort {
-    final sections = _allSections.where((s) => s.cohort == _selectedCohort).toList();
+  /// Classes within [_selectedSemester] only — what the Class dropdown offers,
+  /// so it updates whenever the semester selection changes.
+  List<CourseSection> get _sectionsForSelectedSemester {
+    final sections = _allSections.where((s) => s.semester == _selectedSemester).toList();
     sections.sort((a, b) => a.sectionCode.compareTo(b.sectionCode));
     return sections;
   }
@@ -123,7 +123,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
 
     setState(() {
       _allSections = sections;
-      _selectedCohort = defaultSection?.cohort;
+      _selectedSemester = defaultSection?.semester;
       _selectedSectionId = defaultSection?.id;
     });
     await _loadCandidatesForSelectedSection();
@@ -133,8 +133,8 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
 
   /// Re-fetches the eligible-candidate list (and role-mismatch flags) for
   /// whichever class is currently selected — called on first load and again
-  /// whenever the Cohort or Class dropdown changes. Uses its own loading
-  /// flag (not [_isLoading]) so the Cohort/Class picker stays on screen
+  /// whenever the Semester or Class dropdown changes. Uses its own loading
+  /// flag (not [_isLoading]) so the Semester/Class picker stays on screen
   /// instead of the whole page flashing back to a spinner on every change.
   Future<void> _loadCandidatesForSelectedSection() async {
     final section = _section;
@@ -153,7 +153,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     if (!mounted) return;
 
     // A candidate's role "mismatches" this course when their role exists but
-    // isn't mapped to it in `role_courses` (Role ↔ Course Mapping). Enrolling
+    // isn't mapped to it in `role_courses` (Staff Role ↔ Course Mapping). Enrolling
     // is still allowed — this only drives the warning icon below.
     final roleIdByName = {for (final r in roles) r.name: r.id};
     final allowedCourseIdsByRoleId = <String, Set<String>>{};
@@ -174,11 +174,11 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     });
   }
 
-  void _onCohortChanged(String cohort) {
-    final sections = _allSections.where((s) => s.cohort == cohort).toList()
+  void _onSemesterChanged(String semester) {
+    final sections = _allSections.where((s) => s.semester == semester).toList()
       ..sort((a, b) => a.sectionCode.compareTo(b.sectionCode));
     setState(() {
-      _selectedCohort = cohort;
+      _selectedSemester = semester;
       _selectedSectionId = sections.isEmpty ? null : sections.first.id;
     });
     _loadCandidatesForSelectedSection();
@@ -214,7 +214,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
           const SizedBox(height: 2),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 620),
-            child: Text('Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this cohort.', style: AdminTypography.bodyMd()),
+            child: Text('Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this semester.', style: AdminTypography.bodyMd()),
           ),
           const SizedBox(height: 20),
           _buildClassPicker(),
@@ -222,7 +222,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
           if (_section == null)
             Padding(
               padding: const EdgeInsets.all(32),
-              child: Text('No classes found for this cohort.', style: AdminTypography.bodyMd()),
+              child: Text('No classes found for this semester.', style: AdminTypography.bodyMd()),
             )
           else ...[
             _buildCourseSummary(postCapacity),
@@ -247,8 +247,8 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
   }
 
   Widget _buildClassPicker() {
-    final cohortNames = _cohortNames;
-    final sections = _sectionsForSelectedCohort;
+    final semesterNames = _semesterNames;
+    final sections = _sectionsForSelectedSemester;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -268,20 +268,20 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const AdminFieldLabel('Cohort'),
+                    const AdminFieldLabel('Semester'),
                     const SizedBox(height: 6),
                     SearchableDropdownFormField<String>(
-                      initialValue: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
+                      initialValue: semesterNames.contains(_selectedSemester) ? _selectedSemester : null,
                       isExpanded: true,
                       style: AdminTypography.bodyMd(color: AdminColors.onSurface),
                       decoration: InputDecoration(
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
-                      hint: Text('Select cohort', style: AdminTypography.bodySm(color: AdminColors.outline)),
-                      items: [for (final c in cohortNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
+                      hint: Text('Select semester', style: AdminTypography.bodySm(color: AdminColors.outline)),
+                      items: [for (final c in semesterNames) DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))],
                       onChanged: (c) {
-                        if (c != null) _onCohortChanged(c);
+                        if (c != null) _onSemesterChanged(c);
                       },
                     ),
                   ],
@@ -303,7 +303,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                       hint: Text(
-                        _selectedCohort == null ? 'Select a cohort first' : 'Select class',
+                        _selectedSemester == null ? 'Select a semester first' : 'Select class',
                         style: AdminTypography.bodySm(color: AdminColors.outline),
                       ),
                       items: [
@@ -366,7 +366,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             const SizedBox(width: 14),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Wrap(spacing: 6, children: [
-                _tag('Active Cohort', AdminColors.tertiaryFixed, AdminColors.onTertiaryFixedVariant, dot: true),
+                _tag('Active Semester', AdminColors.tertiaryFixed, AdminColors.onTertiaryFixedVariant, dot: true),
                 _tag('SECTION: $_sectionCode', AdminColors.surfaceContainer, AdminColors.onSurfaceVariant),
               ]),
               const SizedBox(height: 4),
@@ -389,7 +389,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('Cohort Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
+                  Text('Semester Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
                   Text('$postCapacity / $_capacity Enrolled', style: AdminTypography.titleSm()),
                 ]),
                 const SizedBox(height: 6),
@@ -518,7 +518,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
           ),
           SizedBox(width: 150, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(c.department, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
-            Text(c.cohort, style: AdminTypography.labelSm()),
+            Text(c.semester, style: AdminTypography.labelSm()),
           ])),
           SizedBox(width: 220, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
@@ -672,14 +672,14 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               const SizedBox(height: 4),
               Text('Enrol Students', style: AdminTypography.headlineLg()),
               const SizedBox(height: 4),
-              Text('Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this cohort.', style: AdminTypography.bodySm()),
+              Text('Search eligible students from the enterprise registry, verify prerequisite compliance, and assign enrollments to this semester.', style: AdminTypography.bodySm()),
               const SizedBox(height: 16),
               _buildClassPicker(),
               const SizedBox(height: 16),
               if (_section == null)
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('No classes found for this cohort.', style: AdminTypography.bodyMd()),
+                  child: Text('No classes found for this semester.', style: AdminTypography.bodyMd()),
                 )
               else ...[
                 _mobileCourseSummary(postCapacity),
@@ -759,7 +759,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
       children: [
         Row(children: [
           Flexible(
-            child: Text('Cohort Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+            child: Text('Semester Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
           ),
           const SizedBox(width: 8),
           Text('$postCapacity / $_capacity Enrolled', style: AdminTypography.titleSm()),
@@ -846,12 +846,12 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
     );
   }
 
-  String _shortCohort(String cohort) {
-    final parts = cohort.split(' ');
+  String _shortSemester(String semester) {
+    final parts = semester.split(' ');
     if (parts.length >= 2 && parts[1].length == 4) {
       return "${parts[0]} '${parts[1].substring(2)}";
     }
-    return cohort;
+    return semester;
   }
 
   Widget _mobileDetailRow(String label, String value, {IconData? icon, Color? iconColor, Color? valueColor}) {
@@ -972,7 +972,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: AdminColors.surfaceContainerLow, borderRadius: BorderRadius.circular(10)),
             child: Column(children: [
-              _mobileDetailRow('Track', '${c.department} (${_shortCohort(c.cohort)})'),
+              _mobileDetailRow('Track', '${c.department} (${_shortSemester(c.semester)})'),
               const SizedBox(height: 6),
               _mobileDetailRow(
                 'Prereqs',

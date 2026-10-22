@@ -50,7 +50,7 @@ class _EnrolledCoursesCatalogueScreenState
   /// progress/badges server-side (e.g. viewing course content). Deliberately
   /// NOT done via RouteObserver.didPopNext — that also fires when a
   /// same-screen popup route pops (a DropdownButton's menu is itself a
-  /// pushed route), which was wiping the student's Year/Cohort selection
+  /// pushed route), which was wiping the student's Year/Semester selection
   /// back to its default every time they picked a dropdown value.
   Future<void> _pushAndReload(Widget screen) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
@@ -133,9 +133,9 @@ class _EnrolledCoursesCatalogueScreenState
                                     availableYears: state.availableYears,
                                     selectedYear: state.selectedYear,
                                     onYearChanged: notifier.selectYear,
-                                    cohortNames: state.selectedYear == null ? const [] : state.cohortNamesForYear(state.selectedYear!),
-                                    selectedCohort: state.selectedCohort,
-                                    onCohortChanged: notifier.selectCohort,
+                                    semesterNames: state.selectedYear == null ? const [] : state.semesterNamesForYear(state.selectedYear!),
+                                    selectedSemester: state.selectedSemester,
+                                    onSemesterChanged: notifier.selectSemester,
                                   ),
                                 ),
                               ],
@@ -169,7 +169,7 @@ class _EnrolledCoursesCatalogueScreenState
                                   const SizedBox(width: 16),
                                   Flexible(
                                     child: CourseFiltersBar(
-                                      showYearCohort: false,
+                                      showYearSemester: false,
                                       programmeNames: state.availableCompulsoryProgrammes,
                                       selectedProgramme: state.selectedCompulsoryProgramme,
                                       onProgrammeChanged: notifier.selectCompulsoryProgramme,
@@ -179,9 +179,9 @@ class _EnrolledCoursesCatalogueScreenState
                                       availableYears: const [],
                                       selectedYear: null,
                                       onYearChanged: (_) {},
-                                      cohortNames: const [],
-                                      selectedCohort: null,
-                                      onCohortChanged: (_) {},
+                                      semesterNames: const [],
+                                      selectedSemester: null,
+                                      onSemesterChanged: (_) {},
                                     ),
                                   ),
                                 ],
@@ -214,7 +214,7 @@ class _EnrolledCoursesCatalogueScreenState
     if (classes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No class available for the selected cohort that fits your schedule, please try again later.'),
+          content: Text('No class available for the selected semester that fits your schedule, please try again later.'),
           duration: Duration(seconds: 6),
         ),
       );
@@ -240,7 +240,7 @@ class _EnrolledCoursesCatalogueScreenState
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(c.sectionCode),
-                        subtitle: Text([c.scheduleText, if (c.cohortName != null) c.cohortName!, if (c.location != null && c.location!.isNotEmpty) c.location!].join(' · ')),
+                        subtitle: Text([c.scheduleText, if (c.semesterName != null) c.semesterName!, if (c.location != null && c.location!.isNotEmpty) c.location!].join(' · ')),
                         trailing: FilledButton(onPressed: () => Navigator.of(ctx).pop(c), child: const Text('Enroll')),
                       ),
                   ],
@@ -280,7 +280,7 @@ class _EnrolledCoursesCatalogueScreenState
   }
 
   // Mobile (≤ 900px) layout — the same sections as desktop (telemetry banner +
-  // critical actions, tag/search/sort/year/cohort filters, the course grid and
+  // critical actions, tag/search/sort/year/semester filters, the course grid and
   // the "Compulsory for You" block). Each desktop widget is already
   // responsive, so they are reused as-is; only the shell (compact top bar and
   // bottom nav instead of header + sidebar) differs.
@@ -326,9 +326,9 @@ class _EnrolledCoursesCatalogueScreenState
                       availableYears: state.availableYears,
                       selectedYear: state.selectedYear,
                       onYearChanged: notifier.selectYear,
-                      cohortNames: state.selectedYear == null ? const [] : state.cohortNamesForYear(state.selectedYear!),
-                      selectedCohort: state.selectedCohort,
-                      onCohortChanged: notifier.selectCohort,
+                      semesterNames: state.selectedYear == null ? const [] : state.semesterNamesForYear(state.selectedYear!),
+                      selectedSemester: state.selectedSemester,
+                      onSemesterChanged: notifier.selectSemester,
                     ),
                     const SizedBox(height: 24),
                     state.coursesReady ? CourseGrid(
@@ -352,7 +352,7 @@ class _EnrolledCoursesCatalogueScreenState
                       ),
                       const SizedBox(height: 12),
                       CourseFiltersBar(
-                        showYearCohort: false,
+                        showYearSemester: false,
                         alignment: WrapAlignment.start,
                         programmeNames: state.availableCompulsoryProgrammes,
                                       selectedProgramme: state.selectedCompulsoryProgramme,
@@ -363,9 +363,9 @@ class _EnrolledCoursesCatalogueScreenState
                         availableYears: const [],
                         selectedYear: null,
                         onYearChanged: (_) {},
-                        cohortNames: const [],
-                        selectedCohort: null,
-                        onCohortChanged: (_) {},
+                        semesterNames: const [],
+                        selectedSemester: null,
+                        onSemesterChanged: (_) {},
                       ),
                       const SizedBox(height: 12),
                       Align(alignment: Alignment.centerLeft, child: _enrollTargetPicker(state, notifier)),
@@ -389,9 +389,9 @@ class _EnrolledCoursesCatalogueScreenState
       years: state.availableCompulsoryYears,
       selectedYear: year,
       onYearChanged: notifier.selectCompulsoryYear,
-      cohortNames: year == null ? const [] : state.compulsoryCohortNamesForYear(year),
-      selectedCohort: state.effectiveCompulsoryCohort,
-      onCohortChanged: notifier.selectCompulsoryCohort,
+      semesterNames: year == null ? const [] : state.compulsorySemesterNamesForYear(year),
+      selectedSemester: state.effectiveCompulsorySemester,
+      onSemesterChanged: notifier.selectCompulsorySemester,
     );
   }
 }

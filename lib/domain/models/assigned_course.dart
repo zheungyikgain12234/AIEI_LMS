@@ -11,7 +11,7 @@ class AssignedCourse {
   final String scheduleText;
   final int capacity;
   final int enrolledCount;
-  final String? cohort;
+  final String? semester;
   final DateTime? startDate;
   final DateTime? endDate;
   final int credits;
@@ -27,7 +27,7 @@ class AssignedCourse {
     required this.scheduleText,
     required this.capacity,
     required this.enrolledCount,
-    this.cohort,
+    this.semester,
     this.startDate,
     this.endDate,
     required this.credits,
@@ -61,7 +61,7 @@ class AssignedCourse {
       scheduleText: map['schedule_text'] as String,
       capacity: map['capacity'] as int,
       enrolledCount: enrolledCount,
-      cohort: (map['cohorts'] as Map<String, dynamic>?)?['name'] as String?,
+      semester: (map['semesters'] as Map<String, dynamic>?)?['name'] as String?,
       startDate: map['start_date'] == null ? null : DateTime.parse(map['start_date'] as String),
       endDate: map['end_date'] == null ? null : DateTime.parse(map['end_date'] as String),
       credits: course['credits'] as int? ?? 0,

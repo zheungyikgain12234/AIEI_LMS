@@ -1,4 +1,4 @@
-/// Backs the Role ↔ Course Mapping screen — which courses a given job role
+/// Backs the Staff Role ↔ Course Mapping screen — which courses a given job role
 /// (e.g. "IT Support Specialist", "HVAC / Aircon Installer") is allowed to
 /// study, stored in `role_courses`.
 abstract class RoleCourseMappingRepository {

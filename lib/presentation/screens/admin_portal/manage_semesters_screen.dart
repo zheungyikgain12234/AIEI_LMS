@@ -5,25 +5,25 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_admin_relational_dele
 import 'master_data_screen.dart';
 import 'widgets/admin_sidebar.dart';
 
-class ManageCohortsScreen extends StatelessWidget {
-  const ManageCohortsScreen({super.key});
+class ManageSemestersScreen extends StatelessWidget {
+  const ManageSemestersScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final repository = SupabaseAdminMasterDataRepositoryImpl(Supabase.instance.client);
     return MasterDataScreen(
-      title: 'Manage Cohorts',
-      description: 'Create a cohort here so that classes can be created and assigned to it later',
-      itemLabel: 'Cohort',
-      navDestination: AdminNavDestination.manageCohorts,
+      title: 'Manage Semesters',
+      description: 'Create a semester here so that classes can be created and assigned to it later',
+      itemLabel: 'Semester',
+      navDestination: AdminNavDestination.manageSemesters,
       showYear: true,
       load: () async => [
-        for (final c in await repository.getCohorts())
+        for (final c in await repository.getSemesters())
           MasterDataRow(id: c.id, code: c.code, name: c.name, remarks: c.remarks, year: c.year),
       ],
-      create: (code, name, remarks, year) => repository.createCohort(code, name, year!, remarks),
-      update: (id, code, name, remarks, year) => repository.updateCohort(id, code, name, year!, remarks),
-      masterKind: MasterKind.cohort,
+      create: (code, name, remarks, year) => repository.createSemester(code, name, year!, remarks),
+      update: (id, code, name, remarks, year) => repository.updateSemester(id, code, name, year!, remarks),
+      masterKind: MasterKind.semester,
     );
   }
 }

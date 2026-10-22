@@ -21,7 +21,7 @@ import 'widgets/faculty_mobile_bottom_nav.dart';
 // GradingQueueScreen — the real "Grading and Submissions" destination.
 // Lists every exam/assignment content block, across every class this
 // lecturer teaches, that has at least one submission awaiting grading
-// (`content_block_submissions.status = 'submitted'`), grouped by Cohort
+// (`content_block_submissions.status = 'submitted'`), grouped by Semester
 // then by Class as collapsible sections. Tapping an item opens the same
 // Mark Exam / Mark Assignment roster reached from the Syllabus editor.
 // ---------------------------------------------------------------------------
@@ -32,10 +32,10 @@ class GradingQueueScreen extends StatefulWidget {
   State<GradingQueueScreen> createState() => _GradingQueueScreenState();
 }
 
-class _CohortGroup {
-  final String cohort;
+class _SemesterGroup {
+  final String semester;
   final List<_ClassGroup> classes;
-  _CohortGroup(this.cohort, this.classes);
+  _SemesterGroup(this.semester, this.classes);
 
   int get totalPending => classes.fold(0, (sum, c) => sum + c.totalPending);
 }
@@ -52,7 +52,7 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
-  List<_CohortGroup> _groups = const [];
+  List<_SemesterGroup> _groups = const [];
   int _totalPending = 0;
 
   @override
@@ -69,20 +69,20 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
 
     final courseBySection = {for (final c in assignedCourses) c.sectionId: c};
 
-    // Cohort -> class label -> items, built in the lecturer's assigned-course
-    // order so cohorts/classes appear in a stable, predictable order.
-    final classesByCohort = <String, Map<String, List<PendingGradingItem>>>{};
+    // Semester -> class label -> items, built in the lecturer's assigned-course
+    // order so semesters/classes appear in a stable, predictable order.
+    final classesBySemester = <String, Map<String, List<PendingGradingItem>>>{};
     for (final item in items) {
       final course = courseBySection[item.sectionId];
-      final cohort = course?.cohort ?? 'No Cohort';
+      final semester = course?.semester ?? 'No Semester';
       final classLabel = course == null ? item.sectionId : '${course.courseCode} • ${course.sectionCode} — ${course.title}';
-      classesByCohort.putIfAbsent(cohort, () => {}).putIfAbsent(classLabel, () => []).add(item);
+      classesBySemester.putIfAbsent(semester, () => {}).putIfAbsent(classLabel, () => []).add(item);
     }
 
     final groups = [
-      for (final cohortEntry in classesByCohort.entries)
-        _CohortGroup(cohortEntry.key, [
-          for (final classEntry in cohortEntry.value.entries) _ClassGroup(classEntry.key, classEntry.value),
+      for (final semesterEntry in classesBySemester.entries)
+        _SemesterGroup(semesterEntry.key, [
+          for (final classEntry in semesterEntry.value.entries) _ClassGroup(classEntry.key, classEntry.value),
         ]),
     ];
 
@@ -166,7 +166,7 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
               Text('Grading and Submissions', style: FacultyTypography.headlineLg()),
               const SizedBox(height: 6),
               Text(
-                'Quizzes and assignments awaiting grading, plus every physical exam/assignment (kept here for review once fully marked), grouped by cohort and class.',
+                'Quizzes and assignments awaiting grading, plus every physical exam/assignment (kept here for review once fully marked), grouped by semester and class.',
                 style: FacultyTypography.bodyMd(),
               ),
             ],
@@ -196,11 +196,11 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [for (final group in _groups) ...[_cohortTile(group), const SizedBox(height: 12)]],
+      children: [for (final group in _groups) ...[_semesterTile(group), const SizedBox(height: 12)]],
     );
   }
 
-  Widget _cohortTile(_CohortGroup group) {
+  Widget _semesterTile(_SemesterGroup group) {
     return Container(
       decoration: BoxDecoration(
         color: FacultyColors.surfaceContainerLowest,
@@ -218,7 +218,7 @@ class _GradingQueueScreenState extends State<GradingQueueScreen> {
             children: [
               const Icon(Icons.groups_outlined, size: 18, color: FacultyColors.primary),
               const SizedBox(width: 8),
-              Expanded(child: Text(group.cohort, style: FacultyTypography.titleSm())),
+              Expanded(child: Text(group.semester, style: FacultyTypography.titleSm())),
               _countPill(group.totalPending),
             ],
           ),

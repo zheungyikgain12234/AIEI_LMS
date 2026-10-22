@@ -5,7 +5,7 @@ class EnrollmentCandidate {
   final String? studentEmployeeId;
   final String studentEmail;
   final String department;
-  final String cohort;
+  final String semester;
   final String? role;
   final String targetCourseId;
   final String prerequisiteStatus;
@@ -22,7 +22,7 @@ class EnrollmentCandidate {
     this.studentEmployeeId,
     required this.studentEmail,
     required this.department,
-    required this.cohort,
+    required this.semester,
     this.role,
     required this.targetCourseId,
     required this.prerequisiteStatus,
@@ -51,7 +51,7 @@ class EnrollmentCandidate {
       studentEmployeeId: map['student_code'] == null ? null : displayCode(map['student_code'] as String),
       studentEmail: map['email'] as String,
       department: (map['department'] ?? map['program_track']) as String? ?? '',
-      cohort: map['cohort'] as String? ?? '',
+      semester: map['semester'] as String? ?? '',
       role: map['role'] as String?,
       targetCourseId: courseId,
       prerequisiteStatus: 'met',

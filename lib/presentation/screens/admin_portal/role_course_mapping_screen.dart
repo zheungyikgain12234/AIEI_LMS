@@ -147,7 +147,7 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Role ↔ Course Mapping', style: AdminTypography.headlineLg()),
+        Text('Staff Role ↔ Course Mapping', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
@@ -165,7 +165,7 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No roles exist yet. Create one from Manage Student Roles first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No roles exist yet. Create one from Manage Staff Roles first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(
@@ -284,7 +284,7 @@ class _RoleCourseMappingScreenState extends State<RoleCourseMappingScreen> with 
     final courses = _filteredCourses;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Role ↔ Course Mapping'),
+      appBar: const AdminMobileTopBar.detail(title: 'Staff Role ↔ Course Mapping'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(

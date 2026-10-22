@@ -15,7 +15,7 @@ import 'package:stitch_aiei_lms/data/repositories/supabase_faculty_repository_im
 import 'package:stitch_aiei_lms/data/repositories/supabase_lecturers_repository_impl.dart';
 import 'package:stitch_aiei_lms/data/repositories/supabase_programmes_repository_impl.dart';
 import 'package:stitch_aiei_lms/domain/models/assigned_course.dart';
-import 'package:stitch_aiei_lms/domain/models/cohort.dart';
+import 'package:stitch_aiei_lms/domain/models/semester.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer.dart';
 import 'package:stitch_aiei_lms/domain/repositories/faculty_repository.dart' show SyllabusDeadline, SectionAssessmentStats;
 import 'widgets/faculty_scaffold.dart';
@@ -50,8 +50,8 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
   final _programmesRepository = SupabaseProgrammesRepositoryImpl(Supabase.instance.client);
   Map<String, List<String>> _programmesByCourse = const {};
 
-  /// True until the lecturer's classes and cohorts are known (the Year /
-  /// Cohort filters wait for these).
+  /// True until the lecturer's classes and semesters are known (the Year /
+  /// Semester filters wait for these).
   bool _isLoading = true;
 
   // The stat cards and the class list are separate parts: each loads on its
@@ -62,11 +62,11 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
   List<_CourseRow> _rows = const [];
   List<_Stat> _stats = const [];
 
-  // ── Year / Cohort filter ──────────────────────────────────────────────
+  // ── Year / Semester filter ──────────────────────────────────────────────
   List<AssignedCourse> _assignedCourses = const [];
-  List<Cohort> _cohorts = const [];
+  List<Semester> _semesters = const [];
   int? _selectedYear;
-  String? _selectedCohort;
+  String? _selectedSemester;
 
   // ── Search filter (course name/code only) ───────────────────────────────
   final _searchController = TextEditingController();
@@ -90,38 +90,38 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
   List<({AssignedCourse course, DateTime due})> _syllabusActions = const [];
   static const _syllabusActionWindowDays = 5;
 
-  Map<String, int> get _cohortYearByName => {for (final c in _cohorts) c.name: c.year};
+  Map<String, int> get _semesterYearByName => {for (final c in _semesters) c.name: c.year};
 
   /// Years the lecturer actually has assigned courses in, sorted ascending.
   List<int> get _availableYears {
     final years = <int>{};
     for (final c in _assignedCourses) {
-      final year = _cohortYearByName[c.cohort];
+      final year = _semesterYearByName[c.semester];
       if (year != null) years.add(year);
     }
     return years.toList()..sort();
   }
 
-  /// Cohort names (within [year]) the lecturer has assigned courses in, in
-  /// the same order as the master `cohorts` list (so "first in the list" is
+  /// Semester names (within [year]) the lecturer has assigned courses in, in
+  /// the same order as the master `semesters` list (so "first in the list" is
   /// well-defined).
-  List<String> _cohortNamesForYear(int year) {
-    final assignedNames = _assignedCourses.map((c) => c.cohort).whereType<String>().toSet();
+  List<String> _semesterNamesForYear(int year) {
+    final assignedNames = _assignedCourses.map((c) => c.semester).whereType<String>().toSet();
     return [
-      for (final c in _cohorts)
+      for (final c in _semesters)
         if (c.year == year && assignedNames.contains(c.name)) c.name,
     ];
   }
 
-  /// Courses in the selected cohort only — drives the stat cards, which must
+  /// Courses in the selected semester only — drives the stat cards, which must
   /// not react to the text filter.
-  List<AssignedCourse> get _cohortAssignedCourses {
-    if (_selectedCohort == null) return _assignedCourses;
-    return _assignedCourses.where((c) => c.cohort == _selectedCohort).toList();
+  List<AssignedCourse> get _semesterAssignedCourses {
+    if (_selectedSemester == null) return _assignedCourses;
+    return _assignedCourses.where((c) => c.semester == _selectedSemester).toList();
   }
 
   List<AssignedCourse> get _filteredAssignedCourses {
-    var courses = _cohortAssignedCourses;
+    var courses = _semesterAssignedCourses;
     final query = _searchQuery.trim().toLowerCase();
     if (query.isNotEmpty) {
       courses = courses
@@ -160,27 +160,27 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
   Future<void> _load() async {
     // Start everything that doesn't depend on anything else straight away.
     final lecturersFuture = _lecturersRepository.getLecturers();
-    final cohortsFuture = _masterDataRepository.getCohorts();
+    final semestersFuture = _masterDataRepository.getSemesters();
     final programmesFuture = _programmesRepository.getProgrammeNamesByCourse();
     final List<AssignedCourse> assignedCourses;
     try {
       assignedCourses = await _facultyRepository.getAssignedCourses(DemoIdentity.lecturerId);
-      final cohorts = await cohortsFuture;
+      final semesters = await semestersFuture;
       if (!mounted) return;
       setState(() {
         _assignedCourses = assignedCourses;
-        _cohorts = cohorts;
+        _semesters = semesters;
         // Default to the current calendar year if the lecturer has courses
         // there, else fall back to the most recent year they do have. A
-        // refresh keeps the lecturer's own Year/Cohort choice if still valid.
+        // refresh keeps the lecturer's own Year/Semester choice if still valid.
         final years = _availableYears;
         final currentYear = DateTime.now().year;
         if (_selectedYear == null || !years.contains(_selectedYear)) {
           _selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
         }
-        final cohortNames = _selectedYear == null ? const <String>[] : _cohortNamesForYear(_selectedYear!);
-        if (_selectedCohort == null || !cohortNames.contains(_selectedCohort)) {
-          _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
+        final semesterNames = _selectedYear == null ? const <String>[] : _semesterNamesForYear(_selectedYear!);
+        if (_selectedSemester == null || !semesterNames.contains(_selectedSemester)) {
+          _selectedSemester = semesterNames.isEmpty ? null : semesterNames.first;
         }
         _isLoading = false;
       });
@@ -199,7 +199,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     // Pending-grading counts and avg progress are batched across every
     // section in one round trip (see FacultyRepository.getSectionAssessmentStats).
     // This is scoped by section (not course), so a student enrolled in the
-    // same course through a different section/cohort is correctly excluded.
+    // same course through a different section/semester is correctly excluded.
     // Both the stat cards and the class list use it, so fetch it once.
     final sectionIds = [for (final c in assignedCourses) c.sectionId];
     final assessmentStatsFuture = _facultyRepository.getSectionAssessmentStats(sectionIds);
@@ -416,10 +416,10 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     ];
   }
 
-  /// Recomputed against [_cohortAssignedCourses] so the cards react to the
-  /// Year/Cohort selection, but never to the course-list text filter.
+  /// Recomputed against [_semesterAssignedCourses] so the cards react to the
+  /// Year/Semester selection, but never to the course-list text filter.
   List<_Stat> _computeStats() {
-    final courses = _cohortAssignedCourses;
+    final courses = _semesterAssignedCourses;
     final activeCourses = courses.where((c) => c.isActive).toList();
     final enrolledInActive = activeCourses.fold<int>(0, (sum, c) => sum + c.enrolledCount);
 
@@ -428,14 +428,14 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     final pendingQuizzes = courses.fold<int>(0, (sum, c) => sum + (_pendingQuizzesBySection[c.sectionId] ?? 0));
     final totalPending = pendingAssignments + pendingQuizzes;
 
-    // `credits_max` is a per-cohort cap, not a global one, so when a cohort
-    // is selected the credits used are summed just for that cohort's
+    // `credits_max` is a per-semester cap, not a global one, so when a semester
+    // is selected the credits used are summed just for that semester's
     // assigned courses rather than read off the lecturer's global
-    // `credits_used` (which is deduped across every cohort they teach in).
-    final creditsUsed = _selectedCohort == null
+    // `credits_used` (which is deduped across every semester they teach in).
+    final creditsUsed = _selectedSemester == null
         ? _lecturer?.creditsUsed
         : courses.fold<int>(0, (sum, c) => sum + c.credits);
-    final creditsFootnote = _selectedCohort == null ? null : 'in $_selectedCohort';
+    final creditsFootnote = _selectedSemester == null ? null : 'in $_selectedSemester';
 
     return [
       _Stat('Active Courses', '${activeCourses.length} / ${courses.length} Courses', '$enrolledInActive Enrolled Learners (Active)',
@@ -455,16 +455,16 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
   void _onYearChanged(int year) {
     setState(() {
       _selectedYear = year;
-      final cohortNames = _cohortNamesForYear(year);
-      _selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
+      final semesterNames = _semesterNamesForYear(year);
+      _selectedSemester = semesterNames.isEmpty ? null : semesterNames.first;
       _rows = _buildRows();
       _stats = _computeStats();
     });
   }
 
-  void _onCohortChanged(String cohort) {
+  void _onSemesterChanged(String semester) {
     setState(() {
-      _selectedCohort = cohort;
+      _selectedSemester = semester;
       _rows = _buildRows();
       _stats = _computeStats();
     });
@@ -544,7 +544,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           const SizedBox(height: 24),
           _buildCriticalActions(),
           const SizedBox(height: 8),
-          _isLoading ? const Skeleton(height: 40, radius: 8) : _buildYearCohortFilters(),
+          _isLoading ? const Skeleton(height: 40, radius: 8) : _buildYearSemesterFilters(),
           const SizedBox(height: 16),
           _statsReady ? _buildStatsRow() : _statsSkeleton(),
           const SizedBox(height: 24),
@@ -583,7 +583,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
               Text('My Courses', style: FacultyTypography.headlineLg()),
               const SizedBox(height: 6),
               Text(
-                'Manage current curriculum materials, monitor cohort progress, and review pending evaluations across your assigned sections.',
+                'Manage current curriculum materials, monitor semester progress, and review pending evaluations across your assigned sections.',
                 style: FacultyTypography.bodyMd(),
               ),
             ],
@@ -675,9 +675,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     );
   }
 
-  /// Year + Cohort selectors above the stat cards: they scope the stats and the
+  /// Year + Semester selectors above the stat cards: they scope the stats and the
   /// course list below.
-  Widget _buildYearCohortFilters() {
+  Widget _buildYearSemesterFilters() {
     return Wrap(
       spacing: 16,
       runSpacing: 8,
@@ -689,9 +689,9 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           _yearDropdown(),
         ]),
         Row(mainAxisSize: MainAxisSize.min, children: [
-          Text('Cohort', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
+          Text('Semester', style: FacultyTypography.labelMd(color: FacultyColors.onSurfaceVariant)),
           const SizedBox(width: 8),
-          _cohortDropdown(),
+          _semesterDropdown(),
         ]),
       ],
     );
@@ -749,22 +749,22 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
     );
   }
 
-  Widget _cohortDropdown({ValueChanged<String>? onChanged}) {
-    final cohortNames = _selectedYear == null ? const <String>[] : _cohortNamesForYear(_selectedYear!);
+  Widget _semesterDropdown({ValueChanged<String>? onChanged}) {
+    final semesterNames = _selectedYear == null ? const <String>[] : _semesterNamesForYear(_selectedYear!);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(color: FacultyColors.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: cohortNames.contains(_selectedCohort) ? _selectedCohort : null,
-          hint: Text('Cohort', style: FacultyTypography.bodySm(color: FacultyColors.outline)),
+          value: semesterNames.contains(_selectedSemester) ? _selectedSemester : null,
+          hint: Text('Semester', style: FacultyTypography.bodySm(color: FacultyColors.outline)),
           isDense: true,
           icon: const Icon(Icons.expand_more, size: 18, color: FacultyColors.outline),
           style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
-          items: sortDropdownItems([for (final name in cohortNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))]),
+          items: sortDropdownItems([for (final name in semesterNames) DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis))]),
           onChanged: (c) {
             if (c == null) return;
-            _onCohortChanged(c);
+            _onSemesterChanged(c);
             onChanged?.call(c);
           },
         ),
@@ -979,7 +979,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
               const SizedBox(height: 16),
               _buildCriticalActions(),
               const SizedBox(height: 8),
-              _isLoading ? const Skeleton(height: 40, radius: 8) : _buildYearCohortFilters(),
+              _isLoading ? const Skeleton(height: 40, radius: 8) : _buildYearSemesterFilters(),
               const SizedBox(height: 16),
               _statsReady ? _buildStatsRow() : _statsSkeleton(),
               const SizedBox(height: 16),

@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:stitch_aiei_lms/domain/models/department.dart';
 import 'package:stitch_aiei_lms/domain/models/program_track.dart';
-import 'package:stitch_aiei_lms/domain/models/cohort.dart';
+import 'package:stitch_aiei_lms/domain/models/semester.dart';
 import 'package:stitch_aiei_lms/domain/models/lecturer_department.dart';
 import 'package:stitch_aiei_lms/domain/models/specialization.dart';
 import 'package:stitch_aiei_lms/domain/models/role.dart';
@@ -66,32 +66,32 @@ class SupabaseAdminMasterDataRepositoryImpl implements AdminMasterDataRepository
   }
 
   @override
-  Future<List<Cohort>> getCohorts() async {
-    final rows = await _client.from('cohorts').select().order('name');
-    return [for (final row in rows as List) Cohort.fromMap(row as Map<String, dynamic>)];
+  Future<List<Semester>> getSemesters() async {
+    final rows = await _client.from('semesters').select().order('name');
+    return [for (final row in rows as List) Semester.fromMap(row as Map<String, dynamic>)];
   }
 
   @override
-  Future<Cohort> createCohort(String code, String name, int year, String remarks) async {
+  Future<Semester> createSemester(String code, String name, int year, String remarks) async {
     final row =
-        await _client.from('cohorts').insert({'code': code, 'name': name, 'year': year, 'remarks': remarks}).select().single();
-    return Cohort.fromMap(row);
+        await _client.from('semesters').insert({'code': code, 'name': name, 'year': year, 'remarks': remarks}).select().single();
+    return Semester.fromMap(row);
   }
 
   @override
-  Future<Cohort> updateCohort(String id, String code, String name, int year, String remarks) async {
+  Future<Semester> updateSemester(String id, String code, String name, int year, String remarks) async {
     final row = await _client
-        .from('cohorts')
+        .from('semesters')
         .update({'code': code, 'name': name, 'year': year, 'remarks': remarks})
         .eq('id', id)
         .select()
         .single();
-    return Cohort.fromMap(row);
+    return Semester.fromMap(row);
   }
 
   @override
-  Future<void> deleteCohorts(List<String> ids) async {
-    await _client.from('cohorts').delete().inFilter('id', ids);
+  Future<void> deleteSemesters(List<String> ids) async {
+    await _client.from('semesters').delete().inFilter('id', ids);
   }
 
   @override

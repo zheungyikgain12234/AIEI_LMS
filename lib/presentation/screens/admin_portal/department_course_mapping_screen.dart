@@ -147,7 +147,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Staff Student Department ↔ Course Mapping', style: AdminTypography.headlineLg()),
+        Text('Staff Depts ↔ Course Mapping', style: AdminTypography.headlineLg()),
         const SizedBox(height: 2),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
@@ -165,7 +165,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No departments exist yet. Create one from Manage Student Depts first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No departments exist yet. Create one from Manage Staff Depts first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(
@@ -274,7 +274,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
     final courses = _filteredCourses;
     return Scaffold(
       backgroundColor: AdminColors.background,
-      appBar: const AdminMobileTopBar.detail(title: 'Staff Student Department ↔ Course Mapping'),
+      appBar: const AdminMobileTopBar.detail(title: 'Staff Depts ↔ Course Mapping'),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(

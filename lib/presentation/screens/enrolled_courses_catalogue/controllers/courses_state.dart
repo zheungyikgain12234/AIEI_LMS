@@ -1,7 +1,7 @@
 import 'package:stitch_aiei_lms/domain/models/enrolled_course.dart';
 import 'package:stitch_aiei_lms/domain/models/course_stats.dart';
 import 'package:stitch_aiei_lms/domain/models/critical_action_item.dart';
-import 'package:stitch_aiei_lms/domain/models/cohort.dart';
+import 'package:stitch_aiei_lms/domain/models/semester.dart';
 
 enum CourseSortOption {
   progressDesc('progress-desc', 'Sort: Highest Progress'),
@@ -33,22 +33,22 @@ class CoursesState {
   final String? selectedProgramme;
   final String? selectedCompulsoryProgramme;
 
-  /// Own search / sort / Year / Cohort for "Compulsory for You". Year/Cohort
-  /// choose which cohort's class a course is enrolled into; when unset they
+  /// Own search / sort / Year / Semester for "Compulsory for You". Year/Semester
+  /// choose which semester's class a course is enrolled into; when unset they
   /// fall back to the enrolled-courses selection above.
   final String compulsorySearchQuery;
   final CourseSortOption compulsorySortOption;
   final int? selectedCompulsoryYear;
-  final String? selectedCompulsoryCohort;
+  final String? selectedCompulsorySemester;
   final String searchQuery;
   final CourseSortOption sortOption;
 
-  // ── Year / Cohort filter — mirrors the Faculty "My Assigned Courses"
-  // screen's pattern: the master `cohorts` list (for year lookups + the
-  // year dropdown's options) and the currently selected year/cohort.
-  final List<Cohort> cohorts;
+  // ── Year / Semester filter — mirrors the Faculty "My Assigned Courses"
+  // screen's pattern: the master `semesters` list (for year lookups + the
+  // year dropdown's options) and the currently selected year/semester.
+  final List<Semester> semesters;
   final int? selectedYear;
-  final String? selectedCohort;
+  final String? selectedSemester;
 
   final bool isLoading;
   final String? errorMessage;
@@ -76,12 +76,12 @@ class CoursesState {
     this.compulsorySearchQuery = '',
     this.compulsorySortOption = CourseSortOption.name,
     this.selectedCompulsoryYear,
-    this.selectedCompulsoryCohort,
+    this.selectedCompulsorySemester,
     this.searchQuery = '',
     this.sortOption = CourseSortOption.progressDesc,
-    this.cohorts = const [],
+    this.semesters = const [],
     this.selectedYear,
-    this.selectedCohort,
+    this.selectedSemester,
     this.isLoading = false,
     this.coursesReady = false,
     this.statsReady = false,
@@ -106,15 +106,15 @@ class CoursesState {
     String? compulsorySearchQuery,
     CourseSortOption? compulsorySortOption,
     int? selectedCompulsoryYear,
-    String? selectedCompulsoryCohort,
-    bool clearSelectedCompulsoryCohort = false,
+    String? selectedCompulsorySemester,
+    bool clearSelectedCompulsorySemester = false,
     String? searchQuery,
     CourseSortOption? sortOption,
-    List<Cohort>? cohorts,
+    List<Semester>? semesters,
     int? selectedYear,
     bool clearSelectedYear = false,
-    String? selectedCohort,
-    bool clearSelectedCohort = false,
+    String? selectedSemester,
+    bool clearSelectedSemester = false,
     bool? isLoading,
     bool? coursesReady,
     bool? statsReady,
@@ -135,12 +135,12 @@ class CoursesState {
       compulsorySearchQuery: compulsorySearchQuery ?? this.compulsorySearchQuery,
       compulsorySortOption: compulsorySortOption ?? this.compulsorySortOption,
       selectedCompulsoryYear: selectedCompulsoryYear ?? this.selectedCompulsoryYear,
-      selectedCompulsoryCohort: clearSelectedCompulsoryCohort ? null : (selectedCompulsoryCohort ?? this.selectedCompulsoryCohort),
+      selectedCompulsorySemester: clearSelectedCompulsorySemester ? null : (selectedCompulsorySemester ?? this.selectedCompulsorySemester),
       searchQuery: searchQuery ?? this.searchQuery,
       sortOption: sortOption ?? this.sortOption,
-      cohorts: cohorts ?? this.cohorts,
+      semesters: semesters ?? this.semesters,
       selectedYear: clearSelectedYear ? null : (selectedYear ?? this.selectedYear),
-      selectedCohort: clearSelectedCohort ? null : (selectedCohort ?? this.selectedCohort),
+      selectedSemester: clearSelectedSemester ? null : (selectedSemester ?? this.selectedSemester),
       isLoading: isLoading ?? this.isLoading,
       coursesReady: coursesReady ?? this.coursesReady,
       statsReady: statsReady ?? this.statsReady,
@@ -150,24 +150,24 @@ class CoursesState {
     );
   }
 
-  Map<String, int> get _cohortYearByName => {for (final c in cohorts) c.name: c.year};
+  Map<String, int> get _semesterYearByName => {for (final c in semesters) c.name: c.year};
 
   /// Years the student actually has enrolled classes in, sorted ascending.
   List<int> get availableYears {
     final years = <int>{};
     for (final c in allCourses) {
-      final year = _cohortYearByName[c.cohort];
+      final year = _semesterYearByName[c.semester];
       if (year != null) years.add(year);
     }
     return years.toList()..sort();
   }
 
-  /// Cohort names (within [year]) the student has enrolled classes in, in
-  /// the same order as the master `cohorts` list.
-  List<String> cohortNamesForYear(int year) {
-    final enrolledNames = allCourses.map((c) => c.cohort).whereType<String>().toSet();
+  /// Semester names (within [year]) the student has enrolled classes in, in
+  /// the same order as the master `semesters` list.
+  List<String> semesterNamesForYear(int year) {
+    final enrolledNames = allCourses.map((c) => c.semester).whereType<String>().toSet();
     return [
-      for (final c in cohorts)
+      for (final c in semesters)
         if (c.year == year && enrolledNames.contains(c.name)) c.name,
     ];
   }
@@ -203,19 +203,19 @@ class CoursesState {
     return labels;
   }
 
-  /// Every cohort year (not just enrolled ones) — the student may enroll
-  /// into a cohort they have no class in yet.
-  List<int> get availableCompulsoryYears => ({for (final c in cohorts) c.year}.toList()..sort());
+  /// Every semester year (not just enrolled ones) — the student may enroll
+  /// into a semester they have no class in yet.
+  List<int> get availableCompulsoryYears => ({for (final c in semesters) c.year}.toList()..sort());
 
-  List<String> compulsoryCohortNamesForYear(int year) => [
-        for (final c in cohorts)
+  List<String> compulsorySemesterNamesForYear(int year) => [
+        for (final c in semesters)
           if (c.year == year) c.name,
       ];
 
   int? get effectiveCompulsoryYear => selectedCompulsoryYear ?? selectedYear;
 
-  String? get effectiveCompulsoryCohort =>
-      selectedCompulsoryYear == null ? (selectedCompulsoryCohort ?? selectedCohort) : selectedCompulsoryCohort;
+  String? get effectiveCompulsorySemester =>
+      selectedCompulsoryYear == null ? (selectedCompulsorySemester ?? selectedSemester) : selectedCompulsorySemester;
 
   List<EnrolledCourse> get filteredCompulsoryCourses {
     final query = compulsorySearchQuery.trim().toLowerCase();
@@ -238,7 +238,7 @@ class CoursesState {
     var filtered = allCourses.where((course) {
       final matchesTag = selectedTag == null || course.tags.any((t) => t.label == selectedTag);
       final matchesProgramme = selectedProgramme == null || course.programmeNames.contains(selectedProgramme);
-      final matchesCohort = selectedCohort == null || course.cohort == selectedCohort;
+      final matchesSemester = selectedSemester == null || course.semester == selectedSemester;
 
       final query = searchQuery.trim().toLowerCase();
       final matchesQuery = query.isEmpty ||
@@ -246,7 +246,7 @@ class CoursesState {
           course.instructorOrBoard.toLowerCase().contains(query) ||
           course.tags.any((t) => t.label.toLowerCase().contains(query));
 
-      return matchesTag && matchesProgramme && matchesCohort && matchesQuery;
+      return matchesTag && matchesProgramme && matchesSemester && matchesQuery;
     }).toList();
 
     filtered.sort((a, b) {

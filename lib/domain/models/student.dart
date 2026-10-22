@@ -31,9 +31,9 @@ class Student {
 
   /// The programme a public student belongs to (their track sits under it).
   final String? programme;
-  // Not set at registration — a student's cohort follows from the class
+  // Not set at registration — a student's semester follows from the class
   // they're later enrolled into, not a standalone choice up front.
-  final String? cohort;
+  final String? semester;
   final String? role;
   final double gpa;
   final DateTime registrationDate;
@@ -48,7 +48,7 @@ class Student {
     this.title,
     this.programTrack,
     this.programme,
-    this.cohort,
+    this.semester,
     this.role,
     required this.gpa,
     required this.registrationDate,
@@ -65,7 +65,7 @@ class Student {
       title: map['title'] as String?,
       programTrack: map['program_track'] as String?,
       programme: map['programme'] as String?,
-      cohort: map['cohort'] as String?,
+      semester: map['semester'] as String?,
       role: map['role'] as String?,
       gpa: (map['gpa'] as num).toDouble(),
       registrationDate: DateTime.parse(map['registration_date'] as String),

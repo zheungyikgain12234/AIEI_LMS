@@ -238,7 +238,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
     Future<({List<String> moduleIds, List<String> sessionIds, String syllabusStatus})> structureFuture,
   ) async {
     // Section-scoped, not course-scoped: a student enrolled in this course
-    // through a different section/cohort (or with no section assigned at
+    // through a different section/semester (or with no section assigned at
     // all) must not count toward THIS class's progress/grading stats — this
     // is also what MyAssignedCoursesScreen's table now uses, so the two
     // pages agree on the same number for the same class.
@@ -1617,7 +1617,7 @@ class _DistributionRequestDialogState extends State<_DistributionRequestDialog> 
             label: 'Why is the distribution higher than the limits?',
             maxLines: 4,
             errorText: _error,
-            hint: 'e.g. This cohort did exceptionally well on the final project.',
+            hint: 'e.g. This semester did exceptionally well on the final project.',
             onChanged: (_) => setState(() => _error = null),
           ),
         ],

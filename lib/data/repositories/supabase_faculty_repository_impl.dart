@@ -13,7 +13,7 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
   Future<List<AssignedCourse>> getAssignedCourses(String lecturerId) async {
     final rows = await _client
         .from('course_sections')
-        .select('*, courses(*), cohorts(name)')
+        .select('*, courses(*), semesters(name)')
         .eq('lecturer_id', lecturerId)
         .order('section_code');
     final sectionIds = [for (final row in rows as List) row['id'] as String];
@@ -84,7 +84,7 @@ class SupabaseFacultyRepositoryImpl implements FacultyRepository {
 
     // Every student enrolled in each section — the denominator for
     // avgProgress. Scoped by `section_id` (not `course_id`), so a student
-    // enrolled in the same course through a different section/cohort is
+    // enrolled in the same course through a different section/semester is
     // correctly excluded.
     final rosterRows = await _client.from('student_courses').select('student_id, section_id').inFilter('section_id', sectionIds);
     final studentIdsBySection = <String, List<String>>{};

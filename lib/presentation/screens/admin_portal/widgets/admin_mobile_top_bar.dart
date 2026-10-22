@@ -8,7 +8,7 @@ import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 /// Two variants mirror the Stitch mobile mockups:
 /// - `AdminMobileTopBar.root(title: ...)`: logo + ADMIN badge + "/" + section
 ///   title on the left, search/notification/avatar on the right — used on
-///   the bottom-nav root tabs (Lecturers, Students, Cohorts, Enroll).
+///   the bottom-nav root tabs (Lecturers, Students, Semesters, Enroll).
 /// - `AdminMobileTopBar.detail(title: ...)`: back arrow + title on the left,
 ///   ADMIN badge + logo on the right — used on drill-in screens (Lecturer
 ///   Allocation Detail).

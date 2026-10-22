@@ -19,7 +19,7 @@ import 'widgets/faculty_sidebar.dart';
 // ---------------------------------------------------------------------------
 // PhysicalClassAttendanceScreen — the "Physical Class Attendance" sidebar
 // destination. Lists every physical class session across every class this
-// lecturer teaches, grouped by Cohort then by Class as collapsible sections
+// lecturer teaches, grouped by Semester then by Class as collapsible sections
 // (same layout as Grading & Submissions), each class's sessions sorted by
 // date with the latest on top. Tapping a session opens its attendee/absentee
 // list.
@@ -31,10 +31,10 @@ class PhysicalClassAttendanceScreen extends StatefulWidget {
   State<PhysicalClassAttendanceScreen> createState() => _PhysicalClassAttendanceScreenState();
 }
 
-class _CohortGroup {
-  final String cohort;
+class _SemesterGroup {
+  final String semester;
   final List<_ClassGroup> classes;
-  _CohortGroup(this.cohort, this.classes);
+  _SemesterGroup(this.semester, this.classes);
 }
 
 class _ClassGroup {
@@ -50,7 +50,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
   final _facultyRepository = SupabaseFacultyRepositoryImpl(Supabase.instance.client);
 
   bool _isLoading = true;
-  List<_CohortGroup> _groups = const [];
+  List<_SemesterGroup> _groups = const [];
 
   @override
   void initState() {
@@ -64,12 +64,12 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
     if (!mounted) return;
 
     final courseBySection = {for (final c in assignedCourses) c.sectionId: c};
-    final classesByCohort = <String, Map<String, List<PhysicalClassItem>>>{};
+    final classesBySemester = <String, Map<String, List<PhysicalClassItem>>>{};
     for (final item in items) {
       final course = courseBySection[item.sectionId];
-      final cohort = course?.cohort ?? 'No Cohort';
+      final semester = course?.semester ?? 'No Semester';
       final classLabel = course == null ? item.sectionId : '${course.courseCode} • ${course.sectionCode} — ${course.title}';
-      classesByCohort.putIfAbsent(cohort, () => {}).putIfAbsent(classLabel, () => []).add(item);
+      classesBySemester.putIfAbsent(semester, () => {}).putIfAbsent(classLabel, () => []).add(item);
     }
 
     // Latest on top; sessions without a date sink to the bottom.
@@ -84,9 +84,9 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
 
     setState(() {
       _groups = [
-        for (final cohortEntry in classesByCohort.entries)
-          _CohortGroup(cohortEntry.key, [
-            for (final classEntry in cohortEntry.value.entries) _ClassGroup(classEntry.key, [...classEntry.value]..sort(latestFirst)),
+        for (final semesterEntry in classesBySemester.entries)
+          _SemesterGroup(semesterEntry.key, [
+            for (final classEntry in semesterEntry.value.entries) _ClassGroup(classEntry.key, [...classEntry.value]..sort(latestFirst)),
           ]),
       ];
       _isLoading = false;
@@ -174,7 +174,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
         Text('Physical Class Attendance', style: FacultyTypography.headlineLg()),
         const SizedBox(height: 6),
         Text(
-          'Every physical class session, exam and assignment across your cohorts and classes, latest first. Select one to see who attended.',
+          'Every physical class session, exam and assignment across your semesters and classes, latest first. Select one to see who attended.',
           style: FacultyTypography.bodyMd(),
         ),
       ],
@@ -193,11 +193,11 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [for (final group in _groups) ...[_cohortTile(group), const SizedBox(height: 12)]],
+      children: [for (final group in _groups) ...[_semesterTile(group), const SizedBox(height: 12)]],
     );
   }
 
-  Widget _cohortTile(_CohortGroup group) {
+  Widget _semesterTile(_SemesterGroup group) {
     return Container(
       decoration: BoxDecoration(
         color: FacultyColors.surfaceContainerLowest,
@@ -215,7 +215,7 @@ class _PhysicalClassAttendanceScreenState extends State<PhysicalClassAttendanceS
             children: [
               const Icon(Icons.groups_outlined, size: 18, color: FacultyColors.primary),
               const SizedBox(width: 8),
-              Expanded(child: Text(group.cohort, style: FacultyTypography.titleSm())),
+              Expanded(child: Text(group.semester, style: FacultyTypography.titleSm())),
             ],
           ),
           children: [for (final classGroup in group.classes) _classTile(classGroup)],

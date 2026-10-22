@@ -31,13 +31,13 @@ class CoursesNotifier extends Notifier<CoursesState> {
   Future<void> loadInitialData() async {
     state = state.copyWith(errorMessage: null);
     final coursesFuture = _repository.getEnrolledCourses();
-    final cohortsFuture = _masterDataRepository.getCohorts();
+    final semestersFuture = _masterDataRepository.getSemesters();
     await Future.wait([
       _loadPart(() async {
         final courses = await coursesFuture;
-        final cohorts = await cohortsFuture;
-        state = state.copyWith(allCourses: courses, cohorts: cohorts);
-        _applyYearAndCohortSelection();
+        final semesters = await semestersFuture;
+        state = state.copyWith(allCourses: courses, semesters: semesters);
+        _applyYearAndSemesterSelection();
       }, () => state = state.copyWith(coursesReady: true)),
       _loadPart(() async {
         // Reuses the courses above instead of fetching them a second time.
@@ -66,29 +66,29 @@ class CoursesNotifier extends Notifier<CoursesState> {
     markReady();
   }
 
-  /// Keeps the student's existing Year/Cohort selection across a reload (this
+  /// Keeps the student's existing Year/Semester selection across a reload (this
   /// runs every time the screen re-mounts or data is refreshed, not just once)
   /// as long as it's still a valid option — only falls back to a default the
   /// first time, or if the previous choice no longer exists. Otherwise every
   /// reload would silently snap the picker back to "current year / first
-  /// cohort", discarding whatever the student had deliberately selected.
-  void _applyYearAndCohortSelection() {
+  /// semester", discarding whatever the student had deliberately selected.
+  void _applyYearAndSemesterSelection() {
     final years = state.availableYears;
     var selectedYear = state.selectedYear;
     if (selectedYear == null || !years.contains(selectedYear)) {
       final currentYear = DateTime.now().year;
       selectedYear = years.contains(currentYear) ? currentYear : (years.isEmpty ? null : years.last);
     }
-    final cohortNames = selectedYear == null ? const <String>[] : state.cohortNamesForYear(selectedYear);
-    var selectedCohort = state.selectedCohort;
-    if (selectedCohort == null || !cohortNames.contains(selectedCohort)) {
-      selectedCohort = cohortNames.isEmpty ? null : cohortNames.first;
+    final semesterNames = selectedYear == null ? const <String>[] : state.semesterNamesForYear(selectedYear);
+    var selectedSemester = state.selectedSemester;
+    if (selectedSemester == null || !semesterNames.contains(selectedSemester)) {
+      selectedSemester = semesterNames.isEmpty ? null : semesterNames.first;
     }
     state = state.copyWith(
       selectedYear: selectedYear,
       clearSelectedYear: selectedYear == null,
-      selectedCohort: selectedCohort,
-      clearSelectedCohort: selectedCohort == null,
+      selectedSemester: selectedSemester,
+      clearSelectedSemester: selectedSemester == null,
     );
   }
 
@@ -127,19 +127,19 @@ class CoursesNotifier extends Notifier<CoursesState> {
   }
 
   void selectCompulsoryYear(int year) {
-    final names = state.compulsoryCohortNamesForYear(year);
+    final names = state.compulsorySemesterNamesForYear(year);
     state = state.copyWith(
       selectedCompulsoryYear: year,
-      selectedCompulsoryCohort: names.isEmpty ? null : names.first,
-      clearSelectedCompulsoryCohort: names.isEmpty,
+      selectedCompulsorySemester: names.isEmpty ? null : names.first,
+      clearSelectedCompulsorySemester: names.isEmpty,
     );
   }
 
-  void selectCompulsoryCohort(String cohort) {
+  void selectCompulsorySemester(String semester) {
     // Pin the year too, so the pair stays independent of the main selection.
     state = state.copyWith(
       selectedCompulsoryYear: state.effectiveCompulsoryYear,
-      selectedCompulsoryCohort: cohort,
+      selectedCompulsorySemester: semester,
     );
   }
 
@@ -152,30 +152,30 @@ class CoursesNotifier extends Notifier<CoursesState> {
   }
 
   void selectYear(int year) {
-    final cohortNames = state.cohortNamesForYear(year);
+    final semesterNames = state.semesterNamesForYear(year);
     state = state.copyWith(
       selectedYear: year,
-      selectedCohort: cohortNames.isEmpty ? null : cohortNames.first,
-      clearSelectedCohort: cohortNames.isEmpty,
+      selectedSemester: semesterNames.isEmpty ? null : semesterNames.first,
+      clearSelectedSemester: semesterNames.isEmpty,
     );
   }
 
-  void selectCohort(String cohort) {
-    state = state.copyWith(selectedCohort: cohort);
+  void selectSemester(String semester) {
+    state = state.copyWith(selectedSemester: semester);
   }
 
   /// Enrolls the student into [courseId] via a class belonging to the
-  /// cohort chosen in the "Compulsory for You" filters. Returns false (nothing changed) if the course
+  /// semester chosen in the "Compulsory for You" filters. Returns false (nothing changed) if the course
   /// has no such class yet; on success, reloads so the course moves out of
   /// "Compulsory for You" into the enrolled list.
-  String? get _compulsoryCohortId => [
-        for (final c in state.cohorts)
-          if (c.name == state.effectiveCompulsoryCohort && c.year == state.effectiveCompulsoryYear) c.id,
+  String? get _compulsorySemesterId => [
+        for (final c in state.semesters)
+          if (c.name == state.effectiveCompulsorySemester && c.year == state.effectiveCompulsoryYear) c.id,
       ].firstOrNull;
 
-  /// Classes of [courseId] in the chosen cohort that don't clash with the student's schedule.
+  /// Classes of [courseId] in the chosen semester that don't clash with the student's schedule.
   Future<List<EnrollableClass>> enrollableClasses(String courseId) =>
-      _repository.getEnrollableClasses(courseId, cohortId: _compulsoryCohortId);
+      _repository.getEnrollableClasses(courseId, semesterId: _compulsorySemesterId);
 
   Future<void> enrollInSection(String courseId, String sectionId) async {
     await _repository.enrollInSection(courseId, sectionId);
@@ -183,8 +183,8 @@ class CoursesNotifier extends Notifier<CoursesState> {
   }
 
   Future<bool> enrollInCompulsoryCourse(String courseId) async {
-    final cohortId = _compulsoryCohortId;
-    final enrolled = await _repository.enrollInCompulsoryCourse(courseId, cohortId: cohortId);
+    final semesterId = _compulsorySemesterId;
+    final enrolled = await _repository.enrollInCompulsoryCourse(courseId, semesterId: semesterId);
     if (enrolled) await loadInitialData();
     return enrolled;
   }

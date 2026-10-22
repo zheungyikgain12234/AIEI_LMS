@@ -38,7 +38,7 @@ class MasterDataRow {
 enum _SortColumn { code, name, year }
 
 /// Generic CRUD screen for simple admin-managed lookup lists (departments,
-/// program tracks, cohorts, ...) backing the Student Registration dropdowns.
+/// program tracks, semesters, ...) backing the Student Registration dropdowns.
 class MasterDataScreen extends ConsumerStatefulWidget {
   final String title;
   final String description;
@@ -49,7 +49,7 @@ class MasterDataScreen extends ConsumerStatefulWidget {
   final Future<void> Function(String id, String code, String name, String remarks, int? year) update;
   final MasterKind masterKind;
 
-  /// Adds a required numeric "Year" field to the form and table (Cohort only).
+  /// Adds a required numeric "Year" field to the form and table (Semester only).
   final bool showYear;
 
   /// Optional italicized note shown under the description (e.g. a note
@@ -303,17 +303,17 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
 
   Future<void> _confirmAndDelete(List<String> ids) async {
     final service = SupabaseAdminRelationalDelete(Supabase.instance.client);
-    if (widget.masterKind == MasterKind.cohort) {
-      final impact = await service.cohortImpact(ids);
+    if (widget.masterKind == MasterKind.semester) {
+      final impact = await service.semesterImpact(ids);
       if (!mounted) return;
       final names = [for (final r in _rows) if (ids.contains(r.id)) r.name];
       final done = await runTypedNameDelete(
         context,
-        noun: 'cohort',
+        noun: 'semester',
         names: names,
         warning:
-            'All classes and enrolments under ${ids.length == 1 ? 'this cohort' : 'these cohorts'} will be deleted: ${impact.classes} class${impact.classes == 1 ? '' : 'es'} and ${impact.enrolments} enrolment${impact.enrolments == 1 ? '' : 's'}. This cannot be undone.',
-        perform: () => service.deleteCohorts(ids),
+            'All classes and enrolments under ${ids.length == 1 ? 'this semester' : 'these semesters'} will be deleted: ${impact.classes} class${impact.classes == 1 ? '' : 'es'} and ${impact.enrolments} enrolment${impact.enrolments == 1 ? '' : 's'}. This cannot be undone.',
+        perform: () => service.deleteSemesters(ids),
       );
       if (!done || !mounted) return;
       setState(() => _selected.removeAll(ids));

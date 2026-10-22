@@ -3,25 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:stitch_aiei_lms/core/theme/app_colors.dart';
 import 'package:stitch_aiei_lms/core/theme/app_typography.dart';
 
-/// "Enroll into: [Year] [Cohort]" picker for the Compulsory for You section.
+/// "Enroll into: [Year] [Semester]" picker for the Compulsory for You section.
 /// Deliberately styled apart from the filter controls — it doesn't filter the
-/// list, it only chooses which cohort's class "Enroll Now" puts the student in.
+/// list, it only chooses which semester's class "Enroll Now" puts the student in.
 class EnrollTargetPicker extends StatelessWidget {
   final List<int> years;
   final int? selectedYear;
   final ValueChanged<int> onYearChanged;
-  final List<String> cohortNames;
-  final String? selectedCohort;
-  final ValueChanged<String> onCohortChanged;
+  final List<String> semesterNames;
+  final String? selectedSemester;
+  final ValueChanged<String> onSemesterChanged;
 
   const EnrollTargetPicker({
     super.key,
     required this.years,
     required this.selectedYear,
     required this.onYearChanged,
-    required this.cohortNames,
-    required this.selectedCohort,
-    required this.onCohortChanged,
+    required this.semesterNames,
+    required this.selectedSemester,
+    required this.onSemesterChanged,
   });
 
   @override
@@ -55,14 +55,14 @@ class EnrollTargetPicker extends StatelessWidget {
           ),
           DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: cohortNames.contains(selectedCohort) ? selectedCohort : null,
-              hint: Text('Cohort', style: AppTypography.bodySm(color: AppColors.outline)),
+              value: semesterNames.contains(selectedSemester) ? selectedSemester : null,
+              hint: Text('Semester', style: AppTypography.bodySm(color: AppColors.outline)),
               icon: const Icon(Icons.expand_more, size: 18, color: AppColors.outline),
               style: AppTypography.labelMd(color: AppColors.onSurface),
               onChanged: (c) {
-                if (c != null) onCohortChanged(c);
+                if (c != null) onSemesterChanged(c);
               },
-              items: sortDropdownItems([for (final n in cohortNames) DropdownMenuItem(value: n, child: Text(n, overflow: TextOverflow.ellipsis))]),
+              items: sortDropdownItems([for (final n in semesterNames) DropdownMenuItem(value: n, child: Text(n, overflow: TextOverflow.ellipsis))]),
             ),
           ),
         ],

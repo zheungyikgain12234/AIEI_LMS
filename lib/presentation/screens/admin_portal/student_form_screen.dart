@@ -27,11 +27,11 @@ import 'widgets/searchable_dropdown.dart';
 // the caller with the created/updated Student so the table can refresh.
 //
 // Department / Track / Role are selected from the admin-managed
-// master data lists (Manage Student Depts / Manage Student Tracks / Manage
+// master data lists (Manage Staff Depts / Manage Tracks / Manage
 // Roles) rather than freely typed, so the values always satisfy the
 // `students` table's foreign keys. GPA is not editable here — it defaults
 // to 0 in the database and is updated elsewhere as the student progresses.
-// Cohort isn't collected here either — it follows from whichever class the
+// Semester isn't collected here either — it follows from whichever class the
 // student is later enrolled into.
 // ---------------------------------------------------------------------------
 class StudentFormScreen extends ConsumerStatefulWidget {

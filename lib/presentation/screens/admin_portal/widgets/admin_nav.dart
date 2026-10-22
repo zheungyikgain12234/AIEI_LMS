@@ -17,7 +17,7 @@ import '../course_enrollment_screen.dart';
 import '../manage_departments_screen.dart';
 import '../manage_programmes_screen.dart';
 import '../manage_program_tracks_screen.dart';
-import '../manage_cohorts_screen.dart';
+import '../manage_semesters_screen.dart';
 import '../manage_lecturer_departments_screen.dart';
 import '../manage_specializations_screen.dart';
 import '../manage_roles_screen.dart';
@@ -51,7 +51,7 @@ void handleAdminNav(BuildContext context, AdminNavDestination current, AdminNavD
     AdminNavDestination.manageDepartments => const ManageDepartmentsScreen(),
     AdminNavDestination.manageProgrammes => const ManageProgrammesScreen(),
     AdminNavDestination.manageProgramTracks => const ManageProgramTracksScreen(),
-    AdminNavDestination.manageCohorts => const ManageCohortsScreen(),
+    AdminNavDestination.manageSemesters => const ManageSemestersScreen(),
     AdminNavDestination.manageLecturerDepartments => const ManageLecturerDepartmentsScreen(),
     AdminNavDestination.manageSpecializations => const ManageSpecializationsScreen(),
     AdminNavDestination.manageRoles => const ManageRolesScreen(),

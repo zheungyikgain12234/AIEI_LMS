@@ -3,7 +3,7 @@ import 'package:stitch_aiei_lms/domain/models/course_section.dart';
 
 /// Thrown when assigning a lecturer to a class would overlap another class
 /// they already teach — same day of week, overlapping time range, and
-/// overlapping course date range, regardless of course or cohort.
+/// overlapping course date range, regardless of course or semester.
 class ScheduleConflictException implements Exception {
   ScheduleConflictException(this.message);
 
@@ -13,14 +13,14 @@ class ScheduleConflictException implements Exception {
   String toString() => message;
 }
 
-/// One of a lecturer's existing classes — just enough (course, cohort, day,
+/// One of a lecturer's existing classes — just enough (course, semester, day,
 /// time) to list what they already teach on the Manage Assigned Courses
 /// screen. Schedule clashes themselves are checked by
 /// [LecturersRepository.findScheduleConflicts].
 typedef LecturerClassSlot = ({
   String id,
   String courseId,
-  String? cohort,
+  String? semester,
   String sectionCode,
   String? dayOfWeek,
   String? startTime,
@@ -68,7 +68,7 @@ abstract class LecturersRepository {
     String? location,
     required int capacity,
     required String deliveryMode,
-    required String cohort,
+    required String semester,
     required String status,
     required DateTime editStartAt,
     required DateTime editEndAt,
@@ -84,7 +84,7 @@ abstract class LecturersRepository {
   /// same [dayOfWeek], time range overlapping [startTime]–[endTime]
   /// (`HH:mm`; back-to-back is fine) and course date range overlapping
   /// [startDate]–[endDate] (inclusive; a missing date is open-ended).
-  /// Course and cohort are deliberately ignored. [excludeSectionId] leaves
+  /// Course and semester are deliberately ignored. [excludeSectionId] leaves
   /// out the class being (re)assigned itself.
   Future<List<CourseSection>> findScheduleConflicts({
     required String lecturerId,
@@ -140,13 +140,13 @@ abstract class LecturersRepository {
 
   /// This lecturer's existing classes (from `course_sections`) — the Manage
   /// Assigned Courses screen checks each against a new assignment's
-  /// course/cohort/day/time to block only a genuine schedule clash (same
-  /// course, same cohort, overlapping time), and uses it to show which
-  /// cohorts a course is already being taught in.
+  /// course/semester/day/time to block only a genuine schedule clash (same
+  /// course, same semester, overlapping time), and uses it to show which
+  /// semesters a course is already being taught in.
   Future<List<LecturerClassSlot>> getAssignedSchedules(String lecturerId);
 
   /// Adds rows to `lecturer_courses` for each course id. A course already
-  /// assigned to this lecturer (e.g. being re-assigned for a new cohort) is
+  /// assigned to this lecturer (e.g. being re-assigned for a new semester) is
   /// left untouched rather than erroring. `credits_used` is not touched
   /// here — a database trigger recomputes it from `lecturer_courses` (the
   /// assignation table) whenever it changes.
@@ -160,7 +160,7 @@ abstract class LecturersRepository {
   /// Unassigns the lecturer from a single class section (clears its
   /// `lecturer_id`, resets status to `scheduled`) rather than every section
   /// of that course — so a lecturer teaching PY-402 in two different
-  /// cohorts (or twice in the same cohort at different times) can have just
+  /// semesters (or twice in the same semester at different times) can have just
   /// one of those classes unassigned while the other stays intact. If this
   /// was the lecturer's last section for that course, the `lecturer_courses`
   /// row is removed too; otherwise it's left in place.
@@ -184,7 +184,7 @@ abstract class LecturersRepository {
     String? location,
     required int capacity,
     required String deliveryMode,
-    required String cohort,
+    required String semester,
     DateTime? courseStartDate,
     DateTime? courseEndDate,
     required List<String> moduleNames,

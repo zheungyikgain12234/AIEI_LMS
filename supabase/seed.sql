@@ -7,8 +7,8 @@
 --   lecturer = Dr. Emmett Brown (11111111-1111-1111-1111-111111111106)
 --   admin = Marcus Vance (33333333-3333-3333-3333-333333333301)
 --
--- Singapore-based institute — cohorts/terms use intake naming (e.g.
--- "January 2025 Intake", "AY2025 Term 2"), not US semester names.
+-- Singapore-based institute — semesters/terms use intake naming (e.g.
+-- "January 2025 Intake", "AY2025 Term 2"), not US-style names.
 
 truncate table
   course_sections,
@@ -17,7 +17,7 @@ truncate table
   module_materials, course_modules, courses,
   certifications, tags, module_list_items, module_lists,
   lecturers, students, admins,
-  departments, programmes, program_tracks, cohorts,
+  departments, programmes, program_tracks, semesters,
   lecturer_departments, specializations, roles
 restart identity cascade;
 
@@ -37,9 +37,9 @@ insert into program_tracks (code, name) values
   ('TN01-TRK-DPE', 'DevOps & Platform Engineering'), ('TN01-TRK-DSI', 'Data Storytelling & Insights'),
   ('TN01-TRK-GEN', 'General Enterprise Track');
 
--- Singapore-style intake naming (no US-semester "Fall"/"Spring"/"Summer" terms).
-insert into cohorts (code, name, year) values
-  ('TN01-COH-JAN25', 'January 2025 Intake', 2025), ('TN01-COH-EXEC25', 'Executive Cohort 2025', 2025), ('TN01-COH-MAY25', 'May 2025 Intake', 2025), ('TN01-COH-SEP25', 'September 2025 Intake', 2025);
+-- Singapore-style intake naming (no US "Fall"/"Spring"/"Summer" terms).
+insert into semesters (code, name, year) values
+  ('TN01-COH-JAN25', 'January 2025 Intake', 2025), ('TN01-COH-EXEC25', 'Executive Semester 2025', 2025), ('TN01-COH-MAY25', 'May 2025 Intake', 2025), ('TN01-COH-SEP25', 'September 2025 Intake', 2025);
 
 -- Job roles (Role → Course Mapping screen: which courses fit which job).
 insert into roles (id, code, name) values
@@ -82,10 +82,10 @@ insert into lecturers (id, name, title, lecturer_code, email, department, credit
 -- Alternating Internal (department + role, no track) / External (track, no
 -- department/role) so both the registration form and the Role/Dept-vs-Track
 -- enrollment-mismatch flagging have real mixed data to exercise.
-insert into students (id, name, student_code, email, student_type, department, title, program_track, cohort, role, gpa, registration_date) overriding system value values
+insert into students (id, name, student_code, email, student_type, department, title, program_track, semester, role, gpa, registration_date) overriding system value values
   (1, 'Alex Chen', 'TN01-EMP-88219', 'alex.chen@enterprise.com', 'Internal', 'Operations', 'Product Analyst • Operations', null, 'January 2025 Intake', 'Data Analyst', 3.76, '2025-08-18'),
   (2, 'Maya Patel', 'TN01-EMP-74102', 'maya.patel@enterprise.com', 'External', null, 'Business Intelligence Analyst • BI Group', 'AI Engineering Track', 'January 2025 Intake', null, 3.92, '2025-08-19'),
-  (3, 'Marcus Reed', 'TN01-EMP-91024', 'marcus.reed@enterprise.com', 'Internal', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', null, 'Executive Cohort 2025', 'Financial Analyst', 2.90, '2025-05-02'),
+  (3, 'Marcus Reed', 'TN01-EMP-91024', 'marcus.reed@enterprise.com', 'Internal', 'Treasury Tech', 'Financial Systems Lead • Treasury Tech', null, 'Executive Semester 2025', 'Financial Analyst', 2.90, '2025-05-02'),
   (4, 'Elena Rostova Jr.', 'TN01-EMP-60211', 'e.rostovajr@enterprise.com', 'External', null, 'Compliance Engineer • Global Risk', 'Workplace Safety Track', 'May 2025 Intake', null, 3.40, '2025-01-13'),
   (5, 'David Kim', 'TN01-EMP-43890', 'david.kim@enterprise.com', 'Internal', 'Analytics Platform', 'Data Ops Associate • Analytics Platform', null, 'January 2025 Intake', 'Data Analyst', 3.55, '2025-08-20'),
   (6, 'Sophia Loren', 'TN01-EMP-55198', 's.loren@enterprise.com', 'External', null, 'Logistics Analyst • Supply Chain Intelligence', 'Machine Learning Research', 'January 2025 Intake', null, 3.10, '2025-08-21'),
@@ -226,24 +226,24 @@ insert into specialization_courses (specialization_id, course_id) values
 -- section_code is the "class code" — manually entered by the admin through
 -- the Manage Assigned Courses screen (lecturer_course_assignment_screen.dart)
 -- rather than auto-generated, and tenant-prefixed like every other code.
-insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, delivery_mode, cohort_id, start_date, end_date, status) values
-  ('44444444-4444-4444-4444-444444444401', 'TN01-CLS-PY402-A01', 'Primary Instructor', 'AY2025 Term 2', 'Monday 09:00–10:30 • Innovation Hall 204', 'Monday', '09:00', '10:30', 'Innovation Hall 204', '11111111-1111-1111-1111-111111111101', 50, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444407', 'TN01-CLS-DATA501-B02', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 13:00–14:45 • Data Lab 3B', 'Tuesday', '13:00', '14:45', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 45, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444408', 'TN01-CLS-AI301-C01', 'Co-Lecturer', 'AY2025 Term 2', 'Friday 14:00–17:00 • Online', 'Friday', '14:00', '17:00', null, '11111111-1111-1111-1111-111111111101', 35, 'online', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2025-06-20', 'completed'),
-  ('44444444-4444-4444-4444-444444444402', 'TN01-CLS-OSHE101-A1', 'Lead Instructor', 'AY2025 Term 2', 'Monday 11:00–12:30 • Safety Training Center', 'Monday', '11:00', '12:30', 'Safety Training Center', '11111111-1111-1111-1111-111111111102', 56, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444409', 'TN01-CLS-SAF204-H03', 'Lead Instructor', 'AY2025 Term 2', 'Thursday 14:00–17:30 • Hazmat Simulation Hall', 'Thursday', '14:00', '17:30', 'Hazmat Simulation Hall', '11111111-1111-1111-1111-111111111102', 34, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444410', 'TN01-CLS-ML800-GRAD', 'Graduate', 'AY2025 Term 2', 'Monday 14:00–18:00 • Grad Seminar Room 5', 'Monday', '14:00', '18:00', 'Grad Seminar Room 5', '11111111-1111-1111-1111-111111111103', 50, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444411', 'TN01-CLS-DL901-DOC', 'Doctoral Seminar', 'AY2025 Term 2', 'Wednesday 14:00–18:00 • Doctoral Seminar Hall', 'Wednesday', '14:00', '18:00', 'Doctoral Seminar Hall', '11111111-1111-1111-1111-111111111103', 45, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444412', 'TN01-CLS-RL705-ADV', 'Advanced Lab', 'AY2025 Term 2', 'Friday 08:30–12:30 • Robotics Lab 2', 'Friday', '08:30', '12:30', 'Robotics Lab 2', '11111111-1111-1111-1111-111111111103', 30, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444406', 'TN01-CLS-LEAD400-E1', 'Section E1', 'AY2025 Term 2', 'Tuesday 18:00–21:00 • Executive Boardroom', 'Tuesday', '18:00', '21:00', 'Executive Boardroom', '11111111-1111-1111-1111-111111111104', 28, 'physical', (select id from cohorts where name = 'Executive Cohort 2025'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444414', 'TN01-CLS-COMM102-C3', 'Section C3', 'AY2025 Term 2', 'Thursday 16:00–19:00 • Communication Studio C', 'Thursday', '16:00', '19:00', 'Communication Studio C', '11111111-1111-1111-1111-111111111104', 40, 'physical', (select id from cohorts where name = 'Executive Cohort 2025'), '2025-01-13', '2026-12-18', 'in_progress'),
+insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, delivery_mode, semester_id, start_date, end_date, status) values
+  ('44444444-4444-4444-4444-444444444401', 'TN01-CLS-PY402-A01', 'Primary Instructor', 'AY2025 Term 2', 'Monday 09:00–10:30 • Innovation Hall 204', 'Monday', '09:00', '10:30', 'Innovation Hall 204', '11111111-1111-1111-1111-111111111101', 50, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444407', 'TN01-CLS-DATA501-B02', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 13:00–14:45 • Data Lab 3B', 'Tuesday', '13:00', '14:45', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 45, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444408', 'TN01-CLS-AI301-C01', 'Co-Lecturer', 'AY2025 Term 2', 'Friday 14:00–17:00 • Online', 'Friday', '14:00', '17:00', null, '11111111-1111-1111-1111-111111111101', 35, 'online', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2025-06-20', 'completed'),
+  ('44444444-4444-4444-4444-444444444402', 'TN01-CLS-OSHE101-A1', 'Lead Instructor', 'AY2025 Term 2', 'Monday 11:00–12:30 • Safety Training Center', 'Monday', '11:00', '12:30', 'Safety Training Center', '11111111-1111-1111-1111-111111111102', 56, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444409', 'TN01-CLS-SAF204-H03', 'Lead Instructor', 'AY2025 Term 2', 'Thursday 14:00–17:30 • Hazmat Simulation Hall', 'Thursday', '14:00', '17:30', 'Hazmat Simulation Hall', '11111111-1111-1111-1111-111111111102', 34, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444410', 'TN01-CLS-ML800-GRAD', 'Graduate', 'AY2025 Term 2', 'Monday 14:00–18:00 • Grad Seminar Room 5', 'Monday', '14:00', '18:00', 'Grad Seminar Room 5', '11111111-1111-1111-1111-111111111103', 50, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444411', 'TN01-CLS-DL901-DOC', 'Doctoral Seminar', 'AY2025 Term 2', 'Wednesday 14:00–18:00 • Doctoral Seminar Hall', 'Wednesday', '14:00', '18:00', 'Doctoral Seminar Hall', '11111111-1111-1111-1111-111111111103', 45, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444412', 'TN01-CLS-RL705-ADV', 'Advanced Lab', 'AY2025 Term 2', 'Friday 08:30–12:30 • Robotics Lab 2', 'Friday', '08:30', '12:30', 'Robotics Lab 2', '11111111-1111-1111-1111-111111111103', 30, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444406', 'TN01-CLS-LEAD400-E1', 'Section E1', 'AY2025 Term 2', 'Tuesday 18:00–21:00 • Executive Boardroom', 'Tuesday', '18:00', '21:00', 'Executive Boardroom', '11111111-1111-1111-1111-111111111104', 28, 'physical', (select id from semesters where name = 'Executive Semester 2025'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444414', 'TN01-CLS-COMM102-C3', 'Section C3', 'AY2025 Term 2', 'Thursday 16:00–19:00 • Communication Studio C', 'Thursday', '16:00', '19:00', 'Communication Studio C', '11111111-1111-1111-1111-111111111104', 40, 'physical', (select id from semesters where name = 'Executive Semester 2025'), '2025-01-13', '2026-12-18', 'in_progress'),
   -- Dr. Emmett Brown's classes (Lecturer Portal demo identity):
-  ('44444444-4444-4444-4444-444444444413', 'TN01-CLS-NLP620-A01', 'Primary Instructor', 'AY2025 Term 2', 'Wednesday 10:00–12:00 • Language Systems Lab', 'Wednesday', '10:00', '12:00', 'Language Systems Lab', '11111111-1111-1111-1111-111111111106', 30, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444417', 'TN01-CLS-AI512-01', 'Primary Instructor', 'AY2025 Term 2', 'Thursday 13:00–16:00 • Autonomy Systems Lab', 'Thursday', '13:00', '16:00', 'Autonomy Systems Lab', '11111111-1111-1111-1111-111111111106', 22, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
-  ('44444444-4444-4444-4444-444444444403', 'TN01-CLS-AI330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 10:00–12:00 • AI Studio 2', 'Tuesday', '10:00', '12:00', 'AI Studio 2', '11111111-1111-1111-1111-111111111106', 25, 'physical', (select id from cohorts where name = 'January 2025 Intake'), '2025-01-13', '2025-05-16', 'completed'),
+  ('44444444-4444-4444-4444-444444444413', 'TN01-CLS-NLP620-A01', 'Primary Instructor', 'AY2025 Term 2', 'Wednesday 10:00–12:00 • Language Systems Lab', 'Wednesday', '10:00', '12:00', 'Language Systems Lab', '11111111-1111-1111-1111-111111111106', 30, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444417', 'TN01-CLS-AI512-01', 'Primary Instructor', 'AY2025 Term 2', 'Thursday 13:00–16:00 • Autonomy Systems Lab', 'Thursday', '13:00', '16:00', 'Autonomy Systems Lab', '11111111-1111-1111-1111-111111111106', 22, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2026-12-18', 'in_progress'),
+  ('44444444-4444-4444-4444-444444444403', 'TN01-CLS-AI330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 10:00–12:00 • AI Studio 2', 'Tuesday', '10:00', '12:00', 'AI Studio 2', '11111111-1111-1111-1111-111111111106', 25, 'physical', (select id from semesters where name = 'January 2025 Intake'), '2025-01-13', '2025-05-16', 'completed'),
   -- Unassigned sections needing lecturer allocation:
-  ('44444444-4444-4444-4444-444444444415', 'TN01-CLS-CYBER202-02', 'Primary Instructor', 'AY2025 Term 2', 'TBD', null, null, null, null, '11111111-1111-1111-1111-111111111108', 34, 'physical', (select id from cohorts where name = 'January 2025 Intake'), null, null, 'scheduled'),
-  ('44444444-4444-4444-4444-444444444416', 'TN01-CLS-CLOUD410-01', 'Primary Instructor', 'AY2025 Term 2', 'TBD', null, null, null, null, '11111111-1111-1111-1111-111111111108', 50, 'online', (select id from cohorts where name = 'January 2025 Intake'), null, null, 'scheduled');
+  ('44444444-4444-4444-4444-444444444415', 'TN01-CLS-CYBER202-02', 'Primary Instructor', 'AY2025 Term 2', 'TBD', null, null, null, null, '11111111-1111-1111-1111-111111111108', 34, 'physical', (select id from semesters where name = 'January 2025 Intake'), null, null, 'scheduled'),
+  ('44444444-4444-4444-4444-444444444416', 'TN01-CLS-CLOUD410-01', 'Primary Instructor', 'AY2025 Term 2', 'TBD', null, null, null, null, '11111111-1111-1111-1111-111111111108', 50, 'online', (select id from semesters where name = 'January 2025 Intake'), null, null, 'scheduled');
 
 -- ── Modules + Materials ─────────────────────────────────────────────────
 -- Python course (PY-402) — full 10-lesson curriculum matching course_info_screen.dart
@@ -312,7 +312,7 @@ insert into module_materials (id, module_id, material_name, material_type, mater
       "maxScore": 100,
       "passMarkPercentage": 80,
       "rubricLabel": "Institutional Grading Rubric (100 Pts)",
-      "cohortBenchmarkLabel": "Cohort Analytics Benchmark: 88.4%"
+      "semesterBenchmarkLabel": "Semester Analytics Benchmark: 88.4%"
     }'::jsonb, 4, '2025-11-15 23:59:00-05',
     '[
       {"name": "dataset_q3_raw.xlsx", "sizeLabel": "3.4 MB", "kind": "dataset", "footer": "Replaced 2 days ago"},
@@ -493,7 +493,7 @@ insert into student_materials (student_id, material_id, status, score, attempts,
       "submittedAt": "2025-11-14T16:15:00-05:00",
       "onTime": true
     }'::jsonb,
-    'Exceptional submission Alex. Your vectorized transformation logic was one of the most performant in the cohort. Solid edge case handling on the tax code and clean quarantine parquet routing.',
+    'Exceptional submission Alex. Your vectorized transformation logic was one of the most performant in the semester. Solid edge case handling on the tax code and clean quarantine parquet routing.',
     '11111111-1111-1111-1111-111111111101', now() - interval '2 days', now() - interval '2 days');
 
 -- Alex Chen's OSHE Final Regulatory Audit Exam attempt (in progress, drives compliance_quiz_screen)
@@ -511,7 +511,7 @@ insert into student_materials (student_id, material_id, status, score, attempts,
 -- student_directory_screen.dart grading columns and course_dashboard_screen.dart
 -- "assignments/quizzes to grade" KPIs; grader is Dr. Sarah Lin).
 insert into student_materials (student_id, material_id, status, score, attempts, feedback, graded_by, graded_at, completed_at) values
-  (2, '66666666-6666-6666-6666-666666666611', 'completed', 98, 1, 'Outstanding cohort-leading submission.', '11111111-1111-1111-1111-111111111101', now() - interval '1 day', now() - interval '1 day'),
+  (2, '66666666-6666-6666-6666-666666666611', 'completed', 98, 1, 'Outstanding semester-leading submission.', '11111111-1111-1111-1111-111111111101', now() - interval '1 day', now() - interval '1 day'),
   (2, '66666666-6666-6666-6666-666666666612', 'completed', 98, 1, null, '11111111-1111-1111-1111-111111111101', now() - interval '1 day', now() - interval '1 day'),
   (4, '66666666-6666-6666-6666-666666666611', 'completed', 90, 1, 'Solid work overall, minor edge case gaps.', '11111111-1111-1111-1111-111111111101', now() - interval '2 days', now() - interval '2 days'),
   (4, '66666666-6666-6666-6666-666666666612', 'completed', 88, 1, null, '11111111-1111-1111-1111-111111111101', now() - interval '2 days', now() - interval '2 days'),
@@ -521,9 +521,9 @@ insert into student_materials (student_id, material_id, status, score, attempts,
 
 -- ── Earned / revoked credentials (Alex Chen — credential_detail screens) ──
 
-insert into student_certifications (student_id, cert_id, status, progress_percentage, issued_at, expires_at, revoked_at, revocation_reason, case_ref, inspecting_officer, cohort_label) values
+insert into student_certifications (student_id, cert_id, status, progress_percentage, issued_at, expires_at, revoked_at, revocation_reason, case_ref, inspecting_officer, semester_label) values
   (1, '88888888-8888-8888-8888-888888888802', 'revoked', 100, '2025-01-15', '2025-12-31', '2025-10-24 08:30:00-05', 'Confiscated due to high-voltage main switchboard isolation failure prior to shift clock-out on Zone 3 Factory Floor (OSHA Standard 29 CFR 1910.147 - Control of Hazardous Energy / Lockout-Tagout Infraction).', 'INC-2025-08492', 'Dr. V. Morales, Sr. EHS Officer', null),
-  (1, '88888888-8888-8888-8888-888888888804', 'earned', 100, '2024-10-24', null, null, null, null, null, 'Cohort Fall 2024'),
+  (1, '88888888-8888-8888-8888-888888888804', 'earned', 100, '2024-10-24', null, null, null, null, null, 'Semester Fall 2024'),
   (1, '88888888-8888-8888-8888-888888888801', 'in_progress', 70, null, null, null, null, null, null, null),
   (1, '88888888-8888-8888-8888-888888888805', 'in_progress', 40, null, null, null, null, null, null, null),
   (1, '88888888-8888-8888-8888-888888888803', 'in_progress', 85, null, null, null, null, null, null, null),
@@ -779,7 +779,7 @@ join specializations s on s.name = v.name;
 
 -- ── More students (ids 11–18) ────────────────────────────────────────
 
-insert into students (id, name, student_code, email, student_type, department, title, program_track, cohort, role, gpa, registration_date) overriding system value values
+insert into students (id, name, student_code, email, student_type, department, title, program_track, semester, role, gpa, registration_date) overriding system value values
   (11, 'Wei Xin Tan', 'TN01-EMP-10122', 'weixin.tan@enterprise.com', 'Internal', 'Finance', 'FP&A Associate • Finance', null, 'September 2025 Intake', 'Financial Analyst', 3.45, '2025-09-01'),
   (12, 'Nadia Rahman', 'TN01-EMP-10233', 'nadia.rahman@enterprise.com', 'External', null, 'Associate Product Manager', 'Product & UX Track', 'May 2025 Intake', null, 3.60, '2025-01-15'),
   (13, 'Kai Zhang', 'TN01-EMP-10344', 'kai.zhang@enterprise.com', 'Internal', 'Cloud Engineering', 'Cloud Platform Engineer II', null, 'January 2025 Intake', 'Cloud Engineer', 3.50, '2025-08-25'),
@@ -806,17 +806,17 @@ insert into courses (id, course_code, course_title, course_description, category
 -- ── More course sections — including the two previously lecturer-less
 -- catalogue courses, FIN-410 and SEC-410, which now get a real class. ────
 
-insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, delivery_mode, cohort_id, status) values
-  ('44444444-4444-4444-4444-444444444404', 'TN01-CLS-FIN410-A01', 'Primary Instructor', 'AY2025 Term 2', 'Monday 15:00–17:00 • Finance Lab 1', 'Monday', '15:00', '17:00', 'Finance Lab 1', '11111111-1111-1111-1111-111111111109', 32, 'physical', (select id from cohorts where name = 'September 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444405', 'TN01-CLS-SEC410-A01', 'Primary Instructor', 'AY2025 Term 2', 'Wednesday 09:00–11:00 • Security Ops Lab', 'Wednesday', '09:00', '11:00', 'Security Ops Lab', '11111111-1111-1111-1111-111111111107', 40, 'physical', (select id from cohorts where name = 'January 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444418', 'TN01-CLS-FIN420-A01', 'Primary Instructor', 'AY2025 Term 2', 'Thursday 15:00–17:00 • Finance Lab 1', 'Thursday', '15:00', '17:00', 'Finance Lab 1', '11111111-1111-1111-1111-111111111109', 30, 'physical', (select id from cohorts where name = 'September 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444419', 'TN01-CLS-PROD310-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 13:00–15:00 • Product Studio A', 'Tuesday', '13:00', '15:00', 'Product Studio A', '11111111-1111-1111-1111-111111111110', 35, 'physical', (select id from cohorts where name = 'May 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444420', 'TN01-CLS-UX215-A01', 'Primary Instructor', 'AY2025 Term 2', 'Thursday 13:00–15:00 • Product Studio A', 'Thursday', '13:00', '15:00', 'Product Studio A', '11111111-1111-1111-1111-111111111110', 28, 'physical', (select id from cohorts where name = 'May 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444421', 'TN01-CLS-SC330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Monday 10:00–12:00 • Logistics Analytics Lab', 'Monday', '10:00', '12:00', 'Logistics Analytics Lab', '11111111-1111-1111-1111-111111111111', 30, 'physical', (select id from cohorts where name = 'January 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444422', 'TN01-CLS-CYBER330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Friday 09:00–12:00 • Security Ops Lab', 'Friday', '09:00', '12:00', 'Security Ops Lab', '11111111-1111-1111-1111-111111111107', 25, 'physical', (select id from cohorts where name = 'January 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444423', 'TN01-CLS-CLOUD505-A01', 'Primary Instructor', 'AY2025 Term 2', 'Wednesday 14:00–16:00 • Online', 'Wednesday', '14:00', '16:00', null, '11111111-1111-1111-1111-111111111108', 35, 'online', (select id from cohorts where name = 'September 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444424', 'TN01-CLS-AI410-A01', 'Primary Instructor', 'AY2025 Term 2', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111103', 30, 'physical', (select id from cohorts where name = 'January 2025 Intake'), 'in_progress'),
-  ('44444444-4444-4444-4444-444444444425', 'TN01-CLS-DATA610-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 09:00–11:00 • Data Lab 3B', 'Tuesday', '09:00', '11:00', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 40, 'physical', (select id from cohorts where name = 'September 2025 Intake'), 'in_progress');
+insert into course_sections (course_id, section_code, role_label, term, schedule_text, day_of_week, start_time, end_time, location, lecturer_id, capacity, delivery_mode, semester_id, status) values
+  ('44444444-4444-4444-4444-444444444404', 'TN01-CLS-FIN410-A01', 'Primary Instructor', 'AY2025 Term 2', 'Monday 15:00–17:00 • Finance Lab 1', 'Monday', '15:00', '17:00', 'Finance Lab 1', '11111111-1111-1111-1111-111111111109', 32, 'physical', (select id from semesters where name = 'September 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444405', 'TN01-CLS-SEC410-A01', 'Primary Instructor', 'AY2025 Term 2', 'Wednesday 09:00–11:00 • Security Ops Lab', 'Wednesday', '09:00', '11:00', 'Security Ops Lab', '11111111-1111-1111-1111-111111111107', 40, 'physical', (select id from semesters where name = 'January 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444418', 'TN01-CLS-FIN420-A01', 'Primary Instructor', 'AY2025 Term 2', 'Thursday 15:00–17:00 • Finance Lab 1', 'Thursday', '15:00', '17:00', 'Finance Lab 1', '11111111-1111-1111-1111-111111111109', 30, 'physical', (select id from semesters where name = 'September 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444419', 'TN01-CLS-PROD310-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 13:00–15:00 • Product Studio A', 'Tuesday', '13:00', '15:00', 'Product Studio A', '11111111-1111-1111-1111-111111111110', 35, 'physical', (select id from semesters where name = 'May 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444420', 'TN01-CLS-UX215-A01', 'Primary Instructor', 'AY2025 Term 2', 'Thursday 13:00–15:00 • Product Studio A', 'Thursday', '13:00', '15:00', 'Product Studio A', '11111111-1111-1111-1111-111111111110', 28, 'physical', (select id from semesters where name = 'May 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444421', 'TN01-CLS-SC330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Monday 10:00–12:00 • Logistics Analytics Lab', 'Monday', '10:00', '12:00', 'Logistics Analytics Lab', '11111111-1111-1111-1111-111111111111', 30, 'physical', (select id from semesters where name = 'January 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444422', 'TN01-CLS-CYBER330-A01', 'Primary Instructor', 'AY2025 Term 2', 'Friday 09:00–12:00 • Security Ops Lab', 'Friday', '09:00', '12:00', 'Security Ops Lab', '11111111-1111-1111-1111-111111111107', 25, 'physical', (select id from semesters where name = 'January 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444423', 'TN01-CLS-CLOUD505-A01', 'Primary Instructor', 'AY2025 Term 2', 'Wednesday 14:00–16:00 • Online', 'Wednesday', '14:00', '16:00', null, '11111111-1111-1111-1111-111111111108', 35, 'online', (select id from semesters where name = 'September 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444424', 'TN01-CLS-AI410-A01', 'Primary Instructor', 'AY2025 Term 2', 'Friday 14:00–17:00 • AI Research Lab 1', 'Friday', '14:00', '17:00', 'AI Research Lab 1', '11111111-1111-1111-1111-111111111103', 30, 'physical', (select id from semesters where name = 'January 2025 Intake'), 'in_progress'),
+  ('44444444-4444-4444-4444-444444444425', 'TN01-CLS-DATA610-A01', 'Primary Instructor', 'AY2025 Term 2', 'Tuesday 09:00–11:00 • Data Lab 3B', 'Tuesday', '09:00', '11:00', 'Data Lab 3B', '11111111-1111-1111-1111-111111111101', 40, 'physical', (select id from semesters where name = 'September 2025 Intake'), 'in_progress');
 
 -- Fill in the schedule for Marcus Webb's CLOUD-410 section (every class
 -- must have a lecturer, so CYBER-202 is Marcus's too, schedule still TBD).

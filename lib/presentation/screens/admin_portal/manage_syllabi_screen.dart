@@ -81,7 +81,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
     final rows = _sections.where((s) {
       if (_statusFilter != null && s.syllabusStatus != _statusFilter) return false;
       if (_query.isEmpty) return true;
-      return [s.courseCode, s.courseTitle, s.sectionCode, s.cohort ?? '', s.lecturerName ?? '']
+      return [s.courseCode, s.courseTitle, s.sectionCode, s.semester ?? '', s.lecturerName ?? '']
           .any((v) => v.toLowerCase().contains(_query));
     }).toList();
     rows.sort((a, b) {
@@ -160,7 +160,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
                   style: AdminTypography.bodySm(color: AdminColors.onSurface),
                   decoration: InputDecoration(
                     isDense: true,
-                    hintText: 'Search by course, class, cohort or lecturer...',
+                    hintText: 'Search by course, class, semester or lecturer...',
                     prefixIcon: const Icon(Icons.search, size: 18, color: AdminColors.onSurfaceVariant),
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -205,7 +205,7 @@ class _ManageSyllabiScreenState extends State<ManageSyllabiScreen> with RefreshO
                   Text('${s.courseCode} • ${s.sectionCode} — ${s.courseTitle}', style: AdminTypography.bodyMd(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text(
-                    [if (s.cohort != null) s.cohort!, if (s.lecturerName != null) s.lecturerName!].join(' • '),
+                    [if (s.semester != null) s.semester!, if (s.lecturerName != null) s.lecturerName!].join(' • '),
                     style: AdminTypography.bodySm(),
                   ),
                 ],

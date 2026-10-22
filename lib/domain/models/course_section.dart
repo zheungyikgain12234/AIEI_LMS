@@ -25,10 +25,10 @@ class CourseSection {
   final String? lecturerName;
   final int capacity;
   final String deliveryMode;
-  final String? cohortId;
-  final String? cohort;
-  final String? cohortCode;
-  final int? cohortYear;
+  final String? semesterId;
+  final String? semester;
+  final String? semesterCode;
+  final int? semesterYear;
   final int enrolledCount;
   final String status;
   final DateTime? startDate;
@@ -61,10 +61,10 @@ class CourseSection {
     this.lecturerName,
     required this.capacity,
     required this.deliveryMode,
-    this.cohortId,
-    this.cohort,
-    this.cohortCode,
-    this.cohortYear,
+    this.semesterId,
+    this.semester,
+    this.semesterCode,
+    this.semesterYear,
     required this.enrolledCount,
     required this.status,
     this.startDate,
@@ -81,7 +81,7 @@ class CourseSection {
   factory CourseSection.fromMap(Map<String, dynamic> map, {required int enrolledCount}) {
     final course = map['courses'] as Map<String, dynamic>?;
     final lecturer = map['lecturers'] as Map<String, dynamic>?;
-    final cohort = map['cohorts'] as Map<String, dynamic>?;
+    final semester = map['semesters'] as Map<String, dynamic>?;
     return CourseSection(
       id: map['id'] as String,
       courseId: map['course_id'] as String,
@@ -99,10 +99,10 @@ class CourseSection {
       lecturerName: lecturer?['name'] as String?,
       capacity: map['capacity'] as int,
       deliveryMode: map['delivery_mode'] as String? ?? 'physical',
-      cohortId: map['cohort_id'] as String?,
-      cohort: cohort?['name'] as String?,
-      cohortCode: cohort?['code'] == null ? null : displayCode(cohort!['code'] as String),
-      cohortYear: cohort?['year'] as int?,
+      semesterId: map['semester_id'] as String?,
+      semester: semester?['name'] as String?,
+      semesterCode: semester?['code'] == null ? null : displayCode(semester!['code'] as String),
+      semesterYear: semester?['year'] as int?,
       enrolledCount: enrolledCount,
       status: map['status'] as String,
       startDate: map['start_date'] == null ? null : DateTime.parse(map['start_date'] as String),

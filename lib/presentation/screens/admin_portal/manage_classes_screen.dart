@@ -34,7 +34,7 @@ class ManageClassesScreen extends StatefulWidget {
   State<ManageClassesScreen> createState() => _ManageClassesScreenState();
 }
 
-enum _SortColumn { section, course, lecturer, cohort, year, enrolled }
+enum _SortColumn { section, course, lecturer, semester, year, enrolled }
 
 class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshOnReturn<ManageClassesScreen> {
   @override
@@ -114,7 +114,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
             s.courseCode.toLowerCase().contains(_query) ||
             s.courseTitle.toLowerCase().contains(_query) ||
             (s.lecturerName ?? '').toLowerCase().contains(_query) ||
-            (s.cohort ?? '').toLowerCase().contains(_query)).toList();
+            (s.semester ?? '').toLowerCase().contains(_query)).toList();
     final sorted = [...sections];
     sorted.sort((a, b) {
       final int cmp;
@@ -125,10 +125,10 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
           cmp = a.courseTitle.toLowerCase().compareTo(b.courseTitle.toLowerCase());
         case _SortColumn.lecturer:
           cmp = (a.lecturerName ?? '').toLowerCase().compareTo((b.lecturerName ?? '').toLowerCase());
-        case _SortColumn.cohort:
-          cmp = (a.cohort ?? '').toLowerCase().compareTo((b.cohort ?? '').toLowerCase());
+        case _SortColumn.semester:
+          cmp = (a.semester ?? '').toLowerCase().compareTo((b.semester ?? '').toLowerCase());
         case _SortColumn.year:
-          cmp = (a.cohortYear ?? 0).compareTo(b.cohortYear ?? 0);
+          cmp = (a.semesterYear ?? 0).compareTo(b.semesterYear ?? 0);
         case _SortColumn.enrolled:
           cmp = a.enrolledCount.compareTo(b.enrolledCount);
       }
@@ -302,8 +302,8 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                       style: AdminTypography.labelSm(color: unassigned ? AdminColors.onSurfaceVariant : AdminColors.onSurface),
                     ),
                     Text(s.scheduleText, style: AdminTypography.labelSm()),
-                    if (s.cohort != null)
-                      Text('${s.cohortCode ?? '—'} - ${s.cohort}${s.cohortYear == null ? '' : ' (${s.cohortYear})'}', style: AdminTypography.labelSm()),
+                    if (s.semester != null)
+                      Text('${s.semesterCode ?? '—'} - ${s.semester}${s.semesterYear == null ? '' : ' (${s.semesterYear})'}', style: AdminTypography.labelSm()),
                     Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm()),
                   ],
                 ),
@@ -443,7 +443,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
           Expanded(flex: 5, child: _sortHeader('Course / Class', _SortColumn.course)),
           Expanded(flex: 3, child: _sortHeader('Lecturer', _SortColumn.lecturer)),
           Expanded(flex: 4, child: Text('Schedule', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
-          Expanded(flex: 3, child: _sortHeader('Cohort / Year', _SortColumn.cohort)),
+          Expanded(flex: 3, child: _sortHeader('Semester / Year', _SortColumn.semester)),
           Expanded(flex: 2, child: _sortHeader('Enrolled', _SortColumn.enrolled)),
           const SizedBox(width: 110),
         ],
@@ -506,12 +506,12 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
           ]),
           _cell(flex: 3, children: [
             Text(
-              s.cohort == null ? '—' : '${s.cohortCode ?? '—'} - ${s.cohort}',
+              s.semester == null ? '—' : '${s.semesterCode ?? '—'} - ${s.semester}',
               style: AdminTypography.bodySm(),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            if (s.cohortYear != null) Text('${s.cohortYear}', style: AdminTypography.labelSm()),
+            if (s.semesterYear != null) Text('${s.semesterYear}', style: AdminTypography.labelSm()),
           ]),
           Expanded(
             flex: 2,

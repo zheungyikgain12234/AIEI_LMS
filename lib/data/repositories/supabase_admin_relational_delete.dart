@@ -7,7 +7,7 @@ enum MasterKind {
   department,
   programme,
   programTrack,
-  cohort,
+  semester,
   lecturerDepartment,
   specialization,
   role,
@@ -37,15 +37,15 @@ const _masterTables = {
   MasterKind.department: 'departments',
   MasterKind.programme: 'programmes',
   MasterKind.programTrack: 'program_tracks',
-  MasterKind.cohort: 'cohorts',
+  MasterKind.semester: 'semesters',
   MasterKind.lecturerDepartment: 'lecturer_departments',
   MasterKind.specialization: 'specializations',
   MasterKind.role: 'roles',
 };
 
 // Students keep department/role (Internal) or program_track (External) by a
-// check constraint, so those can only be moved, never cleared. Cohorts are
-// deleted together with their classes instead (see [deleteCohorts]).
+// check constraint, so those can only be moved, never cleared. Semesters are
+// deleted together with their classes instead (see [deleteSemesters]).
 const _masterRefs = <MasterKind, List<_Ref>>{
   MasterKind.department: [
     _Ref('students', 'department', true, 'Students', 'name', 'student_code'),
@@ -57,7 +57,7 @@ const _masterRefs = <MasterKind, List<_Ref>>{
   MasterKind.programme: [
     _Ref('students', 'programme', true, 'Students', 'name', 'student_code'),
   ],
-  MasterKind.cohort: <_Ref>[],
+  MasterKind.semester: <_Ref>[],
   MasterKind.lecturerDepartment: [
     _Ref('lecturers', 'department', true, 'Lecturers', 'name', 'lecturer_code'),
   ],
@@ -81,7 +81,7 @@ class SupabaseAdminRelationalDelete {
     for (final x in r as List) x as Map<String, dynamic>,
   ];
 
-  // ── Lookup lists (departments, tracks, cohorts, ...) ──────────────────
+  // ── Lookup lists (departments, tracks, semesters, ...) ──────────────────
 
   Future<List<DeleteDependent>> masterDependents(
     MasterKind kind,
@@ -125,7 +125,7 @@ class SupabaseAdminRelationalDelete {
     List<String> ids,
     List<DeleteDecision> decisions,
   ) async {
-    if (kind == MasterKind.cohort) return deleteCohorts(ids);
+    if (kind == MasterKind.semester) return deleteSemesters(ids);
     for (final ref in _masterRefs[kind]!) {
       await _applyUpdates(
         ref.table,
@@ -152,15 +152,15 @@ class SupabaseAdminRelationalDelete {
     }
   }
 
-  // ── Cohorts ───────────────────────────────────────────────────────────
+  // ── Semesters ───────────────────────────────────────────────────────────
 
-  /// Counts what deleting these cohorts takes with it, for the warning text.
-  Future<({int classes, int enrolments})> cohortImpact(List<String> ids) async {
+  /// Counts what deleting these semesters takes with it, for the warning text.
+  Future<({int classes, int enrolments})> semesterImpact(List<String> ids) async {
     final sections = _rows(
       await _client
           .from('course_sections')
           .select('id')
-          .inFilter('cohort_id', ids),
+          .inFilter('semester_id', ids),
     );
     final sectionIds = [for (final x in sections) x['id'] as String];
     final enrolments = sectionIds.isEmpty
@@ -174,14 +174,14 @@ class SupabaseAdminRelationalDelete {
     return (classes: sections.length, enrolments: enrolments);
   }
 
-  /// Deletes the cohorts together with their classes and those classes'
-  /// enrolments. Students merely lose their cohort label.
-  Future<void> deleteCohorts(List<String> ids) async {
+  /// Deletes the semesters together with their classes and those classes'
+  /// enrolments. Students merely lose their semester label.
+  Future<void> deleteSemesters(List<String> ids) async {
     final sections = _rows(
       await _client
           .from('course_sections')
           .select('id')
-          .inFilter('cohort_id', ids),
+          .inFilter('semester_id', ids),
     );
     final sectionIds = [for (final x in sections) x['id'] as String];
     if (sectionIds.isNotEmpty) {
@@ -192,12 +192,12 @@ class SupabaseAdminRelationalDelete {
       await _client.from('course_sections').delete().inFilter('id', sectionIds);
     }
     final names = _rows(
-      await _client.from('cohorts').select('name').inFilter('id', ids),
+      await _client.from('semesters').select('name').inFilter('id', ids),
     );
-    await _client.from('students').update({'cohort': null}).inFilter('cohort', [
+    await _client.from('students').update({'semester': null}).inFilter('semester', [
       for (final n in names) n['name'] as String,
     ]);
-    await _client.from('cohorts').delete().inFilter('id', ids);
+    await _client.from('semesters').delete().inFilter('id', ids);
   }
 
   // ── Course tags ───────────────────────────────────────────────────────

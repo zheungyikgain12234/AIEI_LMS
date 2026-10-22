@@ -39,7 +39,7 @@ class _StudentScheduleSidebarState extends State<StudentScheduleSidebar> {
     try {
       final rows = await _client
           .from('student_courses')
-          .select('section_id, course_sections(*, courses(course_code, course_title), cohorts(name, code, year))')
+          .select('section_id, course_sections(*, courses(course_code, course_title), semesters(name, code, year))')
           .eq('student_id', DemoIdentity.studentId);
       final sections = <String, CourseSection>{};
       for (final row in rows as List) {
@@ -163,7 +163,7 @@ class _StudentScheduleSidebarState extends State<StudentScheduleSidebar> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(c.courseTitle, style: AppTypography.labelLg()),
-          Text('${c.courseCode} • ${c.sectionCode}${c.cohort == null ? '' : ' • ${c.cohort}'}', style: AppTypography.labelSm()),
+          Text('${c.courseCode} • ${c.sectionCode}${c.semester == null ? '' : ' • ${c.semester}'}', style: AppTypography.labelSm()),
           const SizedBox(height: 4),
           line(online ? Icons.videocam_outlined : Icons.place_outlined, where),
           line(Icons.schedule, dayTime),

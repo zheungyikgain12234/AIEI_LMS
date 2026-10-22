@@ -165,7 +165,7 @@ class _TrackCourseMappingScreenState extends State<TrackCourseMappingScreen> wit
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AdminColors.surfaceContainerLowest, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6)]),
-        child: Text('No tracks exist yet. Create one from Manage Student Tracks first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
+        child: Text('No tracks exist yet. Create one from Manage Tracks first.', style: AdminTypography.bodyMd(color: AdminColors.error)),
       );
     }
     return Container(

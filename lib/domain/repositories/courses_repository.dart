@@ -7,7 +7,7 @@ import '../models/module_material.dart';
 class EnrollableClass {
   final String sectionId;
   final String sectionCode;
-  final String? cohortName;
+  final String? semesterName;
   final String scheduleText;
   final String? location;
 
@@ -15,7 +15,7 @@ class EnrollableClass {
     required this.sectionId,
     required this.sectionCode,
     required this.scheduleText,
-    this.cohortName,
+    this.semesterName,
     this.location,
   });
 }
@@ -42,13 +42,13 @@ abstract class CoursesRepository {
   /// Enrolls the demo student into [courseId] via one of its existing
   /// classes (`course_sections`) — used when they click "Enroll" on a
   /// compulsory-but-not-enrolled course. Returns false (no write performed)
-  /// if the course has no class yet (in [cohortId], when given).
-  Future<bool> enrollInCompulsoryCourse(String courseId, {String? cohortId});
+  /// if the course has no class yet (in [semesterId], when given).
+  Future<bool> enrollInCompulsoryCourse(String courseId, {String? semesterId});
 
-  /// Classes of [courseId] (in [cohortId], when given) the demo student can
+  /// Classes of [courseId] (in [semesterId], when given) the demo student can
   /// join: none of them clash with a class they already attend. Empty when
-  /// they already have a class of the course in that cohort.
-  Future<List<EnrollableClass>> getEnrollableClasses(String courseId, {String? cohortId});
+  /// they already have a class of the course in that semester.
+  Future<List<EnrollableClass>> getEnrollableClasses(String courseId, {String? semesterId});
 
   /// Enrolls the demo student into the chosen class of [courseId]. Throws
   /// [ScheduleConflictException] if it now clashes with one they attend.

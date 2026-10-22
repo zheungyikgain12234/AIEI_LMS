@@ -53,14 +53,14 @@ class _ClassGrades {
   double get total => (items.fold<double>(0, (sum, i) => sum + (i.weighted ?? 0)) + moderatedScore).clamp(0, 100);
 }
 
-class _CohortGrades {
-  final String cohort;
+class _SemesterGrades {
+  final String semester;
   final List<_ClassGrades> classes;
 
-  const _CohortGrades(this.cohort, this.classes);
+  const _SemesterGrades(this.semester, this.classes);
 }
 
-/// Student "My Grades": cohort → class accordion, each class listing every
+/// Student "My Grades": semester → class accordion, each class listing every
 /// assessment's mark, then the total and letter grade at the bottom.
 class MyGradesScreen extends StatefulWidget {
   const MyGradesScreen({super.key});
@@ -76,7 +76,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
   late final _settingsRepository = SupabaseAppSettingsRepositoryImpl(_client);
 
   bool _isLoading = true;
-  List<_CohortGrades> _groups = const [];
+  List<_SemesterGrades> _groups = const [];
   GradeScale _gradeScale = GradeScale.defaultScale;
 
   @override
@@ -100,23 +100,23 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
         ? const <dynamic>[]
         : await _client
             .from('course_sections')
-            .select('id, section_code, cohorts(name), courses(course_code, course_title)')
+            .select('id, section_code, semesters(name), courses(course_code, course_title)')
             .inFilter('id', sectionIds);
 
-    final classesByCohort = <String, List<_ClassGrades>>{};
+    final classesBySemester = <String, List<_ClassGrades>>{};
     for (final row in sectionRows) {
       final sectionId = row['id'] as String;
       final course = row['courses'] as Map<String, dynamic>?;
-      final cohort = (row['cohorts'] as Map<String, dynamic>?)?['name'] as String? ?? 'No Cohort';
+      final semester = (row['semesters'] as Map<String, dynamic>?)?['name'] as String? ?? 'No Semester';
       final label = '${displayCode((course?['course_code'] as String?) ?? '')} • ${displayCode(row['section_code'] as String)} — ${course?['course_title'] ?? ''}';
       final items = await _loadItems(sectionId);
-      classesByCohort.putIfAbsent(cohort, () => []).add(_ClassGrades(label, items, moderatedBySection[sectionId] ?? 0));
+      classesBySemester.putIfAbsent(semester, () => []).add(_ClassGrades(label, items, moderatedBySection[sectionId] ?? 0));
     }
 
     final gradeScale = await _settingsRepository.getGradeScale();
     if (!mounted) return;
     setState(() {
-      _groups = [for (final e in classesByCohort.entries) _CohortGrades(e.key, e.value)];
+      _groups = [for (final e in classesBySemester.entries) _SemesterGrades(e.key, e.value)];
       _gradeScale = gradeScale;
       _isLoading = false;
     });
@@ -192,7 +192,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
                     Text('My Grades', style: AppTypography.headlineLg()),
                     const SizedBox(height: 6),
                     Text(
-                      'Your marks for every assessment, grouped by cohort and class.',
+                      'Your marks for every assessment, grouped by semester and class.',
                       style: AppTypography.bodyMd(),
                     ),
                     const SizedBox(height: 24),
@@ -207,7 +207,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
                         child: Text('You are not enrolled in any class yet.', style: AppTypography.bodyMd()),
                       )
                     else
-                      for (final g in _groups) ...[_cohortTile(g), const SizedBox(height: 12)],
+                      for (final g in _groups) ...[_semesterTile(g), const SizedBox(height: 12)],
                   ],
                 ),
               ),
@@ -241,7 +241,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
     );
   }
 
-  Widget _cohortTile(_CohortGrades group) {
+  Widget _semesterTile(_SemesterGrades group) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
@@ -259,7 +259,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
               children: [
                 const Icon(Icons.groups_outlined, size: 18, color: AppColors.secondary),
                 const SizedBox(width: 8),
-                Expanded(child: Text(group.cohort, style: AppTypography.labelLg())),
+                Expanded(child: Text(group.semester, style: AppTypography.labelLg())),
               ],
             ),
             children: [for (final c in group.classes) _classTile(c)],

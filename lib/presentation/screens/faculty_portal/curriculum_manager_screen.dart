@@ -289,7 +289,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
                       child: Text(_courseCode ?? 'CS-408', style: FacultyTypography.labelXs(color: FacultyColors.primary).copyWith(fontWeight: FontWeight.w700)),
                     ),
                     Text('•', style: FacultyTypography.labelXs()),
-                    Text('Fall Cohort Alpha', style: FacultyTypography.labelXs(color: FacultyColors.secondary)),
+                    Text('Fall Semester Alpha', style: FacultyTypography.labelXs(color: FacultyColors.secondary)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -1145,7 +1145,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
               children: [
                 Text('94.2%', style: FacultyTypography.headlineMd(color: FacultyColors.primary)),
                 const SizedBox(height: 4),
-                Text('Cohort Access Rate',
+                Text('Semester Access Rate',
                     style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),

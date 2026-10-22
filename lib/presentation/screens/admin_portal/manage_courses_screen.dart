@@ -323,7 +323,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                    Text(c.courseTitle, style: AdminTypography.titleSm()),
                     Text(c.courseCode, style: AdminTypography.labelSm()),
                   ],
                 ),
@@ -504,7 +504,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(c.courseCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+              child: Text(c.courseCode, style: AdminTypography.labelSm()),
             ),
           ),
           Expanded(
@@ -513,7 +513,7 @@ class _ManageCoursesScreenState extends State<ManageCoursesScreen> with RefreshO
               padding: const EdgeInsets.only(right: 12),
               child: Row(
                 children: [
-                  Flexible(child: Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  Flexible(child: Text(c.courseTitle, style: AdminTypography.titleSm())),
                 ],
               ),
             ),

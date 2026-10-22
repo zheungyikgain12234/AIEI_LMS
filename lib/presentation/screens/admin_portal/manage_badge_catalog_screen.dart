@@ -271,9 +271,9 @@ class _ManageBadgeCatalogScreenState extends State<ManageBadgeCatalogScreen> wit
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(b.title, style: AdminTypography.titleMd(color: UiContrast.text), overflow: TextOverflow.ellipsis),
+                Text(b.title, style: AdminTypography.titleMd(color: UiContrast.text)),
                 const SizedBox(height: 2),
-                Text('${b.code} • ${b.issuingBody}', style: AdminTypography.bodySm(color: UiContrast.textSecondary), overflow: TextOverflow.ellipsis),
+                Text('${b.code} • ${b.issuingBody}', style: AdminTypography.bodySm(color: UiContrast.textSecondary)),
               ],
             ),
           ),

@@ -882,7 +882,6 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             child: Text(
               s.studentCode,
               style: AdminTypography.labelSm(),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
@@ -890,7 +889,6 @@ class _ManageClassDetailScreenState extends State<ManageClassDetailScreen> {
             child: Text(
               s.name,
               style: AdminTypography.titleSm(),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

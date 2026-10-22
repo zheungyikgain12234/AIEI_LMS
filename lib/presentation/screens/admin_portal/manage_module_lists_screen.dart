@@ -300,7 +300,7 @@ class _ManageModuleListsScreenState extends State<ManageModuleListsScreen> with 
               children: [
                 Text('${l.name} (${l.moduleNames.length})', style: AdminTypography.bodyMd(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text(l.moduleNames.join(' • '), style: AdminTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(l.moduleNames.join(' • '), style: AdminTypography.bodySm()),
               ],
             ),
           ),

@@ -11,7 +11,7 @@ import 'faculty_schedule_sidebar.dart';
 /// Two variants mirror the Stitch mobile mockups:
 /// - `FacultyMobileTopBar(title: ...)`: back arrow + page title + avatar,
 ///   used on drill-in screens (course dashboard, curriculum, grading).
-/// - `FacultyMobileTopBar.root()`: logo + FACULTY badge + avatar, used on the bottom-nav root tabs (My Courses, Students).
+/// - `FacultyMobileTopBar.root()`: logo + LECTURER badge + avatar, used on the bottom-nav root tabs (My Courses, Students).
 class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final bool isRoot;
@@ -81,7 +81,7 @@ class FacultyMobileTopBar extends StatelessWidget implements PreferredSizeWidget
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(color: FacultyColors.primary, borderRadius: BorderRadius.circular(4)),
-          child: Text('FACULTY', style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
+          child: Text('LECTURER', style: FacultyTypography.labelXs(color: Colors.white).copyWith(fontWeight: FontWeight.w700)),
         ),
         const Spacer(),
         IconButton(

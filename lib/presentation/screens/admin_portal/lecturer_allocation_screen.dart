@@ -504,8 +504,8 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(s.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                                Text('${s.sectionCode} • ${s.enrolledCount} Students • ${s.scheduleText}', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                                Text(s.courseTitle, style: AdminTypography.titleSm()),
+                                Text('${s.sectionCode} • ${s.enrolledCount} Students • ${s.scheduleText}', style: AdminTypography.bodySm()),
                               ],
                             ),
                           ),
@@ -909,11 +909,11 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                   children: [
                     Text(value, style: AdminTypography.headlineMd(color: AdminColors.onSurface)),
                     const SizedBox(width: 4),
-                    Flexible(child: Text(unit, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant), overflow: TextOverflow.ellipsis)),
+                    Flexible(child: Text(unit, style: AdminTypography.labelMd(color: AdminColors.onSurfaceVariant))),
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(footer, style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(footer, style: AdminTypography.bodySm(color: AdminColors.onSurfaceVariant)),
               ],
             ),
           ),
@@ -967,8 +967,6 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     child: Text(
                       uncoveredCount > 0 ? '$uncoveredCount sections require coverage' : 'All sections covered',
                       style: AdminTypography.bodySm(color: uncoveredCount > 0 ? AdminColors.error : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ]),
@@ -1023,7 +1021,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     Row(children: [
                       const Icon(Icons.error, color: AdminColors.error, size: 20),
                       const SizedBox(width: 6),
-                      Expanded(child: Text('${unassigned.length} Urgent Unassigned Courses', style: AdminTypography.headlineSm(), overflow: TextOverflow.ellipsis)),
+                      Expanded(child: Text('${unassigned.length} Urgent Unassigned Courses', style: AdminTypography.headlineSm())),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1062,8 +1060,8 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(code, style: AdminTypography.titleSm(), maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(desc, style: AdminTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(code, style: AdminTypography.titleSm()),
+              Text(desc, style: AdminTypography.bodySm()),
             ],
           ),
         ),
@@ -1165,12 +1163,12 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
             ),
           ]),
           const SizedBox(height: 4),
-          Text(title, style: AdminTypography.titleSm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(title, style: AdminTypography.titleSm()),
           const SizedBox(height: 2),
           Row(children: [
             const Icon(Icons.schedule, size: 13, color: AdminColors.onSurfaceVariant),
             const SizedBox(width: 4),
-            Expanded(child: Text(scheduleInfo, style: AdminTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text(scheduleInfo, style: AdminTypography.bodySm())),
           ]),
           if (showButtons) ...[
             const SizedBox(height: 8),
@@ -1292,11 +1290,11 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
-                    Flexible(child: Text(lecturer.name, style: AdminTypography.titleMd(), overflow: TextOverflow.ellipsis)),
+                    Flexible(child: Text(lecturer.name, style: AdminTypography.titleMd())),
                     const SizedBox(width: 4),
                     Icon(locked ? Icons.lock : Icons.verified, size: 15, color: locked ? AdminColors.error : AdminColors.secondary),
                   ]),
-                  Text('${lecturer.title} • ${lecturer.lecturerCode}', style: AdminTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text('${lecturer.title} • ${lecturer.lecturerCode}', style: AdminTypography.bodySm()),
                 ],
               ),
             ),
@@ -1315,7 +1313,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Expanded(child: Text('Teaching Load: ${lecturer.creditsUsed} / ${lecturer.creditsMax} Credits', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant), overflow: TextOverflow.ellipsis)),
+                  Expanded(child: Text('Teaching Load: ${lecturer.creditsUsed} / ${lecturer.creditsMax} Credits', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
                   Text('$pct% Capacity', style: AdminTypography.labelSm(color: locked ? AdminColors.error : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
                 ]),
                 const SizedBox(height: 6),
@@ -1333,7 +1331,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
             child: Row(children: [
               Icon(locked ? Icons.lock_clock : Icons.info, size: 16, color: calloutFg),
               const SizedBox(width: 8),
-              Expanded(child: Text(calloutText, style: AdminTypography.bodySm(color: calloutFg), maxLines: 2, overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text(calloutText, style: AdminTypography.bodySm(color: calloutFg))),
             ]),
           ),
           const SizedBox(height: 12),
@@ -1350,7 +1348,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
                     child: Text(s.courseCode, style: AdminTypography.labelSm()),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(s.courseTitle, style: AdminTypography.bodySm(), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  Expanded(child: Text(s.courseTitle, style: AdminTypography.bodySm())),
                 ]),
               )
           else
@@ -1437,7 +1435,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Expanded(child: Text(label, style: AdminTypography.bodySm(color: AdminColors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text(label, style: AdminTypography.bodySm(color: AdminColors.onSurface))),
             const SizedBox(width: 8),
             Text('$pct% Capacity', style: AdminTypography.bodySm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
           ]),
@@ -1467,7 +1465,7 @@ class _LecturerAllocationScreenState extends State<LecturerAllocationScreen> wit
           ),
         ),
         Expanded(
-          child: Text('Page 1 of 1', textAlign: TextAlign.center, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+          child: Text('Page 1 of 1', textAlign: TextAlign.center, style: AdminTypography.bodySm()),
         ),
         OutlinedButton.icon(
           onPressed: _notAvailable,
@@ -1619,7 +1617,6 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
                         child: Text(
                           '${l.name} (${l.creditsUsed} / ${l.creditsMax} Credits - ${l.creditsMax - l.creditsUsed} Available)',
                           style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ))
                   .toList(),
@@ -1652,7 +1649,6 @@ class _AssignLecturerDialogState extends State<_AssignLecturerDialog> {
                         child: Text(
                           '${s.courseCode}: ${s.courseTitle}',
                           style: AdminTypography.bodySm(color: AdminColors.onSurface),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ))
                   .toList(),

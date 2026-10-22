@@ -612,7 +612,7 @@ class _MasterDataScreenState extends ConsumerState<MasterDataScreen> with Refres
           ),
           Expanded(flex: 2, child: Text(row.code, style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
           Expanded(flex: 3, child: Text(row.name, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
-          if (widget.showRemarksColumn) Expanded(flex: 4, child: Padding(padding: const EdgeInsets.only(right: 12), child: Text(row.remarks, style: AdminTypography.bodySm(), maxLines: 2, overflow: TextOverflow.ellipsis))),
+          if (widget.showRemarksColumn) Expanded(flex: 4, child: Padding(padding: const EdgeInsets.only(right: 12), child: Text(row.remarks, style: AdminTypography.bodySm()))),
           if (widget.showYear) SizedBox(width: 90, child: Text('${row.year}', style: AdminTypography.bodySm())),
           adminEditAction(() => _openForm(id: row.id, code: row.code, name: row.name, remarks: row.remarks, year: row.year)),
         ],

@@ -379,7 +379,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Expanded(child: Text(a.studentName, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  Expanded(child: Text(a.studentName, style: AdminTypography.titleSm())),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
@@ -392,7 +392,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
                     ),
                   ),
                 ]),
-                Text('${a.courseTitle} (${a.courseCode})', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                Text('${a.courseTitle} (${a.courseCode})', style: AdminTypography.bodySm()),
                 Text('${a.badgeTitle} • ${_formatDate(a.issueDate)}', style: AdminTypography.labelSm()),
               ],
             ),
@@ -525,7 +525,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(a.studentName, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+              child: Text(a.studentName, style: AdminTypography.titleSm()),
             ),
           ),
           Expanded(
@@ -535,7 +535,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(a.courseTitle, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                  Text(a.courseTitle, style: AdminTypography.bodySm()),
                   Text(a.courseCode, style: AdminTypography.labelSm()),
                 ],
               ),
@@ -545,7 +545,7 @@ class _ManageBadgesScreenState extends State<ManageBadgesScreen> with RefreshOnR
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(a.badgeTitle, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+              child: Text(a.badgeTitle, style: AdminTypography.bodySm()),
             ),
           ),
           Expanded(

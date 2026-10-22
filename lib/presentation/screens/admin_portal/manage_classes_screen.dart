@@ -290,7 +290,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(s.sectionCode, style: AdminTypography.titleSm()),
-                Text(s.courseTitle, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                Text(s.courseTitle, style: AdminTypography.bodySm()),
                 Text(s.courseCode, style: AdminTypography.labelSm()),
                 const SizedBox(height: 6),
                 Wrap(

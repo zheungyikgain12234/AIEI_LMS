@@ -207,7 +207,7 @@ class _ReassignOrphanedClassesScreenState extends State<ReassignOrphanedClassesS
         children: [
           Row(children: [
             Flexible(
-              child: Text('${s.courseCode} • ${s.courseTitle}', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+              child: Text('${s.courseCode} • ${s.courseTitle}', style: AdminTypography.titleSm()),
             ),
             const SizedBox(width: 6),
             Container(

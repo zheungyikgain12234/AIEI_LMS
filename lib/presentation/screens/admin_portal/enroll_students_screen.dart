@@ -499,7 +499,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Flexible(child: Text(c.studentName, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  Flexible(child: Text(c.studentName, style: AdminTypography.titleSm())),
                   if (roleMismatch) ...[
                     const SizedBox(width: 4),
                     Tooltip(
@@ -512,7 +512,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                     Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: warn ? AdminColors.errorContainer : AdminColors.primaryFixed, borderRadius: BorderRadius.circular(4)), child: Text(c.queueTag!, style: AdminTypography.labelSm(color: warn ? AdminColors.onErrorContainer : AdminColors.onPrimaryFixed))),
                   ],
                 ]),
-                Text('${c.studentEmployeeId ?? '—'} • ${c.studentEmail}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                Text('${c.studentEmployeeId ?? '—'} • ${c.studentEmail}', style: AdminTypography.labelSm()),
               ])),
             ]),
           ),
@@ -524,7 +524,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             Row(children: [
               Icon(warn ? Icons.warning_amber_rounded : Icons.check_circle, size: 14, color: warn ? const Color(0xFFB45309) : AdminColors.secondary),
               const SizedBox(width: 4),
-              Flexible(child: Text(c.prerequisiteDetail, style: AdminTypography.bodyMd(color: warn ? const Color(0xFFB45309) : AdminColors.secondary).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+              Flexible(child: Text(c.prerequisiteDetail, style: AdminTypography.bodyMd(color: warn ? const Color(0xFFB45309) : AdminColors.secondary).copyWith(fontWeight: FontWeight.w600))),
             ]),
             Text(c.standingDetail, style: AdminTypography.labelSm()),
           ])),
@@ -721,7 +721,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                       child: Text(_courseCode, style: AdminTypography.labelSm(color: AdminColors.onPrimary).copyWith(fontWeight: FontWeight.w700)),
                     ),
                     const SizedBox(width: 6),
-                    Flexible(child: Text('• $_sectionCode', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+                    Flexible(child: Text('• $_sectionCode', style: AdminTypography.labelSm())),
                   ]),
                   const SizedBox(height: 4),
                   Text(_courseTitle, style: AdminTypography.headlineSm()),
@@ -739,8 +739,8 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(_section!.lecturerName!, style: AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
-                    Text(_section!.scheduleText, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
+                    Text(_section!.lecturerName!, style: AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700)),
+                    Text(_section!.scheduleText, style: AdminTypography.bodySm()),
                   ]),
                 ),
               ]),
@@ -759,7 +759,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
       children: [
         Row(children: [
           Flexible(
-            child: Text('Semester Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+            child: Text('Semester Capacity Status', style: AdminTypography.bodySm(color: AdminColors.onSurface)),
           ),
           const SizedBox(width: 8),
           Text('$postCapacity / $_capacity Enrolled', style: AdminTypography.titleSm()),
@@ -784,7 +784,6 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
           Flexible(
             child: Text(
               '$remaining seats remaining',
-              overflow: TextOverflow.ellipsis,
               style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700),
             ),
           ),
@@ -869,7 +868,6 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                 child: Text(
                   value,
                   textAlign: TextAlign.end,
-                  overflow: TextOverflow.ellipsis,
                   style: AdminTypography.labelMd(color: valueColor ?? AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -955,7 +953,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                           child: Icon(Icons.error, size: 15, color: AdminColors.error),
                         ),
                     ]),
-                    Text(c.studentEmail, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis, maxLines: 1),
+                    Text(c.studentEmail, style: AdminTypography.bodySm()),
                   ],
                 ),
               ),
@@ -1027,7 +1025,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                   child: Row(children: [
                     const Icon(Icons.check_circle, size: 14, color: AdminColors.secondary),
                     const SizedBox(width: 4),
-                    Flexible(child: Text(c.standingDetail, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+                    Flexible(child: Text(c.standingDetail, style: AdminTypography.labelSm())),
                   ]),
                 ),
                 TextButton(
@@ -1062,7 +1060,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Enrolment Batch Summary (${_staged.length} Staged)', style: AdminTypography.headlineSm(), overflow: TextOverflow.ellipsis),
+                Text('Enrolment Batch Summary (${_staged.length} Staged)', style: AdminTypography.headlineSm()),
                 Text('Capacity Post-Enrolment: $postCapacity / $_capacity', style: AdminTypography.bodySm()),
               ]),
             ),
@@ -1074,13 +1072,12 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
             child: Row(children: [
               const Icon(Icons.trending_down, size: 16, color: AdminColors.secondary),
               const SizedBox(width: 6),
-              Expanded(child: Text('Seat Allocation Impact:', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text('Seat Allocation Impact:', style: AdminTypography.labelSm())),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   'Remaining: ${_capacity - _baseEnrolled} → ${_capacity - postCapacity}',
                   textAlign: TextAlign.end,
-                  overflow: TextOverflow.ellipsis,
                   style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -1097,7 +1094,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
                       showSuccessSnackBar(context, '${_staged.length} student(s) enrolled into $_courseCode.');
                     },
               icon: const Icon(Icons.how_to_reg, size: 18),
-              label: Text('Confirm & Enrol ${_staged.length} Students', overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+              label: Text('Confirm & Enrol ${_staged.length} Students', textAlign: TextAlign.center),
               style: ElevatedButton.styleFrom(backgroundColor: AdminColors.primaryContainer, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             ),
           ),

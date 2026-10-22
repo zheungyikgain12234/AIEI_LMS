@@ -436,21 +436,21 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> with RefreshOnR
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(you ? '${a.name} (You)' : a.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+              child: Text(you ? '${a.name} (You)' : a.name, style: AdminTypography.titleSm()),
             ),
           ),
           Expanded(
             flex: 4,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(a.email, style: AdminTypography.bodySm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+              child: Text(a.email, style: AdminTypography.bodySm(color: AdminColors.onSurface)),
             ),
           ),
           Expanded(
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(a.username, style: AdminTypography.bodySm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+              child: Text(a.username, style: AdminTypography.bodySm(color: AdminColors.onSurface)),
             ),
           ),
           adminEditAction(() => _openForm(admin: a)),

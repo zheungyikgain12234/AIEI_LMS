@@ -490,7 +490,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(l.lecturerCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+              child: Text(l.lecturerCode, style: AdminTypography.labelSm()),
             ),
           ),
           Expanded(
@@ -512,7 +512,7 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                       children: [
                         Row(
                           children: [
-                            Flexible(child: Text(l.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                            Flexible(child: Text(l.name, style: AdminTypography.titleSm())),
                             if (l.accredited) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AdminColors.secondary)),
                             const SizedBox(width: 2),
                             InkWell(
@@ -525,8 +525,8 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                             ),
                           ],
                         ),
-                        Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                        Text(l.email, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                        Text(l.title, style: AdminTypography.bodySm()),
+                        Text(l.email, style: AdminTypography.labelSm()),
                       ],
                     ),
                   ),
@@ -563,7 +563,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                   Flexible(
                     child: Text(
                       l.status,
-                      overflow: TextOverflow.ellipsis,
                       style: AdminTypography.labelSm(color: l.status == 'Active' ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -706,13 +705,13 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
                   children: [
                     Text(l.lecturerCode, style: AdminTypography.labelSm()),
                     Row(children: [
-                      Flexible(child: Text(l.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                      Flexible(child: Text(l.name, style: AdminTypography.titleSm())),
                       if (l.accredited) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AdminColors.secondary)),
                     ]),
-                    Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                    Text(l.email, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                    Text(l.title, style: AdminTypography.bodySm()),
+                    Text(l.email, style: AdminTypography.labelSm()),
                     const SizedBox(height: 6),
-                    Text(l.department, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                    Text(l.department, style: AdminTypography.titleSm()),
                     _CompetenciesList(competencies: l.competencies),
                   ],
                 ),
@@ -755,7 +754,6 @@ class _ManageLecturersScreenState extends State<ManageLecturersScreen> with Refr
         Flexible(
           child: Text(
             l.status,
-            overflow: TextOverflow.ellipsis,
             style: AdminTypography.labelSm(color: active ? AdminColors.primary : AdminColors.onSurfaceVariant).copyWith(fontWeight: FontWeight.w700),
           ),
         ),
@@ -807,7 +805,7 @@ class _CompetenciesListState extends State<_CompetenciesList> {
         for (var i = 0; i < shown.length; i++)
           Row(
             children: [
-              Expanded(child: Text(shown[i], style: style, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text(shown[i], style: style)),
               if (i == 0 && more)
                 Padding(
                   padding: const EdgeInsets.only(left: 6),

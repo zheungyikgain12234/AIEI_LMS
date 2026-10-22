@@ -267,7 +267,7 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Flexible(child: Text(c.displayName, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  Flexible(child: Text(c.displayName, style: AdminTypography.titleSm())),
                   if (mismatch) ...[
                     const SizedBox(width: 6),
                     Tooltip(
@@ -278,7 +278,7 @@ class _StudentEnrolledCoursesScreenState extends State<StudentEnrolledCoursesScr
                     ),
                   ],
                 ]),
-                Text(c.courseTitle, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                Text(c.courseTitle, style: AdminTypography.labelSm()),
               ],
             ),
           ),

@@ -1026,7 +1026,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+              child: Text(s.studentCode, style: AdminTypography.labelSm()),
             ),
           ),
           Expanded(
@@ -1039,7 +1039,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                   Row(
                     children: [
                       Flexible(
-                        child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis),
+                        child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface)),
                       ),
                       if (courseMismatch) ...[
                         const SizedBox(width: 4),
@@ -1061,7 +1061,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                       ),
                     ],
                   ),
-                  Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                  Text(s.email, style: AdminTypography.bodySm()),
                 ],
               ),
             ),
@@ -1070,7 +1070,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text(s.studentType.label, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+              child: Text(s.studentType.label, style: AdminTypography.titleSm()),
             ),
           ),
           Expanded(
@@ -1080,8 +1080,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_programmeOf(s) ?? '—', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                  if (s.programTrack != null) Text(s.programTrack!, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                  Text(_programmeOf(s) ?? '—', style: AdminTypography.titleSm()),
+                  if (s.programTrack != null) Text(s.programTrack!, style: AdminTypography.bodySm()),
                 ],
               ),
             ),
@@ -1091,8 +1091,8 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.department ?? '—', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                Text(s.role ?? '—', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                Text(s.department ?? '—', style: AdminTypography.titleSm()),
+                Text(s.role ?? '—', style: AdminTypography.labelSm()),
               ]),
             ),
           ),
@@ -1497,7 +1497,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                     Text(s.studentCode, style: AdminTypography.labelSm()),
                     Row(
                       children: [
-                        Flexible(child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface), overflow: TextOverflow.ellipsis)),
+                        Flexible(child: Text(s.name, style: AdminTypography.titleSm(color: AdminColors.onSurface))),
                         if (courseMismatch) ...[
                           const SizedBox(width: 4),
                           Tooltip(
@@ -1518,7 +1518,7 @@ class _ManageStudentsScreenState extends State<ManageStudentsScreen> with Refres
                         ),
                       ],
                     ),
-                    Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                    Text(s.email, style: AdminTypography.bodySm()),
                   ],
                 ),
               ),
@@ -1732,7 +1732,7 @@ class _BulkEnrollDialogState extends State<_BulkEnrollDialog> {
                   for (final s in sections)
                     DropdownMenuItem(
                       value: s.id,
-                      child: Text('${s.sectionCode} • ${s.courseTitle}', overflow: TextOverflow.ellipsis),
+                      child: Text('${s.sectionCode} • ${s.courseTitle}'),
                     ),
                 ],
                 onChanged: sections.isEmpty ? null : (v) => setState(() {

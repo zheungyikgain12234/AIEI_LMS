@@ -618,8 +618,8 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(l.name, style: AdminTypography.titleMd()),
-                Text(l.title, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
-                Text('${l.department} • ${l.lecturerCode}', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                Text(l.title, style: AdminTypography.bodySm()),
+                Text('${l.department} • ${l.lecturerCode}', style: AdminTypography.labelSm()),
               ],
             ),
           ),
@@ -695,7 +695,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             child: Text(
               w.semester,
               style: AdminTypography.bodyMd(color: AdminColors.onSurface).copyWith(fontWeight: isSelected ? FontWeight.w700 : null),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           Text('${w.classCount} class${w.classCount == 1 ? '' : 'es'}', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant)),
@@ -793,7 +792,6 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                     child: Text(
                       course == null ? s.courseId : '${course.courseCode} • ${course.courseTitle}',
                       style: AdminTypography.titleSm(),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -909,7 +907,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                Text(c.courseTitle, style: AdminTypography.titleSm()),
                 Text(c.courseCode, style: AdminTypography.labelSm()),
               ],
             ),
@@ -1212,7 +1210,7 @@ class _LecturerCourseAssignmentScreenState extends ConsumerState<LecturerCourseA
                   for (final l in lists)
                     ListTile(
                       title: Text('${l.name} (${l.moduleNames.length})'),
-                      subtitle: Text(l.moduleNames.join(' • '), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      subtitle: Text(l.moduleNames.join(' • ')),
                       onTap: () => Navigator.of(ctx).pop(l),
                     ),
                 ],

@@ -6,13 +6,14 @@ import 'package:stitch_aiei_lms/presentation/screens/login/login_screen.dart';
 /// Compact mobile (≤ 900px) app bar for the Admin Portal.
 ///
 /// Two variants mirror the Stitch mobile mockups:
-/// - `AdminMobileTopBar.root(title: ...)`: logo + ADMIN badge + "/" + section
-///   title on the left, search/notification/avatar on the right — used on
+/// - `AdminMobileTopBar.root(title: ...)`: logo + ADMIN badge on the left, avatar
+///   on the right — used on
 ///   the bottom-nav root tabs (Lecturers, Students, Semesters, Enroll).
-/// - `AdminMobileTopBar.detail(title: ...)`: back arrow + title on the left,
+/// - `AdminMobileTopBar.detail(title: ...)`: back arrow on the left,
 ///   ADMIN badge + logo on the right — used on drill-in screens (Lecturer
 ///   Allocation Detail).
 class AdminMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
+  /// Kept for the call sites, but not shown: every page already has its own heading.
   final String title;
   final bool isRoot;
   final VoidCallback? onBack;
@@ -54,16 +55,7 @@ class AdminMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
           child: Text('ADMIN', style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
         ),
-        const SizedBox(width: 6),
-        Text('/', style: AdminTypography.bodySm(color: AdminColors.outlineVariant)),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            title,
-            style: AdminTypography.titleSm(color: AdminColors.onSurface),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
+        const Spacer(),
         GestureDetector(
           onTap: () => Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -88,13 +80,7 @@ class AdminMobileTopBar extends StatelessWidget implements PreferredSizeWidget {
           onPressed: onBack ?? () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back, color: AdminColors.onSurface),
         ),
-        Expanded(
-          child: Text(
-            title,
-            style: AdminTypography.titleSm(color: AdminColors.onSurface),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
+        const Spacer(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),

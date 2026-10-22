@@ -267,7 +267,7 @@ class _BadgeCourseMappingScreenState extends State<BadgeCourseMappingScreen> wit
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(b.title, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                Text(b.title, style: AdminTypography.titleSm()),
                 if (locked)
                   Text('Already assigned to ${takenBy ?? 'another course'}', style: AdminTypography.bodySm()),
               ],

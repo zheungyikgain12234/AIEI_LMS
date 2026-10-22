@@ -384,9 +384,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               Container(width: 36, height: 36, decoration: const BoxDecoration(color: AdminColors.surfaceContainerHigh, shape: BoxShape.circle), child: const Icon(Icons.person, color: AdminColors.primary, size: 18)),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                Text(s.name, style: AdminTypography.titleSm()),
                 Text(s.studentCode, style: AdminTypography.labelSm()),
-                Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                Text(s.email, style: AdminTypography.bodySm()),
               ])),
             ]),
           ),
@@ -423,7 +423,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Expanded(child: Text(label, style: AdminTypography.labelSm(color: good ? AdminColors.onSurface : AdminColors.error).copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+          Expanded(child: Text(label, style: AdminTypography.labelSm(color: good ? AdminColors.onSurface : AdminColors.error).copyWith(fontWeight: FontWeight.w700))),
           Text('$pct%', style: AdminTypography.labelSm(color: good ? AdminColors.secondary : AdminColors.error).copyWith(fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 3),
@@ -487,7 +487,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
               children: [
                 Container(width: 8, height: 8, decoration: const BoxDecoration(color: AdminColors.tertiaryContainer, shape: BoxShape.circle)),
                 const SizedBox(width: 6),
-                Flexible(child: Text('Academic Registrations', style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis)),
+                Flexible(child: Text('Academic Registrations', style: AdminTypography.labelSm())),
                 const SizedBox(width: 6),
                 Text('•', style: AdminTypography.labelSm(color: AdminColors.outlineVariant)),
                 const SizedBox(width: 6),
@@ -633,8 +633,8 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Dr. Sarah Lin', style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                          Text('Lead Data Architect & Research Fellow', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+                          Text('Dr. Sarah Lin', style: AdminTypography.titleSm()),
+                          Text('Lead Data Architect & Research Fellow', style: AdminTypography.bodySm()),
                         ],
                       ),
                     ),
@@ -645,7 +645,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                   children: [
                     const Icon(Icons.schedule, size: 16, color: AdminColors.outline),
                     const SizedBox(width: 6),
-                    Expanded(child: Text('Mon / Wed 18:00 – 20:30 UTC • Virtual Lab', style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis)),
+                    Expanded(child: Text('Mon / Wed 18:00 – 20:30 UTC • Virtual Lab', style: AdminTypography.bodySm())),
                   ],
                 ),
               ],
@@ -733,7 +733,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         children: [
           Row(
             children: [
-              Expanded(child: Text(label, style: AdminTypography.labelMd(), overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text(label, style: AdminTypography.labelMd())),
               Icon(icon, size: 16, color: AdminColors.primary),
             ],
           ),
@@ -744,9 +744,9 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             ClipRRect(borderRadius: BorderRadius.circular(9999), child: LinearProgressIndicator(value: progress, minHeight: 5, backgroundColor: AdminColors.surfaceContainerHigh, valueColor: const AlwaysStoppedAnimation<Color>(AdminColors.primaryContainer))),
             const SizedBox(height: 6),
           ],
-          if (footerLeft != null) Text(footerLeft, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis),
+          if (footerLeft != null) Text(footerLeft, style: AdminTypography.bodySm()),
           if (footerRight != null)
-            Text(footerRight, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+            Text(footerRight, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700)),
           if (footerAction != null)
             GestureDetector(
               onTap: _notAvailable,
@@ -754,7 +754,6 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                 Flexible(
                   child: Text(
                     footerAction,
-                    overflow: TextOverflow.ellipsis,
                     style: AdminTypography.labelSm(color: AdminColors.primary).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -766,7 +765,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.trending_up, size: 12, color: AdminColors.secondary),
               const SizedBox(width: 2),
-              Flexible(child: Text(trend, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+              Flexible(child: Text(trend, style: AdminTypography.labelSm(color: AdminColors.secondary).copyWith(fontWeight: FontWeight.w700))),
             ]),
         ],
       ),
@@ -857,16 +856,16 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s.name, style: AdminTypography.headlineSm(), overflow: TextOverflow.ellipsis),
+                    Text(s.name, style: AdminTypography.headlineSm()),
                     const SizedBox(height: 2),
                     Row(children: [
                       Flexible(
-                        child: Text(s.studentCode, style: AdminTypography.labelSm(), overflow: TextOverflow.ellipsis),
+                        child: Text(s.studentCode, style: AdminTypography.labelSm()),
                       ),
                       const SizedBox(width: 6),
                       Text('•', style: AdminTypography.bodySm()),
                       const SizedBox(width: 6),
-                      Expanded(flex: 2, child: Text(s.email, style: AdminTypography.bodySm(), overflow: TextOverflow.ellipsis)),
+                      Expanded(flex: 2, child: Text(s.email, style: AdminTypography.bodySm())),
                     ]),
                     const SizedBox(height: 4),
                     Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
@@ -902,7 +901,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
             Row(children: [
               const Icon(Icons.notification_important, size: 16, color: AdminColors.error),
               const SizedBox(width: 6),
-              Expanded(child: Text('Academic Warning — Intervention Suggested', style: AdminTypography.labelSm(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text('Academic Warning — Intervention Suggested', style: AdminTypography.labelSm(color: AdminColors.error).copyWith(fontWeight: FontWeight.w700))),
             ])
           else
             Row(mainAxisAlignment: MainAxisAlignment.end, children: [
@@ -948,7 +947,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
         Row(children: [
           const Icon(Icons.warning, size: 14, color: AdminColors.error),
           const SizedBox(width: 4),
-          Expanded(child: Text('Below passing threshold', style: AdminTypography.labelSm(color: AdminColors.error), overflow: TextOverflow.ellipsis)),
+          Expanded(child: Text('Below passing threshold', style: AdminTypography.labelSm(color: AdminColors.error))),
         ]),
       ]),
     );
@@ -959,7 +958,7 @@ class _CourseEnrollmentScreenState extends State<CourseEnrollmentScreen> with Re
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+        Text(label, style: AdminTypography.labelSm(color: AdminColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(9999),

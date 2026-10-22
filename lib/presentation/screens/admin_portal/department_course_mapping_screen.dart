@@ -251,7 +251,7 @@ class _DepartmentCourseMappingScreenState extends State<DepartmentCourseMappingS
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(c.courseTitle, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                Text(c.courseTitle, style: AdminTypography.titleSm()),
                 Text(c.courseCode, style: AdminTypography.labelSm()),
               ],
             ),

@@ -84,7 +84,6 @@ class AdminDateTimeField extends StatelessWidget {
             Flexible(
               child: Text(
                 text,
-                overflow: TextOverflow.ellipsis,
                 style: AdminTypography.bodyMd(color: placeholder ? AdminColors.outline : AdminColors.onSurface),
               ),
             ),

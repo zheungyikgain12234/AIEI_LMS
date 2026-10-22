@@ -18,12 +18,13 @@ class MobileTopBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 64,
       decoration: const BoxDecoration(
         color: AdminColors.navSurface,
         border: Border(bottom: BorderSide(color: AdminColors.navBorder)),
         boxShadow: [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 1))],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: SafeArea(
         bottom: false,
         child: Row(

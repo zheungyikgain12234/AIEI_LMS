@@ -207,7 +207,7 @@ class _ProgrammeTrackMappingScreenState extends State<ProgrammeTrackMappingScree
             activeColor: AdminColors.primaryContainer,
           ),
           Expanded(
-            child: Text(t.name, style: AdminTypography.titleSm(), overflow: TextOverflow.ellipsis),
+            child: Text(t.name, style: AdminTypography.titleSm()),
           ),
         ],
       ),

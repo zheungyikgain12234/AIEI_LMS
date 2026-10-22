@@ -63,8 +63,19 @@ class SupabaseBadgeApprovalsRepositoryImpl {
         }
       }
     }
-    if (toInsert.isNotEmpty) await _client.from('badge_award_requests').insert(toInsert);
+    // Two syncs can overlap (the dashboard reloads often); a request that another
+    // sync just created is simply skipped instead of failing on the unique key.
+    if (toInsert.isNotEmpty) {
+      await _client.from('badge_award_requests').upsert(toInsert, onConflict: 'student_id,course_id,badge_id', ignoreDuplicates: true);
+    }
     if (toWithdraw.isNotEmpty) await _client.from('badge_award_requests').delete().inFilter('id', toWithdraw);
+  }
+
+  /// Removes a decided request. Deleting a rejected one lets the student be put
+  /// forward again the next time the lecturer's course dashboard syncs, if their
+  /// score is still above the passing mark.
+  Future<void> deleteRequest(String id) async {
+    await _client.from('badge_award_requests').delete().eq('id', id);
   }
 
   /// Approving grants the badge (once); rejecting needs a reason from the

@@ -111,7 +111,7 @@ class CardPill extends StatelessWidget {
             Icon(icon, size: 13, color: foreground),
             const SizedBox(width: 4),
           ],
-          Text(label, maxLines: 1, style: AppTypography.labelSm(color: foreground).copyWith(fontWeight: FontWeight.w700, fontSize: 11)),
+          Text(label, maxLines: 1, style: AppTypography.labelSm(color: foreground).copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
         ],
       ),
     );

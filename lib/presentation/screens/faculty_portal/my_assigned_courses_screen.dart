@@ -844,7 +844,7 @@ class _MyAssignedCoursesScreenState extends State<MyAssignedCoursesScreen> with 
           children: [
             _metric('Average Student Progress', '${c.avgProgress}%', progress: c.avgProgress / 100, barColor: c.accent),
             const SizedBox(width: 24),
-            _metric('Pending Grading', c.pendingCount, footnote: c.pendingLabel),
+            _metric('Pending Grading', c.pendingCount),
           ],
         );
 

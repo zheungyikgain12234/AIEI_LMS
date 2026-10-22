@@ -653,8 +653,8 @@ create table section_attendance_settings (
 
 -- A lecturer's request for the admin to approve a class's grade distribution
 -- when it is outside the admin's limits (Settings > Grade Distribution
--- Limits: max % of enrolled students at A+, A and above, A- and above, B+ and
--- above). `distribution` holds the per-band student counts at the time of the
+-- Limits: max % of enrolled students at each grade or better, from A+ down to F
+-- and above). `distribution` holds the per-band student counts at the time of the
 -- request, so an approval only covers grades that are no worse than those.
 create table grade_distribution_requests (
   id uuid primary key default gen_random_uuid(),

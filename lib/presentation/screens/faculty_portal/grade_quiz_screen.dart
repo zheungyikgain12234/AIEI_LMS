@@ -785,7 +785,7 @@ class _GradeQuizScreenState extends State<GradeQuizScreen> {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text('$_projectedTotal', style: FacultyTypography.displayLg().copyWith(fontSize: 26)),
+                      Text('$_projectedTotal', style: FacultyTypography.displayLg().copyWith(fontSize: 30)),
                       const SizedBox(width: 4),
                       Text('/ 100 pts', style: FacultyTypography.titleSm(color: FacultyColors.secondary)),
                       const SizedBox(width: 8),

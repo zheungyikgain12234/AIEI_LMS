@@ -74,7 +74,7 @@ class FacultyMobileBottomNav extends StatelessWidget {
               maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: FacultyTypography.labelXs(color: color).copyWith(fontWeight: active ? FontWeight.w700 : FontWeight.w400, fontSize: 10, height: 1.1),
+              style: FacultyTypography.labelXs(color: color).copyWith(fontWeight: active ? FontWeight.w700 : FontWeight.w400, fontSize: 16, height: 1.1),
             ),
           ),
         ],

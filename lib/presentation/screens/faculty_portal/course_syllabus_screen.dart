@@ -2369,7 +2369,7 @@ class _AddContentBlockDialogState extends State<_AddContentBlockDialog> {
 
   Widget _orDivider() => const Row(children: [
         Expanded(child: Divider()),
-        Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('or', style: TextStyle(fontSize: 12, color: FacultyColors.onSurfaceVariant))),
+        Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('or', style: TextStyle(fontSize: 16, color: FacultyColors.onSurfaceVariant))),
         Expanded(child: Divider()),
       ]);
 

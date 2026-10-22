@@ -106,7 +106,7 @@ class _CourseCardState extends State<CourseCard> {
                         ),
                         child: Text(
                           c.classCode!,
-                          style: AppTypography.labelSm(color: AppColors.onSurfaceVariant).copyWith(fontSize: 10),
+                          style: AppTypography.labelSm(color: AppColors.onSurfaceVariant).copyWith(fontSize: 16),
                                                   ),
                       ),
                     ],
@@ -213,7 +213,7 @@ class _CourseCardState extends State<CourseCard> {
                         tag.label,
                         style: AppTypography.labelSm(
                           color: Colors.black,
-                        ).copyWith(fontSize: 10),
+                        ).copyWith(fontSize: 16),
                       ),
                     ],
                   ),
@@ -246,7 +246,7 @@ class _CourseCardState extends State<CourseCard> {
                             c.durationText!,
                             style: AppTypography.labelSm(
                               color: Colors.white,
-                            ).copyWith(fontSize: 11),
+                            ).copyWith(fontSize: 16),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -271,7 +271,7 @@ class _CourseCardState extends State<CourseCard> {
                             c.trackTypeText!,
                             style: AppTypography.labelSm(
                               color: Colors.white,
-                            ).copyWith(fontSize: 11),
+                            ).copyWith(fontSize: 16),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -299,7 +299,7 @@ class _CourseCardState extends State<CourseCard> {
                               : Colors.white,
                         ).copyWith(
                           fontWeight: FontWeight.w700,
-                          fontSize: 11,
+                          fontSize: 16,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),

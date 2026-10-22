@@ -14,6 +14,12 @@ class SupabaseGradeDistributionRepositoryImpl {
     GradeBandLimit.aAndAbove: 'grade_cap_a',
     GradeBandLimit.aMinusAndAbove: 'grade_cap_a_minus',
     GradeBandLimit.bPlusAndAbove: 'grade_cap_b_plus',
+    GradeBandLimit.bAndAbove: 'grade_cap_b',
+    GradeBandLimit.bMinusAndAbove: 'grade_cap_b_minus',
+    GradeBandLimit.cPlusAndAbove: 'grade_cap_c_plus',
+    GradeBandLimit.cAndAbove: 'grade_cap_c',
+    GradeBandLimit.dAndAbove: 'grade_cap_d',
+    GradeBandLimit.fAndAbove: 'grade_cap_f',
   };
 
   /// A limit that was never saved uses the default; one saved blank means

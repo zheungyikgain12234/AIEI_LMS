@@ -299,7 +299,7 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
     var style = header
         ? AdminTypography.labelMd().copyWith(fontWeight: FontWeight.w700)
         : AdminTypography.bodyMd(color: over ? AdminColors.error : AdminColors.onSurface);
-    if (_compact) style = style.copyWith(fontSize: 12);
+    if (_compact) style = style.copyWith(fontSize: 16);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -318,7 +318,7 @@ class _GradeApprovalsScreenState extends State<GradeApprovalsScreen> with Refres
     );
   }
 
-  /// One row per grade (A+, A, A-, B+): its own count and percent of the class,
+  /// One row per grade (A+ down to F): its own count and percent of the class,
   /// the running total (accum.), and the limit it is checked against.
   Widget _distributionTable(GradeDistributionRequest r) {
     const flex = [3, 4, 3, 2, 2];

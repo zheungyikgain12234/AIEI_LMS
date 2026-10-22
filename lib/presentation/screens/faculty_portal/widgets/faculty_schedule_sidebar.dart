@@ -82,17 +82,8 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
       child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(30, 14, 20, 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('MY ACTIVE CLASSES', style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 2),
-              Text('Where and when you teach', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
-            ],
-          ),
-        ),
+        // Once the calendar shows, the heading moves down to sit above the class cards.
+        if (_isLoading || _error != null || _classes.isEmpty) _header(const EdgeInsets.fromLTRB(30, 14, 20, 4)),
         Expanded(
           child: _isLoading
               ? const Padding(
@@ -106,13 +97,6 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                           children: [
-                            if (_classes.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
-                                child: Text('No active classes right now.', style: FacultyTypography.bodySm()),
-                              )
-                            else
-                              for (final c in _classes) ...[_classCard(c), const SizedBox(height: 10)],
                             // Class days: each class's weekday, within its own date range.
                             ClassCalendar(
                               classes: [
@@ -120,11 +104,27 @@ class _FacultyScheduleSidebarState extends State<FacultyScheduleSidebar> {
                                   CalendarClass.fromScheduleText(title: c.title, scheduleText: c.scheduleText, startDate: c.startDate, endDate: c.endDate),
                               ],
                             ),
+                            _header(const EdgeInsets.fromLTRB(14, 14, 4, 4)),
+                            for (final c in _classes) ...[_classCard(c), const SizedBox(height: 10)],
                           ],
                         ),
         ),
       ],
     ),
+    );
+  }
+
+  Widget _header(EdgeInsets padding) {
+    return Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('MY ACTIVE CLASSES', style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          Text('Where and when you teach', style: FacultyTypography.bodySm(color: FacultyColors.onSurfaceVariant)),
+        ],
+      ),
     );
   }
 

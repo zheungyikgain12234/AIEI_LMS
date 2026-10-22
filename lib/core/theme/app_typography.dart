@@ -9,7 +9,7 @@ class AppTypography {
   // Plus Jakarta Sans Headlines
   static TextStyle headlineXl({Color color = AppColors.primary}) =>
       GoogleFonts.plusJakartaSans(
-        fontSize: 36,
+        fontSize: 40,
         height: 44 / 36,
         letterSpacing: -0.02 * 36,
         fontWeight: FontWeight.w700,
@@ -18,7 +18,7 @@ class AppTypography {
 
   static TextStyle headlineLg({Color color = AppColors.primary}) =>
       GoogleFonts.plusJakartaSans(
-        fontSize: 28,
+        fontSize: 32,
         height: 36 / 28,
         letterSpacing: -0.02 * 28,
         fontWeight: FontWeight.w700,
@@ -27,7 +27,7 @@ class AppTypography {
 
   static TextStyle headlineMd({Color color = AppColors.primary}) =>
       GoogleFonts.plusJakartaSans(
-        fontSize: 20,
+        fontSize: 24,
         height: 28 / 20,
         letterSpacing: -0.01 * 20,
         fontWeight: FontWeight.w600,
@@ -36,7 +36,7 @@ class AppTypography {
 
   static TextStyle headlineSm({Color color = AppColors.primary}) =>
       GoogleFonts.plusJakartaSans(
-        fontSize: 16,
+        fontSize: 20,
         height: 24 / 16,
         fontWeight: FontWeight.w600,
         color: color,
@@ -45,7 +45,7 @@ class AppTypography {
   // Inter Body Styles
   static TextStyle bodyLg({Color color = AppColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 16,
+        fontSize: 20,
         height: 24 / 16,
         fontWeight: FontWeight.w400,
         color: color,
@@ -53,7 +53,7 @@ class AppTypography {
 
   static TextStyle bodyMd({Color color = AppColors.onSurfaceVariant}) =>
       GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: 18,
         height: 20 / 14,
         fontWeight: FontWeight.w400,
         color: color,
@@ -61,7 +61,7 @@ class AppTypography {
 
   static TextStyle bodySm({Color color = AppColors.onSurfaceVariant}) =>
       GoogleFonts.inter(
-        fontSize: 12,
+        fontSize: 16,
         height: 16 / 12,
         fontWeight: FontWeight.w400,
         color: color,
@@ -70,7 +70,7 @@ class AppTypography {
   // Inter Label Styles
   static TextStyle labelLg({Color color = AppColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: 18,
         height: 20 / 14,
         letterSpacing: 0.01 * 14,
         fontWeight: FontWeight.w600,
@@ -79,7 +79,7 @@ class AppTypography {
 
   static TextStyle labelMd({Color color = AppColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 12,
+        fontSize: 16,
         height: 16 / 12,
         letterSpacing: 0.02 * 12,
         fontWeight: FontWeight.w600,
@@ -88,7 +88,7 @@ class AppTypography {
 
   static TextStyle labelSm({Color color = AppColors.onSurfaceVariant}) =>
       GoogleFonts.inter(
-        fontSize: 11,
+        fontSize: 16,
         height: 14 / 11,
         letterSpacing: 0.04 * 11,
         fontWeight: FontWeight.w700,

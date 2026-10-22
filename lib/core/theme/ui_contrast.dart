@@ -32,7 +32,7 @@ class UiContrast {
   /// Row highlight when its checkbox is ticked.
   static const selectedRow = Color(0xFFEEF2FF);
 
-  static TextStyle placeholderStyle({double size = 14}) =>
+  static TextStyle placeholderStyle({double size = 18}) =>
       AdminTypography.bodyMd(color: placeholder).copyWith(fontStyle: FontStyle.italic, fontWeight: FontWeight.w300, fontSize: size);
 
   static OutlineInputBorder _edge(Color c, double w) =>

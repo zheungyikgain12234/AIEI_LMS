@@ -516,7 +516,7 @@ class _QuizAnsweringScreenState extends State<QuizAnsweringScreen> {
             const SizedBox(width: 8),
             Text(
               '$mm:$ss',
-              style: AppTypography.headlineXl(color: Colors.white).copyWith(fontWeight: FontWeight.w800, fontSize: 26),
+              style: AppTypography.headlineXl(color: Colors.white).copyWith(fontWeight: FontWeight.w800, fontSize: 30),
             ),
           ],
         ),

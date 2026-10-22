@@ -113,6 +113,37 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
     }
   }
 
+  /// Removes a rejected request so the student can earn the badge again: the
+  /// lecturer's course dashboard raises a fresh request while their score is
+  /// still above the passing mark.
+  Future<void> _deleteRejected(BadgeAwardRequest r) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => FacultyDialog(
+        title: 'Delete this rejection?',
+        subtitle: '${r.studentName} will be able to earn "${r.badgeTitle}" for ${r.courseTitle} again.',
+        confirmLabel: 'Delete',
+        destructive: true,
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: Text(
+          'The rejection and its reason are removed. If their final score is still above the passing mark, a new request '
+          'appears under Waiting the next time the lecturer opens the course dashboard.',
+          style: AdminTypography.bodyMd(),
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await _repository.deleteRequest(r.id);
+      if (!mounted) return;
+      showSuccessSnackBar(context, 'Rejection deleted.');
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not delete the rejection: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mobile = MediaQuery.of(context).size.width <= 900;
@@ -231,6 +262,17 @@ class _BadgeApprovalsScreenState extends State<BadgeApprovalsScreen> with Refres
             Text(r.isApproved ? 'Remarks' : 'Reject reason', style: AdminTypography.labelMd()),
             const SizedBox(height: 4),
             Text(r.adminNote!, style: AdminTypography.bodyMd(color: AdminColors.onSurface)),
+          ],
+          if (r.isRejected) ...[
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton(
+                onPressed: () => _deleteRejected(r),
+                style: OutlinedButton.styleFrom(foregroundColor: AdminColors.error, side: const BorderSide(color: AdminColors.error)),
+                child: const Text('Delete rejection', textAlign: TextAlign.center),
+              ),
+            ),
           ],
           if (r.isPending) ...[
             const SizedBox(height: 16),

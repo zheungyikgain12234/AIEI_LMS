@@ -65,7 +65,7 @@ class EarnedCredentialCard extends StatelessWidget {
             'REVOKED',
             textAlign: TextAlign.center,
             style: AppTypography.labelSm(color: AppColors.onError)
-                .copyWith(letterSpacing: 2, fontSize: 11),
+                .copyWith(letterSpacing: 2, fontSize: 16),
           ),
         ),
       ),
@@ -215,7 +215,7 @@ class EarnedCredentialCard extends StatelessWidget {
                           ? AppColors.error
                           : AppColors.onSurfaceVariant,
                     ).copyWith(
-                      fontSize: 10,
+                      fontSize: 16,
                       fontWeight: c.isRevoked ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
@@ -254,7 +254,7 @@ class EarnedCredentialCard extends StatelessWidget {
                 child: Text(
                   c.titleChipText!.toUpperCase(),
                   style: AppTypography.labelSm(color: AppColors.error)
-                      .copyWith(fontSize: 10, fontWeight: FontWeight.w700),
+                      .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
             ],

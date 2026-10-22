@@ -840,7 +840,7 @@ class _EnrollStudentsScreenState extends State<EnrollStudentsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
           decoration: BoxDecoration(color: active ? Colors.white.withValues(alpha: 0.2) : AdminColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(4)),
-          child: Text(count, style: AdminTypography.labelSm(color: active ? Colors.white : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700, fontSize: 10)),
+          child: Text(count, style: AdminTypography.labelSm(color: active ? Colors.white : AdminColors.onSurface).copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
         ),
       ]),
     );

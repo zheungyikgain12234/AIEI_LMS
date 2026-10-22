@@ -4,7 +4,13 @@ enum GradeBandLimit {
   aPlus('A+', ['A+']),
   aAndAbove('A and above', ['A+', 'A']),
   aMinusAndAbove('A- and above', ['A+', 'A', 'A-']),
-  bPlusAndAbove('B+ and above', ['A+', 'A', 'A-', 'B+']);
+  bPlusAndAbove('B+ and above', ['A+', 'A', 'A-', 'B+']),
+  bAndAbove('B and above', ['A+', 'A', 'A-', 'B+', 'B']),
+  bMinusAndAbove('B- and above', ['A+', 'A', 'A-', 'B+', 'B', 'B-']),
+  cPlusAndAbove('C+ and above', ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+']),
+  cAndAbove('C and above', ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C']),
+  dAndAbove('D and above', ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D']),
+  fAndAbove('F and above', ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D', 'F']);
 
   final String label;
 
@@ -21,7 +27,7 @@ class GradeDistributionRules {
 
   const GradeDistributionRules(this.maxPercent);
 
-  /// The starting rules: 5% A+, 10% A and above, 15% A- and above, 60% B+ and above.
+  /// The starting rules: 5% A+, 10% A and above, 15% A- and above, 60% B+ and above, and no limit (100%) from B down to F.
   static const defaults = GradeDistributionRules({
     GradeBandLimit.aPlus: 5,
     GradeBandLimit.aAndAbove: 10,

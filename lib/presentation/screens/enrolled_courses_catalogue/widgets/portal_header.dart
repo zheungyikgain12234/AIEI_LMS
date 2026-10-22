@@ -77,20 +77,20 @@ class PortalHeader extends ConsumerWidget implements PreferredSizeWidget {
                     children: [
                       Text(
                         profile?.name ?? '',
-                        style: AppTypography.labelMd(color: AppColors.onSurface),
+                        style: AppTypography.labelMd(color: AppColors.onSurface).copyWith(fontSize: 12),
                       ),
                       Text(
                         profile?.subtitle ?? '',
                         style: AppTypography.bodySm(
                           color: AppColors.onSurfaceVariant,
-                        ),
+                        ).copyWith(fontSize: 12),
                       ),
                       if (profile?.code != null)
                         Text(
                           profile!.code!,
                           style: AppTypography.bodySm(
                             color: AppColors.onSurfaceVariant,
-                          ),
+                          ).copyWith(fontSize: 12),
                         ),
                     ],
                   ),

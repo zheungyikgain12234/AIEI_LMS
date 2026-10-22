@@ -82,6 +82,17 @@ class _StudentScheduleSidebarState extends State<StudentScheduleSidebar> {
     // A slightly deeper blue than the menu above so the section reads as its own
     // area; the class cards inside are white, so their dark text stays crisp.
     final active = _active;
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(8, 14, 4, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('MY ACTIVE CLASSES', style: AppTypography.labelSm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          Text('Where and when you study', style: AppTypography.bodySm()),
+        ],
+      ),
+    );
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFDFE7FA),
@@ -90,17 +101,8 @@ class _StudentScheduleSidebarState extends State<StudentScheduleSidebar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 16, 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('MY ACTIVE CLASSES', style: AppTypography.labelSm(color: AppColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text('Where and when you study', style: AppTypography.bodySm()),
-              ],
-            ),
-          ),
+          // While loading or on error there is no calendar, so the heading stays on top.
+          if (_isLoading || _error != null) Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: header),
           Expanded(
             child: _isLoading
                 ? const Padding(
@@ -112,13 +114,6 @@ class _StudentScheduleSidebarState extends State<StudentScheduleSidebar> {
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
                         children: [
-                          if (active.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-                              child: Text('No active classes right now.', style: AppTypography.bodySm()),
-                            )
-                          else
-                            for (final c in active) ...[_classCard(c), const SizedBox(height: 10)],
                           ClassCalendar(
                             classes: [
                               for (final c in _classes)
@@ -133,6 +128,14 @@ class _StudentScheduleSidebarState extends State<StudentScheduleSidebar> {
                                 ),
                             ],
                           ),
+                          header,
+                          if (active.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                              child: Text('No active classes right now.', style: AppTypography.bodySm()),
+                            )
+                          else
+                            for (final c in active) ...[_classCard(c), const SizedBox(height: 10)],
                         ],
                       ),
           ),

@@ -8,7 +8,7 @@ class AdminTypography {
 
   static TextStyle displayLg({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 36,
+        fontSize: 40,
         height: 44 / 36,
         letterSpacing: -0.025 * 36,
         fontWeight: FontWeight.w700,
@@ -17,7 +17,7 @@ class AdminTypography {
 
   static TextStyle headlineLg({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 30,
+        fontSize: 34,
         height: 38 / 30,
         letterSpacing: -0.02 * 30,
         fontWeight: FontWeight.w700,
@@ -26,7 +26,7 @@ class AdminTypography {
 
   static TextStyle headlineMd({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 24,
+        fontSize: 28,
         height: 32 / 24,
         letterSpacing: -0.015 * 24,
         fontWeight: FontWeight.w600,
@@ -35,7 +35,7 @@ class AdminTypography {
 
   static TextStyle headlineSm({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 20,
+        fontSize: 24,
         height: 28 / 20,
         letterSpacing: -0.01 * 20,
         fontWeight: FontWeight.w600,
@@ -44,7 +44,7 @@ class AdminTypography {
 
   static TextStyle titleMd({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 16,
+        fontSize: 20,
         height: 24 / 16,
         letterSpacing: -0.005 * 16,
         fontWeight: FontWeight.w600,
@@ -53,7 +53,7 @@ class AdminTypography {
 
   static TextStyle titleSm({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: 18,
         height: 20 / 14,
         fontWeight: FontWeight.w600,
         color: color,
@@ -61,7 +61,7 @@ class AdminTypography {
 
   static TextStyle bodyLg({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 16,
+        fontSize: 20,
         height: 24 / 16,
         fontWeight: FontWeight.w400,
         color: color,
@@ -69,7 +69,7 @@ class AdminTypography {
 
   static TextStyle bodyMd({Color color = AdminColors.onSurfaceVariant}) =>
       GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: 18,
         height: 20 / 14,
         fontWeight: FontWeight.w400,
         color: color,
@@ -77,7 +77,7 @@ class AdminTypography {
 
   static TextStyle bodySm({Color color = AdminColors.onSurfaceVariant}) =>
       GoogleFonts.inter(
-        fontSize: 13,
+        fontSize: 17,
         height: 18 / 13,
         fontWeight: FontWeight.w400,
         color: color,
@@ -85,7 +85,7 @@ class AdminTypography {
 
   static TextStyle labelMd({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 12,
+        fontSize: 16,
         height: 16 / 12,
         letterSpacing: 0.02 * 12,
         fontWeight: FontWeight.w600,
@@ -94,7 +94,7 @@ class AdminTypography {
 
   static TextStyle labelSm({Color color = AdminColors.onSurfaceVariant}) =>
       GoogleFonts.inter(
-        fontSize: 11,
+        fontSize: 16,
         height: 14 / 11,
         letterSpacing: 0.04 * 11,
         fontWeight: FontWeight.w600,
@@ -103,7 +103,7 @@ class AdminTypography {
 
   static TextStyle dataMetric({Color color = AdminColors.onSurface}) =>
       GoogleFonts.inter(
-        fontSize: 28,
+        fontSize: 32,
         height: 32 / 28,
         letterSpacing: -0.02 * 28,
         fontWeight: FontWeight.w700,

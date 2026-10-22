@@ -246,7 +246,7 @@ class _MainTelemetryCard extends StatelessWidget {
           style: AppTypography.labelSm(
             color: AppColors.onSurfaceVariant,
           ).copyWith(
-            fontSize: 10,
+            fontSize: 16,
             letterSpacing: 0.8,
           ),
         ),

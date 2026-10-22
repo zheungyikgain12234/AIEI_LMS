@@ -70,7 +70,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant)),
+          Text(label, style: AdminTypography.labelSm(color: active ? AdminColors.onSurface : AdminColors.onSurfaceVariant).copyWith(fontSize: 18)),
           const SizedBox(width: 2),
           Icon(
             active && !_sortAscending ? Icons.arrow_downward : Icons.arrow_upward,
@@ -442,7 +442,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
           const SizedBox(width: 48),
           Expanded(flex: 5, child: _sortHeader('Course / Class', _SortColumn.course)),
           Expanded(flex: 3, child: _sortHeader('Lecturer', _SortColumn.lecturer)),
-          Expanded(flex: 4, child: Text('Schedule', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant))),
+          Expanded(flex: 4, child: Text('Schedule', style: AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(fontSize: 18))),
           Expanded(flex: 3, child: _sortHeader('Semester / Year', _SortColumn.semester)),
           Expanded(flex: 2, child: _sortHeader('Enrolled', _SortColumn.enrolled)),
           const SizedBox(width: 110),
@@ -481,43 +481,37 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
             activeColor: AdminColors.primaryContainer,
           ),
           _cell(flex: 5, children: [
-            Text(s.courseTitle, style: AdminTypography.titleSm(), maxLines: 2, overflow: TextOverflow.ellipsis),
-            Text('${s.courseCode} • ${s.sectionCode}', style: AdminTypography.labelSm(), maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(s.courseTitle, style: AdminTypography.titleSm().copyWith(fontSize: 18)),
+            Text('${s.courseCode} • ${s.sectionCode}', style: AdminTypography.labelSm().copyWith(fontSize: 18)),
           ]),
           _cell(flex: 3, children: [
             Text(
               unassigned ? 'Unassigned' : (s.lecturerName ?? '—'),
-              style: unassigned ? AdminTypography.labelSm(color: AdminColors.onSurfaceVariant) : AdminTypography.bodySm(),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              style: unassigned ? AdminTypography.labelSm(color: AdminColors.onSurfaceVariant).copyWith(fontSize: 18) : AdminTypography.bodySm().copyWith(fontSize: 18),
             ),
           ]),
           _cell(flex: 4, children: [
             Text(
               hasTime ? '${s.dayOfWeek!.substring(0, 3)} ${_hm(s.startTime!)}–${_hm(s.endTime!)}' : 'Schedule TBD',
-              style: AdminTypography.bodySm(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              style: AdminTypography.bodySm().copyWith(fontSize: 18),
             ),
             if (s.startDate != null || s.endDate != null)
-              Text('${_ymd(s.startDate)} to ${_ymd(s.endDate)}', style: AdminTypography.labelSm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text('${_ymd(s.startDate)} to ${_ymd(s.endDate)}', style: AdminTypography.labelSm().copyWith(fontSize: 18)),
             if (s.deliveryMode != 'online' && (s.location ?? '').isNotEmpty)
-              Text(s.location!, style: AdminTypography.labelSm(), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(s.location!, style: AdminTypography.labelSm().copyWith(fontSize: 18)),
           ]),
           _cell(flex: 3, children: [
             Text(
               s.semester == null ? '—' : '${s.semesterCode ?? '—'} - ${s.semester}',
-              style: AdminTypography.bodySm(),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              style: AdminTypography.bodySm().copyWith(fontSize: 18),
             ),
-            if (s.semesterYear != null) Text('${s.semesterYear}', style: AdminTypography.labelSm()),
+            if (s.semesterYear != null) Text('${s.semesterYear}', style: AdminTypography.labelSm().copyWith(fontSize: 18)),
           ]),
           Expanded(
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm()),
+              child: Text('${s.enrolledCount} / ${s.capacity}', style: AdminTypography.labelSm().copyWith(fontSize: 18)),
             ),
           ),
           SizedBox(
@@ -532,7 +526,7 @@ class _ManageClassesScreenState extends State<ManageClassesScreen> with RefreshO
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  textStyle: AdminTypography.labelSm(),
+                  textStyle: AdminTypography.labelSm().copyWith(fontSize: 18),
                 ),
                 child: const Text('Manage', textAlign: TextAlign.center),
               ),

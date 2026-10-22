@@ -477,7 +477,7 @@ class _GradeAssignmentScreenState extends State<GradeAssignmentScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(color: FacultyColors.tertiaryContainer.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                  child: Text('Grade: $gradeLabel', style: FacultyTypography.titleSm(color: FacultyColors.tertiary).copyWith(fontSize: 13)),
+                  child: Text('Grade: $gradeLabel', style: FacultyTypography.titleSm(color: FacultyColors.tertiary).copyWith(fontSize: 17)),
                 ),
               ]),
               const SizedBox(height: 12),

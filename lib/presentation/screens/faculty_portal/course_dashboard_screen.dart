@@ -491,7 +491,11 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
   /// Students whose final score is above the passing mark are put forward to
   /// the admin for the course's badge; the admin approves it in Badge
   /// Approvals. Nothing is granted here.
+  bool _syncingBadges = false;
+
   Future<void> _syncBadgeEligibility() async {
+    if (_syncingBadges) return;
+    _syncingBadges = true;
     try {
       await _badgeApprovalsRepository.syncEligibility(
         courseId: widget.courseId,
@@ -500,6 +504,8 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
       );
     } catch (e) {
       debugPrint('Badge eligibility sync failed: $e');
+    } finally {
+      _syncingBadges = false;
     }
   }
 
@@ -847,7 +853,7 @@ class _CourseDashboardScreenState extends State<CourseDashboardScreen> with Refr
               children: [
                 Icon(icon, color: fg),
                 const SizedBox(width: 10),
-                Expanded(child: Text(title, style: FacultyTypography.titleSm(color: fg).copyWith(fontSize: 16))),
+                Expanded(child: Text(title, style: FacultyTypography.titleSm(color: fg).copyWith(fontSize: 20))),
               ],
             ),
             const SizedBox(height: 10),

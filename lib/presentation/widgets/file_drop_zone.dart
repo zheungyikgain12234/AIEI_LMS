@@ -172,10 +172,10 @@ class _FileDropZoneState extends State<FileDropZone> {
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _full ? UiContrast.textSecondary : UiContrast.text),
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: _full ? UiContrast.textSecondary : UiContrast.text),
                   ),
                   const SizedBox(height: 2),
-                  Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5, color: UiContrast.textSecondary)),
+                  Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16.5, color: UiContrast.textSecondary)),
                 ],
               ),
             ),

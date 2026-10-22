@@ -109,7 +109,7 @@ class _ScoreDistributionCardState extends State<ScoreDistributionCard> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         for (final tick in const [0, 25, 50, 75, 100])
-                          Text('$tick', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontSize: 9)),
+                          Text('$tick', style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontSize: 16)),
                       ],
                     ),
                   ],
@@ -124,7 +124,7 @@ class _ScoreDistributionCardState extends State<ScoreDistributionCard> {
   Widget _statLabel(String name, (double, double) stats, Color color) {
     return Text(
       '$name μ=${stats.$1.toStringAsFixed(1)} σ=${stats.$2.toStringAsFixed(1)}',
-      style: FacultyTypography.labelXs(color: color).copyWith(fontWeight: FontWeight.w700, fontSize: 9.5),
+      style: FacultyTypography.labelXs(color: color).copyWith(fontWeight: FontWeight.w700, fontSize: 16),
       overflow: TextOverflow.ellipsis,
     );
   }

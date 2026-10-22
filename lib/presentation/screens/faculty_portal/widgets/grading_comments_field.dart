@@ -43,7 +43,7 @@ class GradingCommentsField extends StatelessWidget {
                   valueListenable: controller,
                   builder: (context, value, _) => Text(
                     '${value.text.length}/$maxLength',
-                    style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontSize: 10, color: const Color(0xFF8A94A6)),
+                    style: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontSize: 16, color: const Color(0xFF8A94A6)),
                   ),
                 ),
               ),

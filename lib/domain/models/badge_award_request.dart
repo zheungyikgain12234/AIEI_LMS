@@ -47,6 +47,7 @@ class BadgeAwardRequest {
 
   bool get isPending => status == BadgeAwardRequestStatus.pending;
   bool get isApproved => status == BadgeAwardRequestStatus.approved;
+  bool get isRejected => status == BadgeAwardRequestStatus.rejected;
 
   factory BadgeAwardRequest.fromMap(Map<String, dynamic> map) {
     final student = map['students'] as Map<String, dynamic>?;

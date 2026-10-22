@@ -151,7 +151,7 @@ class _EnrolledCoursesCatalogueScreenState
 
                             if (!state.compulsoryReady) ...const [SizedBox(height: 40), Skeleton(width: 220, height: 26), SizedBox(height: 16), SkeletonCourseGrid(count: 3)] else if (state.compulsoryCourses.isNotEmpty) ...[
                               const SizedBox(height: 40),
-                              Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
+                              Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 26)),
                               const SizedBox(height: 4),
                               Text(
                                 'Required for your role — not yet on your enrolled list.',
@@ -337,7 +337,7 @@ class _EnrolledCoursesCatalogueScreenState
                     ) : const SkeletonCourseGrid(),
                     if (!state.compulsoryReady) ...const [SizedBox(height: 40), Skeleton(width: 220, height: 26), SizedBox(height: 16), SkeletonCourseGrid(count: 3)] else if (state.compulsoryCourses.isNotEmpty) ...[
                       const SizedBox(height: 40),
-                      Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 22)),
+                      Text('Compulsory for You', style: AppTypography.headlineLg(color: AppColors.primary).copyWith(fontSize: 26)),
                       const SizedBox(height: 4),
                       Text(
                         'Required for your role — not yet on your enrolled list.',

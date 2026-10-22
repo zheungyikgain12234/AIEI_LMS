@@ -488,7 +488,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
   }
 
   Widget _stickyHeaderRow() {
-    TextStyle s() => FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700);
+    TextStyle s() => FacultyTypography.labelXs().copyWith(fontSize: 12).copyWith(fontWeight: FontWeight.w700);
     return Container(
       height: _headerHeight,
       decoration: const BoxDecoration(
@@ -538,10 +538,10 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(children: [
-                          Flexible(child: Text(s.name, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                          Flexible(child: Text(s.name, style: FacultyTypography.bodyMd(color: FacultyColors.onSurface).copyWith(fontSize: 14).copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
                           if (s.flagged) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.flag, size: 14, color: FacultyColors.error)),
                         ]),
-                        Text(s.role, style: FacultyTypography.labelXs(), overflow: TextOverflow.ellipsis),
+                        Text(s.role, style: FacultyTypography.labelXs().copyWith(fontSize: 12), overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -553,7 +553,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
             width: _codeColWidth,
             child: Padding(
               padding: const EdgeInsets.only(right: 16),
-              child: Text(s.studentCode, style: FacultyTypography.bodySm(color: FacultyColors.secondary), overflow: TextOverflow.ellipsis),
+              child: Text(s.studentCode, style: FacultyTypography.bodySm(color: FacultyColors.secondary).copyWith(fontSize: 13), overflow: TextOverflow.ellipsis),
             ),
           ),
         ],
@@ -563,7 +563,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
 
   // ── Scrollable right panel: everything else ─────────────────────────────
   Widget _scrollableHeaderRow() {
-    TextStyle s() => FacultyTypography.labelXs().copyWith(fontWeight: FontWeight.w700);
+    TextStyle s() => FacultyTypography.labelXs().copyWith(fontSize: 12).copyWith(fontWeight: FontWeight.w700);
     return Container(
       height: _headerHeight,
       color: FacultyColors.surfaceContainerLow,
@@ -654,8 +654,8 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Text('${s.progress}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
-                    Text(s.progressTag, style: FacultyTypography.labelXs(color: s.progressColor).copyWith(fontWeight: FontWeight.w700)),
+                    Text('${s.progress}%', style: FacultyTypography.labelXs(color: FacultyColors.onSurface).copyWith(fontSize: 12).copyWith(fontWeight: FontWeight.w700)),
+                    Text(s.progressTag, style: FacultyTypography.labelXs(color: s.progressColor).copyWith(fontSize: 12).copyWith(fontWeight: FontWeight.w700)),
                   ]),
                   const SizedBox(height: 3),
                   ClipRRect(
@@ -670,14 +670,14 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
             padding: const EdgeInsets.only(left: _colGap),
             child: SizedBox(
               width: _assignColWidth,
-              child: Text(s.assignments, style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700)),
+              child: Text(s.assignments, style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontSize: 13).copyWith(fontWeight: FontWeight.w700)),
             ),
           ),
           Padding(
             padding: const EdgeInsets.only(left: _colGap),
             child: SizedBox(
               width: _quizColWidth,
-              child: Text(s.quiz, textAlign: TextAlign.right, style: FacultyTypography.titleSm(color: s.flagged ? FacultyColors.error : FacultyColors.onSurface)),
+              child: Text(s.quiz, textAlign: TextAlign.right, style: FacultyTypography.titleSm(color: s.flagged ? FacultyColors.error : FacultyColors.onSurface).copyWith(fontSize: 16)),
             ),
           ),
           Padding(
@@ -688,7 +688,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(color: s.statusBg, borderRadius: BorderRadius.circular(4)),
-                  child: Text(s.status, style: FacultyTypography.labelXs(color: s.statusColor).copyWith(fontWeight: FontWeight.w700)),
+                  child: Text(s.status, style: FacultyTypography.labelXs(color: s.statusColor).copyWith(fontSize: 12).copyWith(fontWeight: FontWeight.w700)),
                 ),
               ),
             ),
@@ -703,7 +703,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
                   return Text(
                     RosterRow._formatPct(marks),
                     textAlign: TextAlign.right,
-                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+                    style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontSize: 13),
                   );
                 }),
               ),
@@ -715,7 +715,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
               child: Text(
                 s.rawScoreLabel,
                 textAlign: TextAlign.right,
-                style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontSize: 16).copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -737,7 +737,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
               child: Text(
                 s.finalTotalLabel,
                 textAlign: TextAlign.right,
-                style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+                style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontSize: 16).copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -757,7 +757,7 @@ class _StudentRosterTableState extends State<StudentRosterTable> {
         child: Text(
           widget.gradeScale.letterFor(score),
           textAlign: TextAlign.center,
-          style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w700),
+          style: FacultyTypography.titleSm(color: FacultyColors.onSurface).copyWith(fontSize: 16).copyWith(fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -828,13 +828,13 @@ class _ModeratedScoreCellState extends State<_ModeratedScoreCell> {
               textAlign: TextAlign.right,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: decimalOnly,
-              style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontSize: 13),
               onChanged: (_) => setState(() => _dirty = true),
               onSubmitted: (_) => _save(),
               decoration: InputDecoration(
                 isDense: true,
                 suffixText: '%',
-                suffixStyle: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+                suffixStyle: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontSize: 12),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 ),
             ),
@@ -901,7 +901,7 @@ class _BulkModeratedScoreHeaderState extends State<_BulkModeratedScoreHeader> {
           onConfirm: () => Navigator.of(ctx).pop(),
           child: Text(
             'The admin has capped moderated score adjustments at ${RosterRow._formatPct(max)}%. Enter a value at or below this limit.',
-            style: FacultyTypography.bodyMd(),
+            style: FacultyTypography.bodyMd().copyWith(fontSize: 14),
           ),
         ),
       );
@@ -923,13 +923,13 @@ class _BulkModeratedScoreHeaderState extends State<_BulkModeratedScoreHeader> {
               textAlign: TextAlign.right,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: decimalOnly,
-              style: FacultyTypography.bodySm(color: FacultyColors.onSurface),
+              style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontSize: 13),
               decoration: InputDecoration(
                 isDense: true,
                 fillColor: FacultyColors.surfaceContainerLowest,
                 hintText: 'All',
                 suffixText: '%',
-                suffixStyle: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant),
+                suffixStyle: FacultyTypography.labelXs(color: FacultyColors.onSurfaceVariant).copyWith(fontSize: 12),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 ),
               onSubmitted: (_) => _apply(),

@@ -75,9 +75,9 @@ class FacultyHeader extends ConsumerWidget implements PreferredSizeWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(profile?.name ?? '', style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontWeight: FontWeight.w600)),
-                      Text(profile?.subtitle ?? '', style: FacultyTypography.labelXs()),
-                      if (profile?.code != null) Text(profile!.code!, style: FacultyTypography.labelXs()),
+                      Text(profile?.name ?? '', style: FacultyTypography.bodySm(color: FacultyColors.onSurface).copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text(profile?.subtitle ?? '', style: FacultyTypography.labelXs().copyWith(fontSize: 12)),
+                      if (profile?.code != null) Text(profile!.code!, style: FacultyTypography.labelXs().copyWith(fontSize: 12)),
                     ],
                   ),
                 ],

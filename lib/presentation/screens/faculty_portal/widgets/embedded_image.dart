@@ -146,7 +146,7 @@ class EmbeddedImage extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Image failed to load — if this is a link to another site, try uploading the file instead',
-              style: TextStyle(fontSize: 11, color: FacultyColors.onSurfaceVariant),
+              style: TextStyle(fontSize: 16, color: FacultyColors.onSurfaceVariant),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,

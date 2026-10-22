@@ -385,7 +385,7 @@ class _CurriculumManagerScreenState extends State<CurriculumManagerScreen> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(value, style: FacultyTypography.displayLg().copyWith(fontSize: 24)),
+              Text(value, style: FacultyTypography.displayLg().copyWith(fontSize: 28)),
               if (extra != null) ...[
                 const SizedBox(width: 6),
                 Text(extra, style: FacultyTypography.labelXs(color: FacultyColors.tertiary).copyWith(fontWeight: FontWeight.w600)),

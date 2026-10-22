@@ -60,8 +60,8 @@ class AdminHeader extends ConsumerWidget implements PreferredSizeWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(profile?.name ?? '', style: AdminTypography.titleSm(color: AdminColors.onSurface)),
-                      Text(profile?.subtitle ?? '', style: AdminTypography.labelSm()),
+                      Text(profile?.name ?? '', style: AdminTypography.titleSm(color: AdminColors.onSurface).copyWith(fontSize: 14)),
+                      Text(profile?.subtitle ?? '', style: AdminTypography.labelSm().copyWith(fontSize: 12)),
                     ],
                   ),
                   const SizedBox(width: 10),
